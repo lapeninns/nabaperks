@@ -1,7 +1,7 @@
 name: Production promotion janitor
 
 # Release evidence expires after one hour (scripts/release/manifest.mjs), so a
-# Production approval that waits longer can never pass. Approval waiting time
+# `Production approval` gate that waits longer can never pass. Approval waiting time
 # does not count against timeout-minutes because the gated job has not started
 # on a runner, yet the run keeps the production-release concurrency slot. This
 # janitor rejects such stale gates, falling back to cancelling the run.
@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # actions: write cancels a stale run (fallback); deployments: write rejects
-    # its pending Production deployment with the required review comment.
+    # its pending Production approval deployment with the review comment.
     permissions:
       contents: read
       actions: write

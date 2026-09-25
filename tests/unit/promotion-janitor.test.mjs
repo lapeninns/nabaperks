@@ -3,7 +3,7 @@ import { test } from "node:test"
 import {
   EVIDENCE_MAX_AGE_MS,
   JANITOR_STALE_MS,
-  PRODUCTION_ENVIRONMENT,
+  APPROVAL_ENVIRONMENT,
   PROMOTION_WORKFLOW_PATH,
   REJECTION_COMMENT,
   createGithubClient,
@@ -15,7 +15,8 @@ import {
 } from "../../scripts/release/promotion-janitor.mjs"
 
 const NOW = new Date("2026-09-22T12:00:00Z")
-const PRODUCTION_ID = 17167874456
+const APPROVAL_ID = 17167874456
+const PRODUCTION_ID = 17167874457
 const MONITORING_ID = 9001
 const RUNS_PATH =
   "/repos/lapeninns/nabaperks/actions/workflows/production-database.yml/runs"
@@ -41,7 +42,7 @@ function pending(name, id) {
   return { environment: { id, name }, wait_timer: 0, reviewers: [] }
 }
 
-function waitingJobs(minutes, name = "Database promotion") {
+function waitingJobs(minutes, name = "Approve production release") {
   return {
     total_count: 2,
     jobs: [
@@ -112,7 +113,7 @@ test("the stale threshold is coupled to the one-hour release evidence expiry", (
   assert.ok(JANITOR_STALE_MS > EVIDENCE_MAX_AGE_MS)
   // One missed 15-minute tick after the threshold must still act within 2h.
   assert.ok(JANITOR_STALE_MS + 15 * 60_000 < 2 * 3_600_000)
-  assert.equal(PRODUCTION_ENVIRONMENT, "Production")
+  assert.equal(APPROVAL_ENVIRONMENT, "Production approval")
   assert.match(REJECTION_COMMENT, /maxAgeMs 3600000/)
   assert.match(REJECTION_COMMENT, /fresh complete outer run/)
 })
@@ -129,25 +130,26 @@ test("gate entry uses the waiting job start, falling back to the run start", () 
   )
 })
 
-test("the decision core rejects only Production gates older than the threshold", () => {
+test("the decision core rejects only Production approval gates older than the threshold", () => {
   const run = promotionRun(1)
   const stale = decidePromotion({
     run,
     pendingDeployments: [
       pending("Production", PRODUCTION_ID),
+      pending("Production approval", APPROVAL_ID),
       pending("Monitoring", MONITORING_ID),
     ],
     jobs: waitingJobs(90).jobs,
     now: NOW,
   })
   assert.equal(stale.action, "reject")
-  assert.deepEqual(stale.environmentIds, [PRODUCTION_ID])
-  assert.equal(stale.gateJob, "Database promotion")
+  assert.deepEqual(stale.environmentIds, [APPROVAL_ID])
+  assert.equal(stale.gateJob, "Approve production release")
   assert.equal(stale.waitedMinutes, 90)
 
   const boundary = decidePromotion({
     run,
-    pendingDeployments: [pending("Production", PRODUCTION_ID)],
+    pendingDeployments: [pending("Production approval", APPROVAL_ID)],
     jobs: [{ name: "gate", status: "waiting", started_at: minutesAgo(75) }],
     now: NOW,
   })
@@ -163,7 +165,14 @@ test("the decision core rejects only Production gates older than the threshold",
   assert.equal(unblocked.action, "skip")
   assert.equal(unblocked.reason, "not-approval-blocked")
 
-  for (const name of ["Monitoring", "production", "Recovery Drill"]) {
+  // The credential-holding Production environment has no reviewer after the
+  // single-approval cutover; the janitor never rejects it or other gates.
+  for (const name of [
+    "Production",
+    "Monitoring",
+    "production approval",
+    "Recovery Drill",
+  ]) {
     const other = decidePromotion({
       run,
       pendingDeployments: [pending(name, MONITORING_ID)],
@@ -171,15 +180,15 @@ test("the decision core rejects only Production gates older than the threshold",
       now: NOW,
     })
     assert.equal(other.action, "skip", name)
-    assert.equal(other.reason, "no-production-gate", name)
+    assert.equal(other.reason, "no-approval-gate", name)
   }
 })
 
-test("a stale Production-gated promotion is rejected with the explanatory comment", async () => {
+test("a stale approval-gated promotion is rejected with the explanatory comment", async () => {
   const { calls, fetcher } = mockGithub({
     runsByStatus: { waiting: [promotionRun(41)] },
     routes: runRoutes(41, {
-      deployments: { body: [pending("Production", PRODUCTION_ID)] },
+      deployments: { body: [pending("Production approval", APPROVAL_ID)] },
       jobs: waitingJobs(120),
       reject: { status: 200, body: [] },
     }),
@@ -194,7 +203,7 @@ test("a stale Production-gated promotion is rejected with the explanatory commen
     "/repos/lapeninns/nabaperks/actions/runs/41/pending_deployments"
   )
   assert.deepEqual(posted[0].body, {
-    environment_ids: [PRODUCTION_ID],
+    environment_ids: [APPROVAL_ID],
     state: "rejected",
     comment: REJECTION_COMMENT,
   })
@@ -207,7 +216,7 @@ test("a stale Production-gated promotion is rejected with the explanatory commen
   }
 })
 
-test("fresh, unblocked and non-Production runs are never written to", async () => {
+test("fresh, unblocked and non-approval runs are never written to", async () => {
   const { calls, fetcher } = mockGithub({
     runsByStatus: {
       waiting: [promotionRun(51), promotionRun(52), promotionRun(53)],
@@ -215,7 +224,7 @@ test("fresh, unblocked and non-Production runs are never written to", async () =
     },
     routes: {
       ...runRoutes(51, {
-        deployments: { body: [pending("Production", PRODUCTION_ID)] },
+        deployments: { body: [pending("Production approval", APPROVAL_ID)] },
         jobs: waitingJobs(30),
       }),
       ...runRoutes(52, { deployments: { body: [] }, jobs: waitingJobs(1) }),
@@ -236,7 +245,7 @@ test("fresh, unblocked and non-Production runs are never written to", async () =
       [54, "not-approval-blocked"],
       [51, "within-threshold"],
       [52, "not-approval-blocked"],
-      [53, "no-production-gate"],
+      [53, "no-approval-gate"],
     ]
   )
   // Unblocked runs do not need a jobs read.
@@ -271,7 +280,7 @@ test("reject refusals fall back to cancelling the run", async () => {
     const { calls, fetcher } = mockGithub({
       runsByStatus: { waiting: [promotionRun(71)] },
       routes: runRoutes(71, {
-        deployments: { body: [pending("Production", PRODUCTION_ID)] },
+        deployments: { body: [pending("Production approval", APPROVAL_ID)] },
         jobs: waitingJobs(100),
         reject: { status, body: { message: "not a required reviewer" } },
         cancel: { status: 202, body: {} },
@@ -295,7 +304,7 @@ test("a 409 from cancel is a benign already-finished outcome", async () => {
   const { fetcher } = mockGithub({
     runsByStatus: { waiting: [promotionRun(81)] },
     routes: runRoutes(81, {
-      deployments: { body: [pending("Production", PRODUCTION_ID)] },
+      deployments: { body: [pending("Production approval", APPROVAL_ID)] },
       jobs: waitingJobs(100),
       reject: { status: 403, body: {} },
       cancel: { status: 409, body: { message: "Cannot cancel" } },
@@ -313,12 +322,12 @@ test("unexpected write failures are reported as errors without escalation", asyn
     runsByStatus: { waiting: [promotionRun(82), promotionRun(83)] },
     routes: {
       ...runRoutes(82, {
-        deployments: { body: [pending("Production", PRODUCTION_ID)] },
+        deployments: { body: [pending("Production approval", APPROVAL_ID)] },
         jobs: waitingJobs(100),
         reject: { status: 500, body: {} },
       }),
       ...runRoutes(83, {
-        deployments: { body: [pending("Production", PRODUCTION_ID)] },
+        deployments: { body: [pending("Production approval", APPROVAL_ID)] },
         jobs: waitingJobs(100),
         reject: { status: 403, body: {} },
         cancel: { status: 500, body: {} },
@@ -344,7 +353,7 @@ test("the race guard skips a run whose approval landed before acting", async () 
     runsByStatus: { waiting: [promotionRun(91)] },
     routes: runRoutes(91, {
       deployments: [
-        { body: [pending("Production", PRODUCTION_ID)] },
+        { body: [pending("Production approval", APPROVAL_ID)] },
         { body: [] },
       ],
       jobs: waitingJobs(100),
@@ -362,7 +371,7 @@ test("dry-run reports the decision and performs zero writes", async () => {
   const { calls, fetcher } = mockGithub({
     runsByStatus: { waiting: [promotionRun(101)] },
     routes: runRoutes(101, {
-      deployments: { body: [pending("Production", PRODUCTION_ID)] },
+      deployments: { body: [pending("Production approval", APPROVAL_ID)] },
       jobs: waitingJobs(240),
     }),
   })

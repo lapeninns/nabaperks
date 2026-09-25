@@ -142,7 +142,7 @@ test("old release waiting for approval asks for inspection, never blind approval
     status: "waiting",
     createdAt: new Date(NOW - 60_000).toISOString(),
     complete: true,
-    environments: [{ name: "Production", reviewers: ["owner"] }],
+    environments: [{ name: "Production approval", reviewers: ["owner"] }],
   }
   assert.equal(
     evaluateRelease(run, MERGE, policy, NOW).action,

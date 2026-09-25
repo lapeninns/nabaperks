@@ -77,44 +77,54 @@ full webhook payloads.
 ## Promote and verify
 
 1. Merge the independently reviewed branch through protected `main`; do not
-   bypass checks. Merge from an account that is not the `Production`
-   reviewer. The environment uses `prevent_self_review` and has one reviewer,
-   `amanshresthaa`, and every promotion runs as the account that merged. A
-   promotion started by that reviewer's own merge can never be approved and
-   holds the release slot until the janitor cancels it. Merge as
+   bypass checks. Merge from an account that is not the release reviewer. The
+   `Production approval` environment uses `prevent_self_review` and has one
+   reviewer, `amanshresthaa`, and every promotion runs as the account that
+   merged. A promotion started by that reviewer's own merge can never be
+   approved and holds the release slot until the janitor cancels it. Merge as
    `lapeninns` instead: promotion 35780140771 for `43f3dcb9` ran as
    `lapeninns` on 2026-09-22 and listed `amanshresthaa` as its eligible
    reviewer. A second eligible reviewer would remove this constraint; adding
    one is an environment setting reserved for the repository owner.
-2. Wait for exact-main CI and CodeQL, then review the protected
-   `Authenticate the deployed baseline` job in `Production database promotion`.
-   This first approval permits the authenticated Vercel baseline readback. If
-   the complete deployed-to-candidate difference is qualified internal
+2. Wait for exact-main CI and CodeQL. The `Authenticate the deployed baseline`
+   job then reads the live Vercel baseline without pausing: it uses the
+   `Production` environment only for its read-only `VERCEL_TOKEN`. If the
+   complete deployed-to-candidate difference is qualified internal
    documentation only, the run records `production-unchanged` evidence and
-   skips staging, database and application deployment. Record the existing
-   production revision and the separate documentation candidate; do not report
-   that candidate as deployed. See [change-aware CI](change-aware-ci.md).
-   For application releases, the cost-neutral ephemeral proof
-   must start a fresh Supabase CLI stack, build the exact revision on the
-   loopback origin, verify the full migration ledger and authenticated
-   readiness, replay signed webhooks, and roll back its synthetic loyalty
-   journey before the protected production database job becomes eligible. If
-   the optional hosted-staging path is active, wait for that additional gate as
-   well. The same outer run then calls the reusable `Production deployment`
-   stage while retaining the `production-release` concurrency lock. It builds
-   and attests one immutable source revision, stages a Vercel build without
-   domains, validates its full SHA, canonical project/team, READY state and
-   immutable deployment ID, then promotes that ID. Immediate public proof
-   remains inside the outer lock. This is one release run, with protected
-   environments on both database and application jobs.
-3. Record the deployment URL and Git commit SHA. Confirm that the
+   skips staging, approval, database and application deployment, so it needs
+   no approval. Record the existing production revision and the separate
+   documentation candidate; do not report that candidate as deployed. See
+   [change-aware CI](change-aware-ci.md). For application releases, the
+   cost-neutral ephemeral proof must start a fresh Supabase CLI stack, build
+   the exact revision on the loopback origin, verify the full migration ledger
+   and authenticated readiness, replay signed webhooks, and roll back its
+   synthetic loyalty journey. Credential-free qualification follows. If the
+   optional hosted-staging path is active, wait for that additional gate as
+   well.
+3. Review the release, then approve the single `Approve production release`
+   job in `Production database promotion`. It waits on the secret-free
+   `Production approval` environment and records the approved revision and
+   run attempt. This one approval covers the database promotion and the
+   application deployment of that attempt; neither pauses again, because the
+   `Production` environment that holds their credentials has no reviewer.
+   The database job refuses an approval from a different revision or run
+   attempt, and the application job accepts only the database stage from its
+   own attempt, so rerunning a failed stage needs a fresh complete outer run
+   and a new approval. The same outer run then calls the reusable application
+   stage, `Production deployment`, while retaining the `production-release`
+   concurrency lock. It builds and attests one immutable source revision,
+   stages a Vercel build without domains, validates its full SHA, canonical
+   project/team, READY state and immutable deployment ID, then promotes that
+   ID. Immediate public proof remains inside the outer lock. This is one
+   release run with one approval.
+4. Record the deployment URL and Git commit SHA. Confirm that the
    `Deploy and prove the production alert receiver` step of the
    `Production deployment` job passed. Before promotion, every application
    release redeploys both the `production-alert` and `admin-webauthn` Supabase
    Edge Functions with `--no-verify-jwt`, requires each to be listed `ACTIVE`,
    and only then triggers and resolves the `release-canary` alert
    (`.github/workflows/production-deploy.yml`).
-4. Verify the exact revision and both probes:
+5. Verify the exact revision and both probes:
 
    ```sh
    curl --fail --silent https://nabaperks.com/api/health | jq
@@ -128,14 +138,14 @@ full webhook payloads.
    `signals` object must include eight cron jobs plus numeric queue-age and
    provider-delivery fields. Both probes must show the promoted revision.
 
-5. Confirm `/` returns 200 and renders the public marketing site. Run
+6. Confirm `/` returns 200 and renders the public marketing site. Run
    anonymous smoke checks for `/signup`, `/privacy`, `/terms`, `/cookies`,
    `/merchant-terms`, `/data-processing`, `/login`, `/home/login`, and
    confirm every `/dev/*` route remains 404.
-6. Complete one controlled merchant login, one customer login, one QR join,
+7. Complete one controlled merchant login, one customer login, one QR join,
    one stamp/redeem lifecycle, one email delivery and one OTP delivery in the
    target environment. Never use production customer data as a test fixture.
-7. Confirm the automatically triggered `Production smoke` run verified the
+8. Confirm the automatically triggered `Production smoke` run verified the
    promoted Git SHA, then confirm the next scheduled availability-only run is
    also green. A manual dispatch with `expected_revision` remains available for
    rollback and incident verification.
@@ -144,15 +154,26 @@ full webhook payloads.
 
 The `Production database promotion` workflow is the only routine production
 migration path. Successful `main` CI starts it automatically; it waits for
-successful push-triggered CI and CodeQL runs for that exact SHA, then pauses at
-the protected GitHub `Production` environment before credentials are released.
+successful push-triggered CI and CodeQL runs for that exact SHA. After the
+release proof and qualification it pauses once, at the secret-free GitHub
+`Production approval` environment, before any job that writes with production
+credentials can start.
 Manual dispatch remains available for recovery and requires the full SHA at the
 tip of `main` plus the literal confirmation `PROMOTE_PRODUCTION_DATABASE`.
 
-Configure the environment before first use:
+Configure both environments before first use. `Production approval` holds
+the decision and nothing else:
 
-- permit deployments from `main` only;
-- require an independent reviewer and disable routine administrator bypass;
+- permit deployments from protected branches only, matching `Production`;
+- require the release reviewer, enable `prevent_self_review` and disable
+  routine administrator bypass;
+- add no secrets or variables. `pnpm ops:github:check` fails if any appear.
+
+`Production` holds the credentials and has no required reviewer. Every job
+that uses it for a write needs the approval job first; see
+`tests/contracts/production-approval-gate.test.mjs`:
+
+- permit deployments from protected branches only;
 - add `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` and the same generated
   `SUPABASE_SEND_EMAIL_HOOK_SECRET` held by Vercel Production as environment
   secrets, plus `SUPABASE_PROJECT_REF` as an environment variable. Never use a
@@ -192,9 +213,9 @@ the GitHub runner, builds the exact revision with non-secret provider fixtures,
 starts it on the fixed loopback origin, and proves the complete local migration
 ledger, authenticated liveness/readiness, signed Stripe and Resend replay, and
 the transactionally rolled-back core loyalty journey. It has no production
-credential and cannot promote by itself; the independent `Production`
-environment remains the only path that can release production database
-credentials.
+credential and cannot promote by itself; production database credentials
+are released only after the `Approve production release` job succeeds in the
+same run attempt.
 
 If hosted staging is later funded, configure a separate GitHub `Staging`
 environment before activating that stronger path. It may permit only `main`;
@@ -243,12 +264,13 @@ idempotency key. Configure the GitHub `Monitoring` URL and secret only after
 the fixed workflow revision and receiver are live; otherwise an older workflow
 could resolve an incident using its deprecated comment marker.
 
-Review the migration files before approving the production environment gates.
-After exact-main CI and CodeQL, the first protected job authenticates the
-deployed baseline and decides whether application deployment is required.
-Runtime releases then run the cost-neutral ephemeral proof described above and
-qualify compatibility on a fresh runner without production credentials. Only
-after both succeed does the protected database promotion job become eligible.
+Review the migration files before approving the release. After exact-main CI
+and CodeQL, the first `Production` job authenticates the deployed baseline
+read-only and decides whether application deployment is required. Runtime
+releases then run the cost-neutral ephemeral proof described above and qualify
+compatibility on a fresh runner without production credentials. Only after
+both succeed does `Approve production release` ask for the single approval,
+and only after that approval does the database promotion job start.
 That job runs a linked dry run immediately before applying forward-only
 migrations and fails unless the remote and repository ledgers match. Never
 repair, reset or seed production from this path. After successful database
@@ -258,7 +280,8 @@ build with no domain assignment, probes that URL and promotes its validated
 immutable ID. The complete outer run retains `production-release`; the
 application callee has no competing same-group lock. The admin activation and
 bootstrap mutators share that lock, while the non-production recovery drill
-uses its own group.
+uses its own group. Each admin mutator also has its own `Production approval`
+job, so it keeps one human approval per dispatch.
 
 Release-triggered `Production smoke` reads the single candidate or explicit
 no-deployment artifact from the successful outer run and exact attempt. It
@@ -280,7 +303,7 @@ also invalidate the immutable main-tip guard. Inspect the last completed stage
 and actual provider state before proceeding.
 
 Every promotion shares the `production-release` concurrency group with
-`cancel-in-progress: false`. A run waiting for a `Production` approval keeps
+`cancel-in-progress: false`. A run waiting for its release approval keeps
 that slot, so later automatic promotions queue behind it until the approval is
 given, rejected or the run is cancelled. Environment approval waiting time does
 not count against `timeout-minutes`: the gated job has not started on a runner,
@@ -358,16 +381,16 @@ and on manual dispatch. GitHub delivers this repository's schedules sparsely,
 so the promotion trigger is what bounds a stale wait in practice: a stale gate
 only blocks anything once another promotion queues behind it. It lists active `Production database
 promotion` runs on `main`, reads each run's pending deployments and measures
-how long any `Production` gate has waited from the waiting job's gate entry.
-The threshold is more than 75 minutes: the one-hour expiry plus headroom for
-an approval already in flight. A database or application gate past it can no
-longer pass the evidence checks, and an unattended baseline gate that long
-still holds the release slot, so the janitor treats every `Production` gate
-alike. It re-reads the pending deployments, then rejects the stale gate with
+how long a `Production approval` gate has waited from the waiting job's gate
+entry. The threshold is more than 75 minutes: the one-hour expiry plus headroom
+for an approval already in flight. An approval past it can no longer pass the
+evidence checks in the database or application job. The credential-holding
+`Production` environment has no reviewer, so it never waits and the janitor
+ignores it. The janitor re-reads the pending deployments, then rejects the stale gate with
 the comment "Promotion janitor: Production approval exceeded the 1h
 release-evidence expiry". If GitHub refuses that review, it cancels the run
 instead; a `409` means the run already finished. The workflow token is not a
-required `Production` reviewer, so in practice GitHub refuses the review with
+required `Production approval` reviewer, so in practice GitHub refuses the review with
 `422` and the janitor cancels the run; the first live pass on 2026-09-22
 cancelled a gate that had waited 408 minutes this way. Each action is recorded as a workflow
 annotation and in the run summary. The janitor never approves, never touches

@@ -219,3 +219,109 @@ test("governance evidence reports missing release checks and environment materia
     /SUPABASE_PROJECT_REF/
   )
 })
+
+test("the single release reviewer sits on a secret-free approval environment", () => {
+  const approval = CONTRACT.environments["Production approval"]
+  const production = CONTRACT.environments.Production
+
+  assert.equal(approval.independentReview, true)
+  assert.equal(approval.secretFree, true)
+  assert.deepEqual(approval.requiredSecrets, [])
+  assert.deepEqual(approval.requiredVariables, [])
+  // Production keeps every credential and its branch policy, but no longer
+  // pauses: the approval job gates each job that uses those credentials.
+  assert.equal(production.independentReview, false)
+  for (const secret of [
+    "SUPABASE_ACCESS_TOKEN",
+    "SUPABASE_DB_PASSWORD",
+    "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+    "VERCEL_TOKEN",
+  ])
+    assert.ok(production.requiredSecrets.includes(secret), secret)
+  assert.deepEqual(production.requiredVariables, ["SUPABASE_PROJECT_REF"])
+  for (const [name, environment] of Object.entries(CONTRACT.environments))
+    if (name !== "Production approval")
+      assert.notEqual(environment.secretFree, true, name)
+})
+
+test("the approval environment fails closed without a reviewer, with self-review or with credentials", () => {
+  const name = "Production approval"
+  const evidence = completeEvidence()
+  const approval = evidence.environments[name]
+  approval.configuration.protection_rules = []
+  approval.configuration.deployment_branch_policy.custom_branch_policies = true
+  approval.secretNames = ["SUPABASE_DB_PASSWORD"]
+  approval.variables = { SUPABASE_PROJECT_REF: "productionproject0001" }
+
+  const byControl = new Map(
+    evaluateGitHubGovernance(CONTRACT, evidence).map((result) => [
+      result.control,
+      result,
+    ])
+  )
+
+  assert.equal(byControl.get(`environment:${name}:exists`).status, "PASS")
+  for (const control of [
+    "protected-branches",
+    "self-review",
+    "independent-reviewer",
+    "secret-free",
+  ])
+    assert.equal(
+      byControl.get(`environment:${name}:${control}`).status,
+      "FAIL",
+      control
+    )
+  assert.match(
+    byControl.get(`environment:${name}:secret-free`).detail,
+    /SUPABASE_DB_PASSWORD, SUPABASE_PROJECT_REF/
+  )
+
+  const missing = completeEvidence()
+  delete missing.environments[name]
+  const absent = evaluateGitHubGovernance(CONTRACT, missing).find(
+    ({ control }) => control === `environment:${name}:exists`
+  )
+  assert.equal(absent.status, "FAIL")
+
+  const selfReview = completeEvidence()
+  selfReview.environments[
+    name
+  ].configuration.protection_rules[0].prevent_self_review = false
+  assert.equal(
+    evaluateGitHubGovernance(CONTRACT, selfReview).find(
+      ({ control }) => control === `environment:${name}:self-review`
+    ).status,
+    "FAIL"
+  )
+})
+
+test("Production passes with or without its former reviewer but keeps branch and secret checks", () => {
+  const withReviewer = completeEvidence()
+  withReviewer.environments.Production.configuration.protection_rules = [
+    {
+      type: "required_reviewers",
+      prevent_self_review: true,
+      reviewers: [{ type: "User", reviewer: { login: "release-owner" } }],
+    },
+  ]
+  assert.deepEqual(
+    evaluateGitHubGovernance(CONTRACT, withReviewer).filter(
+      ({ status }) => status === "FAIL"
+    ),
+    []
+  )
+
+  const drifted = completeEvidence()
+  drifted.environments.Production.configuration.deployment_branch_policy = {
+    protected_branches: false,
+    custom_branch_policies: true,
+  }
+  drifted.environments.Production.secretNames = ["VERCEL_TOKEN"]
+  const failures = evaluateGitHubGovernance(CONTRACT, drifted)
+    .filter(({ status }) => status === "FAIL")
+    .map(({ control }) => control)
+  assert.ok(failures.includes("environment:Production:protected-branches"))
+  assert.ok(failures.includes("environment:Production:secrets"))
+  assert.equal(failures.includes("environment:Production:secret-free"), false)
+})

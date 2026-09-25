@@ -186,9 +186,11 @@ Git difference contains only documentation. This extra restriction applies to
 the no-deployment path. Release-triggered smoke checks pin their scripts to the completed
 release run's immutable revision and read the allowlist from the artifact's
 actual candidate revision, so a newer main cannot change that decision. The
-protected baseline approval remains necessary because the
-current credential scope lives in Production. This change removes subsequent
-deployment work, not that initial approval.
+baseline reader still uses the `Production` environment for its read-only
+Vercel credential, but it no longer pauses for approval. The single release
+approval sits on the secret-free `Production approval` environment after the
+release proof, so a documentation-only outcome finishes without any approval
+and without a production write.
 
 Runtime changes retain ephemeral staging, runtime qualification, database
 compatibility and protected database/application promotion in order. Explicit
