@@ -70,6 +70,7 @@ export type StripeWebhookProcessorDependencies = {
     policy: "charged" | "annual_included"
   }) => Promise<boolean>
   hasSatisfiedLaunchFee: (merchantId: string) => Promise<boolean>
+  merchantExists: (merchantId: string) => Promise<boolean>
   consumeIntroductoryTrial: (merchantId: string) => Promise<void>
   completeEvent: (input: {
     eventId: string
@@ -79,6 +80,7 @@ export type StripeWebhookProcessorDependencies = {
 
 type StripeWebhookProcessingErrorCode =
   | "ownership_mismatch"
+  | "unknown_merchant"
   | "launch_fee_pending"
   | "unprocessable"
   | "lease_lost"
@@ -384,6 +386,7 @@ export async function processStripeWebhookEvent(
     dependencies,
   })
   assertResolvedOwnership(subscription, context, ownership)
+  await assertWebhookMerchantExists(ownership.merchantId, dependencies)
 
   const snapshot = snapshotWebhookSubscription(subscription)
   const entitlementStatus = mapStripeSubscriptionStatus(subscription.status)
@@ -477,6 +480,19 @@ export function createStripeWebhookProcessorDependencies(
       if (error) throw new Error("Unable to verify launch fee status")
       return data?.launch_fee_status != null
     },
+    merchantExists: async (merchantId) => {
+      const { createSupabaseServiceRoleClient } =
+        await import("@/lib/supabase/server")
+      const supabase = createSupabaseServiceRoleClient()
+      const { data, error } = await supabase
+        .from("merchants")
+        .select("id")
+        .eq("id", merchantId)
+        .maybeSingle()
+
+      if (error) throw new Error("Unable to verify billing merchant")
+      return data !== null
+    },
     completeEvent: completeStripeWebhookEvent,
   }
 }
@@ -529,6 +545,7 @@ function isMissingStripeResource(error: unknown) {
 function isAcknowledgedWebhookFailure(errorCode: string) {
   return (
     errorCode === "ownership_mismatch" ||
+    errorCode === "unknown_merchant" ||
     errorCode === "launch_fee_pending" ||
     errorCode === "unprocessable"
   )
@@ -558,6 +575,22 @@ async function resolveWebhookOwnership({
     if (isInfrastructureWebhookError(error)) throw error
     throw new StripeWebhookProcessingError("ownership_mismatch")
   }
+}
+
+/**
+ * Every Stripe test-mode environment (local, preview, staging) shares one
+ * Stripe account, so this endpoint also receives events for Subscriptions
+ * created against another environment's merchants. Applying one would violate
+ * the billing_customers foreign key and return 500 on every retry until Stripe
+ * disables the endpoint. A merchant this database has never held cannot be
+ * billed here, so the event is acknowledged without any billing write.
+ */
+async function assertWebhookMerchantExists(
+  merchantId: string,
+  dependencies: StripeWebhookProcessorDependencies
+) {
+  if (await dependencies.merchantExists(merchantId)) return
+  throw new StripeWebhookProcessingError("unknown_merchant")
 }
 
 function snapshotWebhookSubscription(subscription: Stripe.Subscription) {
