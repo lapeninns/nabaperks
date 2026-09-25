@@ -61,6 +61,7 @@ function processorDependencies(overrides = {}) {
     applySubscriptionEvent: async () => "applied",
     satisfyLaunchFee: async () => true,
     hasSatisfiedLaunchFee: async () => true,
+    merchantExists: async () => true,
     completeEvent: async () => true,
     ...overrides,
   }
@@ -592,6 +593,14 @@ test("business-rule webhook failures are acknowledged so Stripe does not disable
       },
     })
   )
+  const unknownMerchant = await handleStripeWebhookRequest(
+    signedRequest(),
+    routeDependencies({
+      processEvent: async () => {
+        throw new StripeWebhookProcessingError("unknown_merchant")
+      },
+    })
+  )
 
   assert.equal(ownership.status, 200)
   assert.deepEqual(await ownership.json(), {
@@ -608,6 +617,85 @@ test("business-rule webhook failures are acknowledged so Stripe does not disable
     received: true,
     ignored: true,
   })
+  assert.equal(unknownMerchant.status, 200)
+  assert.deepEqual(await unknownMerchant.json(), {
+    received: true,
+    ignored: true,
+  })
+})
+
+test("a Subscription for a merchant this environment never held is ignored without a billing write", async () => {
+  for (const [type, object] of [
+    [
+      "customer.subscription.deleted",
+      subscription({
+        status: "canceled",
+        metadata: { merchant_id: MERCHANT_ID },
+      }),
+    ],
+    ["customer.subscription.updated", subscription()],
+    [
+      "invoice.payment_succeeded",
+      {
+        id: "in_owned",
+        customer: "cus_owned",
+        parent: {
+          subscription_details: { subscription: "sub_owned" },
+        },
+      },
+    ],
+  ]) {
+    const writes = []
+    const checkedMerchants = []
+
+    await assert.rejects(
+      processStripeWebhookEvent(
+        { event: event(type, object), leaseId: LEASE_ID },
+        processorDependencies({
+          merchantExists: async (merchantId) => {
+            checkedMerchants.push(merchantId)
+            return false
+          },
+          satisfyLaunchFee: async () => {
+            writes.push("launch_fee")
+            return true
+          },
+          applySubscriptionEvent: async () => {
+            writes.push("apply")
+            return "applied"
+          },
+          consumeIntroductoryTrial: async () => {
+            writes.push("trial")
+          },
+        })
+      ),
+      (error) =>
+        error instanceof StripeWebhookProcessingError &&
+        error.code === "unknown_merchant",
+      type
+    )
+    assert.deepEqual(checkedMerchants, [MERCHANT_ID], type)
+    assert.deepEqual(writes, [], type)
+  }
+})
+
+test("merchant existence lookup failures stay retryable", async () => {
+  await assert.rejects(
+    processStripeWebhookEvent(
+      {
+        event: event("customer.subscription.updated", subscription()),
+        leaseId: LEASE_ID,
+      },
+      processorDependencies({
+        merchantExists: async () => {
+          throw new Error("Unable to verify billing merchant")
+        },
+      })
+    ),
+    (error) =>
+      !(error instanceof StripeWebhookProcessingError) &&
+      error.message === "Unable to verify billing merchant"
+  )
 })
 
 test("a Dashboard or deleted Subscription is completed instead of retrying forever", async () => {
