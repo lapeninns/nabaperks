@@ -65,6 +65,46 @@ test("issued progress comes from the server and slams the venue stamp slot", () 
   )
 })
 
+test("a full card with no reward issued confirms the stamp calmly, never an unlock", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const printing = reduceStampChoreography(checking, {
+    type: "request_issued",
+    result: { ...issued, rewardUnlocked: false, bonusStampsApplied: 0 },
+  })
+  const view = stampChoreographyView(printing, {
+    ...baseView,
+    current: 4,
+    stampDates: ["12 Jul", "13 Jul", "14 Jul", "15 Jul"],
+  })
+  const pending =
+    "We're sorting your reward. Check back shortly, or ask a team member."
+
+  assert.equal(view.displayCurrent, 5)
+  assert.equal(view.cardComplete, true)
+  assert.equal(view.confirmed, true)
+  assert.equal(view.slamIndex, 4, "the visit stamp still prints")
+  assert.equal(view.rewardUnlocked, false, "the reward stays sealed")
+  assert.equal(view.rewardSlammed, false)
+  assert.equal(view.statusTitle, "That's the full card.")
+  assert.equal(view.statusBody, pending)
+  assert.equal(
+    view.announcement,
+    `Stamp added. That's the full card. ${pending}`
+  )
+  for (const copy of [view.announcement, view.statusBody]) {
+    assert.doesNotMatch(copy, /unlocked|ready to open|!/i)
+  }
+
+  const confirmed = stampChoreographyView(
+    reduceStampChoreography(printing, { type: "print_settled" }),
+    { ...baseView, current: 4 }
+  )
+  assert.equal(confirmed.rewardUnlocked, false)
+  assert.equal(confirmed.statusBody, pending)
+})
+
 test("a fast server refresh cannot move the final stamp slam past its slot", () => {
   const checking = reduceStampChoreography(initialStampChoreographyState, {
     type: "request_started",

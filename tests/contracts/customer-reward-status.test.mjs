@@ -62,15 +62,24 @@ test("Given reward status uses service-role reads When the loader runs Then owne
   assert.doesNotMatch(statusLoader, /customerId:\s*string/)
 })
 
-test("Given the reward page waits for merchant collection When the client polls Then it stays single-flight and pauses while hidden", () => {
+test("Given the reward page waits for merchant collection When the client polls Then it stays single-flight, bounded and pauses while hidden", () => {
   const live = readProjectFile(
     "components",
     "customer",
     "reward-collection-live.tsx"
   )
 
-  assert.match(live, /const POLL_INTERVAL_MS = 1500/)
-  assert.match(live, /setTimeout\(check, POLL_INTERVAL_MS\)/)
+  assert.match(
+    live,
+    /const delay = rewardCollectionPollDelay\(Date\.now\(\) - windowStartedAt\)/
+  )
+  assert.match(live, /if \(delay === null\) return/)
+  assert.match(live, /setTimeout\(check, delay\)/)
+  assert.match(
+    live,
+    /isTerminalRewardStatusResponse\(res\.status\)\) \{\s*stopped = true/
+  )
+  assert.match(live, /windowStartedAt = Date\.now\(\)\s*check\(\)/)
   assert.doesNotMatch(live, /setInterval\(/)
   assert.match(live, /let polling = false/)
   assert.match(live, /if \(!active \|\| polling\) return/)

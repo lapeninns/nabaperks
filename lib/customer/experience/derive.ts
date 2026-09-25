@@ -15,6 +15,7 @@ import {
   externalAccessProblem,
   type InternalAccessProblem,
 } from "./types"
+import { FULL_CARD_REWARD_PENDING_COPY } from "@/lib/customer/card-stamp-labels"
 import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-recovery"
 
@@ -47,10 +48,6 @@ const COMPLETE_GATE: ProfileGate = {
   email: null,
   emailLocked: false,
 }
-
-/** Recovery copy for the full-card-without-reward data inconsistency (G9). */
-const FULL_CARD_NO_REWARD_REASON =
-  "We're sorting your reward. Check back shortly, or ask a team member."
 
 export type CardContext =
   | AccessFailure
@@ -188,7 +185,7 @@ function deriveCard(context: CardContext): CustomerExperience {
   }
 
   if (context.fullWithoutReward) {
-    return { kind: "unavailable", reason: FULL_CARD_NO_REWARD_REASON }
+    return { kind: "unavailable", reason: FULL_CARD_REWARD_PENDING_COPY }
   }
 
   const reward = context.reward
@@ -321,7 +318,7 @@ function deriveStamp(context: StampContext): CustomerExperience {
   }
 
   if (context.fullWithoutReward) {
-    return { kind: "unavailable", reason: FULL_CARD_NO_REWARD_REASON }
+    return { kind: "unavailable", reason: FULL_CARD_REWARD_PENDING_COPY }
   }
 
   const heldReward = heldStampReward(context)

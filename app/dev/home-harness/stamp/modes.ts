@@ -2,6 +2,8 @@
 export const STAMP_HARNESS_MODES = [
   "success",
   "final",
+  // The final stamp lands but the server issued no reward behind it.
+  "final-pending",
   "blocked",
   "unknown",
   "unknown-issued",

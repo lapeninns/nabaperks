@@ -35,6 +35,13 @@ still request ID when appropriate. Internal-admin verification remains available
 - `verify_and_collect_reward_scan_token(scan_token, expected_date_of_birth,
 id_confirmed)` takes no caller-supplied customer, merchant or verifier identity.
   It rechecks ownership, eligibility and the reviewed DOB under row locks.
+- **Mark reward collected** calls `collect_owner_reward_scan_token(scan_token)`
+  with the owner session; the merchant comes from `auth.uid()`, never the form.
+  A private counter receipt tied to the transaction lets the redemption record
+  `actor_type` `merchant`, the owner's user ID and `redeemed_by`
+  `merchant_scan`. Audit metadata `collection_method` is `owner_counter` or
+  `owner_id_check`. The service-role `collect_current_reward_scan_token`
+  remains for one release as a fallback and records customer attribution.
 - The private verification receipt is tied to the transaction, owner, customer
   and reward. Ordinary profile writes, service-role writes and session flags
   cannot create verification provenance. Receipt and collection failures roll

@@ -24,6 +24,7 @@ import {
   type GeoCoordinates,
   type IssueSelfServiceStampResult,
 } from "@/lib/customer/stamp"
+import { parseStampLocationForm } from "@/lib/customer/stamp-location-input"
 import { enqueueStampTransitionNotifications } from "@/lib/notifications/events"
 import type {
   SelfStampActionState,
@@ -325,33 +326,9 @@ export async function retryJoinFirstStampAction(
   redirect(`/card/${membershipId}`)
 }
 
+/** Out-of-range client location values are dropped, never forwarded. */
 function coordinates(formData: FormData): GeoCoordinates | undefined {
-  const qrId = value(formData, "qrId")
-  const latitude = numberValue(formData, "latitude")
-  const longitude = numberValue(formData, "longitude")
-  const accuracyMeters = numberValue(formData, "accuracy_meters")
-  const locationStatus = value(formData, "location_status")
-  const captureElapsedMs = numberValue(formData, "capture_elapsed_ms")
-
-  if (
-    !qrId &&
-    latitude === null &&
-    longitude === null &&
-    accuracyMeters === null &&
-    !locationStatus &&
-    captureElapsedMs === null
-  ) {
-    return undefined
-  }
-
-  return {
-    qrId: qrId || null,
-    latitude,
-    longitude,
-    accuracyMeters,
-    locationStatus: locationStatus || null,
-    captureElapsedMs,
-  }
+  return parseStampLocationForm(formData)
 }
 
 function value(formData: FormData, key: string) {
@@ -359,12 +336,4 @@ function value(formData: FormData, key: string) {
   if (typeof raw !== "string") return ""
 
   return raw.trim()
-}
-
-function numberValue(formData: FormData, key: string) {
-  const raw = value(formData, key)
-  if (!raw) return null
-
-  const parsed = Number(raw)
-  return Number.isFinite(parsed) ? parsed : null
 }

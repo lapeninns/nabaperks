@@ -325,6 +325,14 @@ The producer binds successful execution to the current release identity; no
 workflow input accepts caller-supplied compatibility evidence. Selected domain
 RPC proof does not replace the separate browser and signed-webhook staging job.
 
+Name each new migration so it sorts after the latest existing filename in
+`supabase/migrations`, not after today's date: the directory already holds
+future-dated migrations. Production applies with `supabase db push --linked
+--include-all`, which would still apply an earlier-dated file after later ones,
+so production and a fresh database would run it in a different order.
+`tests/contracts/migration-order.test.mjs` fails when a migration sorts at or
+before its recorded high-water mark.
+
 Before applying production migrations, the live ledger must be a contiguous
 prefix of the qualified candidate and include every baseline migration. This
 permits a previously completed migration step while refusing missing history,

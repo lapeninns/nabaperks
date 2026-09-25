@@ -4,17 +4,22 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { RewardCollectionQr } from "@/components/customer/reward-collection-qr"
+import {
+  isTerminalRewardStatusResponse,
+  rewardCollectionPollDelay,
+} from "@/lib/customer/reward-collection-poll"
 
 /**
  * Live confirmation leaf for a held reward QR. While the screen is open it polls
- * the no-store status endpoint about once a second, checking immediately on
- * mount and again whenever the tab regains focus or visibility. The merchant
- * scan is the only mutation — this leaf only *observes* `reward_events.status`.
- * Once the server confirms the reward is collected it adds the one-shot reward
- * flag, refreshes the server component into the collected proof, and stops
- * polling.
+ * the no-store status endpoint, checking immediately on mount and again
+ * whenever the tab regains focus or visibility. The cadence is bounded (see
+ * {@link rewardCollectionPollDelay}): brisk at first, slower after a while, and
+ * paused after a ceiling until focus or visibility starts a fresh window. A 401
+ * or 404 stops the poll for good. The merchant scan is the only mutation — this
+ * leaf only *observes* `reward_events.status`. Once the server confirms the
+ * reward is collected it adds the one-shot reward flag, refreshes the server
+ * component into the collected proof, and stops polling.
  */
-const POLL_INTERVAL_MS = 1500
 
 export function RewardCollectionLive({
   rewardId,
@@ -39,13 +44,20 @@ export function RewardCollectionLive({
 
     let active = true
     let polling = false
+    // Set on a response retrying cannot change (signed out, not this reward).
+    let stopped = false
+    let windowStartedAt = Date.now()
     let timer: ReturnType<typeof setTimeout> | undefined
     let controller: AbortController | undefined
 
     function scheduleNext() {
-      if (!active) return
+      if (!active || stopped) return
       if (timer) clearTimeout(timer)
-      timer = setTimeout(check, POLL_INTERVAL_MS)
+      timer = undefined
+      const delay = rewardCollectionPollDelay(Date.now() - windowStartedAt)
+      // Window spent: wait for focus or visibility to start a fresh one.
+      if (delay === null) return
+      timer = setTimeout(check, delay)
     }
 
     async function check() {
@@ -53,6 +65,7 @@ export function RewardCollectionLive({
       // event that lands mid-request is a no-op — the in-flight check reschedules
       // itself — so the loop can never fork into two and amplify the cadence.
       if (!active || polling) return
+      if (stopped) return
       // Pause while backgrounded; a focus/visibility change resumes the loop so
       // a phone left at the counter does not keep polling in a hidden tab.
       if (document.visibilityState === "hidden") return
@@ -65,6 +78,10 @@ export function RewardCollectionLive({
           signal: controller.signal,
         })
         if (!active) return
+        if (isTerminalRewardStatusResponse(res.status)) {
+          stopped = true
+          return
+        }
         if (res.ok) {
           const data = (await res.json()) as { redeemed?: boolean }
           if (data.redeemed) {
@@ -88,7 +105,11 @@ export function RewardCollectionLive({
     }
 
     function resume() {
-      if (active && document.visibilityState === "visible") check()
+      if (!active || stopped) return
+      if (document.visibilityState === "visible") {
+        windowStartedAt = Date.now()
+        check()
+      }
     }
 
     check()

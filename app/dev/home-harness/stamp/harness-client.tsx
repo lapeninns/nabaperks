@@ -132,7 +132,7 @@ export function StampHarnessClient({
 }) {
   const verify = VERIFY_MODES[mode]
   const startingCurrent =
-    mode === "final"
+    mode === "final" || mode === "final-pending"
       ? 4
       : mode === "reloaded-final"
         ? 5
@@ -179,7 +179,8 @@ export function StampHarnessClient({
 
       return {
         status: "issued",
-        newStampCount: mode === "final" ? 5 : 4,
+        newStampCount: mode === "final" || mode === "final-pending" ? 5 : 4,
+        // final-pending: the card is full but no reward row exists yet.
         rewardUnlocked: mode === "final",
         geoFlagged: false,
         bonusStampsApplied: 0,

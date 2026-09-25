@@ -113,7 +113,7 @@ test("the next venue stamp drains banked referral bonuses for that member", () =
   )
   assert.match(
     stampChoreography,
-    /import \{ REFERRAL_BONUS_STAMP_LABEL \} from "@\/lib\/customer\/card-stamp-labels"/,
+    /import \{[^}]*\bREFERRAL_BONUS_STAMP_LABEL\b[^}]*\} from "@\/lib\/customer\/card-stamp-labels"/,
     "drained bonus stamps use the shared label contract"
   )
 })
