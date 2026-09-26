@@ -73,7 +73,8 @@ test("runtime execution has a fresh credential-free runner and cannot supply the
       database.indexOf(`  ${next}:\n`)
     )
   const baseline = job("baseline", "qualification")
-  const qualification = job("qualification", "promote")
+  const qualification = job("qualification", "approval")
+  const approval = job("approval", "promote")
   const promote = job("promote", "application")
   assert.match(qualification, /needs: \[baseline, staging\]/)
   assert.match(qualification, /runs-on: ubuntu-latest/)
@@ -95,7 +96,16 @@ test("runtime execution has a fresh credential-free runner and cannot supply the
     /path: \$\{\{ runner.temp \}\}\/release-runtime\//
   )
   assert.doesNotMatch(promote, /release-runtime-artifacts|release-runtime\//)
-  assert.match(promote, /needs: \[baseline, qualification\]/)
+  // The only human pause sits between credential-free qualification and the
+  // first production write; it holds no credential and runs no source.
+  assert.match(approval, /needs: \[baseline, qualification\]/)
+  assert.match(approval, /environment: Production approval\n/)
+  assert.match(approval, /permissions: \{\}/)
+  assert.doesNotMatch(
+    approval,
+    /secrets\.|vars\.|uses:|actions\/checkout|VERCEL_TOKEN|SUPABASE_/
+  )
+  assert.match(promote, /needs: \[baseline, qualification, approval\]/)
   assert.match(
     promote,
     /artifact-ids: \$\{\{ needs.baseline.outputs.artifact_id \}\}/

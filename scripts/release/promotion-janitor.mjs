@@ -1,16 +1,19 @@
 // Production promotion janitor.
 //
-// A database or application Production approval that waits longer than the
-// release evidence expiry can never pass: every protected stage re-verifies the
-// ledger with a fresh clock (scripts/release/manifest.mjs, maxAgeMs
-// 3_600_000). A waiting job has not started on a runner, so its timeout-minutes
-// never arms, yet the run keeps the production-release concurrency slot and
-// newer promotions queue behind it. This janitor releases any Production gate
-// that has waited past the threshold: it rejects the gate with an explanatory
-// comment, falling back to cancelling the run.
+// A release pauses once, at the secret-free `Production approval` environment,
+// after its release proof and qualification. An approval that waits longer
+// than the release evidence expiry can never pass: every protected stage
+// re-verifies the ledger with a fresh clock (scripts/release/manifest.mjs,
+// maxAgeMs 3_600_000). A waiting job has not started on a runner, so its
+// timeout-minutes never arms, yet the run keeps the production-release
+// concurrency slot and newer promotions queue behind it. This janitor releases
+// any approval gate that has waited past the threshold: it rejects the gate
+// with an explanatory comment, falling back to cancelling the run.
 //
 // --dry-run performs reads only. The script targets exactly one repository,
-// one workflow path and the Production environment, and never approves.
+// one workflow path and the approval environment, and never approves. The
+// credential-holding `Production` environment has no reviewer, so it never
+// holds a pending deployment.
 import assert from "node:assert/strict"
 import { appendFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
@@ -19,7 +22,7 @@ export const API_VERSION = "2026-03-10"
 export const EXPECTED_REPOSITORY = "lapeninns/nabaperks"
 export const PROMOTION_WORKFLOW_PATH =
   ".github/workflows/production-database.yml"
-export const PRODUCTION_ENVIRONMENT = "Production"
+export const APPROVAL_ENVIRONMENT = "Production approval"
 // Mirrors the validateStageManifest default in scripts/release/manifest.mjs.
 export const EVIDENCE_MAX_AGE_MS = 3_600_000
 // Headroom for an approval that is genuinely in flight at the expiry boundary.
@@ -35,7 +38,7 @@ const MAX_PAGES = 10
 const PAGE_SIZE = 100
 const REJECT_FALLBACK_STATUSES = new Set([403, 404, 422])
 
-assert.equal(PRODUCTION_ENVIRONMENT, "Production")
+assert.equal(APPROVAL_ENVIRONMENT, "Production approval")
 assert.ok(JANITOR_STALE_MS > EVIDENCE_MAX_AGE_MS)
 
 export function createGithubClient({ token, fetcher = fetch, dryRun = false }) {
@@ -96,9 +99,9 @@ export function gateEnteredAt(run, jobs) {
   return waiting[0] ?? run.run_started_at ?? null
 }
 
-function productionEnvironmentIds(pendingDeployments) {
+function approvalEnvironmentIds(pendingDeployments) {
   return pendingDeployments
-    .filter(({ environment }) => environment?.name === PRODUCTION_ENVIRONMENT)
+    .filter(({ environment }) => environment?.name === APPROVAL_ENVIRONMENT)
     .map(({ environment }) => environment.id)
     .filter((id) => Number.isSafeInteger(id) && id > 0)
 }
@@ -114,9 +117,9 @@ export function decidePromotion({
   const base = { runId: run.id, runUrl: run.html_url ?? null }
   if (!pendingDeployments.length)
     return { ...base, action: "skip", reason: "not-approval-blocked" }
-  const environmentIds = productionEnvironmentIds(pendingDeployments)
+  const environmentIds = approvalEnvironmentIds(pendingDeployments)
   if (!environmentIds.length)
-    return { ...base, action: "skip", reason: "no-production-gate" }
+    return { ...base, action: "skip", reason: "no-approval-gate" }
 
   const enteredAt = gateEnteredAt(run, jobs)
   const enteredMs = Date.parse(enteredAt ?? "")
@@ -215,7 +218,7 @@ async function reviewRun(client, run, { now, dryRun }) {
   if (decision.action !== "reject") return decision
 
   // Race guard: an approval may have landed since the first read.
-  const current = productionEnvironmentIds(
+  const current = approvalEnvironmentIds(
     await readPendingDeployments(client, run.id)
   )
   if (!current.length)

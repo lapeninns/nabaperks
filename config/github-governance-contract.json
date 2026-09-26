@@ -35,8 +35,14 @@
         "STAGING_VERCEL_PROJECT_ID"
       ]
     },
-    "Production": {
+    "Production approval": {
       "independentReview": true,
+      "secretFree": true,
+      "requiredSecrets": [],
+      "requiredVariables": []
+    },
+    "Production": {
+      "independentReview": false,
       "requiredSecrets": [
         "PRODUCTION_MONITOR_SECRET",
         "SUPABASE_ACCESS_TOKEN",

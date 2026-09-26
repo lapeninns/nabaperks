@@ -78,7 +78,8 @@ test("the janitor targets one repository, workflow and environment", () => {
     script,
     /PROMOTION_WORKFLOW_PATH =\s+"\.github\/workflows\/production-database\.yml"/
   )
-  assert.match(script, /PRODUCTION_ENVIRONMENT = "Production"/)
+  assert.match(script, /APPROVAL_ENVIRONMENT = "Production approval"/)
+  assert.doesNotMatch(script, /=== "Production"|ENVIRONMENT = "Production"\n/)
   assert.match(script, /API_VERSION = "2026-03-10"/)
   assert.match(script, /"x-github-api-version": API_VERSION/i)
   assert.match(script, /redirect: "error"/)

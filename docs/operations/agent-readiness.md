@@ -55,7 +55,7 @@ of implementation truth.
   a durable incident issue. Recovery requires two consecutive scheduled green
   probes and resolves the external page before closing that issue.
 - The production promotion janitor proves only that, when it runs, active
-  promotion runs whose `Production` approval has waited more than 75 minutes
+  promotion runs whose `Production approval` gate has waited more than 75 minutes
   (past the one-hour evidence expiry) are rejected or cancelled with an
   annotation. It runs on a schedule, on every new promotion request and on
   demand; GitHub's sparse schedule delivery means the promotion trigger, not

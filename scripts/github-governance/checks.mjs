@@ -87,6 +87,24 @@ function environmentFindings({ name, target, environment, independentLogins }) {
     )
   }
 
+  if (target.secretFree) {
+    // An approval-only environment must never release credentials: the job
+    // that waits on it proves a human decision, nothing else.
+    const held = [
+      ...nameSet(environment.secretNames),
+      ...Object.keys(environment.variables ?? {}),
+    ]
+    findings.push(
+      finding(
+        `environment:${name}:secret-free`,
+        held.length === 0,
+        held.length === 0
+          ? "no secrets or variables are scoped here"
+          : `approval-only environment holds: ${held.join(", ")}`
+      )
+    )
+  }
+
   const missingSecrets = missingNames(
     target.requiredSecrets,
     environment.secretNames
