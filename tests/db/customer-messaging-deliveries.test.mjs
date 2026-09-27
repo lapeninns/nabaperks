@@ -360,7 +360,11 @@ test(
       const f = await fixture(tx)
       const id = await begin(tx, f)
       await tx`select public.record_customer_messaging_inbound(${`SM${randomUUID().replaceAll("-", "")}`}, 'sms', ${f.hmac}, 'help')`
-      await tx`update public.customers set phone_hmac = null where id = ${f.customer}`
+      // Every erasure path writes the placeholder email in the same statement.
+      await tx`update public.customers
+        set phone_hmac = null,
+            email = ${`erased+${f.customer.replaceAll("-", "")}@privacy.invalid`}
+        where id = ${f.customer}`
       const [delivery] =
         await tx`select recipient_last4 from public.notification_deliveries where id = ${id}`
       assert.equal(delivery.recipient_last4, null)
@@ -476,6 +480,11 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const f = await createRewardPoolFixture(tx)
+      // Phone-channel consent needs a phone; the fixture customer is email-only.
+      await tx`update public.customers
+        set phone_hmac = ${randomUUID().replaceAll("-", "").repeat(2)},
+            phone_verified_at = now()
+        where id = ${f.customerId}`
       const [merchant] =
         await tx`select business_slug from public.merchants where id = ${f.merchantId}`
       for (let index = 0; index < 2; index += 1) {
