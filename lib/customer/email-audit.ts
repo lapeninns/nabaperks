@@ -26,6 +26,7 @@ type CustomerContactAuditInput = {
   readonly action: CustomerEmailAuditAction | "customer_phone_attached"
   readonly surface: ContactEventSurface | null
   readonly hmacRepairOnly?: boolean
+  readonly reason?: CustomerEmailAuditInput["reason"]
   readonly failureEvent: string
 }
 
