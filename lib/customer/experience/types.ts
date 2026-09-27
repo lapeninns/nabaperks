@@ -26,6 +26,39 @@ export type StampEmailPrompt = {
   readonly codePending: boolean
 }
 
+/**
+ * Email sign-in rollout mode as the join page sees it (mirrors
+ * `CustomerEmailAuthMode` in lib/customer/email-auth-mode.ts, which is
+ * server-only): `off` phone only, `existing` email opens wallets that already
+ * hold that verified email, `full` email can also start a wallet.
+ */
+export type JoinEmailMode = "off" | "existing" | "full"
+
+/** How a customer proves who they are on the join page (D10). */
+export type JoinContactMethod = "email" | "phone"
+
+/** Where a pending join code went, in the form the code step may show. */
+export type JoinOtpContact =
+  | {
+      method: "phone"
+      last4: string
+      /** Where the code went, so the step says "by text" or "on WhatsApp". */
+      channel: OtpChannel
+    }
+  | {
+      method: "email"
+      /** Already masked on the server ("j***@example.com"). */
+      maskedEmail: string
+      /** Epoch seconds when a resend is allowed. */
+      resendAvailableAt: number
+    }
+
+/** Contact channels a verified wallet holds, for the marketing-consent line. */
+export type JoinContactChannels = {
+  phone: boolean
+  email: boolean
+}
+
 /** Which route the customer entered from. Same facts can mean different UI. */
 export type CustomerExperienceEntry =
   "qr" | "join" | "card" | "stamp" | "reward"
@@ -187,6 +220,8 @@ export type CustomerExperience =
       merchant: JoinMerchant
       card: JoinCard
       qrId: string
+      /** The contact step the welcome CTA opens (the server default, D12). */
+      contactStep: JoinContactMethod
     }
   | {
       kind: "join_phone"
@@ -195,15 +230,40 @@ export type CustomerExperience =
       qrId?: string
       /** Channel the code will be sent on first. */
       channel: OtpChannel
+      /** `off` hides every email option. */
+      emailMode: JoinEmailMode
+      /** Method the server shows first; a device may reorder it (D12). */
+      defaultMethod: JoinContactMethod
+    }
+  | {
+      kind: "join_email"
+      merchant: JoinMerchant
+      card: JoinCard
+      qrId?: string
+      /** Never `off`: this step does not exist while email sign-in is off. */
+      emailMode: Exclude<JoinEmailMode, "off">
+      /** Method the server shows first; a device may reorder it (D12). */
+      defaultMethod: JoinContactMethod
+    }
+  | {
+      /**
+       * The email was verified but no wallet holds it. Nothing has been
+       * created: the customer chooses a new wallet (mode `full` only) or
+       * their phone number.
+       */
+      kind: "join_email_choice"
+      merchant: JoinMerchant
+      card: JoinCard
+      qrId?: string
+      maskedEmail: string
+      canCreate: boolean
     }
   | {
       kind: "join_otp"
       merchant: JoinMerchant
       card: JoinCard
       qrId?: string
-      contactLast4: string
-      /** Where the code went, so the step says "by text" or "on WhatsApp". */
-      channel: OtpChannel
+      contact: JoinOtpContact
       location: LocationRequirement
     }
   | {
@@ -212,6 +272,8 @@ export type CustomerExperience =
       card: JoinCard
       qrId?: string
       location: LocationRequirement
+      /** What the wallet can be contacted on, for the marketing line. */
+      contactChannels: JoinContactChannels
     }
   | {
       kind: "join_returning"

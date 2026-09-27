@@ -23,6 +23,7 @@ import {
   getOrCreateCustomerByVerifiedPhone,
 } from "@/lib/customer/identity"
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
+import { clearPendingEmailSignIn } from "@/lib/customer/email-sign-in"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { joinEntry } from "@/lib/customer/join-observability-contract"
 import { getMerchantJoinContext } from "@/lib/customer/join"
@@ -206,6 +207,8 @@ export async function requestCustomerIdentityAction(
       },
     }
   }
+  // One sign-in challenge per browser: a phone code supersedes an email one.
+  await clearPendingEmailSignIn()
 
   await captureJoinFunnelEvent({
     eventName: "join_phone_requested",
@@ -479,7 +482,8 @@ async function claimLoyaltyInviteIfPresent(
 async function claimOfferCampaignIfPresent(
   customerId: string,
   merchantSlug: string,
-  marketingOptIn: boolean
+  marketingOptIn: boolean,
+  hasVerifiedPhone: boolean
 ): Promise<CustomerJoinState | null> {
   const cookie = await readOfferCookie()
   if (!cookie || cookie.merchantSlug !== merchantSlug) return null
@@ -564,6 +568,18 @@ async function claimOfferCampaignIfPresent(
     }
   }
 
+  // Public offer campaigns stay phone-only (the claim refuses a wallet with no
+  // verified phone as 'invalid'), so an email-only wallet is told why instead
+  // of silently joining without the offer. The handoff is already spent: a
+  // retry is an ordinary join, and the poster can be scanned again.
+  if (status === "invalid" && !hasVerifiedPhone) {
+    return {
+      errors: {
+        form: "This offer needs a confirmed phone number, so it was not added. Join again to save your card without it, or ask the venue team.",
+      },
+    }
+  }
+
   // 'invalid' — an unknown, replaced or ended link. Fall through to a normal join.
   return null
 }
@@ -580,7 +596,7 @@ export async function joinRewardsAction(
   const marketingOptIn = formData.get("marketingOptIn") === "on"
 
   if (!customer) {
-    return { errors: { form: "Verify your phone before joining." } }
+    return { errors: { form: "Confirm your phone or email before joining." } }
   }
 
   if (!acceptedTerms) {
@@ -611,7 +627,12 @@ export async function joinRewardsAction(
     invite: () =>
       claimLoyaltyInviteIfPresent(customer.id, merchantSlug, marketingOptIn),
     offer: () =>
-      claimOfferCampaignIfPresent(customer.id, merchantSlug, marketingOptIn),
+      claimOfferCampaignIfPresent(
+        customer.id,
+        merchantSlug,
+        marketingOptIn,
+        customer.phoneLast4 !== null
+      ),
   } as const
   const [firstHandoff, secondHandoff] = claimHandoffOrder({
     invite:

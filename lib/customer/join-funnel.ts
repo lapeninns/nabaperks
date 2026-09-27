@@ -13,6 +13,7 @@ import { pseudonymizeAnalyticsId } from "@/lib/analytics/privacy-core"
 import {
   JOIN_JOURNEY_HEADER,
   productEventJoinMetadata,
+  type JoinContactMethod,
   type JoinEntry,
   type JoinStep,
   type JoinSurface,
@@ -27,6 +28,9 @@ import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-s
 export type JoinFunnelEventName =
   | "join_page_viewed"
   | "join_phone_requested"
+  | "join_email_requested"
+  | "join_email_no_wallet"
+  | "join_new_email_wallet_confirmed"
   | "join_otp_verified"
   | "join_terms_accepted"
   | "join_first_stamp_issued"
@@ -43,6 +47,8 @@ export type JoinFunnelEventInput = {
   readonly entry?: JoinEntry
   readonly step: JoinStep
   readonly surface?: JoinSurface
+  /** Which contact proved the customer; set by the email and phone paths. */
+  readonly method?: JoinContactMethod
 }
 
 export async function captureJoinFunnelEvent(
@@ -82,6 +88,7 @@ export async function captureJoinFunnelEvent(
         metadata: productEventJoinMetadata({
           entry: input.entry,
           funnelKey,
+          method: input.method,
           step: input.step,
           surface: input.surface ?? "customer_join",
         }),

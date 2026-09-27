@@ -66,9 +66,13 @@ export default async function MerchantJoinPage({
     })
   }
 
-  const pendingOffer = ["join_phone", "join_otp", "join_terms"].includes(
-    experience.kind
-  )
+  const pendingOffer = [
+    "join_phone",
+    "join_email",
+    "join_email_choice",
+    "join_otp",
+    "join_terms",
+  ].includes(experience.kind)
     ? await loadPendingJoinOffer(merchantSlug)
     : null
 

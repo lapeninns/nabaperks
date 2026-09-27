@@ -1,11 +1,17 @@
-import type { CustomerExperienceKind } from "@/lib/customer/experience/types"
+import type {
+  CustomerExperienceKind,
+  JoinContactMethod,
+} from "@/lib/customer/experience/types"
+
+export type { JoinContactMethod }
 
 export const JOIN_JOURNEY_COOKIE = "nabaperks_join_journey"
 export const JOIN_JOURNEY_HEADER = "x-nabaperks-join-journey"
 export const JOIN_JOURNEY_TTL_SECONDS = 2 * 60 * 60
 
 export type JoinEntry = "direct" | "qr" | "qr_referral" | "referral"
-export type JoinStep = "card" | "otp" | "phone" | "terms" | "welcome"
+export type JoinStep =
+  "card" | "email" | "email_choice" | "otp" | "phone" | "terms" | "welcome"
 export type JoinSurface = "customer_card" | "customer_join"
 
 type JoinEntryInput = {
@@ -16,6 +22,7 @@ type JoinEntryInput = {
 type JoinMetadataInput = {
   readonly entry?: JoinEntry
   readonly funnelKey: string
+  readonly method?: JoinContactMethod
   readonly step: JoinStep
   readonly surface: JoinSurface
 }
@@ -25,6 +32,7 @@ export type ProductEventJoinMetadata = {
   readonly surface: JoinSurface
   readonly step: JoinStep
   readonly entry?: JoinEntry
+  readonly method?: JoinContactMethod
   readonly funnel_key: string
 }
 
@@ -43,6 +51,10 @@ export function joinStepForExperienceKind(
       return "welcome"
     case "join_phone":
       return "phone"
+    case "join_email":
+      return "email"
+    case "join_email_choice":
+      return "email_choice"
     case "join_otp":
       return "otp"
     case "join_terms":
@@ -64,6 +76,7 @@ export function joinStepForExperienceKind(
 export function productEventJoinMetadata({
   entry,
   funnelKey,
+  method,
   step,
   surface,
 }: JoinMetadataInput): ProductEventJoinMetadata {
@@ -72,6 +85,7 @@ export function productEventJoinMetadata({
     surface,
     step,
     ...(entry ? { entry } : {}),
+    ...(method ? { method } : {}),
     funnel_key: funnelKey,
   }
 }
@@ -84,6 +98,7 @@ export function postHogJoinMetadata(
     surface: metadata.surface,
     step: metadata.step,
     ...(metadata.entry ? { entry: metadata.entry } : {}),
+    ...(metadata.method ? { method: metadata.method } : {}),
   }
 }
 

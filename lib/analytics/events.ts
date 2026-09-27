@@ -10,6 +10,12 @@ export const productEventNames = [
   "qr_scanned",
   "join_page_viewed",
   "join_phone_requested",
+  // Email on the join page (email sign-in PR 3): the email twin of
+  // join_phone_requested, a verified email that no wallet holds yet, and the
+  // customer's explicit choice to start a new wallet with it.
+  "join_email_requested",
+  "join_email_no_wallet",
+  "join_new_email_wallet_confirmed",
   "join_otp_verified",
   "join_terms_accepted",
   "join_first_stamp_issued",

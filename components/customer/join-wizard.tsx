@@ -163,8 +163,8 @@ function OtpStep({
       <CustomerOtpForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
-        contactLast4={exp.contactLast4}
-        channel={exp.channel}
+        contactLast4={exp.contact.method === "phone" ? exp.contact.last4 : ""}
+        channel={exp.contact.method === "phone" ? exp.contact.channel : "sms"}
         referralCode={referralCode}
       />
     </JoinShell>

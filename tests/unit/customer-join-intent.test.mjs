@@ -25,3 +25,16 @@ test("customer join intent omits blank values and rejects unknown steps", () => 
     { referralCode: "referral" }
   )
 })
+
+test("customer join intent accepts the email contact and choice steps", () => {
+  assert.deepEqual(parseCustomerJoinIntent({ step: "email" }), {
+    step: "email",
+  })
+  assert.deepEqual(parseCustomerJoinIntent({ step: "email_choice" }), {
+    step: "email_choice",
+  })
+  assert.equal(
+    buildCustomerJoinHref("old-crown", { qrId: "venue", step: "email" }),
+    "/m/old-crown/join?qr=venue&step=email"
+  )
+})

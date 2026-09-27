@@ -8,7 +8,11 @@ import {
   type CustomerExperience,
   type CustomerExperienceKind,
   type JoinCard,
+  type JoinContactChannels,
+  type JoinContactMethod,
+  type JoinEmailMode,
   type JoinMerchant,
+  type JoinOtpContact,
   type LocationRequirement,
   type ProfileGate,
   type RewardView,
@@ -149,6 +153,14 @@ export type JoinContext =
       pendingChannel?: OtpChannel
       /** Channel a first code goes out on (configured primary). */
       primaryChannel?: OtpChannel
+      /** Email sign-in rollout mode; unset means `off`. */
+      emailMode?: JoinEmailMode
+      /** A pending join email challenge (the address already masked). */
+      pendingEmail?: { maskedEmail: string; resendAvailableAt: number }
+      /** A verified email no wallet holds yet, bound to this device and venue. */
+      emailHandoff?: { maskedEmail: string }
+      /** Contact channels the signed-in wallet holds (terms step copy). */
+      customerChannels?: JoinContactChannels
       membership: { id: string; current: number } | null
       location: LocationRequirement
     }
@@ -454,39 +466,21 @@ function deriveJoin(context: JoinContext): CustomerExperience {
     }
   }
 
-  const membership = context.membership
-  const qrId = context.qrId
-  const candidates: CustomerExperienceKind[] = []
-  if (membership) candidates.push("join_returning")
-  if (context.hasSession) candidates.push("join_terms")
-  if (context.pendingOtp) candidates.push("join_otp")
-  // Welcome and phone are mutually exclusive: a QR scan lands on welcome, then
-  // the welcome CTA carries `step=phone` to advance to the phone form.
-  if (qrId && context.step !== "phone") candidates.push("join_welcome")
-  else candidates.push("join_phone")
-
-  const kind = pickByPriority("join", candidates)
+  const kind = pickByPriority("join", joinCandidates(context))
 
   switch (kind) {
     case "join_returning":
-      if (!membership) {
-        return {
-          kind: "join_phone",
-          merchant: context.merchant,
-          card: context.card,
-          channel: context.primaryChannel ?? "whatsapp",
-          qrId,
-        }
-      }
-      return {
-        kind: "join_returning",
-        merchant: context.merchant,
-        card: context.card,
-        membershipId: membership.id,
-        current: membership.current,
-        total: context.card.stampsRequired,
-        qrId,
-      }
+      return context.membership
+        ? {
+            kind: "join_returning",
+            merchant: context.merchant,
+            card: context.card,
+            membershipId: context.membership.id,
+            current: context.membership.current,
+            total: context.card.stampsRequired,
+            qrId: context.qrId,
+          }
+        : joinPhone(context)
     case "join_terms":
       return {
         kind: "join_terms",
@@ -494,41 +488,133 @@ function deriveJoin(context: JoinContext): CustomerExperience {
         card: context.card,
         qrId: context.qrId,
         location: context.location,
+        contactChannels: context.customerChannels ?? {
+          phone: true,
+          email: false,
+        },
       }
+    case "join_email_choice":
+      return context.emailHandoff
+        ? {
+            kind: "join_email_choice",
+            merchant: context.merchant,
+            card: context.card,
+            qrId: context.qrId,
+            maskedEmail: context.emailHandoff.maskedEmail,
+            canCreate: joinEmailMode(context) === "full",
+          }
+        : joinPhone(context)
     case "join_otp":
-      return {
-        kind: "join_otp",
-        merchant: context.merchant,
-        card: context.card,
-        qrId: context.qrId,
-        contactLast4: context.pendingPhone?.slice(-4) ?? "",
-        channel: context.pendingChannel ?? "sms",
-        location: context.location,
-      }
+      return joinOtp(context)
+    case "join_email":
+      return joinEmail(context)
     case "join_welcome":
-      if (!qrId) {
-        return {
-          kind: "join_phone",
-          merchant: context.merchant,
-          card: context.card,
-          channel: context.primaryChannel ?? "whatsapp",
-          qrId,
-        }
-      }
-      return {
-        kind: "join_welcome",
-        merchant: context.merchant,
-        card: context.card,
-        qrId,
-      }
+      return context.qrId
+        ? {
+            kind: "join_welcome",
+            merchant: context.merchant,
+            card: context.card,
+            qrId: context.qrId,
+            contactStep: defaultJoinContactMethod(joinEmailMode(context)),
+          }
+        : joinPhone(context)
     default:
-      return {
-        kind: "join_phone",
-        merchant: context.merchant,
-        card: context.card,
-        channel: context.primaryChannel ?? "whatsapp",
-        qrId: context.qrId,
+      return joinPhone(context)
+  }
+}
+
+type AvailableJoinContext = Extract<JoinContext, { unavailable?: false }>
+
+/**
+ * Every join state the loaded facts satisfy; `JOIN_PRIORITY` picks one. A QR
+ * scan lands on welcome, whose CTA carries `step=email` or `step=phone` to
+ * open the contact step; an explicit contact step always skips welcome.
+ */
+function joinCandidates(
+  context: AvailableJoinContext
+): CustomerExperienceKind[] {
+  const candidates: CustomerExperienceKind[] = []
+  if (context.membership) candidates.push("join_returning")
+  if (context.hasSession) candidates.push("join_terms")
+  if (context.emailHandoff && !context.hasSession) {
+    candidates.push("join_email_choice")
+  }
+  if (context.pendingOtp || context.pendingEmail) candidates.push("join_otp")
+
+  const explicitContactStep =
+    context.step === "phone" || context.step === "email"
+  if (context.qrId && !explicitContactStep) candidates.push("join_welcome")
+  else candidates.push(joinContactKind(context))
+  return candidates
+}
+
+function joinEmailMode(context: AvailableJoinContext): JoinEmailMode {
+  return context.emailMode ?? "off"
+}
+
+/** D12 server default: email first only once email can start a wallet. */
+function defaultJoinContactMethod(mode: JoinEmailMode): JoinContactMethod {
+  return mode === "full" ? "email" : "phone"
+}
+
+function joinContactKind(
+  context: AvailableJoinContext
+): "join_email" | "join_phone" {
+  const mode = joinEmailMode(context)
+  if (mode === "off") return "join_phone"
+  if (context.step === "email") return "join_email"
+  if (context.step === "phone") return "join_phone"
+  return defaultJoinContactMethod(mode) === "email"
+    ? "join_email"
+    : "join_phone"
+}
+
+function joinPhone(context: AvailableJoinContext): CustomerExperience {
+  const emailMode = joinEmailMode(context)
+  return {
+    kind: "join_phone",
+    merchant: context.merchant,
+    card: context.card,
+    channel: context.primaryChannel ?? "whatsapp",
+    qrId: context.qrId,
+    emailMode,
+    defaultMethod: defaultJoinContactMethod(emailMode),
+  }
+}
+
+function joinEmail(context: AvailableJoinContext): CustomerExperience {
+  const emailMode = joinEmailMode(context)
+  if (emailMode === "off") return joinPhone(context)
+  return {
+    kind: "join_email",
+    merchant: context.merchant,
+    card: context.card,
+    qrId: context.qrId,
+    emailMode,
+    defaultMethod: defaultJoinContactMethod(emailMode),
+  }
+}
+
+/** The loader passes at most one pending challenge; email wins if both. */
+function joinOtp(context: AvailableJoinContext): CustomerExperience {
+  const contact: JoinOtpContact = context.pendingEmail
+    ? {
+        method: "email",
+        maskedEmail: context.pendingEmail.maskedEmail,
+        resendAvailableAt: context.pendingEmail.resendAvailableAt,
       }
+    : {
+        method: "phone",
+        last4: context.pendingPhone?.slice(-4) ?? "",
+        channel: context.pendingChannel ?? "sms",
+      }
+  return {
+    kind: "join_otp",
+    merchant: context.merchant,
+    card: context.card,
+    qrId: context.qrId,
+    contact,
+    location: context.location,
   }
 }
 

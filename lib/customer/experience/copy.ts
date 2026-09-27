@@ -102,12 +102,14 @@ export function getCustomerExperienceViewModel(
         eyebrow: "Stamp 1 is ready",
         headline: "Your first stamp is ready",
         supportLine:
-          "Save it to your number in 20 seconds. No app, no password, and it's there on every visit.",
+          exp.contactStep === "email"
+            ? "Save it with your email in 20 seconds. No app, no password, and it's there on every visit."
+            : "Save it to your number in 20 seconds. No app, no password, and it's there on every visit.",
         primaryAction: {
           label: "Claim my first stamp",
           href: buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
-            step: "phone",
+            step: exp.contactStep,
           }),
         },
       }
@@ -117,12 +119,31 @@ export function getCustomerExperienceViewModel(
         headline: "Save your stamp to your number",
         supportLine: `One message confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
-    case "join_otp":
+    case "join_email":
       return {
-        eyebrow: "Check your messages",
-        headline: "Enter your code",
-        supportLine: "It's in the message we just sent you.",
+        eyebrow: "One email, no password",
+        headline: "Save your stamp with your email",
+        supportLine: `One code by email confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
+    case "join_email_choice":
+      return {
+        eyebrow: "Email confirmed",
+        headline: "Have you collected stamps with Nabaperks before?",
+        supportLine:
+          "Your stamps stay on the wallet you first joined with. You can add this email to it once you're signed in.",
+      }
+    case "join_otp":
+      return exp.contact.method === "email"
+        ? {
+            eyebrow: "Check your email",
+            headline: "Enter your code",
+            supportLine: "It's in the email we just sent you.",
+          }
+        : {
+            eyebrow: "Check your messages",
+            headline: "Enter your code",
+            supportLine: "It's in the message we just sent you.",
+          }
     case "join_terms":
       return exp.qrId
         ? {
@@ -247,10 +268,7 @@ function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
         }
   }
 
-  const setup = collectionSetup(
-    exp.profileGate,
-    exp.reward.requiresAgeCheck
-  )
+  const setup = collectionSetup(exp.profileGate, exp.reward.requiresAgeCheck)
 
   if (setup.outstanding) {
     return {

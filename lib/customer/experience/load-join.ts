@@ -2,7 +2,19 @@ import "server-only"
 
 import { headers } from "next/headers"
 
-import { getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  customerEmailAuthMode,
+  emailSignInEnabled,
+} from "@/lib/customer/email-auth-mode"
+import { maskEmail } from "@/lib/customer/email-pii-core"
+import {
+  getPendingEmailSignIn,
+  readVerifiedEmailHandoff,
+} from "@/lib/customer/email-sign-in"
+import {
+  getCurrentCustomer,
+  type CurrentCustomer,
+} from "@/lib/customer/identity"
 import {
   getMembershipForCustomer,
   getMerchantJoinContext,
@@ -85,6 +97,7 @@ export async function loadJoinExperienceContext(
     step: searchParams.step,
     location: baseLocation,
     primaryChannel: primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL),
+    emailMode: customerEmailAuthMode(),
   }
 
   const customer = await getCurrentCustomer()
@@ -102,6 +115,7 @@ export async function loadJoinExperienceContext(
       ...base,
       hasSession: true,
       pendingOtp: false,
+      customerChannels: customer ? contactChannels(customer) : undefined,
       membership: {
         id: membership.id,
         current: membership.current_stamp_count,
@@ -115,15 +129,31 @@ export async function loadJoinExperienceContext(
       location,
       hasSession: true,
       pendingOtp: false,
+      customerChannels: contactChannels(customer),
       membership: null,
     }
   }
 
   // No session: a pending join verification means show the code step — unless the
-  // customer explicitly asked to re-enter their number (`step=phone`).
+  // customer explicitly asked for a contact step (`step=phone` or `step=email`).
+  const contactStepRequested =
+    searchParams.step === "phone" || searchParams.step === "email"
+  const email: Awaited<ReturnType<typeof pendingEmailFacts>> =
+    contactStepRequested
+      ? {}
+      : await pendingEmailFacts(merchantSlug, searchParams.qr)
+  if (email.emailHandoff || email.pendingEmail) {
+    return {
+      ...base,
+      ...email,
+      hasSession: false,
+      pendingOtp: false,
+      membership: null,
+    }
+  }
+
   const pending = await getPendingPhoneVerification()
-  const pendingOtp =
-    searchParams.step !== "phone" && pending?.purpose === "join"
+  const pendingOtp = !contactStepRequested && pending?.purpose === "join"
 
   if (pendingOtp) {
     return {
@@ -142,5 +172,40 @@ export async function loadJoinExperienceContext(
     pendingOtp,
     pendingPhone: pendingOtp ? pending.phone : undefined,
     membership: null,
+  }
+}
+
+/**
+ * Email sign-in facts for a signed-out visitor, read only while email sign-in
+ * is on. A handoff (verified email, no wallet) outranks a pending code.
+ */
+async function pendingEmailFacts(
+  merchantSlug: string,
+  qrId: string | undefined
+): Promise<{
+  pendingEmail?: { maskedEmail: string; resendAvailableAt: number }
+  emailHandoff?: { maskedEmail: string }
+}> {
+  if (!emailSignInEnabled()) return {}
+
+  const handoff = await readVerifiedEmailHandoff({ merchantSlug, qrId })
+  if (handoff) {
+    return { emailHandoff: { maskedEmail: maskEmail(handoff.email) ?? "" } }
+  }
+
+  const pending = await getPendingEmailSignIn()
+  if (pending?.purpose !== "join") return {}
+  return {
+    pendingEmail: {
+      maskedEmail: maskEmail(pending.email) ?? "",
+      resendAvailableAt: pending.resendAvailableAt,
+    },
+  }
+}
+
+function contactChannels(customer: CurrentCustomer) {
+  return {
+    phone: customer.phoneLast4 !== null,
+    email: Boolean(customer.email && customer.emailVerifiedAt),
   }
 }

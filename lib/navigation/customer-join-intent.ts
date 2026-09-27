@@ -1,4 +1,5 @@
-export type CustomerJoinStep = "welcome" | "phone" | "otp" | "terms"
+export type CustomerJoinStep =
+  "welcome" | "phone" | "email" | "email_choice" | "otp" | "terms"
 
 export type CustomerJoinIntent = {
   qrId?: string
@@ -15,6 +16,8 @@ type CustomerJoinSearchParams = {
 const JOIN_STEPS = new Set<CustomerJoinStep>([
   "welcome",
   "phone",
+  "email",
+  "email_choice",
   "otp",
   "terms",
 ])
@@ -25,9 +28,10 @@ export function parseCustomerJoinIntent(
   const qrId = present(searchParams.qr)
   const referralCode = present(searchParams.ref)
   const rawStep = present(searchParams.step)
-  const step = rawStep && JOIN_STEPS.has(rawStep as CustomerJoinStep)
-    ? (rawStep as CustomerJoinStep)
-    : undefined
+  const step =
+    rawStep && JOIN_STEPS.has(rawStep as CustomerJoinStep)
+      ? (rawStep as CustomerJoinStep)
+      : undefined
 
   return {
     ...(qrId ? { qrId } : {}),
