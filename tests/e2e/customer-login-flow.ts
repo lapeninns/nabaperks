@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { parsePhoneNumberWithError } from "libphonenumber-js"
 
+import { openPhoneLoginStep } from "./helpers/customer-login-phone"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
@@ -56,6 +57,7 @@ export function describeCustomerLoginAntiEnumeration() {
       await expect(
         page.getByRole("heading", { name: "Welcome back" })
       ).toBeVisible()
+      await openPhoneLoginStep(page)
 
       await page.locator("#contact").fill(unusedUkMobile())
       await page.getByRole("button", { name: "Send code" }).click()
