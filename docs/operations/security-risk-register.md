@@ -50,12 +50,34 @@ are unaffected.
   `REQUIRE_DEVICE_CONTINUITY` in `lib/customer/access-continuity.ts`.
 - Customer existence remains undisclosed until after phone OTP proof.
 
+### Email sign-in (27 September 2026)
+
+Email is becoming the first sign-in method on the join page. It ships behind
+`CUSTOMER_EMAIL_AUTH_MODE` (`off`, `existing`, `full`; default `off`). In
+`full` the join page leads with email; phone stays one visible link away.
+
+- It narrows the reopened exposure only for customers who sign in by email: a
+  customer who never uses their phone number is not reachable through a
+  recycled number unless their wallet also holds that number.
+- It does not close it. Phone sign-in is unchanged, so a recycled number
+  still opens a wallet that holds it.
+- It adds the equivalent email exposure: whoever controls the mailbox opens
+  the wallet. Only a verified email opens a wallet, each verified email
+  belongs to at most one wallet (unique index on verified `email_hmac`), and
+  "no wallet uses this email" is only said after the code is accepted.
+- Email sign-in sessions use the existing `new_identity`,
+  `recognised_device` and `verified_email` continuity sources;
+  `register_customer_session` is unchanged.
+
 ### Exit condition
 
 Restore the control once existing wallets carry a verified recovery email, or
 once a venue-attested re-trust path exists, so that enabling it no longer
-strands customers. Restoring means setting `REQUIRE_DEVICE_CONTINUITY` to true
-and reverting
+strands customers. Email sign-in on the join page and the add-your-email
+prompts are the route to the first condition: they give phone customers a way
+to add and use a verified email without relying on this device. Measure the
+share of active wallets with a verified email before deciding. Restoring
+means setting `REQUIRE_DEVICE_CONTINUITY` to true and reverting
 `supabase/migrations/20260908120000_allow_verified_phone_continuity.sql`.
 
 ## SEC-RISK-002: static QR cannot prove venue presence
@@ -166,3 +188,17 @@ masked contact details, and can start stamp or reward journeys.
 - wallets gain stored value or payment capability; or
 - an alternative sign-in channel (such as email) removes the SMS dependency
   that motivated this decision.
+
+### Trigger review: email sign-in (27 September 2026)
+
+The third trigger has started to fire. Email codes on the join page arrive
+over venue Wi-Fi, which removes the SMS dependency for customers who use
+email. The feature ships behind `CUSTOMER_EMAIL_AUTH_MODE`, default `off`, so
+nothing changes for customers until the mode is raised.
+
+Proposed decision, pending confirmation by the risk owner: keep this
+acceptance unchanged while the mode is `off` or `existing`, because phone-only
+wallets still depend on SMS. Within 30 days of the mode reaching `full` in
+production, review whether sessions should expire again, using the share of
+active wallets with a verified email and the email code delivery rate. Record
+the outcome here with its date.

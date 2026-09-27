@@ -494,6 +494,36 @@ not trustworthy.
 7. Record timeline, affected users, data impact, provider state, commands,
    deployment IDs and the follow-up issue.
 
+### Customer email sign-in mode
+
+`CUSTOMER_EMAIL_AUTH_MODE` controls email on the customer join page: `off`
+(the default) hides it and every email action refuses, `existing` lets a
+verified email open the wallet that holds it, and `full` also lets email start
+a new wallet. Two rules hold once `full` has ever run in an environment:
+
+1. Never set the mode below `existing` while email-only wallets exist. Those
+   customers have no phone number, so with email off they cannot sign in at
+   all. Before lowering the mode, check with a read-only query:
+
+   ```sql
+   select count(*) from public.customers
+   where phone_hmac is null
+     and email_verified_at is not null
+     and coalesce(email, '') not like 'erased+%@privacy.invalid';
+   ```
+
+   Any count above zero means `existing` is the lowest safe mode. To stop new
+   email wallets, set `existing`, not `off`.
+
+2. Never roll the application back to a build without
+   `findCustomerByVerifiedEmail` (`lib/customer/identity.ts`) once email-only
+   wallets exist, for the same reason. Treat such a build as incompatible,
+   like a password build after the passwordless cut-over, and fix forward.
+
+If email delivery fails, leave the mode alone: the join page tells the
+customer "Email codes are delayed. Try again shortly or use your phone." and
+the phone path keeps working.
+
 ## Backup and recovery boundary
 
 Supabase daily backups are enabled and must be checked before each high-risk
