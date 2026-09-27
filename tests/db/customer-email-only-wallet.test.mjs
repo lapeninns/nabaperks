@@ -581,3 +581,26 @@ test(
     })
   }
 )
+
+test(
+  "the attach scope keeps the 10-code per-phone ceiling",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const phoneBucket = hex64()
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        await tx`select public.admit_customer_otp_dispatch(
+          'attach', ${phoneBucket}, ${hex64()}, ${hex64()}, ${hex64()}, null)`
+      }
+      await assert.rejects(
+        tx.savepoint(
+          (sp) =>
+            sp`select public.admit_customer_otp_dispatch(
+              'attach', ${phoneBucket}, ${hex64()}, ${hex64()}, ${hex64()}, null)`
+        ),
+        /rate limit exceeded/i,
+        "an eleventh code for one phone inside 15 minutes is refused"
+      )
+    })
+  }
+)
