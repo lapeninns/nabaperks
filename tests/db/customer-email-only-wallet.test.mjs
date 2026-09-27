@@ -17,10 +17,13 @@ import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 /**
  * A wallet created by email holds a verified email and no phone. These prove
  * the database treats it as a first-class verified identity
- * (20261006100200..100600): it can claim loyalty invitations and offer
- * campaigns, a concurrent invitation bind of a taken address is refused as
- * 'email_conflict', joining never records phone-channel consent for it, and
- * retention and erasure reach it, including its OTP trusted devices.
+ * (20261006100200..100600): it can open a session as a new or returning
+ * identity, it can claim loyalty invitations addressed to it, a concurrent
+ * invitation bind of a taken address is refused as 'email_conflict', joining
+ * never records phone-channel consent for it, and retention and erasure reach
+ * it, including its OTP trusted devices. Public offer campaigns stay
+ * phone-only: one inbox can verify many aliases, so an email is not a costly
+ * enough identity for an unlimited public claim.
  */
 
 async function emailWalletDbReady() {
@@ -140,6 +143,76 @@ async function joinConsentChannels(sql, customerId, slug) {
   return rows.map((row) => row.channel)
 }
 
+async function registerSession(sql, customerId, source) {
+  const sessionId = randomUUID()
+  const deviceHash = hex64()
+  const [row] = await sql`
+    select public.register_customer_session(
+      ${customerId}::uuid, ${sessionId}::uuid, 'infinity'::timestamptz,
+      ${deviceHash}, ${source}) as session_id`
+  return { sessionId, deviceHash, registered: row.session_id }
+}
+
+async function trustSourceOf(sql, customerId, deviceHash) {
+  const rows = await sql`
+    select trust_source from public.customer_otp_trusted_devices
+    where customer_id = ${customerId}::uuid and device_hash = ${deviceHash}`
+  return rows.map((row) => row.trust_source)
+}
+
+test(
+  "an email-only wallet opens sessions as a new and as a returning identity",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      // Just created by email sign-up: no session, membership or device yet.
+      const fresh = await emailOnlyCustomer(tx)
+      const created = await registerSession(tx, fresh.id, "new_identity")
+      assert.equal(created.registered, created.sessionId)
+      assert.deepEqual(await trustSourceOf(tx, fresh.id, created.deviceHash), [
+        "new_identity",
+      ])
+
+      // An established email-only wallet signing back in on a new device.
+      const established = await emailOnlyCustomer(tx, {
+        at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      })
+      const [merchant] =
+        await tx`select id from public.merchants order by created_at limit 1`
+      await tx`
+        insert into public.customer_memberships (merchant_id, customer_id)
+        values (${merchant.id}::uuid, ${established.id}::uuid)`
+      const returning = await registerSession(
+        tx,
+        established.id,
+        "verified_email"
+      )
+      assert.equal(returning.registered, returning.sessionId)
+      assert.deepEqual(
+        await trustSourceOf(tx, established.id, returning.deviceHash),
+        ["verified_email"]
+      )
+    })
+  }
+)
+
+test(
+  "an unverified email-only row cannot open a verified_email session",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const unverified = await emailOnlyCustomer(tx, { verified: false })
+      await assert.rejects(
+        tx.savepoint((sp) =>
+          registerSession(sp, unverified.id, "verified_email")
+        ),
+        /Customer continuity proof required/
+      )
+      assert.equal(await trustedDeviceCount(tx, unverified.id), 0)
+    })
+  }
+)
+
 test(
   "an email-only wallet claims a loyalty invitation sent to its email",
   { skip },
@@ -202,20 +275,34 @@ test("an unverified email alone still claims nothing", { skip }, async () => {
   })
 })
 
-test("an email-only wallet claims an offer campaign", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const fx = await createRewardPoolFixture(tx)
-    const wallet = await emailOnlyCustomer(tx)
-    const claimHash = await liveOfferCampaign(tx, fx.merchantId)
+test(
+  "an email-only wallet is refused a public offer campaign; a phone wallet claims it",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fx = await createRewardPoolFixture(tx)
+      const wallet = await emailOnlyCustomer(tx)
+      const claimHash = await liveOfferCampaign(tx, fx.merchantId)
 
-    const [res] = await tx`
+      const [refused] = await tx`
         select * from public.claim_offer_campaign(
           ${wallet.id}::uuid, ${claimHash}, ${POLICY}, false)`
-    assert.equal(res.status, "claimed")
-    assert.equal(res.stamps_awarded, 2)
-    assert.ok(res.membership_id)
-  })
-})
+      assert.equal(refused.status, "invalid")
+      assert.equal(refused.membership_id, null)
+      const [{ n }] = await tx`
+        select count(*)::int as n from public.customer_memberships
+        where customer_id = ${wallet.id}::uuid`
+      assert.equal(n, 0, "nothing was created for the email-only wallet")
+
+      const phoneWallet = await phoneCustomer(tx)
+      const [claimed] = await tx`
+        select * from public.claim_offer_campaign(
+          ${phoneWallet}::uuid, ${claimHash}, ${POLICY}, false)`
+      assert.equal(claimed.status, "claimed")
+      assert.equal(claimed.stamps_awarded, 2)
+    })
+  }
+)
 
 test(
   "an invitation bind racing another wallet's verification returns email_conflict",

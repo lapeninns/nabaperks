@@ -1,10 +1,12 @@
--- Loyalty invitations and offer campaigns accept an email-verified wallet.
+-- Loyalty invitations accept an email-verified wallet.
 --
 -- Once guests can join by email, a wallet may hold a verified email and no
--- phone. Both claim bodies refused such a wallet with 'invalid' because their
--- identity gate demanded a verified phone. The gate now accepts a verified
--- phone OR a verified email (verified email_hmac, the same lookup key email
--- sign-in uses). Nothing else about who may claim changes.
+-- phone. The invitation claim body refused such a wallet with 'invalid'
+-- because its identity gate demanded a verified phone. The gate now accepts a
+-- verified phone OR a verified email (verified email_hmac, the same lookup key
+-- email sign-in uses). An invitation is addressed to one recipient and the
+-- claim still has to prove that recipient's email, so nothing else about who
+-- may claim changes.
 --
 -- The invitation bind (a wallet with no verified email adopts the invited,
 -- already-proven address) now also turns a unique_violation from
@@ -12,14 +14,21 @@
 -- 'email_conflict' outcome, so a concurrent bind of the same address by another
 -- wallet is refused instead of surfacing as an error.
 --
--- The bodies live at private.claim_loyalty_invite_legacy_v1 and
--- private.claim_offer_campaign_legacy_v1 (moved and renamed in
--- 20260924100000_open_next_cycle_on_completion.sql; latest bodies from
--- 20260722100500_loyalty_invite_claim_member_precedence.sql and
--- 20260804120000_offer_campaigns_always_on.sql). They are patched in place
--- (pattern 20260927100100_phone_marketing_consent.sql): each replaced fragment
--- must match exactly, or the migration stops for review. Re-runnable: an
--- already-patched body is left alone. Grants are re-asserted unchanged.
+-- Offer campaigns deliberately stay phone-only. Their links are public poster
+-- tokens, the claim skips the cap, QR and location checks, and the only
+-- duplicate guard is per customer. An SMS-verified number is what makes each
+-- extra claim costly; a verified email is not, because one inbox can verify
+-- many plus-tagged or dotted aliases, each a separate email_hmac. Widening
+-- private.claim_offer_campaign_legacy_v1 needs a per-campaign limit on a
+-- canonicalised email or on the device first, and a decision recorded with it.
+--
+-- The body lives at private.claim_loyalty_invite_legacy_v1 (moved and renamed
+-- in 20260924100000_open_next_cycle_on_completion.sql; latest body from
+-- 20260722100500_loyalty_invite_claim_member_precedence.sql). It is patched in
+-- place (pattern 20260927100100_phone_marketing_consent.sql): each replaced
+-- fragment must match exactly, or the migration stops for review.
+-- Re-runnable: an already-patched body is left alone. Grants are re-asserted
+-- unchanged.
 
 do $migration$
 declare
@@ -88,55 +97,7 @@ begin
 end;
 $migration$;
 
-do $migration$
-declare
-  v_definition text;
-  v_old_gate text := $old$  -- The claim journey is phone-verified end to end; a caller that has not been
-  -- through it gets nothing.
-  select cu.id, cu.phone_hmac, cu.phone_verified_at
-  into v_customer
-  from public.customers cu
-  where cu.id = p_customer_id;
-
-  if v_customer.id is null
-    or v_customer.phone_hmac is null
-    or v_customer.phone_verified_at is null
-  then
-    return next; return;
-  end if;$old$;
-  v_new_gate text := $new$  -- The claim journey is verified end to end (a verified phone or a verified
-  -- email); a caller that has not been through it gets nothing.
-  select cu.id, cu.phone_hmac, cu.phone_verified_at,
-         cu.email_hmac, cu.email_verified_at
-  into v_customer
-  from public.customers cu
-  where cu.id = p_customer_id;
-
-  if v_customer.id is null
-    or not (
-      (v_customer.phone_hmac is not null and v_customer.phone_verified_at is not null)
-      or (v_customer.email_hmac is not null and v_customer.email_verified_at is not null)
-    )
-  then
-    return next; return;
-  end if;$new$;
-begin
-  select pg_get_functiondef(
-    'private.claim_offer_campaign_legacy_v1(uuid,text,text,boolean)'::regprocedure
-  ) into v_definition;
-
-  if position(v_new_gate in v_definition) > 0 then return; end if;
-  if position(v_old_gate in v_definition) = 0 then
-    raise exception 'claim_offer_campaign_legacy_v1 identity gate changed; review verified email claim migration';
-  end if;
-
-  execute replace(v_definition, v_old_gate, v_new_gate);
-end;
-$migration$;
-
 revoke all on function private.claim_loyalty_invite_legacy_v1(uuid,text,text,boolean,text,text)
-  from public, anon, authenticated, service_role;
-revoke all on function private.claim_offer_campaign_legacy_v1(uuid,text,text,boolean)
   from public, anon, authenticated, service_role;
 
 notify pgrst, 'reload schema';
