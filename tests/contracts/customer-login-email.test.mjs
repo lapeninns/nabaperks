@@ -64,6 +64,11 @@ test("Given /home/login When a verified email holds no wallet Then it never crea
     source,
     /"No wallet uses this email yet\. Scan a venue QR to join, or sign in with your phone\."/
   )
+  // The same scan step as a phone with no cards (#387), not another code.
+  assert.match(
+    verify.body,
+    /if \(!customer\) \{[\s\S]*?fields: \{ method: "email", email, noCards: true \}/
+  )
   for (const name of [
     "customer_login_code_requested",
     "customer_login_verified",

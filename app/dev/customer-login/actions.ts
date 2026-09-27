@@ -177,7 +177,11 @@ async function verifyEmailLoginFixture(
     }
   }
   return {
-    fields: { method: "email", email },
+    fields: {
+      method: "email",
+      email,
+      ...(scenario === "email-unknown" ? { noCards: true } : {}),
+    },
     message:
       scenario === "email-unknown"
         ? "No wallet uses this email yet. Scan a venue QR to join, or sign in with your phone."

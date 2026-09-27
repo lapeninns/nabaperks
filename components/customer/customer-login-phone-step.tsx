@@ -36,6 +36,7 @@ function PhoneScanStep({
   state,
   submitAction,
   pending,
+  codeAlternate,
 }: CustomerLoginStepProps) {
   const contact = state.fields?.contact ?? ""
   return (
@@ -53,6 +54,8 @@ function PhoneScanStep({
           Use a different number
         </SubmitButton>
       </form>
+      {/* A wallet joined by email is opened by email. */}
+      {codeAlternate}
     </CustomerLoginScanStep>
   )
 }

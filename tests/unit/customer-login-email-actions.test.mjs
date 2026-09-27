@@ -285,7 +285,7 @@ test("Given a verified email a wallet holds When the code is confirmed Then that
   assert.equal(offsite, "/home")
 })
 
-test("Given a verified email no wallet holds When the code is confirmed Then it says so, signs no one in and creates nothing", async () => {
+test("Given a verified email no wallet holds When the code is confirmed Then it shows the scan step, signs no one in and creates nothing", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const { verifyCustomerLoginEmailAction, state } = await loadActions()
 
@@ -295,7 +295,7 @@ test("Given a verified email no wallet holds When the code is confirmed Then it 
   )
 
   assert.deepEqual(result, {
-    fields: { method: "email", email: "guest@example.com" },
+    fields: { method: "email", email: "guest@example.com", noCards: true },
     message:
       "No wallet uses this email yet. Scan a venue QR to join, or sign in with your phone.",
   })

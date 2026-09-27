@@ -53,7 +53,8 @@ export function CustomerLoginForm({
     ? state.fields?.method
     : "phone"
   const editingContact = Boolean(state.fields?.editingContact)
-  // A valid code for a contact with no cards: offer a scan, not another code.
+  // A valid code for a number or email with no cards: both methods show the
+  // same scan step, not another code.
   const noCards = Boolean(state.fields?.noCards) && !editingContact
   const otpSent = Boolean(state.fields?.otpSent) && !editingContact && !noCards
   // A sign-in here makes the join page lead with that method next time (D12).
@@ -124,7 +125,7 @@ export function CustomerLoginForm({
         <div className="grid gap-1">
           <h1 className="text-2xl leading-tight font-extrabold text-balance">
             {noCards
-              ? "No cards on this number"
+              ? `No cards on this ${method === "email" ? "email" : "number"}`
               : otpSent
                 ? "Enter your code"
                 : "Welcome back"}

@@ -114,9 +114,20 @@ test.describe("@customer-flow @a11y wallet sign-in by email", () => {
         "No wallet uses this email yet. Scan a venue QR to join, or sign in with your phone."
       )
     ).toBeVisible()
-    await expect(page.getByLabel("Email address")).toHaveValue(
-      "guest@example.com"
-    )
+    // The scan step #387 gives a phone with no cards, not another code.
+    await expect(
+      page.getByRole("heading", { name: "No cards on this email" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Scan a venue QR" })
+    ).toHaveAttribute("href", "/scan")
+    await expect(
+      page.getByRole("button", { name: "Send my code", exact: true })
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "Use my phone instead" })
+    ).toBeVisible()
+    await expectNoAxeViolations(page, "login email scan step")
     // Nothing signed in, so the device does not start leading with email.
     expect(
       await page.evaluate((key) => localStorage.getItem(key), LAST_METHOD_KEY)
@@ -126,6 +137,39 @@ test.describe("@customer-flow @a11y wallet sign-in by email", () => {
         expect.objectContaining({ name: "nabaperks_customer_session" }),
       ])
     )
+
+    await page.getByRole("button", { name: "Use a different email" }).click()
+    await expect(page.getByLabel("Email address")).toHaveValue(
+      "guest@example.com"
+    )
+    await expect(
+      page.getByRole("link", { name: "Scan a venue QR" })
+    ).toHaveCount(0)
+  })
+
+  test("a phone with no cards gets the scan step, one tap from email", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(
+      page,
+      "/dev/customer-login?mode=existing&scenario=unknown"
+    )
+    await page.getByLabel("Phone number", { exact: true }).fill("07700900123")
+    await page.getByRole("button", { name: "Send code" }).click()
+    await page.getByLabel("Phone code").fill("424242")
+    await page.getByRole("button", { name: "Open my cards" }).click()
+
+    await expect(
+      page.getByRole("heading", { name: "No cards on this number" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Scan a venue QR" })
+    ).toHaveAttribute("href", "/scan")
+    await expect(
+      page.getByRole("button", { name: "Send code", exact: true })
+    ).toHaveCount(0)
+    await page.getByRole("button", { name: "Use my email instead" }).click()
+    await expect(page.getByLabel("Email address")).toBeVisible()
   })
 
   test("a different email refills the field, and a delayed provider keeps the customer on the email step", async ({

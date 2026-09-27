@@ -23,7 +23,8 @@ import { logger } from "@/lib/observability/logger"
 /**
  * Email at /home/login (email sign-in PR 4). This page only opens a wallet:
  * a verified email that a wallet holds signs in to it, and one that no wallet
- * holds is told so and pointed at a venue QR or the phone. It never creates a
+ * holds gets the same scan step as a phone with no cards (#387): pointed at a
+ * venue QR or the phone, not offered another code. It never creates a
  * wallet; only the join page does, after the customer chooses to (D2).
  *
  * Every action reads the rollout mode on the server and refuses while email
@@ -145,7 +146,11 @@ export async function verifyCustomerLoginEmailAction(
       eventName: "customer_login_no_wallet",
       metadata: { method: "email", surface: "home_login" },
     })
-    return { fields: { method: "email", email }, message: NO_WALLET_MESSAGE }
+    // A scan step, not another code, as for a phone with no cards.
+    return {
+      fields: { method: "email", email, noCards: true },
+      message: NO_WALLET_MESSAGE,
+    }
   }
 
   try {

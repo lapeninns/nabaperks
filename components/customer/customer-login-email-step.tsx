@@ -6,6 +6,7 @@ import {
   CustomerLoginMethodSwitch,
   type CustomerLoginStepProps,
 } from "@/components/customer/customer-login-method-switch"
+import { CustomerLoginScanStep } from "@/components/customer/customer-login-scan-step"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
@@ -31,11 +32,49 @@ const SPAM_HINT_AFTER_MS = 30_000
 export function CustomerLoginEmailStep(props: CustomerLoginStepProps) {
   const { state } = props
   const editing = Boolean(state.fields?.editingContact)
+  const noCards = Boolean(state.fields?.noCards) && !editing
   const otpSent = Boolean(state.fields?.otpSent) && !editing
+  if (noCards) return <EmailScanStep {...props} />
   return otpSent ? (
     <EmailCodeStep {...props} />
   ) : (
     <EmailRequestStep {...props} />
+  )
+}
+
+/**
+ * The code proved the inbox and no wallet uses the address. As on the phone
+ * step, point at the venue QR instead of offering another code.
+ */
+function EmailScanStep({
+  state,
+  submitAction,
+  pending,
+}: CustomerLoginStepProps) {
+  return (
+    <CustomerLoginScanStep message={pending ? undefined : state.message}>
+      <form action={submitAction}>
+        <input type="hidden" name="intent" value="email-edit" />
+        <input type="hidden" name="email" value={state.fields?.email ?? ""} />
+        <SubmitButton
+          variant="link"
+          size="xs"
+          className="h-auto min-h-11 justify-start px-0 text-left whitespace-normal"
+          disabled={pending}
+          pendingLabel="Changing email…"
+        >
+          Use a different email
+        </SubmitButton>
+      </form>
+      <CustomerLoginMethodSwitch
+        to="phone"
+        submitAction={submitAction}
+        pending={pending}
+        variant="link"
+      >
+        Use my phone instead
+      </CustomerLoginMethodSwitch>
+    </CustomerLoginScanStep>
   )
 }
 

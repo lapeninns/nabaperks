@@ -36,7 +36,7 @@ export type CustomerLoginOtpState = {
     contact?: string
     /** A code has been sent — show the code entry step. */
     otpSent?: boolean
-    /** The code was valid and this number has no cards. Offer a scan, not another code. */
+    /** The code was valid and this number or email has no cards. Offer a scan, not another code. */
     noCards?: boolean
     /** Focus the phone field after the customer asks to correct it. */
     editingContact?: boolean

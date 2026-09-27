@@ -122,7 +122,13 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
 
       await expect(page.getByText(NO_WALLET)).toBeVisible()
       await expect(page).toHaveURL(/\/home\/login/)
-      await expect(page.getByLabel("Email address")).toHaveValue(email)
+      // The scan step a phone with no cards gets (#387), not another code.
+      await expect(
+        page.getByRole("link", { name: "Scan a venue QR" })
+      ).toHaveAttribute("href", "/scan")
+      await expect(
+        page.getByRole("button", { name: "Send my code", exact: true })
+      ).toHaveCount(0)
       await expect(readEmailWallets(sql, email)).resolves.toEqual([])
       await expect(hasSessionCookie(page)).resolves.toBe(false)
       await expect(
@@ -131,6 +137,9 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
           LAST_METHOD_KEY
         )
       ).resolves.toBeNull()
+
+      await page.getByRole("button", { name: "Use a different email" }).click()
+      await expect(page.getByLabel("Email address")).toHaveValue(email)
     })
   })
 
