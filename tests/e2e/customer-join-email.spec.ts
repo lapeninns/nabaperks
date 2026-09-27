@@ -92,7 +92,8 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     })
     await expect(create).toBeVisible()
     await expect(phone).toBeVisible()
-    await expect(create).toHaveClass(await phone.getAttribute("class"))
+    // Same classes: neither answer is styled as the expected one.
+    await expect(create).toHaveClass((await phone.getAttribute("class")) ?? "")
     await expectNoAxeViolations(page, "join email choice")
 
     await gotoHydratedPage(
