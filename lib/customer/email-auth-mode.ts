@@ -12,6 +12,12 @@ import "server-only"
  *
  * Only the server reads this. A client component receives the resolved mode
  * (or copy chosen from it) as a prop, never the environment variable.
+ *
+ * Rollout guard: `existing` and `full` change guest copy (the prompts' Wi-Fi
+ * sign-in reason and the conflict message) before this build can sign anyone
+ * in by email. Keep the mode `off` in an environment until the build with the
+ * email sign-in and email join flows is live there (production runbook,
+ * "Customer email sign-in mode").
  */
 export const CUSTOMER_EMAIL_AUTH_MODES = ["off", "existing", "full"] as const
 
