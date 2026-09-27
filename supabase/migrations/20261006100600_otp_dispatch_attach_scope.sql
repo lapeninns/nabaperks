@@ -4,14 +4,15 @@
 -- from their profile. That send must be admitted like every other customer
 -- SMS code, but its global quota must stay separate from joining and wallet
 -- sign-in so profile additions cannot starve either journey.
--- admit_customer_otp_dispatch (latest and only body 20260902137000) refused
--- any scope other than 'wallet' and 'join'; it now also accepts 'attach'.
+-- admit_customer_otp_dispatch (latest body 20261005100700, which raised the
+-- per-phone ceiling to 10 codes in 15 minutes) refused any scope other than
+-- 'wallet' and 'join'; it now also accepts 'attach'.
 -- The scope only names its own global buckets
 -- ('customer-otp:dispatch:attach:...'); every limit, the recognised-device
--- path and the per-phone, identity and IP buckets are unchanged.
+-- path, the per-phone, identity and IP buckets and the grants are unchanged
+-- from 20261005100700.
 --
 -- Forward-only and re-runnable (create or replace); grants re-asserted.
-
 create or replace function public.admit_customer_otp_dispatch(
   p_scope text,
   p_phone_bucket text,
@@ -79,7 +80,7 @@ begin
 
   perform public.enforce_rate_limit(p_ip_bucket, 30, 86400000);
   perform public.enforce_rate_limit(p_identity_bucket, 10, 86400000);
-  perform public.enforce_rate_limit(p_phone_bucket, 5, 900000);
+  perform public.enforce_rate_limit(p_phone_bucket, 10, 900000);
   perform public.enforce_rate_limit(
     'customer-otp:dispatch:' || p_scope || ':total:burst:v2',
     30,
@@ -97,7 +98,7 @@ $$;
 
 revoke all on function public.admit_customer_otp_dispatch(
   text, text, text, text, text, text
-) from public, anon, authenticated;
+) from public, anon, authenticated, service_role;
 grant execute on function public.admit_customer_otp_dispatch(
   text, text, text, text, text, text
 ) to service_role;

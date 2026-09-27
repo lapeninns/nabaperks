@@ -25,8 +25,8 @@ const MIGRATION_FILENAME = /^(\d{14})_[a-z0-9_]+\.sql$/
 // constants together to the new latest filename and the reported actual values.
 const BASELINE = {
   highWaterMark: "20261006100600_otp_dispatch_attach_scope.sql",
-  count: 232,
-  digest: "bfecff095df44ee03a9fe577ed92d9f058ec242210744386f2d10a4fd0d07ade",
+  count: 233,
+  digest: "f58c0404279ced0213ee87b56fe38c557f058dd68467994bbf7d6ea49ca3a3dd",
 }
 
 function versionOf(file) {
