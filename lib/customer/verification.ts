@@ -1,5 +1,6 @@
 import "server-only"
 
+import { isLocalDevelopment } from "@/lib/customer/dev-otp-core"
 import {
   alternateOtpChannel,
   type OtpChannel,
@@ -243,14 +244,6 @@ function isAnyFourDigitOtpBypassEnabled(): boolean {
   return (
     isLocalDevelopment() &&
     process.env.CUSTOMER_OTP_BYPASS_MODE?.trim() === anyFourDigitBypassMode
-  )
-}
-
-function isLocalDevelopment(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.VERCEL_ENV !== "preview" &&
-    process.env.VERCEL_ENV !== "production"
   )
 }
 
