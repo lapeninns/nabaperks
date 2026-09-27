@@ -216,3 +216,21 @@ test("customer reward-state reads fail instead of inventing empty status", () =>
     )
   }
 })
+
+test("email-only customer readback shows the masked email and no phone line", () => {
+  const row = buildMerchantCustomerReadback(
+    customerRow({
+      customer: {
+        email: "g***@example.com",
+        phone: null,
+        phone_last4: null,
+      },
+    }),
+    now
+  )
+
+  assert.equal(row.identifier, "g***@example.com")
+  assert.equal(row.initials, "GE")
+  assert.equal(row.phoneLine, null)
+  assert.doesNotMatch(JSON.stringify(row), /Phone ending|···|ending null/)
+})

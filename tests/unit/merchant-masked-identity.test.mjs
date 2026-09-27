@@ -17,3 +17,24 @@ test("database-masked scan contacts retain their merchant display and fallback",
     "Phone ending 1234"
   )
 })
+
+test("an email-only member shows the masked email, never a null phone ending", () => {
+  // customers_masked returns a null phone and phone_last4 for a wallet that
+  // was started with an email.
+  for (const identity of [
+    { email: "g***@example.com", phone: null, phoneLast4: null },
+    { email: "guest@example.com", phone: null, phoneLast4: null },
+  ]) {
+    const label = formatMerchantCustomerIdentifier(identity)
+    assert.equal(label, "g***@example.com")
+    assert.doesNotMatch(label, /null|Phone ending/)
+  }
+  assert.equal(
+    formatMerchantCustomerIdentifier({
+      email: null,
+      phone: null,
+      phoneLast4: null,
+    }),
+    "Member"
+  )
+})
