@@ -119,3 +119,50 @@ that neither the public identifier nor client GPS can establish venue presence.
 At review, the risk owner must either record a new acceptance date and rationale
 or adopt independent, server-verifiable presence proof. Client GPS alone is not
 an acceptable closure condition.
+
+## SEC-RISK-003: customer sessions last until log-out
+
+| Field      | Decision                                            |
+| ---------- | --------------------------------------------------- |
+| Status     | Accepted                                            |
+| Risk owner | `info@lapeninns.com`                                |
+| Accepted   | 27 September 2026                                   |
+| Review due | 27 December 2026                                    |
+| Source     | Product owner decision; SMS code delivery at venues |
+
+### Decision
+
+A customer session no longer expires on the server. The `customer_sessions`
+row is open-ended (`expires_at = 'infinity'`) and ends only on log-out, "Log
+out on all devices", erasure, or retention anonymisation. The browser cookie
+keeps a rolling one-year window, re-signed at most once a day on ordinary page
+loads, so a customer who uses Nabaperks within a year is never signed out.
+
+It was chosen because customer codes are sent by SMS only, and SMS often does
+not reach guests inside venues. The previous hard 30-day window signed every
+customer out a month after joining and forced another code at the bar.
+
+### Residual risk
+
+A lost, stolen, or shared phone stays signed in to the wallet until someone
+logs it out. Whoever holds it can see the customer's cards, balances, and
+masked contact details, and can start stamp or reward journeys.
+
+### Existing safeguards
+
+- Every request re-checks the session row: revocation, "Log out on all
+  devices", and erasure take effect on the next request, whatever the cookie
+  says.
+- Sessions stay bound to their device, so a copied cookie still cannot move to
+  another browser.
+- Stamps still require the location check or the staff venue code, and reward
+  collection happens in person with a verified email.
+- The cookie is only ever renewed with a matching signed expiry; it is never
+  stretched past what its signature allows.
+
+### Reconsider immediately when
+
+- a customer reports wallet misuse from a lost or shared device;
+- wallets gain stored value or payment capability; or
+- an alternative sign-in channel (such as email) removes the SMS dependency
+  that motivated this decision.

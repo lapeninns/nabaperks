@@ -9,16 +9,20 @@ import { Button } from "@/components/ui/button"
  *
  * The action itself is unchanged: the caller passes the same
  * `signOutCustomerAction` server action, still submitted from a plain form, so
- * session clearing stays server-side.
+ * session clearing stays server-side. Sessions no longer lapse on their own,
+ * so `signOutAllAction` is the customer's remedy for a lost or shared phone:
+ * it revokes every session on the account, not just this browser's.
  */
 export function CustomerProfileAccountSection({
   memberSinceLabel,
   venueLabel,
   signOutAction,
+  signOutAllAction,
 }: {
   memberSinceLabel: string
   venueLabel: string
   signOutAction: React.ComponentProps<"form">["action"]
+  signOutAllAction: React.ComponentProps<"form">["action"]
 }) {
   return (
     <section className="surface-card grid gap-4 p-5" data-account-section>
@@ -29,8 +33,8 @@ export function CustomerProfileAccountSection({
       </p>
 
       <p className="text-sm leading-6 text-muted-foreground">
-        Logging out signs this device out only. Your cards, stamps and rewards
-        stay on your account — sign back in with your phone number.
+        You stay signed in on this device until you log out. Your cards, stamps
+        and rewards stay on your account — sign back in with your phone number.
       </p>
 
       <form action={signOutAction}>
@@ -38,6 +42,17 @@ export function CustomerProfileAccountSection({
             (CUS-P2-14). */}
         <Button type="submit" variant="secondary" className="w-full">
           Log out
+        </Button>
+      </form>
+
+      <p className="text-sm leading-6 text-muted-foreground">
+        Lost a phone, or signed in on someone else&apos;s? Log out everywhere
+        your account is signed in.
+      </p>
+
+      <form action={signOutAllAction}>
+        <Button type="submit" variant="outline" className="w-full">
+          Log out on all devices
         </Button>
       </form>
     </section>
