@@ -4,6 +4,15 @@
 -- verified email must identify exactly one customer, as `phone_hmac` already
 -- does. This adds a unique partial index on verified `email_hmac`.
 --
+-- RELEASE PRECONDITION (blocking): apply this migration to an environment only
+-- after the application build with the conflict-safe markCustomerEmailVerified
+-- (lib/customer/profile.ts, "Step 0" PR, branch codex/email-step0-prompt) is
+-- live there. Older builds neither look for another wallet holding the same
+-- verified email nor handle SQLSTATE 23505, so once this index exists a
+-- customer confirming an email already verified on another wallet gets a
+-- generic error on every retry and cannot pass the verified-email gate for
+-- reward collection (20261005100300).
+--
 -- prevent_verified_customer_contact_change is deliberately left as it is: the
 -- locked-email re-confirmation path (markCustomerEmailVerified) rewrites
 -- `email_hmac` on a verified row to repair a missing or stale HMAC, so freezing
