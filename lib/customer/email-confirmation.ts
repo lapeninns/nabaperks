@@ -35,7 +35,7 @@ export async function confirmCustomerEmailCode(
 
   let marked: Awaited<ReturnType<typeof markCustomerEmailVerified>>
   try {
-    marked = await markCustomerEmailVerified(checked.email)
+    marked = await markCustomerEmailVerified(checked.email, surface)
   } catch {
     return { status: "confirm_failed" }
   }

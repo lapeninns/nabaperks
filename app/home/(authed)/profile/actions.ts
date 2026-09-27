@@ -179,7 +179,7 @@ async function startEmailPrompt(
 
   let savedEmail: string
   try {
-    const saved = await setCustomerEmailForVerification(email)
+    const saved = await setCustomerEmailForVerification(email, surface)
     if (saved.status === "already_verified") {
       return { step: "verified", message: "Your email is already confirmed." }
     }

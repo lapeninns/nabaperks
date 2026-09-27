@@ -11,7 +11,7 @@ async function loadActions() {
   const modules = {
     "fixture-state": `export const state = {
       customer: { id: "customer-a", email: null, emailVerifiedAt: null },
-      saved: [], sends: [], events: [], revalidated: [],
+      saved: [], savedSurfaces: [], sends: [], events: [], revalidated: [],
       sendFailure: null, check: { status: "approved", email: "guest@example.test" },
       mark: { status: "verified" }, alreadyVerified: false,
     };`,
@@ -29,9 +29,10 @@ async function loadActions() {
       export function clearCustomerEmail() {}
       export function updateCustomerProfile() {}
       export async function markCustomerEmailVerified() { return state.mark }
-      export async function setCustomerEmailForVerification(email) {
+      export async function setCustomerEmailForVerification(email, surface) {
         if (state.alreadyVerified) return { status: "already_verified" }
         const normalized = email.trim().toLowerCase(); state.saved.push(normalized)
+        state.savedSurfaces.push(surface)
         return { status: "verification_required", email: normalized }
       }`,
     "@/lib/customer/session":
@@ -130,6 +131,7 @@ test("Given a valid email When the prompt sends a code Then only the email is sa
     message: "Enter the code we sent to your email.",
   })
   assert.deepEqual(state.saved, ["guest@example.test"])
+  assert.deepEqual(state.savedSurfaces, ["stamp_prompt"])
   assert.deepEqual(state.sends, ["guest@example.test"])
   assert.deepEqual(state.events, [
     {

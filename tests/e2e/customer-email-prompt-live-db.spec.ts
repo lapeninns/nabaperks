@@ -108,6 +108,15 @@ test.describe("@customer-flow customer email prompt (live database)", () => {
       await expect
         .poll(() => countEvents(sql, guestId, "customer_email_verified"))
         .toBe(1)
+      // Durable audit evidence written with the confirmation, without contact.
+      await expect(readEmailAudits(sql, guestId)).resolves.toEqual([
+        {
+          action: "customer_email_verified",
+          actor_type: "customer",
+          actor_id: guestId,
+          metadata: { surface: "home_prompt" },
+        },
+      ])
 
       // A fresh visit no longer asks.
       await page.goto("/home")
@@ -167,6 +176,7 @@ test.describe("@customer-flow customer email prompt (live database)", () => {
       await expect(
         countEvents(sql, guestId, "customer_email_verified")
       ).resolves.toBe(0)
+      await expect(readEmailAudits(sql, guestId)).resolves.toEqual([])
     } finally {
       await cleanupWallet(sql, fixture)
       await sql.end()
@@ -261,6 +271,9 @@ async function cleanupWallet(
     delete from public.product_events
     where customer_id = any(${ids}::uuid[])`
   await sql`
+    delete from public.audit_logs
+    where customer_id = any(${ids}::uuid[])`
+  await sql`
     delete from public.customer_sessions
     where customer_id = any(${ids}::uuid[])`
   await sql`
@@ -347,4 +360,25 @@ async function countEvents(
     where customer_id = ${customerId}::uuid
       and event_name = ${eventName}`
   return row?.count ?? 0
+}
+
+type EmailAuditRow = {
+  readonly action: string
+  readonly actor_type: string
+  readonly actor_id: string | null
+  readonly metadata: unknown
+}
+
+async function readEmailAudits(
+  sql: Sql,
+  customerId: string
+): Promise<readonly EmailAuditRow[]> {
+  const rows = await sql<readonly EmailAuditRow[]>`
+    select action, actor_type, actor_id, metadata
+    from public.audit_logs
+    where customer_id = ${customerId}::uuid
+      and target_table = 'customers'
+      and action like 'customer_email_%'
+    order by created_at`
+  return [...rows]
 }

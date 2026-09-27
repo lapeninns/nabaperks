@@ -17,6 +17,9 @@ async function loadProfile() {
       updateError: null,
       queries: [],
       updates: [],
+      audits: [],
+      auditError: null,
+      logs: [],
       afterCalls: 0,
     };`,
     "server-only": "",
@@ -30,6 +33,8 @@ async function loadProfile() {
       "export function profileCompletionFrom(customer) { return customer }",
     "@/lib/customer/reward-invites":
       "export function attachRewardInvitesForCustomer() {}",
+    "@/lib/observability/logger":
+      'import { state } from "fixture-state"; export const logger = { error(message, context) { state.logs.push([message, context]) } }',
     "@/lib/supabase/server": `import { state } from "fixture-state";
       function builder() {
         const ops = []
@@ -51,8 +56,22 @@ async function loadProfile() {
         }
         return chain
       }
+      function auditLogs() {
+        return {
+          insert(row) {
+            state.audits.push(row)
+            return Promise.resolve({ error: state.auditError })
+          },
+        }
+      }
       export function createSupabaseServiceRoleClient() {
-        return { from(table) { if (table !== "customers") throw new Error(table); return builder() } }
+        return {
+          from(table) {
+            if (table === "audit_logs") return auditLogs()
+            if (table !== "customers") throw new Error(table)
+            return builder()
+          },
+        }
       }`,
   }
   const result = await build({
@@ -71,7 +90,11 @@ async function loadProfile() {
         setup(build) {
           build.onResolve(
             { filter: /^(fixture-state|server-only|next\/|@\/lib\/)/ },
-            ({ path }) => ({ path, namespace: "fixture" })
+            ({ path }) =>
+              // The real audit writer, so its row shape is what is asserted.
+              path === "@/lib/customer/email-audit"
+                ? { path: `${process.cwd()}/lib/customer/email-audit.ts` }
+                : { path, namespace: "fixture" }
           )
           build.onLoad({ filter: /.*/, namespace: "fixture" }, ({ path }) => {
             assert.ok(path in modules, `Unrecognised boundary: ${path}`)
@@ -94,6 +117,7 @@ test("Given another wallet holds the verified email When the code is confirmed T
 
   assert.deepEqual(result, { status: "conflict" })
   assert.deepEqual(profile.state.updates, [])
+  assert.deepEqual(profile.state.audits, [])
   assert.equal(profile.state.afterCalls, 0)
   // The pre-check looks only at *verified* holders other than this customer.
   assert.deepEqual(profile.state.queries[0], [
@@ -116,6 +140,7 @@ test("Given a concurrent confirmation wins the unique index When the update rais
 
   assert.deepEqual(result, { status: "conflict" })
   assert.equal(profile.state.updates.length, 1)
+  assert.deepEqual(profile.state.audits, [])
   assert.equal(profile.state.afterCalls, 0)
 })
 
@@ -132,7 +157,10 @@ test("Given any other database failure When the code is confirmed Then it still 
 test("Given the email is free When the code is confirmed Then it is verified with its HMAC and invites are attached", async () => {
   const profile = await loadProfile()
 
-  const result = await profile.markCustomerEmailVerified("guest@example.test")
+  const result = await profile.markCustomerEmailVerified(
+    "guest@example.test",
+    "home_prompt"
+  )
 
   assert.deepEqual(result, { status: "verified" })
   const [update, eq] = profile.state.updates[0]
@@ -142,6 +170,56 @@ test("Given the email is free When the code is confirmed Then it is verified wit
   assert.match(update[1].email_verified_at, /^\d{4}-\d{2}-\d{2}T/)
   assert.deepEqual(eq, ["eq", "id", "customer-a"])
   assert.equal(profile.state.afterCalls, 1)
+  // Durable evidence of the confirmation, naming the surface but no contact.
+  assert.deepEqual(profile.state.audits, [
+    {
+      actor_type: "customer",
+      actor_id: "customer-a",
+      customer_id: "customer-a",
+      target_table: "customers",
+      target_id: "customer-a",
+      action: "customer_email_verified",
+      metadata: { surface: "home_prompt" },
+    },
+  ])
+})
+
+test("Given a locked email with a stale HMAC When it is re-confirmed Then only the HMAC is rewritten and the repair is audited", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "kept@example.test",
+    emailVerifiedAt: "2026-09-01T00:00:00.000Z",
+  }
+
+  const result = await profile.markCustomerEmailVerified("kept@example.test")
+
+  assert.deepEqual(result, { status: "verified" })
+  assert.deepEqual(profile.state.updates[0][0], [
+    "update",
+    { email_hmac: "hmac:kept@example.test" },
+  ])
+  assert.equal(profile.state.afterCalls, 0)
+  assert.deepEqual(profile.state.audits[0].metadata, {
+    hmac_repair_only: true,
+  })
+})
+
+test("Given the audit write fails When the code is confirmed Then the committed confirmation stands and the failure is logged without contact data", async () => {
+  const profile = await loadProfile()
+  profile.state.auditError = { code: "42501", message: "permission denied" }
+
+  const result = await profile.markCustomerEmailVerified("guest@example.test")
+
+  assert.deepEqual(result, { status: "verified" })
+  assert.equal(profile.state.audits.length, 1)
+  assert.deepEqual(profile.state.logs, [
+    [
+      "customer_email_audit_failed",
+      { action: "customer_email_verified", code: "42501" },
+    ],
+  ])
+  assert.doesNotMatch(JSON.stringify(profile.state.logs), /example\.test/)
 })
 
 test("Given a new address When only the email is saved Then its verification is cleared and nothing else is written", async () => {
@@ -152,8 +230,10 @@ test("Given a new address When only the email is saved Then its verification is 
     emailVerifiedAt: null,
   }
 
-  const result =
-    await profile.setCustomerEmailForVerification("New@Example.test")
+  const result = await profile.setCustomerEmailForVerification(
+    "New@Example.test",
+    "stamp_prompt"
+  )
 
   assert.deepEqual(result, {
     status: "verification_required",
@@ -162,6 +242,18 @@ test("Given a new address When only the email is saved Then its verification is 
   assert.deepEqual(profile.state.updates[0][0], [
     "update",
     { email: "new@example.test", email_hmac: null, email_verified_at: null },
+  ])
+  // The change is audited before any code is sent, without the address.
+  assert.deepEqual(profile.state.audits, [
+    {
+      actor_type: "customer",
+      actor_id: "customer-a",
+      customer_id: "customer-a",
+      target_table: "customers",
+      target_id: "customer-a",
+      action: "customer_email_submitted",
+      metadata: { surface: "stamp_prompt" },
+    },
   ])
 })
 
@@ -173,11 +265,14 @@ test("Given the same unverified address When only the email is saved Then no wri
     emailVerifiedAt: null,
   }
 
-  const result =
-    await profile.setCustomerEmailForVerification("same@example.test")
+  const result = await profile.setCustomerEmailForVerification(
+    "same@example.test",
+    "home_prompt"
+  )
 
   assert.equal(result.status, "verification_required")
   assert.deepEqual(profile.state.updates, [])
+  assert.deepEqual(profile.state.audits, [])
 })
 
 test("Given a verified email When another address is offered Then the verified email stays locked", async () => {
@@ -189,10 +284,14 @@ test("Given a verified email When another address is offered Then the verified e
   }
 
   assert.deepEqual(
-    await profile.setCustomerEmailForVerification("other@example.test"),
+    await profile.setCustomerEmailForVerification(
+      "other@example.test",
+      "home_prompt"
+    ),
     { status: "already_verified" }
   )
   assert.deepEqual(profile.state.updates, [])
+  assert.deepEqual(profile.state.audits, [])
   assert.equal(profile.customerHasVerifiedEmail(profile.state.customer), true)
   assert.equal(
     profile.customerHasVerifiedEmail({

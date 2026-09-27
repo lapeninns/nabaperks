@@ -4,6 +4,11 @@ import { after } from "next/server"
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import type {
+  ContactEventSurface,
+  EmailPromptSurface,
+} from "@/lib/customer/contact-event-core"
+import { recordCustomerEmailAudit } from "@/lib/customer/email-audit"
 import {
   customerEmailHmac,
   normalizeEmail as normalizeCustomerEmail,
@@ -139,10 +144,12 @@ const UNIQUE_VIOLATION = "23505"
  * email: when another customer already holds this verified email, nothing
  * changes and the caller receives `conflict`. The pre-check covers today's
  * data; the unique-violation catch covers a concurrent confirmation and the
- * database index that enforces the same rule.
+ * database index that enforces the same rule. A confirmation that changes the
+ * row is recorded in `audit_logs` before this returns.
  */
 export async function markCustomerEmailVerified(
-  email: string
+  email: string,
+  surface: ContactEventSurface | null = null
 ): Promise<MarkCustomerEmailVerifiedResult> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to confirm.")
@@ -179,6 +186,12 @@ export async function markCustomerEmailVerified(
   if (error?.code === UNIQUE_VIOLATION) return { status: "conflict" }
   if (error) throw new Error(`Unable to confirm email: ${error.message}`)
 
+  await recordCustomerEmailAudit(supabase, {
+    customerId: customer.id,
+    action: "customer_email_verified",
+    surface,
+    hmacRepairOnly: locked,
+  })
   if (!locked) {
     // A newly verified email may match a pending reward invite — attach it.
     after(() => attachRewardInvitesForCustomer(customer.id))
@@ -211,10 +224,12 @@ export type SetCustomerEmailForVerificationResult =
  * Saves only the email, for the "add your email" prompts. `updateCustomerProfile`
  * needs a name and date of birth, which these prompts do not ask for. A new or
  * changed address clears any earlier verification; a customer who already holds
- * a verified email keeps it (verified contacts are locked).
+ * a verified email keeps it (verified contacts are locked). A changed address
+ * is recorded in `audit_logs` before any code is sent.
  */
 export async function setCustomerEmailForVerification(
-  email: string
+  email: string,
+  surface: EmailPromptSurface
 ): Promise<SetCustomerEmailForVerificationResult> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")
@@ -231,6 +246,11 @@ export async function setCustomerEmailForVerification(
       .eq("id", customer.id)
 
     if (error) throw new Error(`Unable to update email: ${error.message}`)
+    await recordCustomerEmailAudit(supabase, {
+      customerId: customer.id,
+      action: "customer_email_submitted",
+      surface,
+    })
   }
 
   return { status: "verification_required", email: nextEmail }

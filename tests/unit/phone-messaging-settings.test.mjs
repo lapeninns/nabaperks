@@ -48,6 +48,8 @@ async function loadProfile() {
                 "export function profileCompletionFrom(customer) {return customer}",
               "@/lib/customer/reward-invites":
                 "export function attachRewardInvitesForCustomer() {}",
+              "@/lib/customer/email-audit":
+                "export async function recordCustomerEmailAudit() {}",
               "@/lib/customer/profile-fields":
                 "export function isEmailAddress() {} export function validateProfileFields() {}",
               "@/lib/customer/contact-event-core":
