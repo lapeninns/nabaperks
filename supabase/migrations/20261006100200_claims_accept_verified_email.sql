@@ -9,10 +9,11 @@
 -- may claim changes.
 --
 -- The invitation bind (a wallet with no verified email adopts the invited,
--- already-proven address) now also turns a unique_violation from
--- customers_verified_email_hmac_unique_idx (20261006100000) into the existing
--- 'email_conflict' outcome, so a concurrent bind of the same address by another
--- wallet is refused instead of surfacing as an error.
+-- already-proven address) now also turns a unique_violation from either
+-- verified-email index (customers_verified_email_hmac_unique_idx or
+-- customers_verified_email_address_unique_idx, 20261006100000) into the
+-- existing 'email_conflict' outcome, so a concurrent bind of the same address
+-- by another wallet is refused instead of surfacing as an error.
 --
 -- Offer campaigns deliberately stay phone-only. Their links are public poster
 -- tokens, the claim skips the cap, QR and location checks, and the only
