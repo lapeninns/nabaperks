@@ -316,6 +316,7 @@ test("production env validation executes with analytics off and fails closed for
           entry.name !== "CUSTOMER_OTP_BYPASS_MODE" &&
           entry.name !== "CUSTOMER_OTP_PRIMARY_CHANNEL" &&
           entry.name !== "CUSTOMER_MESSAGING_MODE" &&
+          entry.name !== "CUSTOMER_EMAIL_AUTH_MODE" &&
           entry.name !== "CUSTOMER_MESSAGING_BYPASS_MODE" &&
           entry.name !== "TWILIO_CONTENT_SIDS"
       )
