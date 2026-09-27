@@ -318,14 +318,15 @@ function CardProgressPanel({
         />
       ) : null}
 
-      {/* After a stamp only, and only without a verified email. Sits below
-          the stamp card, so the stamp itself is never held up by it. */}
-      {exp.emailPrompt ? (
-        <HomeEmailPrompt
-          surface="stamp_prompt"
-          reason={exp.emailPrompt.reason}
-        />
-      ) : null}
+      {/* Asks after a stamp only, and only without a verified email. Sits
+          below the stamp card, so the stamp itself is never held up by it.
+          Always mounted (reason null when not asking): the prompt's actions
+          re-render this page after the stamp flag has left the URL, and the
+          guest must still see the code step and the confirmation. */}
+      <HomeEmailPrompt
+        surface="stamp_prompt"
+        reason={exp.emailPrompt?.reason ?? null}
+      />
 
       {exp.googleReviewUrl ? (
         <GoogleReviewButton

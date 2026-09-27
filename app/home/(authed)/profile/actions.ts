@@ -146,7 +146,8 @@ export type EmailPromptState = {
 /**
  * The "add your email" prompt (home, and after a stamp). One action for both
  * steps so the prompt holds a single state: `intent=verify` confirms a code,
- * anything else saves the email and sends (or re-sends) a code.
+ * `intent=resend` re-sends a code to the address already on the code step, and
+ * anything else saves the submitted email and sends a code.
  */
 export async function emailPromptAction(
   state: EmailPromptState,
@@ -159,14 +160,15 @@ export async function emailPromptAction(
 
 /**
  * Step one: save only the email and send a code. Name and date of birth are
- * not asked for here.
+ * not asked for here. Only the submitted field counts: an emptied field is an
+ * error, never a silent send to an address the guest just removed.
  */
 async function startEmailPrompt(
   state: EmailPromptState,
   formData: FormData
 ): Promise<EmailPromptState> {
   const surface = promptSurface(formData)
-  const email = value(formData, "email") || state.email || ""
+  const email = value(formData, "email")
   if (!email || !isEmailAddress(email)) {
     return {
       step: "email",
@@ -193,8 +195,15 @@ async function startEmailPrompt(
   try {
     await startCustomerEmailVerification(savedEmail)
   } catch (error) {
+    // Stay on the code step only for a genuine re-send to the address that
+    // already has a code on its way. A newly entered address got no code, so
+    // it goes back to the email step rather than asking for one.
+    const resendingPendingCode =
+      value(formData, "intent") === "resend" &&
+      state.step === "code" &&
+      state.email?.trim().toLowerCase() === savedEmail
     return {
-      step: state.step === "code" ? "code" : "email",
+      step: resendingPendingCode ? "code" : "email",
       email: savedEmail,
       errors: {
         form:

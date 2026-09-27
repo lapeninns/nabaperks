@@ -101,20 +101,18 @@ export default async function HomeHarnessHomePage({
           }}
         />
       ) : null}
-      {emailState === "verified" ? (
-        birthdayPrompt
-      ) : (
-        <HomeEmailPrompt
-          reason={
-            params.mode === "existing" || params.mode === "full"
+      <HomeEmailPrompt
+        reason={
+          emailState === "verified"
+            ? null
+            : params.mode === "existing" || params.mode === "full"
               ? "wifi_sign_in"
               : "rewards"
-          }
-          initialEmail={emailState === "pending" ? "alex@example.test" : null}
-          codePending={emailState === "pending"}
-          fallback={birthdayPrompt}
-        />
-      )}
+        }
+        initialEmail={emailState === "pending" ? "alex@example.test" : null}
+        codePending={emailState === "pending"}
+        fallback={birthdayPrompt}
+      />
 
       <HomeCardTile card={VENUE_DETAILS_CARD} offerPasses={[]} />
     </div>

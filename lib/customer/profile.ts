@@ -132,10 +132,6 @@ export async function updateCustomerProfile(
 export type MarkCustomerEmailVerifiedResult =
   { status: "verified" } | { status: "conflict" }
 
-/** Copy shown wherever a verified email turns out to belong to another wallet. */
-export const CUSTOMER_EMAIL_CONFLICT_MESSAGE =
-  "This email is already used by another Nabaperks wallet. Sign in with that email, or ask the venue for help."
-
 const UNIQUE_VIOLATION = "23505"
 
 /**

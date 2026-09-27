@@ -70,11 +70,19 @@ function serverSnapshot() {
 }
 
 /**
- * A quiet, dismissible nudge (rendered only when the customer has no verified
+ * A quiet, dismissible nudge (asked for only when the customer has no verified
  * email) to add and confirm an email in place: the address, then the emailed
  * code. It never blocks the wallet or a stamp; "Not now" is remembered for 30
- * days. While it is dismissed, `fallback` (the birthday prompt on home) may
- * show instead, so at most one prompt is ever on screen.
+ * days. While it is dismissed or not asked for, `fallback` (the birthday prompt
+ * on home) shows instead, so at most one prompt is ever on screen.
+ *
+ * Render it unconditionally where it may appear and let `reason` decide: every
+ * prompt action re-renders the route on the server (it sets or clears the
+ * pending-code cookie), and that render may no longer ask, because the email
+ * is now confirmed or the one-shot stamp flag has already left the URL. Kept
+ * at a stable position, the prompt survives that render, and once the guest
+ * has used it, it stays until they leave the screen so the code step and the
+ * "Email confirmed" answer are actually seen.
  */
 export function HomeEmailPrompt({
   reason,
@@ -83,7 +91,8 @@ export function HomeEmailPrompt({
   codePending = false,
   fallback = null,
 }: {
-  reason: EmailPromptReason
+  /** Why the server asks, or null when it is not asking. */
+  reason: EmailPromptReason | null
   surface?: EmailPromptSurface
   /** An unverified email already on the profile, to prefill. */
   initialEmail?: string | null
@@ -92,8 +101,25 @@ export function HomeEmailPrompt({
   fallback?: ReactNode
 }) {
   const visible = useSyncExternalStore(subscribe, shouldShow, serverSnapshot)
+  const [initialState] = useState<EmailPromptState>(() =>
+    codePending && initialEmail
+      ? { step: "code", email: initialEmail }
+      : { step: "email", email: initialEmail ?? undefined }
+  )
+  const [state, action, pending] = useActionState(
+    emailPromptAction,
+    initialState
+  )
+  // The last reason the server gave, so an engaged prompt keeps its copy after
+  // the server stops asking (the compare-to-previous-render pattern).
+  const [shownReason, setShownReason] = useState(reason)
+  if (reason !== null && reason !== shownReason) setShownReason(reason)
 
-  if (!visible) return <>{fallback}</>
+  const engaged = state !== initialState
+  const activeReason = reason ?? shownReason
+  if (!visible || activeReason === null || (reason === null && !engaged)) {
+    return <>{fallback}</>
+  }
 
   function dismiss() {
     try {
@@ -107,13 +133,11 @@ export function HomeEmailPrompt({
 
   return (
     <EmailPromptCard
-      reason={reason}
+      reason={activeReason}
       surface={surface}
-      initialState={
-        codePending && initialEmail
-          ? { step: "code", email: initialEmail }
-          : { step: "email", email: initialEmail ?? undefined }
-      }
+      state={state}
+      action={action}
+      pending={pending}
       onDismiss={dismiss}
     />
   )
@@ -122,20 +146,20 @@ export function HomeEmailPrompt({
 function EmailPromptCard({
   reason,
   surface,
-  initialState,
+  state,
+  action,
+  pending,
   onDismiss,
 }: {
   reason: EmailPromptReason
   surface: EmailPromptSurface
-  initialState: EmailPromptState
+  state: EmailPromptState
+  action: (payload: FormData) => void
+  pending: boolean
   onDismiss: () => void
 }) {
-  const [state, action, pending] = useActionState(
-    emailPromptAction,
-    initialState
-  )
   // "Use a different email" is a client-only step back; any new server answer
-  // (the compare-to-previous-render pattern) returns control to the server.
+  // (the compare-to-previous pattern) returns control to the server.
   const [editing, setEditing] = useState(false)
   const [seenState, setSeenState] = useState(state)
   if (state !== seenState) {
@@ -305,7 +329,7 @@ function CodeStep({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <form action={action}>
           <input type="hidden" name="surface" value={surface} />
-          <input type="hidden" name="intent" value="send" />
+          <input type="hidden" name="intent" value="resend" />
           <input type="hidden" name="email" value={state.email ?? ""} />
           <Button type="submit" variant="link" size="sm" disabled={pending}>
             Email me a new code

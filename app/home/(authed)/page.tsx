@@ -60,17 +60,16 @@ export default async function HomeDashboardPage() {
           <HomeSummaryStrip summary={summary} />
           <HomeRedeemBanner topRedeemable={topRedeemable} />
           {/* At most one prompt: email first; the birthday prompt shows only
-              when no email is needed or the email prompt was dismissed. */}
-          {needsEmail ? (
-            <HomeEmailPrompt
-              reason={emailPromptReason()}
-              initialEmail={customer?.email?.trim() || null}
-              codePending={codePending}
-              fallback={birthdayPrompt}
-            />
-          ) : (
-            birthdayPrompt
-          )}
+              when no email is needed or the email prompt was dismissed. The
+              email prompt is always mounted here (reason null when not asking)
+              so confirming an email, which re-renders this page without the
+              ask, still shows the confirmation. */}
+          <HomeEmailPrompt
+            reason={needsEmail ? emailPromptReason() : null}
+            initialEmail={needsEmail ? customer?.email?.trim() || null : null}
+            codePending={codePending}
+            fallback={birthdayPrompt}
+          />
           <div className="grid gap-4">
             {cards.map((card) => (
               <HomeCardTile

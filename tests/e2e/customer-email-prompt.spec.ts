@@ -5,7 +5,9 @@ import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 /**
  * Email sign-in Step 0 — the add-your-email prompt on the customer dashboard,
  * DB-free. The harness drives the prompt states; the real server actions are
- * not submitted here (they need a signed-in customer and a database).
+ * not submitted here (they need a signed-in customer and a database). The
+ * confirmation, the conflict and the UI after the action re-renders are
+ * covered against local Supabase in customer-email-prompt-live-db.spec.ts.
  */
 const HOME = "/dev/home-harness/home"
 const EMAIL_HEADING = "Add your email"

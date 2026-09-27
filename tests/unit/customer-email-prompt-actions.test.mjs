@@ -26,7 +26,6 @@ async function loadActions() {
     "@/lib/customer/identity":
       'import { state } from "fixture-state"; export async function getCurrentCustomer() { return state.customer }',
     "@/lib/customer/profile": `import { state } from "fixture-state";
-      export const CUSTOMER_EMAIL_CONFLICT_MESSAGE = "This email is already used by another Nabaperks wallet. Sign in with that email, or ask the venue for help.";
       export function clearCustomerEmail() {}
       export function updateCustomerProfile() {}
       export async function markCustomerEmailVerified() { return state.mark }
@@ -52,6 +51,7 @@ async function loadActions() {
   }
   const passthrough = new Set([
     "@/lib/customer/contact-event-core",
+    "@/lib/customer/email-auth-mode",
     "@/lib/customer/email-confirmation",
     "@/lib/customer/profile-fields",
     "@/lib/customer/uk-calendar",
@@ -92,6 +92,18 @@ async function loadActions() {
   return import(
     `data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString("base64")}#${crypto.randomUUID()}`
   )
+}
+
+async function withEmailAuthMode(mode, run) {
+  const previous = process.env.CUSTOMER_EMAIL_AUTH_MODE
+  if (mode === undefined) delete process.env.CUSTOMER_EMAIL_AUTH_MODE
+  else process.env.CUSTOMER_EMAIL_AUTH_MODE = mode
+  try {
+    return await run()
+  } finally {
+    if (previous === undefined) delete process.env.CUSTOMER_EMAIL_AUTH_MODE
+    else process.env.CUSTOMER_EMAIL_AUTH_MODE = previous
+  }
 }
 
 function form(fields) {
@@ -146,33 +158,71 @@ test("Given an invalid email or a forged surface When the prompt submits Then no
   assert.equal(state.events[0].metadata.surface, "home_prompt")
 })
 
+test("Given an emptied email field When the prompt submits Then it asks for an address and sends nothing", async () => {
+  const { state, emailPromptAction } = await loadActions()
+
+  const next = await emailPromptAction(
+    { step: "email", email: "saved@example.test" },
+    form({ intent: "send", email: "  " })
+  )
+
+  assert.equal(next.step, "email")
+  assert.equal(next.errors.email, "Enter a valid email address.")
+  assert.deepEqual(state.saved, [])
+  assert.deepEqual(state.sends, [])
+})
+
 test("Given a send cooldown When the prompt re-sends from the code step Then it stays on the code step with a wait message", async () => {
   const { state, emailPromptAction } = await loadActions()
   state.sendFailure = "cooldown"
 
   const next = await emailPromptAction(
-    { step: "code", email: "guest@example.test" },
-    form({ intent: "send", email: "guest@example.test" })
+    { step: "code", email: "Guest@example.test" },
+    form({ intent: "resend", email: "Guest@example.test" })
   )
 
   assert.equal(next.step, "code")
+  assert.equal(next.email, "guest@example.test")
   assert.match(next.errors.form, /wait a minute/)
   assert.deepEqual(state.events, [])
+})
+
+test("Given a code is pending for one address When a different address cannot be sent Then the prompt returns to the email step", async () => {
+  const { state, emailPromptAction } = await loadActions()
+  state.sendFailure = "cooldown"
+
+  const changed = await emailPromptAction(
+    { step: "code", email: "first@example.test" },
+    form({ intent: "send", email: "second@example.test" })
+  )
+  assert.equal(changed.step, "email")
+  assert.equal(changed.email, "second@example.test")
+  assert.match(changed.errors.form, /wait a minute/)
+
+  // A forged resend for an address other than the pending one gets the same.
+  const forged = await emailPromptAction(
+    { step: "code", email: "first@example.test" },
+    form({ intent: "resend", email: "second@example.test" })
+  )
+  assert.equal(forged.step, "email")
+  assert.deepEqual(state.sends, [])
 })
 
 test("Given another wallet holds the email When the prompt code is confirmed Then the conflict copy shows and the conflict is tracked", async () => {
   const { state, emailPromptAction } = await loadActions()
   state.mark = { status: "conflict" }
 
-  const next = await emailPromptAction(
-    { step: "code", email: "guest@example.test" },
-    form({ intent: "verify", surface: "home_prompt", otp: "123456" })
+  const next = await withEmailAuthMode(undefined, () =>
+    emailPromptAction(
+      { step: "code", email: "guest@example.test" },
+      form({ intent: "verify", surface: "home_prompt", otp: "123456" })
+    )
   )
 
   assert.deepEqual(next, {
     step: "email",
     errors: {
-      form: "This email is already used by another Nabaperks wallet. Sign in with that email, or ask the venue for help.",
+      form: "This email is already used by another Nabaperks wallet. Use a different email, or ask the venue for help.",
     },
   })
   assert.deepEqual(state.events, [
@@ -187,6 +237,26 @@ test("Given another wallet holds the email When the prompt code is confirmed The
     },
   ])
   assert.deepEqual(state.revalidated, [])
+})
+
+test("Given email sign-in is live When a confirmed code conflicts Then the copy points to signing in with that email", async () => {
+  for (const mode of ["existing", "full"]) {
+    const { state, emailPromptAction } = await loadActions()
+    state.mark = { status: "conflict" }
+
+    const next = await withEmailAuthMode(mode, () =>
+      emailPromptAction(
+        { step: "code", email: "guest@example.test" },
+        form({ intent: "verify", otp: "123456" })
+      )
+    )
+
+    assert.equal(
+      next.errors.form,
+      "This email is already used by another Nabaperks wallet. Sign in with that email, or ask the venue for help.",
+      mode
+    )
+  }
 })
 
 test("Given a matching code When the prompt code is confirmed Then the email is verified and tracked", async () => {
