@@ -44,7 +44,16 @@ export async function startCustomerEmailVerification(
     codeHmac: emailCodeHmac(normalizedEmail, code),
     customerId: customerSession.customerId,
   })
-  await sendEmailOtp({ to: normalizedEmail, code })
+  try {
+    await sendEmailOtp({ to: normalizedEmail, code })
+  } catch (error) {
+    // No code reached the customer, so nothing may stay pending: otherwise a
+    // refresh of /home would open the email prompt on "Enter the code we
+    // sent". The earlier code was already replaced above, so it is withdrawn
+    // too; a cooldown refusal (admission, above) leaves it untouched.
+    await clearPendingEmailVerification()
+    throw error
+  }
 
   return { status: "sent" }
 }

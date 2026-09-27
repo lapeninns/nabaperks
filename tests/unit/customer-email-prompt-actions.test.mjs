@@ -187,6 +187,23 @@ test("Given a send cooldown When the prompt re-sends from the code step Then it 
   assert.deepEqual(state.events, [])
 })
 
+test("Given the email provider fails When the prompt re-sends from the code step Then it returns to the email step because no code is pending", async () => {
+  const { state, emailPromptAction } = await loadActions()
+  state.sendFailure = "provider"
+
+  const next = await emailPromptAction(
+    { step: "code", email: "guest@example.test" },
+    form({ intent: "resend", email: "guest@example.test" })
+  )
+
+  assert.deepEqual(next, {
+    step: "email",
+    email: "guest@example.test",
+    errors: { form: "We couldn't email a code to that address. Try again." },
+  })
+  assert.deepEqual(state.events, [])
+})
+
 test("Given a code is pending for one address When a different address cannot be sent Then the prompt returns to the email step", async () => {
   const { state, emailPromptAction } = await loadActions()
   state.sendFailure = "cooldown"

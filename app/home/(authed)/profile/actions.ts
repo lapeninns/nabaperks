@@ -195,10 +195,12 @@ async function startEmailPrompt(
   try {
     await startCustomerEmailVerification(savedEmail)
   } catch (error) {
-    // Stay on the code step only for a genuine re-send to the address that
-    // already has a code on its way. A newly entered address got no code, so
-    // it goes back to the email step rather than asking for one.
+    // Stay on the code step only when the earlier code still stands: a re-send
+    // to the pending address that the cooldown refused before any new code was
+    // issued. A failed delivery withdraws the pending code, and a newly entered
+    // address got no code, so both go back to the email step.
     const resendingPendingCode =
+      error instanceof RateLimitError &&
       value(formData, "intent") === "resend" &&
       state.step === "code" &&
       state.email?.trim().toLowerCase() === savedEmail
