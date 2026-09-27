@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 
 import { expectNoAxeViolations } from "./helpers/axe"
 import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
@@ -111,14 +111,20 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     ).toBeVisible()
   })
 
-  test("a device that last confirmed by phone leads with phone on the default contact step", async ({
+  test("mode full leads with email on a fresh device and phone after a phone sign-in, with no hydration errors", async ({
     page,
   }) => {
+    const hydrationErrors = collectHydrationErrors(page)
+
     await gotoHydratedPage(
       page,
       "/dev/welcome-offer?surface=contact&offer=none"
     )
     await expect(page.getByLabel("Email address")).toBeVisible()
+    await expect(page.getByLabel("UK phone number")).toHaveCount(0)
+    await expect(
+      page.getByRole("link", { name: "Use my phone number instead" })
+    ).toBeVisible()
 
     await page.evaluate(() =>
       window.localStorage.setItem("nabaperks.last-contact-method", "phone")
@@ -128,9 +134,17 @@ test.describe("@customer-flow @a11y join by email screens", () => {
       "/dev/welcome-offer?surface=contact&offer=none"
     )
     await expect(page.getByLabel("UK phone number")).toBeVisible()
+    await expect(page.getByLabel("Email address")).toHaveCount(0)
     await expect(
       page.getByRole("link", { name: "Use my email instead" })
     ).toHaveAttribute("href", /step=email/)
+
+    // A method asked for in the address is never reordered.
+    await gotoHydratedPage(page, "/dev/welcome-offer?surface=email&offer=none")
+    await expect(page.getByLabel("Email address")).toBeVisible()
+    await expect(page.getByLabel("UK phone number")).toHaveCount(0)
+
+    expect(hydrationErrors).toEqual([])
   })
 
   test("with email sign-in off the phone step has no email option", async ({
@@ -145,3 +159,18 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     await expect(page.getByRole("link", { name: /email/i })).toHaveCount(0)
   })
 })
+
+const HYDRATION_ERROR =
+  /hydration failed|server rendered (text|html) didn't match|hydrated.*didn't match|hydration mismatch/i
+
+/** Page errors, and console errors that report a hydration mismatch. */
+function collectHydrationErrors(page: Page): string[] {
+  const errors: string[] = []
+  page.on("pageerror", (error) => errors.push(error.message))
+  page.on("console", (message) => {
+    if (message.type() === "error" && HYDRATION_ERROR.test(message.text())) {
+      errors.push(message.text())
+    }
+  })
+  return errors
+}
