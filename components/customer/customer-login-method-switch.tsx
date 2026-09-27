@@ -15,6 +15,11 @@ export type CustomerLoginStepProps = {
   /** The other method, directly under the step's own button (D12). */
   readonly alternate?: ReactNode
   /**
+   * The other method as a link beside "Resend code" on the code step, for a
+   * customer whose code never arrives. Absent when there is no other method.
+   */
+  readonly codeAlternate?: ReactNode
+  /**
    * Records this method as the code check submits. Owned by the login form,
    * which outlives both steps, so an answer in place (a wrong code, no
    * wallet) that swaps the step can still put the stored method back.

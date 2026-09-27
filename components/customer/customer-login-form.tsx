@@ -81,6 +81,20 @@ export function CustomerLoginForm({
           </CustomerLoginMethodSwitch>
         ) : undefined
       }
+      // A text that never arrives is why email sign-in exists, so the code
+      // step offers email too, as the email code step offers phone.
+      codeAlternate={
+        emailEnabled ? (
+          <CustomerLoginMethodSwitch
+            to="email"
+            submitAction={submitAction}
+            pending={pending}
+            variant="link"
+          >
+            Use my email instead
+          </CustomerLoginMethodSwitch>
+        ) : undefined
+      }
     />
   )
   const email = (

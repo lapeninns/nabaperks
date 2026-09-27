@@ -156,6 +156,31 @@ test.describe("@customer-flow @a11y wallet sign-in by email", () => {
     ).toBeVisible()
   })
 
+  test("a phone code that never arrives is one tap from email on the code step", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(page, "/dev/customer-login?mode=existing")
+    await page.getByLabel("Phone number", { exact: true }).fill("07700900123")
+    await page.getByRole("button", { name: "Send code" }).click()
+    await expect(page.getByLabel("Phone code")).toBeVisible()
+
+    const emailInstead = page.getByRole("button", {
+      name: "Use my email instead",
+    })
+    await expect(emailInstead).toBeVisible()
+    // Beside the phone code's own recovery links, below the code button.
+    expect((await emailInstead.boundingBox())!.y).toBeGreaterThan(
+      (await page
+        .getByRole("button", { name: "Wrong number? Use a different one" })
+        .boundingBox())!.y
+    )
+    await expectNoAxeViolations(page, "login phone code step with email")
+
+    await emailInstead.click()
+    await expect(page.getByLabel("Email address")).toBeVisible()
+    await expect(page.getByLabel("Phone code")).toHaveCount(0)
+  })
+
   test("with email sign-in off the login screen has no email option", async ({
     page,
   }) => {
@@ -166,6 +191,12 @@ test.describe("@customer-flow @a11y wallet sign-in by email", () => {
     await gotoHydratedPage(page, "/dev/customer-login")
     await expect(page.getByLabel("Phone number", { exact: true })).toBeVisible()
     await expect(page.getByLabel("Email address")).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /email/i })).toHaveCount(0)
+
+    // Nor on the phone code step.
+    await page.getByLabel("Phone number", { exact: true }).fill("07700900123")
+    await page.getByRole("button", { name: "Send code" }).click()
+    await expect(page.getByLabel("Phone code")).toBeVisible()
     await expect(page.getByRole("button", { name: /email/i })).toHaveCount(0)
   })
 })

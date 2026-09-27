@@ -63,6 +63,7 @@ function PhoneCodeStep({
   pending,
   next,
   onVerifySubmit,
+  codeAlternate,
 }: CustomerLoginStepProps) {
   const contact = state.fields?.contact ?? ""
   const verifyError = state.errors?.otp ?? state.errors?.form
@@ -151,6 +152,7 @@ function PhoneCodeStep({
             Wrong number? Use a different one
           </SubmitButton>
         </form>
+        {codeAlternate}
         <p
           role="status"
           aria-live="polite"
