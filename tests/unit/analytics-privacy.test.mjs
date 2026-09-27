@@ -8,6 +8,12 @@ import {
   resolvePostHogConfig,
 } from "@/lib/analytics/privacy-core"
 import {
+  CONTACT_EVENT_METHODS,
+  CONTACT_EVENT_REASONS,
+  CONTACT_EVENT_SURFACES,
+  contactEventMetadata,
+} from "@/lib/customer/contact-event-core"
+import {
   deterministicFunnelEventId,
   issueFunnelToken,
   verifyFunnelToken,
@@ -172,6 +178,48 @@ test("outbound analytics rejects nested personal data, identifiers, URLs, tokens
     ["numeric coordinate in categorical key", { source: 51.5074 }],
     ["unapproved slug-shaped value", { source: "john_smith" }],
     ["inherited object key", { constructor: "homepage" }],
+  ]
+
+  for (const [name, properties] of unsafeCases) {
+    await t.test(name, () => {
+      assert.equal(buildExternalAnalyticsProperties(properties), null)
+    })
+  }
+})
+
+test("every customer contact event's fixed metadata survives the external allowlist", () => {
+  // recordCustomerContactEvent forwards `{actor_type, method, surface,
+  // reason}`. One value outside the allowlist drops the whole capture, which
+  // is how the contact events were silently missing from PostHog.
+  for (const method of CONTACT_EVENT_METHODS) {
+    for (const surface of CONTACT_EVENT_SURFACES) {
+      for (const reason of CONTACT_EVENT_REASONS) {
+        const properties = {
+          actor_type: "customer",
+          ...contactEventMetadata({ method, surface, reason }),
+        }
+        assert.deepEqual(
+          buildExternalAnalyticsProperties(properties),
+          properties,
+          `${method}/${surface}/${reason}`
+        )
+      }
+    }
+  }
+})
+
+test("contact event keys still refuse free text, contacts and codes", async (t) => {
+  const unsafeCases = [
+    ["email as a reason", { reason: "guest@example.com" }],
+    ["phone as a reason", { reason: "+447700900123" }],
+    ["code as a reason", { reason: "123456" }],
+    ["provider message as a reason", { reason: "Resend send failed (422)" }],
+    ["unlisted slug-shaped reason", { reason: "customer_typed_this" }],
+    ["email as a surface", { surface: "guest@example.com" }],
+    ["unlisted slug-shaped surface", { surface: "john_smith" }],
+    ["email as a method", { method: "guest@example.com" }],
+    ["unlisted method", { method: "carrier_pigeon" }],
+    ["contact under its own key", { method: "email", email: "g@example.com" }],
   ]
 
   for (const [name, properties] of unsafeCases) {
