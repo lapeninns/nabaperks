@@ -51,7 +51,25 @@ export const WELCOME_PASS: CustomerOfferPass = {
   presentable: true,
 }
 
+/**
+ * Join surfaces this harness renders. `contact` is the contact step the server
+ * picks by default, which a device may reorder (D12); it and the `email*`
+ * surfaces run in mode `full` (`email-choice-existing` in `existing`).
+ */
+export const WELCOME_JOIN_SURFACES = [
+  "welcome",
+  "phone",
+  "code",
+  "terms",
+  "contact",
+  "email",
+  "email-code",
+  "email-choice",
+  "email-choice-existing",
+] as const
+
 export function welcomeJoinExperience(step: string) {
+  const emailSurface = step === "contact" || step.startsWith("email")
   return deriveCustomerExperience({
     entry: "join",
     context: {
@@ -68,8 +86,22 @@ export function welcomeJoinExperience(step: string) {
           "Fixture venue terms. No live consent is collected on this display route.",
       },
       qrId: step === "welcome" ? "welcome-fixture-qr" : undefined,
+      step: step === "email" ? "email" : undefined,
       hasSession: step === "terms",
       pendingOtp: step === "code",
+      emailMode: !emailSurface
+        ? "off"
+        : step === "email-choice-existing"
+          ? "existing"
+          : "full",
+      // A past resend time keeps the resend button steady for screenshots.
+      pendingEmail:
+        step === "email-code"
+          ? { maskedEmail: "j***@example.com", resendAvailableAt: 0 }
+          : undefined,
+      emailHandoff: step.startsWith("email-choice")
+        ? { maskedEmail: "j***@example.com" }
+        : undefined,
       pendingPhone: "+447700900123",
       pendingChannel: "sms",
       primaryChannel: "sms",

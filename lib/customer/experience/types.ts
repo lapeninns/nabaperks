@@ -222,6 +222,8 @@ export type CustomerExperience =
       qrId: string
       /** The contact step the welcome CTA opens (the server default, D12). */
       contactStep: JoinContactMethod
+      /** `off` keeps the CTA on the phone step whatever the device remembers. */
+      emailMode: JoinEmailMode
     }
   | {
       kind: "join_phone"
@@ -234,6 +236,8 @@ export type CustomerExperience =
       emailMode: JoinEmailMode
       /** Method the server shows first; a device may reorder it (D12). */
       defaultMethod: JoinContactMethod
+      /** The address asked for this method (`step=phone`): never reordered. */
+      methodRequested: boolean
     }
   | {
       kind: "join_email"
@@ -244,6 +248,10 @@ export type CustomerExperience =
       emailMode: Exclude<JoinEmailMode, "off">
       /** Method the server shows first; a device may reorder it (D12). */
       defaultMethod: JoinContactMethod
+      /** The address asked for this method (`step=email`): never reordered. */
+      methodRequested: boolean
+      /** Channel a phone code would go out on, for the phone alternative. */
+      channel: OtpChannel
     }
   | {
       /**

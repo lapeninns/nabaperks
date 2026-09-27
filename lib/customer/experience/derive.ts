@@ -516,6 +516,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
             card: context.card,
             qrId: context.qrId,
             contactStep: defaultJoinContactMethod(joinEmailMode(context)),
+            emailMode: joinEmailMode(context),
           }
         : joinPhone(context)
     default:
@@ -579,6 +580,7 @@ function joinPhone(context: AvailableJoinContext): CustomerExperience {
     qrId: context.qrId,
     emailMode,
     defaultMethod: defaultJoinContactMethod(emailMode),
+    methodRequested: context.step === "phone",
   }
 }
 
@@ -592,6 +594,8 @@ function joinEmail(context: AvailableJoinContext): CustomerExperience {
     qrId: context.qrId,
     emailMode,
     defaultMethod: defaultJoinContactMethod(emailMode),
+    methodRequested: context.step === "email",
+    channel: context.primaryChannel ?? "whatsapp",
   }
 }
 

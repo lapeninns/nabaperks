@@ -4,6 +4,7 @@ import { test } from "node:test"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import {
   getCustomerExperienceViewModel,
+  JOIN_WELCOME_PHONE_REASSURANCE,
   joinCompletionHint,
 } from "@/lib/customer/experience/copy"
 
@@ -197,4 +198,64 @@ test("a signed-in customer outranks any email handoff and the terms step knows t
   })
   assert.equal(experience.kind, "join_terms")
   assert.deepEqual(experience.contactChannels, { phone: false, email: true })
+})
+
+test("a contact step records whether the address asked for it, so a device never reorders a request", () => {
+  const byDefault = join({ emailMode: "full" })
+  assert.equal(byDefault.methodRequested, false)
+  assert.equal(byDefault.channel, "whatsapp")
+  assert.equal(join({ emailMode: "full", step: "email" }).methodRequested, true)
+  assert.equal(join({ emailMode: "full", step: "phone" }).methodRequested, true)
+  assert.equal(join({ emailMode: "existing" }).methodRequested, false)
+  assert.equal(
+    join({ emailMode: "full", primaryChannel: "sms" }).channel,
+    "sms",
+    "the phone alternative keeps the configured first channel"
+  )
+})
+
+test("the welcome carries the mode so a device can only reorder it while email is on", () => {
+  assert.equal(join({ qrId: "venue-qr" }).emailMode, "off")
+  assert.equal(
+    join({ qrId: "venue-qr", emailMode: "existing" }).emailMode,
+    "existing"
+  )
+})
+
+test("in mode existing the choice screen says no wallet uses the email and offers phone only", () => {
+  const existing = join({
+    emailMode: "existing",
+    emailHandoff: { maskedEmail: "j***@example.com" },
+  })
+  const viewModel = getCustomerExperienceViewModel(existing)
+  assert.equal(viewModel.headline, "No wallet uses this email yet")
+  assert.match(viewModel.supportLine, /^Use the phone number you joined with/)
+})
+
+test("join copy stays true for a wallet joined by email", () => {
+  assert.equal(
+    joinCompletionHint({ hasQr: true, savedTo: "email" }),
+    "Your stamp and card stay saved to your email."
+  )
+  assert.equal(
+    joinCompletionHint({ hasQr: false, savedTo: "email" }),
+    "Your card is saved to your email, ready for your first visit."
+  )
+  // Phone wallets keep the original wording.
+  assert.equal(
+    joinCompletionHint({ hasQr: true }),
+    "Your stamp and card stay saved to this number."
+  )
+
+  const returning = join({
+    emailMode: "full",
+    hasSession: true,
+    membership: { id: "membership-1", current: 2 },
+  })
+  assert.equal(returning.kind, "join_returning")
+  assert.doesNotMatch(
+    getCustomerExperienceViewModel(returning).supportLine,
+    /number/
+  )
+  assert.doesNotMatch(JOIN_WELCOME_PHONE_REASSURANCE, /number/)
 })

@@ -161,3 +161,93 @@ test("Given the join email modules When the app is scanned Then no client compon
     })
   assert.deepEqual(offenders, [])
 })
+
+test("Given the join email screens When they are read Then they carry the agreed copy and controls", () => {
+  const forms = read("components", "customer", "join-email-forms.tsx")
+  const otp = read("components", "customer", "join-email-otp-form.tsx")
+  const copy = read("lib", "customer", "experience", "copy.ts")
+
+  assert.match(forms, /type="email"/)
+  assert.match(forms, /autoComplete="email"/)
+  assert.match(forms, /OTP_SEND_LABEL/)
+  assert.match(forms, /JOIN_EMAIL_WIFI_HINT/)
+  assert.match(
+    copy,
+    /"Works over the venue's Wi-Fi, even with no mobile signal\."/
+  )
+
+  // The choice: the create button exists only when the server allows it, and
+  // neither answer is styled as the expected one.
+  const choice = forms.slice(
+    forms.indexOf("export function CustomerEmailChoiceForm")
+  )
+  assert.match(choice, /\{canCreate \? \(\s*<form action=\{createAction\}/)
+  assert.match(choice, /No, I&rsquo;m new here: start my wallet/)
+  assert.match(choice, /Yes, with my phone number: use my phone/)
+  assert.match(choice, /action=\{switchJoinToPhoneAction\}/)
+  assert.equal((choice.match(/variant="outline"/g) ?? []).length, 2)
+  assert.doesNotMatch(choice, /variant="default"/)
+
+  // The code step: masked address, shared code field, a countdown on the
+  // server's resend time, and both ways out.
+  assert.match(otp, /Sent to /)
+  assert.match(otp, /CustomerOtpInput/)
+  assert.match(otp, /useOtpRetryCountdown/)
+  assert.match(otp, /name="resend" value="1"/)
+  assert.doesNotMatch(otp, /name="email"/)
+  assert.match(otp, /Use a different email/)
+  assert.match(otp, /Use my phone instead/)
+  assert.match(otp, /JOIN_EMAIL_SPAM_HINT/)
+  assert.match(otp, /SPAM_HINT_AFTER_MS = 30_000/)
+})
+
+test("Given email sign-in is off When the contact step renders Then it is the phone form alone", () => {
+  const wizard = read("components", "customer", "join-wizard.tsx")
+  const contact = wizard.slice(
+    wizard.indexOf("function ContactStep("),
+    wizard.indexOf("function contactExperiences(")
+  )
+  const offBranch = contact.slice(
+    contact.indexOf('exp.emailMode === "off"'),
+    contact.indexOf("const { phoneExp, emailExp }")
+  )
+  assert.match(offBranch, /<PhoneStep/)
+  assert.doesNotMatch(offBranch, /alternate=|ContactMethodOrder/)
+  // A requested method is never reordered, and an offer in progress leads
+  // with phone because public offer claims need a confirmed phone.
+  assert.ok(
+    contact.indexOf("if (exp.methodRequested)") <
+      contact.indexOf("<ContactMethodOrder")
+  )
+  assert.ok(
+    contact.indexOf("if (pendingOffer) return phone") <
+      contact.indexOf("<ContactMethodOrder")
+  )
+})
+
+test("Given the device remembers its sign-in method When it is stored Then it is convenience only and disclosed", () => {
+  const order = read("components", "customer", "contact-method-order.tsx")
+  const legal = read("lib", "legal", "content.ts")
+  const phoneOtp = read("components", "customer", "join-otp-form.tsx")
+  const emailOtp = read("components", "customer", "join-email-otp-form.tsx")
+
+  assert.match(order, /^"use client"/)
+  assert.match(order, /"nabaperks\.last-contact-method"/)
+  // The server snapshot is the mode default: no hydration mismatch.
+  assert.match(
+    order,
+    /useSyncExternalStore\([\s\S]*?\(\) => serverDefault\s*\)/
+  )
+  assert.match(phoneOtp, /useRememberContactMethodOnVerify\("phone"/)
+  assert.match(emailOtp, /useRememberContactMethodOnVerify\("email"/)
+
+  assert.match(legal, /\(nabaperks\.last-contact-method\)/)
+  const signIn = read("lib", "customer", "email-sign-in.ts")
+  for (const cookie of [
+    "nabaperks_pending_email_sign_in",
+    "nabaperks_email_handoff",
+  ]) {
+    assert.match(signIn, new RegExp(`"${cookie}"`), `set as ${cookie}`)
+    assert.match(legal, new RegExp(cookie), `disclosed: ${cookie}`)
+  }
+})

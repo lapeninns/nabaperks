@@ -19,6 +19,7 @@ import {
   LONG_WELCOME_OFFER,
   WELCOME_CARD,
   WELCOME_OFFER,
+  WELCOME_JOIN_SURFACES,
   WELCOME_PASS,
   welcomeJoinExperience,
 } from "./fixtures"
@@ -40,7 +41,9 @@ export default async function WelcomeOfferHarness({
   const query = await searchParams
   const offer = query.long === "1" ? LONG_WELCOME_OFFER : WELCOME_OFFER
 
-  if (["welcome", "phone", "code", "terms"].includes(query.surface ?? "")) {
+  if (
+    (WELCOME_JOIN_SURFACES as readonly string[]).includes(query.surface ?? "")
+  ) {
     return (
       <JoinWizard
         experience={welcomeJoinExperience(query.surface ?? "phone")}

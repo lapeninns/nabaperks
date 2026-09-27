@@ -1,5 +1,7 @@
-import Link from "next/link"
-
+import {
+  ContactMethodOrder,
+  ContactStepLink,
+} from "@/components/customer/contact-method-order"
 import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
 import { JoinActionBar } from "@/components/customer/join-action-bar"
 import { JoinOfferJourney } from "@/components/customer/join-offer-journey"
@@ -9,6 +11,7 @@ import {
   JOIN_WELCOME_HOW_IT_WORKS,
   JOIN_WELCOME_HOW_IT_WORKS_LABEL,
   JOIN_WELCOME_PHONE_REASSURANCE,
+  getCustomerExperienceViewModel,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
 import type { CustomerExperience } from "@/lib/customer/experience/types"
@@ -31,11 +34,36 @@ export function WelcomeStep({
   vm: CustomerExperienceViewModel
   referralCode?: string
 }) {
+  // While email sign-in is on, a device that verified before opens the method
+  // it used last (D12); the support line follows the same choice.
+  const overridable = exp.emailMode !== "off"
+  const contactHref = {
+    phone: buildCustomerJoinHref(exp.merchant.slug, {
+      qrId: exp.qrId,
+      referralCode,
+      step: "phone",
+    }),
+    email: buildCustomerJoinHref(exp.merchant.slug, {
+      qrId: exp.qrId,
+      referralCode,
+      step: "email",
+    }),
+  }
+  const description = overridable ? (
+    <ContactMethodOrder
+      defaultMethod={exp.contactStep}
+      email={welcomeSupportLine(exp, "email")}
+      phone={welcomeSupportLine(exp, "phone")}
+    />
+  ) : (
+    vm.supportLine
+  )
+
   return (
     <CustomerFlowShell
       eyebrow={vm.eyebrow}
       title={vm.headline}
-      description={vm.supportLine}
+      description={description}
       progress={{ step: 1, total: ONBOARDING_STEPS, label: "Keep your card" }}
       dense
       screenLabel="Customer join"
@@ -44,15 +72,14 @@ export function WelcomeStep({
       {vm.primaryAction ? (
         <JoinActionBar note={JOIN_WELCOME_PHONE_REASSURANCE}>
           <Button asChild size="lg" className="w-full">
-            <Link
-              href={buildCustomerJoinHref(exp.merchant.slug, {
-                qrId: exp.qrId,
-                referralCode,
-                step: "phone",
-              })}
+            <ContactStepLink
+              defaultMethod={exp.contactStep}
+              overridable={overridable}
+              phoneHref={contactHref.phone}
+              emailHref={contactHref.email}
             >
               {vm.primaryAction.label}
-            </Link>
+            </ContactStepLink>
           </Button>
         </JoinActionBar>
       ) : null}
@@ -108,4 +135,11 @@ function HowItWorksList() {
       </ol>
     </details>
   )
+}
+
+function welcomeSupportLine(
+  exp: Extract<CustomerExperience, { kind: "join_welcome" }>,
+  contactStep: "email" | "phone"
+): string | undefined {
+  return getCustomerExperienceViewModel({ ...exp, contactStep }).supportLine
 }
