@@ -66,9 +66,18 @@ test.describe("@customer-flow profile email verification layout", () => {
     await expect(logOut).toBeVisible()
     await logOut.click({ trial: true })
 
-    // Still a form submission to a server action, not a client-side shortcut.
-    await expect(account.locator("form")).toHaveCount(1)
+    // Both remain form submissions to server actions, not client shortcuts.
+    await expect(account.locator("form")).toHaveCount(2)
     const box = (await logOut.boundingBox())!
     expect(box.height).toBeGreaterThanOrEqual(44)
+
+    // Sessions last until log-out, so a lost phone needs a way out.
+    const logOutAll = account.getByRole("button", {
+      name: "Log out on all devices",
+      exact: true,
+    })
+    await expect(logOutAll).toBeVisible()
+    const allBox = (await logOutAll.boundingBox())!
+    expect(allBox.height).toBeGreaterThanOrEqual(44)
   })
 })

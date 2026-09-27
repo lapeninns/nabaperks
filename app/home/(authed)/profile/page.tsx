@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation"
 
-import { signOutCustomerAction } from "@/app/home/actions"
+import {
+  signOutAllCustomerDevicesAction,
+  signOutCustomerAction,
+} from "@/app/home/actions"
 import { PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
 import { CustomerProfileAccountSection } from "@/components/customer/profile-account-section"
@@ -64,6 +67,7 @@ export default async function HomeProfilePage() {
         memberSinceLabel={formatMonthYear(profile.memberSince)}
         venueLabel={venueLabel}
         signOutAction={signOutCustomerAction}
+        signOutAllAction={signOutAllCustomerDevicesAction}
       />
     </div>
   )

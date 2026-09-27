@@ -73,8 +73,6 @@ test(
       await tx`update public.customer_otp_trusted_devices
       set trusted_until = now() + interval '1 day'
       where customer_id = ${customerId}::uuid and device_hash = ${device}`
-      const [before] = await tx`select expires_at from public.customer_sessions
-      where id = ${sessionId}`
 
       const row = await load(tx, customerId, sessionId, device)
       assert.equal(row.status, "active")
@@ -86,16 +84,17 @@ test(
       assert.notEqual(row.created_at, null)
 
       const [afterTouch] = await tx`
-      select expires_at, last_seen_at from public.customer_sessions
+      select last_seen_at, expires_at = 'infinity'::timestamptz as open_ended
+      from public.customer_sessions
       where id = ${sessionId}`
       assert.ok(
         new Date(afterTouch.last_seen_at).getTime() > Date.now() - 60_000,
         "last_seen_at advanced"
       )
       assert.equal(
-        new Date(afterTouch.expires_at).getTime(),
-        new Date(before.expires_at).getTime(),
-        "expiry is never slid"
+        afterTouch.open_ended,
+        true,
+        "the delegated touch makes the session last until log-out"
       )
       const [trust] = await tx`select trusted_until
       from public.customer_otp_trusted_devices

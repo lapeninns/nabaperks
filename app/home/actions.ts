@@ -7,6 +7,7 @@ import { findCustomerByVerifiedPhone } from "@/lib/customer/identity"
 import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
+  clearAllCustomerSessions,
   clearCustomerSession,
   clearPendingPhoneVerification,
   getPendingPhoneVerification,
@@ -229,5 +230,10 @@ export async function verifyCustomerLoginOtpAction(
 
 export async function signOutCustomerAction() {
   await clearCustomerSession()
+  redirect("/home/login")
+}
+
+export async function signOutAllCustomerDevicesAction() {
+  await clearAllCustomerSessions()
   redirect("/home/login")
 }

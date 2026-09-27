@@ -23,8 +23,12 @@ import {
 import {
   CUSTOMER_DEVICE_COOKIE,
   CUSTOMER_DEVICE_TTL_SECONDS,
+  CUSTOMER_SESSION_COOKIE,
+  CUSTOMER_SESSION_RENEW_AFTER_SECONDS,
+  CUSTOMER_SESSION_TTL_SECONDS,
   persistentCookieOptions,
 } from "@/lib/http/persistent-cookie-options"
+import { renewCustomerSessionCookieValue } from "@/lib/customer/session-renewal-core"
 import { CUSTOMER_DEVICE_HEADER } from "@/lib/security/rate-limit-core"
 import {
   issueCustomerDeviceToken,
@@ -92,6 +96,28 @@ export async function proxy(request: NextRequest) {
       CUSTOMER_DEVICE_COOKIE,
       customerDevice.token,
       persistentCookieOptions(CUSTOMER_DEVICE_TTL_SECONDS)
+    )
+  }
+
+  // A session is bound to its device, so only renew it alongside a device
+  // cookie that was already valid; a freshly minted device cannot use it.
+  const renewedSession =
+    customerDevice &&
+    !customerDevice.isNew &&
+    canPersistFirstPartyCookies(request)
+      ? renewCustomerSessionCookieValue({
+          value: request.cookies.get(CUSTOMER_SESSION_COOKIE)?.value,
+          secret: process.env.CUSTOMER_SESSION_SECRET?.trim(),
+          nowSeconds: Math.floor(Date.now() / 1_000),
+          ttlSeconds: CUSTOMER_SESSION_TTL_SECONDS,
+          renewAfterSeconds: CUSTOMER_SESSION_RENEW_AFTER_SECONDS,
+        })
+      : null
+  if (renewedSession) {
+    response.cookies.set(
+      CUSTOMER_SESSION_COOKIE,
+      renewedSession,
+      persistentCookieOptions(CUSTOMER_SESSION_TTL_SECONDS)
     )
   }
 

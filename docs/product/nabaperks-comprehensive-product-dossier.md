@@ -232,7 +232,7 @@ For an existing member, a valid venue QR routes toward the stamp journey. For a 
 
 ### 7.2 Phone OTP and joining
 
-Customer identity is phone-first. The customer submits a mobile number, receives a Twilio Verify code, and enters it in the browser. The application uses anti-enumeration behaviour so an unknown number is not disclosed before verification. OTP starts and checks are rate-limited. A short-lived signed pending-phone cookie carries the verification flow; verified identity is then attached to a 30-day, revocable server-side customer session.
+Customer identity is phone-first. The customer submits a mobile number, receives a Twilio Verify code, and enters it in the browser. The application uses anti-enumeration behaviour so an unknown number is not disclosed before verification. OTP starts and checks are rate-limited. A short-lived signed pending-phone cookie carries the verification flow; verified identity is then attached to a revocable server-side customer session that lasts until the customer logs out; the session cookie renews as it is used and lapses after one year without use.
 
 The customer must be shown the privacy notice and accept current platform and venue loyalty terms. The application retains a versioned snapshot/evidence record of the accepted terms. Marketing consent is separate, optional, off by default, and not required to join, stamp, or redeem.
 
@@ -497,7 +497,7 @@ Merchant data includes authentication, business/venue/address details, coordinat
 
 - Pending phone/email cookies: up to 10 minutes.
 - Join-journey cookie: up to two hours.
-- Customer session: normally 30 days.
+- Customer session: until the customer logs out (cookie renews on use; lapses after one year unused).
 - Signed device/rate-limit cookie: up to one year.
 - Merchant/admin session cookies: controlled by Supabase Auth configuration.
 - Local storage: onboarding draft, install/birthday prompt dismissals, and similar convenience state.

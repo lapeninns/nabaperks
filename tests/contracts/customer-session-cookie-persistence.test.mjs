@@ -18,10 +18,6 @@ test("Given Safari discards Max-Age-only cookies When customer cookies are set T
   assert.match(cookie, /expires: new Date\(nowMs \+ maxAge \* 1_000\)/)
   assert.match(session, /persistentCookieOptions\(customerSessionTtlSeconds\)/)
   assert.match(proxy, /persistentCookieOptions\(CUSTOMER_DEVICE_TTL_SECONDS\)/)
-  assert.doesNotMatch(
-    proxy,
-    /persistentCookieOptions\(CUSTOMER_SESSION_TTL_SECONDS\)/
-  )
 })
 
 test("Given a returning Safari visit When the proxy runs Then it refreshes the verified device cookie on GET and keeps cookieless requests unscoped", () => {
@@ -42,8 +38,38 @@ test("Given a returning Safari visit When the proxy runs Then it refreshes the v
     /request\.method === "GET" \|\| request\.method === "HEAD"/
   )
   assert.doesNotMatch(proxy, /isNew \|\| canPersistFirstPartyCookies/)
+})
+
+test("Given sessions last until log-out When the proxy renews a session cookie Then it re-signs it on GET beside a valid device, never re-setting the old value", () => {
+  const proxy = read("proxy.ts")
+  const renewal = read("lib", "customer", "session-renewal-core.ts")
+  const session = read("lib", "customer", "session.ts")
+
+  // Renewal is gated like the device cookie, and only for an existing device:
+  // a session cannot be used from a freshly minted one.
+  assert.match(
+    proxy,
+    /customerDevice &&\s+!customerDevice\.isNew &&\s+canPersistFirstPartyCookies\(request\)/
+  )
+  assert.match(proxy, /renewCustomerSessionCookieValue\(\{/)
+  assert.match(
+    proxy,
+    /CUSTOMER_SESSION_COOKIE,\s*renewedSession,\s*persistentCookieOptions\(CUSTOMER_SESSION_TTL_SECONDS\)/
+  )
+  // The 12 September rule still holds: the cookie is never stretched past its
+  // signed expiry, because renewal signs a new expiry rather than re-setting
+  // the presented value.
   assert.doesNotMatch(
     proxy,
-    /request\.cookies\.get\(CUSTOMER_SESSION_COOKIE\)\?\.value/
+    /request\.cookies\.get\(CUSTOMER_SESSION_COOKIE\)\?\.value,\s*persistentCookieOptions/
   )
+  assert.match(
+    renewal,
+    /readCustomerSessionCookieValue\(value, secret, nowSeconds\)/
+  )
+  assert.match(renewal, /expiresAt: nowSeconds \+ ttlSeconds/)
+
+  // The server-side session row is open-ended; the cookie carries the window.
+  assert.match(session, /p_expires_at: CUSTOMER_SESSION_SERVER_EXPIRY/)
+  assert.match(session, /const CUSTOMER_SESSION_SERVER_EXPIRY = "infinity"/)
 })

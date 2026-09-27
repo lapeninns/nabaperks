@@ -11,8 +11,10 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
  * `customer_sessions` row. Session integrity was previously grep-only. This
  * executes the real register/touch/revoke RPCs and proves:
  *   - a minted session is active and touchable,
- *   - touch records last-seen but does NOT slide expiry (a hard 30-day window),
+ *   - a valid touch makes the session open-ended (sessions last until
+ *     log-out), including one minted with a 30-day expiry by an older release,
  *   - server-side revocation beats a still-valid cookie (touch returns false),
+ *   - "log out on all devices" revokes every session for one customer only,
  *   - an expired session is no longer active,
  *   - a session cannot be minted already-expired.
  */
@@ -26,7 +28,7 @@ after(async () => {
 })
 
 test(
-  "session: mint, touch (no slide), revoke beats a valid cookie, expiry deactivates",
+  "session: mint, touch makes it open-ended, revoke beats a valid cookie",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -37,34 +39,42 @@ test(
       const sessionId = randomUUID()
       const device = deviceHash()
 
-      // ---- Mint a 30-day session.
+      // ---- Mint a 30-day session, as the previous app release does.
       await tx`select public.register_customer_session(
       ${customer.id}::uuid, ${sessionId}::uuid, now() + interval '30 days',
       ${device}, 'new_identity')`
       const [row] = await tx`
-      select expires_at, revoked_at from public.customer_sessions where id = ${sessionId}`
+      select revoked_at, expires_at = 'infinity'::timestamptz as open_ended
+      from public.customer_sessions where id = ${sessionId}`
       assert.ok(row, "the session row exists")
       assert.equal(row.revoked_at, null, "a fresh session is not revoked")
-      assert.ok(
-        new Date(row.expires_at).getTime() > Date.now(),
-        "session expires in the future"
-      )
-      const expiresAtMinted = new Date(row.expires_at).getTime()
+      assert.equal(row.open_ended, false, "the legacy mint is still 30 days")
 
-      // ---- Touch is valid and does NOT extend expiry.
+      // ---- A valid touch converts it to a session that lasts until log-out.
       const [{ touch_customer_session: active }] = await tx`
       select public.touch_customer_session(
         ${customer.id}::uuid, ${sessionId}::uuid, ${device}
       )`
       assert.equal(active, true, "an active session touches true")
       const [afterTouch] = await tx`
-      select expires_at, last_seen_at from public.customer_sessions where id = ${sessionId}`
+      select last_seen_at, expires_at = 'infinity'::timestamptz as open_ended
+      from public.customer_sessions where id = ${sessionId}`
       assert.equal(
-        new Date(afterTouch.expires_at).getTime(),
-        expiresAtMinted,
-        "touch does NOT slide the expiry (hard 30-day window)"
+        afterTouch.open_ended,
+        true,
+        "touch makes a valid session open-ended"
       )
       assert.notEqual(afterTouch.last_seen_at, null, "touch records last-seen")
+
+      // ---- The current app registers open-ended sessions directly.
+      const openSessionId = randomUUID()
+      await tx`select public.register_customer_session(
+      ${customer.id}::uuid, ${openSessionId}::uuid, 'infinity',
+      ${device}, 'recognised_device')`
+      const [open] = await tx`
+      select expires_at = 'infinity'::timestamptz as open_ended
+      from public.customer_sessions where id = ${openSessionId}`
+      assert.equal(open.open_ended, true, "an open-ended session registers")
 
       // ---- Server-side revocation beats a still-unexpired cookie.
       await tx`select public.revoke_customer_session(${customer.id}::uuid, ${sessionId}::uuid)`
@@ -233,11 +243,12 @@ test(
           'public.customer_auth_device_is_trusted(uuid,text)',
           'public.register_customer_session(uuid,uuid,timestamp with time zone,text,text)',
           'public.touch_customer_session(uuid,uuid,text)',
-          'public.touch_customer_session_and_load(uuid,uuid,text)'
+          'public.touch_customer_session_and_load(uuid,uuid,text)',
+          'public.revoke_all_customer_sessions(uuid)'
         ]) as functions(signature)
       `
 
-      assert.equal(rows.length, 4)
+      assert.equal(rows.length, 5)
       for (const row of rows) {
         assert.equal(row.public_execute, false, `${row.signature}: PUBLIC`)
         assert.equal(row.anon_execute, false, `${row.signature}: anon`)
@@ -252,6 +263,60 @@ test(
           `${row.signature}: service_role`
         )
       }
+    })
+  }
+)
+
+test(
+  "session: log out on all devices revokes every session for that customer only",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [customer, other] = await tx`
+      insert into public.customers (email, email_verified_at, created_at, updated_at)
+      values
+        (${`sess-${randomUUID()}@test.local`}, now(), now(), now()),
+        (${`sess-${randomUUID()}@test.local`}, now(), now(), now())
+      returning id`
+      const phone = { id: randomUUID(), device: deviceHash() }
+      const laptop = { id: randomUUID(), device: deviceHash() }
+      const otherSession = { id: randomUUID(), device: deviceHash() }
+      for (const session of [phone, laptop]) {
+        await tx`select public.register_customer_session(
+        ${customer.id}::uuid, ${session.id}::uuid, 'infinity',
+        ${session.device}, 'verified_phone')`
+      }
+      await tx`select public.register_customer_session(
+      ${other.id}::uuid, ${otherSession.id}::uuid, 'infinity',
+      ${otherSession.device}, 'verified_phone')`
+
+      const [{ revoke_all_customer_sessions: revokedCount }] = await tx`
+      select public.revoke_all_customer_sessions(${customer.id}::uuid)`
+      assert.equal(revokedCount, 2, "both of the customer's sessions revoke")
+
+      for (const session of [phone, laptop]) {
+        const [{ touch_customer_session: active }] = await tx`
+        select public.touch_customer_session(
+          ${customer.id}::uuid, ${session.id}::uuid, ${session.device}
+        )`
+        assert.equal(active, false, "a revoked open-ended session is inactive")
+      }
+      const [{ touch_customer_session: otherActive }] = await tx`
+      select public.touch_customer_session(
+        ${other.id}::uuid, ${otherSession.id}::uuid, ${otherSession.device}
+      )`
+      assert.equal(otherActive, true, "another customer's session is untouched")
+
+      // Only the service role may call it; the app passes the id from the
+      // caller's own verified session.
+      await assert.rejects(
+        () =>
+          tx.savepoint(async (sp) => {
+            await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
+            await sp`select public.revoke_all_customer_sessions(${other.id}::uuid)`
+          }),
+        /service role required/i
+      )
     })
   }
 )

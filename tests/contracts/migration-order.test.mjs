@@ -24,9 +24,9 @@ const MIGRATION_FILENAME = /^(\d{14})_[a-z0-9_]+\.sql$/
 // New migrations must sort after it. To raise the mark, update all three
 // constants together to the new latest filename and the reported actual values.
 const BASELINE = {
-  highWaterMark: "20261005100500_reward_unlocked_reflects_minted_reward.sql",
-  count: 224,
-  digest: "1feb229294afc1e631c80a3b54a6254c84770ef8b84e9e84931eee0a388d3cd7",
+  highWaterMark: "20261005100600_unlimited_customer_sessions.sql",
+  count: 225,
+  digest: "23cceb8410bc6f058655750e3a220c806799130be38c685255bc926de4d6fb5f",
 }
 
 function versionOf(file) {

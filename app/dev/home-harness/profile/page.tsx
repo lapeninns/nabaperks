@@ -6,8 +6,9 @@ import { CustomerProfileAccountSection } from "@/components/customer/profile-acc
 import { PhoneMessagingSettings } from "@/components/customer/phone-messaging-settings"
 
 /**
- * Fixture sign-out. The real screen submits `signOutCustomerAction`; the harness
- * has no session to clear, so it proves placement and the tap contract only.
+ * Fixture sign-out. The real screen submits `signOutCustomerAction` and
+ * `signOutAllCustomerDevicesAction`; the harness has no session to clear, so it
+ * proves placement and the tap contract only.
  */
 async function noopSignOutAction() {
   "use server"
@@ -47,6 +48,7 @@ export default function CustomerProfileHarnessPage() {
         memberSinceLabel="September 2026"
         venueLabel="1 venue"
         signOutAction={noopSignOutAction}
+        signOutAllAction={noopSignOutAction}
       />
     </div>
   )

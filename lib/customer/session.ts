@@ -65,6 +65,7 @@ const pendingPhoneTtlSeconds = 10 * 60
 const pendingEmailTtlSeconds = 10 * 60
 const pendingAccessRecoveryTtlSeconds = 10 * 60
 const customerSessionTtlSeconds = CUSTOMER_SESSION_TTL_SECONDS
+const CUSTOMER_SESSION_SERVER_EXPIRY = "infinity"
 
 export async function setPendingPhoneVerification(
   input: PendingPhoneInput
@@ -283,6 +284,26 @@ export async function getCustomerSession(): Promise<CustomerSessionPayload | nul
   return (await resolveCustomerSession())?.payload ?? null
 }
 
+/**
+ * Log out on every device: revokes all of the signed-in customer's sessions
+ * server-side, then clears this browser's cookie. Other devices are rejected
+ * on their next request because every request re-checks the session row.
+ */
+export async function clearAllCustomerSessions(): Promise<void> {
+  const session = await getCustomerSession()
+  if (session) {
+    const supabase = createSupabaseServiceRoleClient()
+    const { error } = await supabase.rpc("revoke_all_customer_sessions", {
+      p_customer_id: session.customerId,
+    })
+    if (error) {
+      throw new Error(`Unable to revoke customer sessions: ${error.message}`)
+    }
+  }
+  const cookieStore = await cookies()
+  cookieStore.delete(customerSessionCookieName)
+}
+
 export async function clearCustomerSession(): Promise<void> {
   const cookieStore = await cookies()
   const value = cookieStore.get(customerSessionCookieName)?.value
@@ -310,11 +331,12 @@ async function registerCustomerSession(
     )
   }
   const supabase = createSupabaseServiceRoleClient()
-  const expiresAt = new Date(payload.expiresAt * 1000).toISOString()
+  // The server-side session lasts until the customer logs out (or is erased);
+  // only the browser cookie carries a rolling expiry.
   const { error } = await supabase.rpc("register_customer_session", {
     p_customer_id: payload.customerId,
     p_session_id: payload.sessionId,
-    p_expires_at: expiresAt,
+    p_expires_at: CUSTOMER_SESSION_SERVER_EXPIRY,
     p_device_hash: deviceHash,
     p_continuity_source: continuitySource,
   })
