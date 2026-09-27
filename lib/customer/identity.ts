@@ -3,6 +3,8 @@ import "server-only"
 import { cache } from "react"
 import { after } from "next/server"
 
+import type { ContactEventSurface } from "@/lib/customer/contact-event-core"
+import { recordCustomerPhoneAttachedAudit } from "@/lib/customer/email-audit"
 import {
   customerEmailHmac,
   normalizeEmail,
@@ -247,14 +249,16 @@ export type AttachVerifiedPhoneResult =
  * is a conflict and nothing changes. The update is guarded by
  * `phone_hmac is null`, so a concurrent attach cannot overwrite a phone, and
  * the unique `phone_hmac` index turns a race with another wallet into a
- * conflict too.
+ * conflict too. An added phone is recorded in `audit_logs` before this returns.
  */
 export async function attachVerifiedPhoneToCustomer({
   customerId,
   phone,
+  surface,
 }: {
   customerId: string
   phone: NormalizedPhone
+  surface: ContactEventSurface
 }): Promise<AttachVerifiedPhoneResult> {
   const holder = await findCustomerByVerifiedPhone(phone)
   if (holder) {
@@ -289,6 +293,10 @@ export async function attachVerifiedPhoneToCustomer({
   const customer = toCurrentCustomer(data)
   if (!customer) throw new Error("Unable to add customer phone.")
 
+  await recordCustomerPhoneAttachedAudit(supabase, {
+    customerId: customer.id,
+    surface,
+  })
   // A merchant may have sent this phone a reward invite before it was added.
   after(() => attachRewardInvitesForCustomer(customer.id))
 

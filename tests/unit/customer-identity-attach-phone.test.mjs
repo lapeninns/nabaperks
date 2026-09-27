@@ -32,7 +32,12 @@ async function loadIdentity() {
       queries: [],
       updates: [],
       afterCalls: [],
+      audits: [],
+      auditError: null,
+      logs: [],
     };`,
+    "@/lib/observability/logger":
+      'import { state } from "fixture-state"; export const logger = { error(message, context) { state.logs.push([message, context]) } }',
     "server-only": "",
     react: "export function cache(fn) { return fn }",
     "next/server":
@@ -65,7 +70,15 @@ async function loadIdentity() {
         return chain
       }
       export function createSupabaseServiceRoleClient() {
-        return { from(table) { if (table !== "customers") throw new Error(table); return builder() } }
+        return {
+          from(table) {
+            if (table === "audit_logs") {
+              return { insert(values) { state.audits.push(values); return Promise.resolve({ error: state.auditError }) } }
+            }
+            if (table !== "customers") throw new Error(table)
+            return builder()
+          },
+        }
       }`,
   }
   const result = await build({
@@ -84,7 +97,11 @@ async function loadIdentity() {
         setup(build) {
           build.onResolve(
             { filter: /^(fixture-state|server-only|react$|next\/|@\/lib\/)/ },
-            ({ path }) => ({ path, namespace: "fixture" })
+            ({ path }) =>
+              // The real audit writer, so its row shape is what is asserted.
+              path === "@/lib/customer/email-audit"
+                ? { path: `${process.cwd()}/lib/customer/email-audit.ts` }
+                : { path, namespace: "fixture" }
           )
           build.onLoad({ filter: /.*/, namespace: "fixture" }, ({ path }) => {
             assert.ok(path in modules, `Unrecognised boundary: ${path}`)
@@ -109,6 +126,7 @@ test("Given an unused phone When it is attached Then only a phoneless wallet row
   const result = await attachVerifiedPhoneToCustomer({
     customerId: "customer-1",
     phone: PHONE,
+    surface: "profile",
   })
 
   assert.equal(result.status, "attached")
@@ -132,9 +150,46 @@ test("Given an unused phone When it is attached Then only a phoneless wallet row
     ["is", "phone_hmac", null],
     ["select"],
   ])
+  assert.deepEqual(state.audits, [
+    {
+      actor_type: "customer",
+      actor_id: "customer-1",
+      customer_id: "customer-1",
+      target_table: "customers",
+      target_id: "customer-1",
+      action: "customer_phone_attached",
+      metadata: { surface: "profile" },
+    },
+  ])
+  assert.doesNotMatch(JSON.stringify(state.audits), /0123|447700|hmac|cipher/)
   assert.equal(state.afterCalls.length, 1)
   state.afterCalls[0]()
   assert.equal(state.attached, "customer-1")
+})
+
+test("Given the audit write fails When a phone is attached Then the committed phone stands and the failure is logged without contact data", async () => {
+  const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
+  state.updateResult = {
+    data: row({ phone_last4: "0123", phone_country: "GB" }),
+    error: null,
+  }
+  state.auditError = { code: "42501", message: "permission denied" }
+
+  const result = await attachVerifiedPhoneToCustomer({
+    customerId: "customer-1",
+    phone: PHONE,
+    surface: "profile",
+  })
+
+  assert.equal(result.status, "attached")
+  assert.equal(state.audits.length, 1)
+  assert.deepEqual(state.logs, [
+    [
+      "customer_phone_audit_failed",
+      { action: "customer_phone_attached", code: "42501" },
+    ],
+  ])
+  assert.doesNotMatch(JSON.stringify(state.logs), /0123|447700/)
 })
 
 test("Given another wallet holds the phone When it is attached Then it is a conflict and nothing is written", async () => {
@@ -144,11 +199,13 @@ test("Given another wallet holds the phone When it is attached Then it is a conf
   const result = await attachVerifiedPhoneToCustomer({
     customerId: "customer-1",
     phone: PHONE,
+    surface: "profile",
   })
 
   assert.deepEqual(result, { status: "contact_conflict" })
   assert.deepEqual(state.updates, [])
   assert.deepEqual(state.afterCalls, [])
+  assert.deepEqual(state.audits, [])
 })
 
 test("Given the phone is already this wallet's When it is attached Then nothing changes", async () => {
@@ -159,6 +216,7 @@ test("Given the phone is already this wallet's When it is attached Then nothing 
     await attachVerifiedPhoneToCustomer({
       customerId: "customer-1",
       phone: PHONE,
+      surface: "profile",
     }),
     { status: "already_has_phone" }
   )
@@ -175,10 +233,12 @@ test("Given a race When the unique phone index or the phoneless guard refuses Th
     await raced.attachVerifiedPhoneToCustomer({
       customerId: "customer-1",
       phone: PHONE,
+      surface: "profile",
     }),
     { status: "contact_conflict" }
   )
   assert.deepEqual(raced.state.afterCalls, [])
+  assert.deepEqual(raced.state.audits, [])
 
   const guarded = await loadIdentity()
   guarded.state.updateResult = { data: null, error: null }
@@ -186,9 +246,11 @@ test("Given a race When the unique phone index or the phoneless guard refuses Th
     await guarded.attachVerifiedPhoneToCustomer({
       customerId: "customer-1",
       phone: PHONE,
+      surface: "profile",
     }),
     { status: "already_has_phone" }
   )
+  assert.deepEqual(guarded.state.audits, [])
 
   const broken = await loadIdentity()
   broken.state.updateResult = {
@@ -199,6 +261,7 @@ test("Given a race When the unique phone index or the phoneless guard refuses Th
     broken.attachVerifiedPhoneToCustomer({
       customerId: "customer-1",
       phone: PHONE,
+      surface: "profile",
     }),
     /Unable to add customer phone/
   )

@@ -209,6 +209,7 @@ test("Given a code for this wallet When it is confirmed Then the phone is attach
       {
         customerId: "customer-1",
         phone: { e164: "+447700900123", country: "GB", last4: "0123" },
+        surface: "profile",
       },
     ],
     ["clearPending"],

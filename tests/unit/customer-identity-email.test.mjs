@@ -37,6 +37,8 @@ async function loadIdentity() {
       'export function customerEmailHmac(email) { return "hmac:" + email.trim().toLowerCase() } export function normalizeEmail(email) { return email.trim().toLowerCase() }',
     "@/lib/customer/phone-pii":
       "export function customerPhoneHmac() {} export function customerPhonePii() {} export function maskedPhoneFromLast4() { return null }",
+    "@/lib/customer/email-audit":
+      "export async function recordCustomerPhoneAttachedAudit() {}",
     "@/lib/customer/reward-invites":
       'import { state } from "fixture-state"; export function attachRewardInvitesForCustomer(id) { state.attached = id }',
     "@/lib/customer/session":

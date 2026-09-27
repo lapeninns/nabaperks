@@ -21,6 +21,14 @@ export type CustomerEmailAuditInput = {
   readonly reason?: "email_in_use"
 }
 
+type CustomerContactAuditInput = {
+  readonly customerId: string
+  readonly action: CustomerEmailAuditAction | "customer_phone_attached"
+  readonly surface: ContactEventSurface | null
+  readonly hmacRepairOnly?: boolean
+  readonly failureEvent: string
+}
+
 /**
  * Durable audit evidence for a customer's own email change, written to
  * `audit_logs` in the same request, straight after the `customers` update and
@@ -34,6 +42,31 @@ export type CustomerEmailAuditInput = {
 export async function recordCustomerEmailAudit(
   supabase: ServiceRoleClient,
   input: CustomerEmailAuditInput
+): Promise<void> {
+  await recordCustomerContactAudit(supabase, {
+    ...input,
+    failureEvent: "customer_email_audit_failed",
+  })
+}
+
+/**
+ * The same evidence for a verified phone added to an email-only wallet. The
+ * row never holds the number, its HMAC, last four digits or the code.
+ */
+export async function recordCustomerPhoneAttachedAudit(
+  supabase: ServiceRoleClient,
+  input: { readonly customerId: string; readonly surface: ContactEventSurface }
+): Promise<void> {
+  await recordCustomerContactAudit(supabase, {
+    ...input,
+    action: "customer_phone_attached",
+    failureEvent: "customer_phone_audit_failed",
+  })
+}
+
+async function recordCustomerContactAudit(
+  supabase: ServiceRoleClient,
+  input: CustomerContactAuditInput
 ): Promise<void> {
   const metadata: Record<string, string | boolean> = {}
   if (input.surface) metadata.surface = input.surface
@@ -51,13 +84,13 @@ export async function recordCustomerEmailAudit(
       metadata,
     })
     if (error) {
-      logger.error("customer_email_audit_failed", {
+      logger.error(input.failureEvent, {
         action: input.action,
         code: error.code,
       })
     }
   } catch (error) {
-    logger.error("customer_email_audit_failed", {
+    logger.error(input.failureEvent, {
       action: input.action,
       error: error instanceof Error ? error.name : "unknown",
     })

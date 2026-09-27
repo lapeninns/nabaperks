@@ -163,6 +163,7 @@ async function verifyAttachPhone(
       country: pending.country,
       last4: pending.phone.slice(-4),
     },
+    surface: "profile",
   })
   await clearPendingPhoneVerification()
 
