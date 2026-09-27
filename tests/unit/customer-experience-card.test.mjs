@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
+import { emailPromptOpening } from "@/lib/customer/email-prompt-opening"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 
 function cardContext(overrides = {}) {
@@ -271,4 +272,65 @@ test("a foreign card and a missing card are byte-identical to the customer", () 
     context: { access: "unauthenticated" },
   })
   assert.notDeepEqual(anonymous, missing)
+})
+
+test("Given no verified email When a card is derived Then the add-your-email card shows only straight after a stamp", () => {
+  const emailPrompt = {
+    reason: "rewards",
+    initialEmail: "alex@example.test",
+    codePending: true,
+  }
+
+  const stamped = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ justStamped: true, emailPrompt }),
+  })
+  // Where the prompt opens (a pending code) rides through unchanged.
+  assert.deepEqual(stamped.emailPrompt, emailPrompt)
+
+  const revisited = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ justStamped: false, emailPrompt }),
+  })
+  assert.equal(revisited.emailPrompt, null)
+
+  const verified = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ justStamped: true, emailPrompt: null }),
+  })
+  assert.equal(verified.emailPrompt, null)
+})
+
+test("Given a pending email code When the email prompt's opening is chosen Then it opens at the code step only for this customer's saved address", () => {
+  const customer = { id: "customer_1", email: " Alex@Example.test " }
+  const pending = { customerId: "customer_1", email: "alex@example.test" }
+
+  assert.deepEqual(emailPromptOpening(customer, pending), {
+    initialEmail: "Alex@Example.test",
+    codePending: true,
+  })
+  // No code on its way: prefill the saved address at the email step.
+  assert.deepEqual(emailPromptOpening(customer, null), {
+    initialEmail: "Alex@Example.test",
+    codePending: false,
+  })
+  // A code issued to another customer, or to an address no longer saved.
+  assert.equal(
+    emailPromptOpening(customer, { ...pending, customerId: "customer_2" })
+      .codePending,
+    false
+  )
+  assert.equal(
+    emailPromptOpening(customer, { ...pending, email: "old@example.test" })
+      .codePending,
+    false
+  )
+  // Nothing saved: nothing to prefill and no code step.
+  assert.deepEqual(
+    emailPromptOpening({ id: "customer_1", email: " " }, pending),
+    {
+      initialEmail: null,
+      codePending: false,
+    }
+  )
 })

@@ -4,7 +4,7 @@ import { build } from "esbuild"
 
 async function loadAction() {
   const modules = {
-    "fixture-state": `export const state = { customer: null, saves: [], sends: [], revalidated: [] };`,
+    "fixture-state": `export const state = { customer: null, saves: [], sends: [], events: [], revalidated: [] };`,
     "next/cache":
       'import { state } from "fixture-state"; export function revalidatePath(path) { state.revalidated.push(path) }',
     "@/lib/customer/identity":
@@ -13,6 +13,10 @@ async function loadAction() {
       'import { state } from "fixture-state"; export function clearCustomerEmail() {} export function markCustomerEmailVerified() {} export async function updateCustomerProfile(input) { state.saves.push(input); return { email: input.email, emailVerificationRequired: !state.customer?.emailVerifiedAt }; }',
     "@/lib/customer/session":
       "export function clearPendingEmailVerification() {}",
+    "@/lib/customer/contact-events":
+      'import { state } from "fixture-state"; export function recordCustomerContactEvent(event) { state.events.push(event) }',
+    "@/lib/customer/email-confirmation":
+      "export function confirmCustomerEmailCode() {} export function emailConfirmationErrors() { return null }",
     "@/lib/customer/email-verification":
       'import { state } from "fixture-state"; export function checkCustomerEmailVerification() {} export async function startCustomerEmailVerification(email) { state.sends.push(email) }',
   }
@@ -83,4 +87,11 @@ test("Given a new email When reward details are saved Then the address awaits th
   assert.equal(result.errors, undefined)
   assert.equal(state.saves[0].email, "adult@example.test")
   assert.deepEqual(state.sends, ["adult@example.test"])
+  assert.deepEqual(state.events, [
+    {
+      eventName: "customer_email_verification_started",
+      customerId: null,
+      metadata: { method: "email", surface: "reward_gate" },
+    },
+  ])
 })

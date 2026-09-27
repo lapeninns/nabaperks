@@ -3,6 +3,7 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
+import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
 import { findCustomerByVerifiedPhone } from "@/lib/customer/identity"
 import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
@@ -94,6 +95,7 @@ export async function requestCustomerLoginOtpAction(
       requestedChannel
     )
     if (verification.status === "unavailable") {
+      recordLoginCodeSendFailed("provider_unavailable")
       return {
         fields: { contact },
         errors: {
@@ -113,6 +115,7 @@ export async function requestCustomerLoginOtpAction(
     })
   } catch (error) {
     logVerificationSendFailure("wallet", error)
+    recordLoginCodeSendFailed("pending_state_failed")
 
     return {
       fields: { contact },
@@ -122,11 +125,25 @@ export async function requestCustomerLoginOtpAction(
     }
   }
 
+  recordCustomerContactEvent({
+    eventName: "customer_login_code_requested",
+    metadata: { method: "phone", surface: "home_login" },
+  })
+
   return {
     fields: { contact, otpSent: true },
     message:
       "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
   }
+}
+
+function recordLoginCodeSendFailed(
+  reason: "provider_unavailable" | "pending_state_failed"
+): void {
+  recordCustomerContactEvent({
+    eventName: "customer_login_code_send_failed",
+    metadata: { method: "phone", surface: "home_login", reason },
+  })
 }
 
 function logVerificationSendFailure(scope: "wallet", error: unknown): void {
@@ -201,6 +218,10 @@ export async function verifyCustomerLoginOtpAction(
 
   if (!customer) {
     await clearPendingPhoneVerification()
+    recordCustomerContactEvent({
+      eventName: "customer_login_no_wallet",
+      metadata: { method: "phone", surface: "home_login" },
+    })
     return {
       fields: { contact, noCards: true },
       message:
@@ -226,6 +247,11 @@ export async function verifyCustomerLoginOtpAction(
   }
 
   if (access === "recovery") redirect("/home/recover")
+  recordCustomerContactEvent({
+    eventName: "customer_login_verified",
+    customerId: customer.id,
+    metadata: { method: "phone", surface: "home_login" },
+  })
   await clearPendingPhoneVerification()
   redirect(next)
 }

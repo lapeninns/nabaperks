@@ -299,6 +299,13 @@
     "optional": true
   },
   {
+    "name": "CUSTOMER_EMAIL_AUTH_MODE",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Customer email sign-in rollout mode: off, existing (email opens wallets that already hold that verified email) or full (email can also start a new wallet on the join page). Defaults to off. Keep it off in every environment until the build with the email sign-in and email join flows is live there; see the production runbook.",
+    "optional": true
+  },
+  {
     "name": "TWILIO_CUSTOMER_MESSAGING_SERVICE_SID",
     "visibility": "server",
     "kind": "string",

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
 import { HomeBirthdayPrompt } from "@/components/customer/home-birthday-prompt"
+import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
 import { HomeRedeemBanner } from "@/components/customer/home-redeem-banner"
 import { HomeSummaryStrip } from "@/components/customer/home-summary-strip"
 import { HomeCardTile } from "@/components/customer/home-card-tile"
@@ -35,11 +36,25 @@ const VENUE_DETAILS_CARD: HomeCard = {
  * real customer shell with no auth/DB, including the venue locality and Google
  * review action. `?dob=set` simulates a member who has already stored a birthday
  * (prompt suppressed); the default shows it.
+ *
+ * `?email=` drives the add-your-email prompt, which outranks the birthday
+ * prompt exactly as on the real dashboard:
+ * - `missing`: no email on the profile; the prompt opens at the email step.
+ * - `pending`: an unverified email with a code on its way; it opens at the
+ *   code step.
+ * - `verified` (and the default): a verified email, so no email prompt.
+ * `&mode=existing|full` switches the prompt to the Wi-Fi sign-in copy.
  */
 export default async function HomeHarnessHomePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ dob?: string; reward?: string; long?: string }>
+  searchParams?: Promise<{
+    dob?: string
+    reward?: string
+    long?: string
+    email?: string
+    mode?: string
+  }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -47,6 +62,11 @@ export default async function HomeHarnessHomePage({
 
   const params = searchParams ? await searchParams : {}
   const hasDob = params.dob === "set"
+  const emailState =
+    params.email === "missing" || params.email === "pending"
+      ? params.email
+      : "verified"
+  const birthdayPrompt = hasDob ? null : <HomeBirthdayPrompt />
 
   return (
     <div className="grid gap-6">
@@ -81,7 +101,18 @@ export default async function HomeHarnessHomePage({
           }}
         />
       ) : null}
-      {hasDob ? null : <HomeBirthdayPrompt />}
+      <HomeEmailPrompt
+        reason={
+          emailState === "verified"
+            ? null
+            : params.mode === "existing" || params.mode === "full"
+              ? "wifi_sign_in"
+              : "rewards"
+        }
+        initialEmail={emailState === "pending" ? "alex@example.test" : null}
+        codePending={emailState === "pending"}
+        fallback={birthdayPrompt}
+      />
 
       <HomeCardTile card={VENUE_DETAILS_CARD} offerPasses={[]} />
     </div>

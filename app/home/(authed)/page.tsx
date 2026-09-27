@@ -2,11 +2,16 @@ import { PageTitle } from "@/components/brand"
 import { HomeActivitySnippet } from "@/components/customer/home-activity-snippet"
 import { HomeBirthdayPrompt } from "@/components/customer/home-birthday-prompt"
 import { HomeCardTile } from "@/components/customer/home-card-tile"
+import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
 import { HomeEmptyState } from "@/components/customer/home-empty-state"
 import { HomeRedeemBanner } from "@/components/customer/home-redeem-banner"
 import { HomeSummaryStrip } from "@/components/customer/home-summary-strip"
+import { emailPromptReason } from "@/lib/customer/email-auth-mode"
+import { emailPromptOpening } from "@/lib/customer/email-prompt-opening"
 import { getCustomerHomeDashboard } from "@/lib/customer/home"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { customerHasVerifiedEmail } from "@/lib/customer/profile"
+import { getPendingEmailVerification } from "@/lib/customer/session"
 import { listCustomerOfferPasses } from "@/lib/customer/offer-pass"
 import { groupOfferPassesByMembership } from "@/lib/customer/offer-pass-view"
 
@@ -29,6 +34,15 @@ export default async function HomeDashboardPage() {
   // free read of the stored DOB.
   const customer = await getCurrentCustomer()
   const needsBirthday = !customer?.dateOfBirth && cards.length > 0
+  const needsEmail =
+    customer !== null && cards.length > 0 && !customerHasVerifiedEmail(customer)
+  // Open the prompt at the code step only when a code for the saved address is
+  // genuinely on its way to this customer; otherwise prefill the address.
+  const emailOpening =
+    needsEmail && customer
+      ? emailPromptOpening(customer, await getPendingEmailVerification())
+      : null
+  const birthdayPrompt = needsBirthday ? <HomeBirthdayPrompt /> : null
 
   return (
     <div className="grid gap-6">
@@ -43,7 +57,17 @@ export default async function HomeDashboardPage() {
         <>
           <HomeSummaryStrip summary={summary} />
           <HomeRedeemBanner topRedeemable={topRedeemable} />
-          {needsBirthday ? <HomeBirthdayPrompt /> : null}
+          {/* At most one prompt: email first; the birthday prompt shows only
+              when no email is needed or the email prompt was dismissed. The
+              email prompt is always mounted here (reason null when not asking)
+              so confirming an email, which re-renders this page without the
+              ask, still shows the confirmation. */}
+          <HomeEmailPrompt
+            reason={needsEmail ? emailPromptReason() : null}
+            initialEmail={emailOpening?.initialEmail ?? null}
+            codePending={emailOpening?.codePending ?? false}
+            fallback={birthdayPrompt}
+          />
           <div className="grid gap-4">
             {cards.map((card) => (
               <HomeCardTile

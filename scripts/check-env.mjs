@@ -85,6 +85,7 @@ const customerOtpTwilioBypassed =
   customerOtpBypassMode === customerOtpBypassModeAnyFourDigits
 const customerDevOtpCode = values.CUSTOMER_DEV_OTP_CODE?.trim()
 const customerMessagingMode = values.CUSTOMER_MESSAGING_MODE?.trim() || "off"
+const customerEmailAuthMode = values.CUSTOMER_EMAIL_AUTH_MODE?.trim() || "off"
 const customerMessagingBypassMode =
   values.CUSTOMER_MESSAGING_BYPASS_MODE?.trim()
 const hostedVercelEnvironment = ["preview", "production"].includes(
@@ -293,6 +294,10 @@ if (hostedOrProductionProfile && customerDevOtpCode) {
 
 if (!["off", "dry_run", "live"].includes(customerMessagingMode)) {
   invalid.push("CUSTOMER_MESSAGING_MODE must be off, dry_run or live")
+}
+
+if (!["off", "existing", "full"].includes(customerEmailAuthMode)) {
+  invalid.push("CUSTOMER_EMAIL_AUTH_MODE must be off, existing or full")
 }
 
 if (customerMessagingBypassMode && customerMessagingBypassMode !== "log") {

@@ -16,8 +16,10 @@ import {
   ProfileField as Field,
   profileInputClass,
 } from "@/components/customer/profile-form-parts"
+import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import type { EmailPromptReason } from "@/lib/customer/experience/types"
 import { formatDateOfBirth } from "@/lib/customer/format"
 import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
@@ -47,10 +49,20 @@ function initialModeFor(profile: AboutYouProfile): Mode {
  * actions are unchanged — the page revalidates after each save, which re-derives
  * the mode from the fresh profile; client-only transitions handle Edit/Cancel.
  */
+const EMAIL_HINT: Record<EmailPromptReason, string> = {
+  rewards:
+    "A verified email is required before reward collection. We'll send a code to confirm it.",
+  wifi_sign_in:
+    "A verified email is required before reward collection, and lets you sign in over Wi-Fi when there's no signal. We'll send a code to confirm it.",
+}
+
 export function CustomerProfileAboutYou({
   profile,
+  emailReason = "rewards",
 }: {
   profile: AboutYouProfile
+  /** Chosen on the server from the email sign-in mode. */
+  emailReason?: EmailPromptReason
 }) {
   const serverMode = initialModeFor(profile)
   const [mode, setMode] = useState<Mode>(serverMode)
@@ -93,6 +105,7 @@ export function CustomerProfileAboutYou({
           state={saveState}
           action={saveAction}
           pending={savePending}
+          emailHint={EMAIL_HINT[emailReason]}
           onCancel={() => setMode("view")}
         />
       ) : null}
@@ -150,12 +163,14 @@ function AboutYouEditForm({
   state,
   action,
   pending,
+  emailHint,
   onCancel,
 }: {
   profile: AboutYouProfile
   state: ProfileEditState
   action: (payload: FormData) => void
   pending: boolean
+  emailHint: string
   onCancel: () => void
 }) {
   return (
@@ -187,7 +202,7 @@ function AboutYouEditForm({
           type="email"
           inputMode="email"
           autoComplete="email"
-          hint="A verified email is required before reward collection. We'll send a code to confirm it."
+          hint={emailHint}
           defaultValue={state.fields?.email ?? profile.email ?? ""}
           error={state.errors?.email}
         />
@@ -238,11 +253,9 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
           <label htmlFor="home-profile-otp" className="eyebrow">
             Email code
           </label>
-          <input
+          <CustomerOtpInput
             id="home-profile-otp"
             name="otp"
-            inputMode="numeric"
-            autoComplete="one-time-code"
             className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
             aria-describedby={

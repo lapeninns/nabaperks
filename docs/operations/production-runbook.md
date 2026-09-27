@@ -648,6 +648,21 @@ supabase projects list
   retention jobs and update this runbook after any provider or architecture
   change.
 
+## Customer email sign-in mode
+
+`CUSTOMER_EMAIL_AUTH_MODE` is `off` unless set. `existing` lets a verified email
+open the wallet that holds it; `full` also lets email start a new wallet on the
+join page. The add-your-email prompts and the email-conflict message already
+read the mode, so setting it changes what guests are told about signing in by
+email.
+
+- **Precondition:** keep the mode `off` in an environment until the application
+  build with the email sign-in and email join flows, and the database
+  migrations it needs, are live there. Before that, a non-`off` value promises
+  guests a sign-in method the build does not offer.
+- **Rollback:** set the mode back to `off` and redeploy. Collected and verified
+  emails stay in place; no data migration is required.
+
 ## Venue code (location-check fallback)
 
 Self-service stamping refuses a stamp when a phone's location is outside the

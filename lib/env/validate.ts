@@ -59,10 +59,22 @@ export function assertValidEnv(
 
   invalid.push(...validateCustomerOtpBypassMode(customerOtpBypassMode))
   invalid.push(...validateCustomerMessaging(values))
+  invalid.push(...validateCustomerEmailAuthMode(values))
 
   if (missing.length || invalid.length) {
     throw new EnvConfigError({ missing, invalid })
   }
+}
+
+const customerEmailAuthModes = ["off", "existing", "full"]
+
+function validateCustomerEmailAuthMode(
+  values: Record<string, string | undefined>
+) {
+  const mode = values.CUSTOMER_EMAIL_AUTH_MODE?.trim() || "off"
+  return customerEmailAuthModes.includes(mode)
+    ? []
+    : ["CUSTOMER_EMAIL_AUTH_MODE must be off, existing or full"]
 }
 
 function validateCustomerMessaging(values: Record<string, string | undefined>) {

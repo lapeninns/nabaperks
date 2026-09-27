@@ -9,6 +9,7 @@ import {
 import { Icon } from "@/components/brand"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import { GoogleReviewButton } from "@/components/customer/google-review-button"
+import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
 import { JoinFirstStampRecoveryPanel } from "@/components/customer/join-first-stamp-recovery-panel"
 import {
   CustomerActionNote,
@@ -316,6 +317,19 @@ function CardProgressPanel({
           compact
         />
       ) : null}
+
+      {/* Asks after a stamp only, and only without a verified email. Sits
+          below the stamp card, so the stamp itself is never held up by it.
+          Always mounted (reason null when not asking): the prompt's actions
+          re-render this page after the stamp flag has left the URL, and the
+          guest must still see the code step and the confirmation. The
+          server's reason, prefill and pending code spread over the defaults,
+          so it opens where the /home prompt would. */}
+      <HomeEmailPrompt
+        surface="stamp_prompt"
+        reason={null}
+        {...exp.emailPrompt}
+      />
 
       {exp.googleReviewUrl ? (
         <GoogleReviewButton

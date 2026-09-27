@@ -11,6 +11,7 @@ import { CustomerProfileMarketing } from "@/components/customer/profile-marketin
 import { PhoneMessagingSettings } from "@/components/customer/phone-messaging-settings"
 import { PushNotificationSettingsDisclosure } from "@/components/customer/push-notification-settings-disclosure"
 import { StatusBanner } from "@/components/loyalty"
+import { emailPromptReason } from "@/lib/customer/email-auth-mode"
 import { getCustomerProfile } from "@/lib/customer/profile"
 import { formatMonthYear } from "@/lib/customer/format"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
@@ -55,6 +56,7 @@ export default async function HomeProfilePage() {
           emailLocked: profile.emailLocked,
           needsEmailVerification: profile.needsEmailVerification,
         }}
+        emailReason={emailPromptReason()}
       />
 
       <CustomerProfileMarketing consents={profile.consents} />

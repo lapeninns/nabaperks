@@ -22,6 +22,7 @@ import {
   getCurrentCustomer,
   getOrCreateCustomerByVerifiedPhone,
 } from "@/lib/customer/identity"
+import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { joinEntry } from "@/lib/customer/join-observability-contract"
 import { getMerchantJoinContext } from "@/lib/customer/join"
@@ -173,6 +174,7 @@ export async function requestCustomerIdentityAction(
       requestedChannel
     )
     if (verification.status === "unavailable") {
+      recordJoinCodeSendFailed(joinContext.merchant.id, "provider_unavailable")
       return {
         fields: requestFields,
         errors: {
@@ -195,6 +197,7 @@ export async function requestCustomerIdentityAction(
       throw error
     }
     logVerificationSendFailure("join", error)
+    recordJoinCodeSendFailed(joinContext.merchant.id, "pending_state_failed")
 
     return {
       fields: requestFields,
@@ -235,6 +238,17 @@ function logVerificationSendFailure(scope: "join", error: unknown): void {
   console.error("Customer verification send failed", {
     scope,
     reason: error instanceof Error ? error.message : "Unknown error",
+  })
+}
+
+function recordJoinCodeSendFailed(
+  merchantId: string,
+  reason: "provider_unavailable" | "pending_state_failed"
+): void {
+  recordCustomerContactEvent({
+    eventName: "join_code_send_failed",
+    merchantId,
+    metadata: { method: "phone", surface: "join", reason },
   })
 }
 
