@@ -146,13 +146,13 @@ test.describe("@customer-flow customer join live DB", () => {
       const resend = page.getByRole("button", { name: "Resend code" })
       const resendOutcome = page.getByText(RESEND_OUTCOME, { exact: true })
 
-      // The phone dispatch bucket admits 5 sends per 15 minutes: the initial
-      // send plus 4 resends. The 5th resend is refused by the limiter, but the
+      // The phone dispatch bucket admits 10 sends per 15 minutes: the initial
+      // send plus 9 resends. The 10th resend is refused by the limiter, but the
       // action deliberately answers admitted and refused resends with the same
       // neutral copy so the reply never reveals whether a code was dispatched.
       // Every click round-trips a server action, so wait for that POST to
       // settle before reading the outcome — the copy is identical each time.
-      for (let attempt = 0; attempt < 5; attempt += 1) {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
         await Promise.all([
           page.waitForResponse(
             (response) =>

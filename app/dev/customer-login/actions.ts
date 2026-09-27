@@ -77,7 +77,10 @@ async function verifyLoginFixture(
     }
   }
   return {
-    fields: { contact },
+    fields: {
+      contact,
+      ...(scenario === "unknown" ? { noCards: true } : {}),
+    },
     message:
       scenario === "unknown"
         ? "No cards found for that number yet. Scan a venue QR to join first."

@@ -286,6 +286,15 @@ export function describeCustomerMobileLayout() {
               : /No cards found/
           )
         ).toBeVisible()
+        if (scenario === "unknown") {
+          await expect(
+            page.getByRole("link", { name: "Scan a venue QR" })
+          ).toHaveAttribute("href", "/scan")
+          await expect(
+            page.getByRole("button", { name: "Send code", exact: true })
+          ).toHaveCount(0)
+          continue
+        }
       }
       await expect(
         page.getByRole("button", { name: "Send code", exact: true })

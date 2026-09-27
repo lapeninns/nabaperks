@@ -31,6 +31,7 @@ test("Given a customer login phone is unknown When the request action runs Then 
     actions.indexOf('let access: "authenticated" | "recovery"')
   )
   assert.doesNotMatch(unknownCustomerBlock, /otpSent: true/)
+  assert.match(unknownCustomerBlock, /noCards: true/)
   assert.match(
     actions,
     /const verification = await checkCustomerPhoneVerification\(contact, otp\)[\s\S]*findCustomerByVerifiedPhone[\s\S]*if \(!customer\)/
