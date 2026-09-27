@@ -89,9 +89,16 @@ test("Given a verified phone When it is attached Then it never overwrites a phon
 
 test("Given the profile When the wallet has no phone Then it offers to add one and no phone-only settings", () => {
   const page = read("app", "home", "(authed)", "profile", "page.tsx")
+  // Mounted for every wallet so the "added" confirmation survives the
+  // re-render that follows it; the form hides itself once a phone is held.
   assert.match(
     page,
-    /addPhone=\{hasPhone \? undefined : <CustomerProfileAddPhone \/>\}/
+    /addPhone=\{<CustomerProfileAddPhone hasPhone=\{hasPhone\} \/>\}/
+  )
+  const addPhone = read("components", "customer", "profile-add-phone.tsx")
+  assert.match(
+    addPhone,
+    /if \(hasPhone && state\.step !== "attached"\) return null/
   )
   assert.match(page, /hasPhone=\{hasPhone\}/)
   assert.match(page, /\{hasPhone \? \(\s*<PhoneMessagingSettings/)

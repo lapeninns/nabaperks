@@ -88,7 +88,9 @@ export default async function HomeProfilePage() {
           hasVerifiedEmail: profile.emailVerified,
           emailSignInEnabled: emailSignInEnabled(),
         })}
-        addPhone={hasPhone ? undefined : <CustomerProfileAddPhone />}
+        // Always mounted, so the confirmation survives the re-render that
+        // follows an added phone; it hides itself once the wallet has one.
+        addPhone={<CustomerProfileAddPhone hasPhone={hasPhone} />}
         signOutAction={signOutCustomerAction}
         signOutAllAction={signOutAllCustomerDevicesAction}
       />

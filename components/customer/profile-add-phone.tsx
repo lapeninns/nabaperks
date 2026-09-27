@@ -24,16 +24,22 @@ const initialState: ProfilePhoneState = { step: "phone" }
 /**
  * "Add a phone number", for a signed-in wallet that has none (it was started
  * with an email). The number is confirmed with a code before it is added, and
- * a number another wallet holds is refused with a way to get help. Rendered
- * only when the wallet has no phone; once one is added the page no longer
- * shows it.
+ * a number another wallet holds is refused with a way to get help.
+ *
+ * The profile keeps it mounted whatever the wallet holds: adding a phone
+ * re-renders the page with `hasPhone`, and the form must stay long enough to
+ * show that the number was added. Otherwise a wallet with a phone sees
+ * nothing here.
  */
 export function CustomerProfileAddPhone({
   action = profilePhoneAction,
+  hasPhone = false,
 }: {
   action?: ProfilePhoneAction
+  hasPhone?: boolean
 }) {
   const [state, submitAction, pending] = useActionState(action, initialState)
+  if (hasPhone && state.step !== "attached") return null
 
   return (
     <div
