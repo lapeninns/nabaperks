@@ -122,3 +122,23 @@ test("Given the profile When the wallet has no phone Then it offers to add one a
     /optedIn &&\s*PHONE_MARKETING_CHANNELS\.has\(channel\) &&\s*!customer\.phoneLast4/
   )
 })
+
+test("Given email sign-in is switched off When an email-only wallet adds a phone Then the attach action stays open, deliberately and in writing", () => {
+  const actions = read("app", "home", "(authed)", "profile", "phone-actions.ts")
+  // The email sign-in actions all check the mode; this one is the documented
+  // exception, because phone is how an email-only wallet gets back in once
+  // email sign-in is off.
+  assert.match(actions, /Deliberately not gated on CUSTOMER_EMAIL_AUTH_MODE/)
+  assert.doesNotMatch(actions, /email-auth-mode|emailSignInEnabled\(/)
+  const page = read("app", "home", "(authed)", "profile", "page.tsx")
+  assert.doesNotMatch(
+    page,
+    /emailSignInEnabled\(\)\s*&&\s*<CustomerProfileAddPhone|emailSignInEnabled\(\)\s*\?\s*<CustomerProfileAddPhone/
+  )
+  // Every other gate still holds: a session, the attach purpose and the
+  // wallet the code was sent for.
+  assert.match(
+    actions,
+    /if \(!customer\) return \{ step: "phone", errors: \{ form: SIGN_IN_FIRST \} \}/
+  )
+})

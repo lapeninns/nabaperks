@@ -37,6 +37,12 @@ import {
  * code goes out under the phone OTP admission with its own `attach` scope,
  * and the pending code is bound to this wallet, so it cannot be spent on
  * another. A phone another wallet holds is refused and nothing changes (D4).
+ *
+ * Deliberately not gated on CUSTOMER_EMAIL_AUTH_MODE, unlike the email
+ * sign-in actions. Adding a phone uses the phone sign-in that exists in every
+ * mode, and it is how an email-only wallet keeps a way back in when email
+ * sign-in is switched `off` as a kill switch. The session, the `attach`
+ * purpose and the wallet binding are the gates here.
  */
 
 const PROFILE_PATH = "/home/profile"
