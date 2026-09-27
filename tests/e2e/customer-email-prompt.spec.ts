@@ -119,6 +119,27 @@ test.describe("@customer-flow customer email prompt", () => {
     await expect(prompt.getByRole("button", { name: "Not now" })).toBeVisible()
   })
 
+  test("after a stamp a pending email opens the compact card at the code step", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(
+      page,
+      "/dev/home-harness/referral-bank?email=pending"
+    )
+    const prompt = page.getByTestId("email-prompt")
+
+    await expect(
+      prompt.getByText("Enter the code we sent to alex@example.test.")
+    ).toBeVisible()
+    await expect(prompt.getByLabel("Email code")).toBeVisible()
+    await expect(prompt.getByLabel("Email", { exact: true })).toHaveCount(0)
+
+    await prompt.getByRole("button", { name: "Use a different email" }).click()
+    await expect(prompt.getByLabel("Email", { exact: true })).toHaveValue(
+      "alex@example.test"
+    )
+  })
+
   test("a card visit without a fresh stamp shows no email card", async ({
     page,
   }) => {

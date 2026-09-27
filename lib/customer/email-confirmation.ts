@@ -18,8 +18,10 @@ export type EmailCodeConfirmation =
  * Checks an emailed code for the signed-in customer and, when it matches,
  * confirms the address. Shared by the profile editor, the reward gate and the
  * "add your email" prompts so each shows its own copy for the same outcomes.
- * A `conflict` (another wallet already holds this verified email) changes
- * nothing and is recorded as `customer_contact_conflict`.
+ * A `conflict` (another wallet already holds this verified email) confirms
+ * nothing, releases the refused address from this profile when it keeps a
+ * phone (so a reload does not prefill it), and is recorded as
+ * `customer_contact_conflict`.
  */
 export async function confirmCustomerEmailCode(
   code: string,

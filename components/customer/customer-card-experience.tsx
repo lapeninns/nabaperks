@@ -322,10 +322,13 @@ function CardProgressPanel({
           below the stamp card, so the stamp itself is never held up by it.
           Always mounted (reason null when not asking): the prompt's actions
           re-render this page after the stamp flag has left the URL, and the
-          guest must still see the code step and the confirmation. */}
+          guest must still see the code step and the confirmation. The
+          server's reason, prefill and pending code spread over the defaults,
+          so it opens where the /home prompt would. */}
       <HomeEmailPrompt
         surface="stamp_prompt"
-        reason={exp.emailPrompt?.reason ?? null}
+        reason={null}
+        {...exp.emailPrompt}
       />
 
       {exp.googleReviewUrl ? (

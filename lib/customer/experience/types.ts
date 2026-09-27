@@ -16,6 +16,16 @@ import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-rec
 /** Why an "add your email" prompt asks (see lib/customer/email-auth-mode.ts). */
 export type EmailPromptReason = "rewards" | "wifi_sign_in"
 
+/**
+ * The after-stamp email prompt: why it asks and where it opens (the code step
+ * when a code for the saved address is already pending, as on /home).
+ */
+export type StampEmailPrompt = {
+  readonly reason: EmailPromptReason
+  readonly initialEmail: string | null
+  readonly codePending: boolean
+}
+
 /** Which route the customer entered from. Same facts can mean different UI. */
 export type CustomerExperienceEntry =
   "qr" | "join" | "card" | "stamp" | "reward"
@@ -298,7 +308,7 @@ export type CustomerExperience =
       referralBonusBank?: ReferralBonusBank
       /** Compact "Add your email" card after a stamp; absent unless the
        *  customer just stamped and holds no verified email. */
-      emailPrompt?: { reason: EmailPromptReason } | null
+      emailPrompt?: StampEmailPrompt | null
     }
   // --- Reward ---
   | {

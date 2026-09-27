@@ -50,6 +50,8 @@ async function loadProfile() {
                 "export function attachRewardInvitesForCustomer() {}",
               "@/lib/customer/email-audit":
                 "export async function recordCustomerEmailAudit() {}",
+              "@/lib/observability/logger":
+                "export const logger = { error() {}, warn() {} }",
               "@/lib/customer/profile-fields":
                 "export function isEmailAddress() {} export function validateProfileFields() {}",
               "@/lib/customer/contact-event-core":

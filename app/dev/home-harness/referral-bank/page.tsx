@@ -35,9 +35,12 @@ const REFERRAL_BANK_EXPERIENCE: Extract<
 }
 
 /**
- * `?email=missing` shows the card straight after a stamp for a customer with
- * no verified email, so the compact add-your-email card sits beside the
- * referral panel (email sign-in Step 0).
+ * `?email=` shows the card straight after a stamp for a customer with no
+ * verified email, so the compact add-your-email card sits beside the referral
+ * panel (email sign-in Step 0):
+ * - `missing`: no email on the profile; the card opens at the email step.
+ * - `pending`: an unverified email with a code on its way; it opens at the
+ *   code step, as the /home prompt does.
  */
 export default async function ReferralBankHarnessPage({
   searchParams,
@@ -49,12 +52,17 @@ export default async function ReferralBankHarnessPage({
   }
 
   const params = searchParams ? await searchParams : {}
+  const pending = params.email === "pending"
   const experience: CustomerExperience =
-    params.email === "missing"
+    params.email === "missing" || pending
       ? {
           ...REFERRAL_BANK_EXPERIENCE,
           justStamped: true,
-          emailPrompt: { reason: "rewards" },
+          emailPrompt: {
+            reason: "rewards",
+            initialEmail: pending ? "alex@example.test" : null,
+            codePending: pending,
+          },
         }
       : REFERRAL_BANK_EXPERIENCE
 

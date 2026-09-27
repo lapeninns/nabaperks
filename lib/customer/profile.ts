@@ -18,6 +18,7 @@ import {
   type CustomerProfileCompletion,
 } from "@/lib/customer/profile-completion"
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
+import { logger } from "@/lib/observability/logger"
 import type { MarketingChannel } from "@/lib/customer/consent"
 
 export { profileCompletionFrom }
@@ -139,13 +140,21 @@ export type MarkCustomerEmailVerifiedResult =
 
 const UNIQUE_VIOLATION = "23505"
 
+type ServiceRoleClient = ReturnType<typeof createSupabaseServiceRoleClient>
+
 /**
  * Confirms an email after the emailed code is accepted. One wallet per verified
- * email: when another customer already holds this verified email, nothing
- * changes and the caller receives `conflict`. The pre-check covers today's
- * data; the unique-violation catch covers a concurrent confirmation and the
- * database index that enforces the same rule. A confirmation that changes the
- * row is recorded in `audit_logs` before this returns.
+ * email: when another customer already holds this verified email, this
+ * customer ends up without it and the caller receives `conflict`.
+ *
+ * Three checks hold that rule until the database index does on its own: the
+ * pre-check covers today's data, the unique-violation catch covers the index,
+ * and a re-check after the write covers two confirmations of the same address
+ * racing between the pre-check and the write (see
+ * {@link withdrawRacedConfirmation}). On a conflict an unverified copy of the
+ * address is also released from this profile (see
+ * {@link releaseConflictingEmail}). A confirmation that stands is recorded in
+ * `audit_logs` before this returns; a withdrawn one records none.
  */
 export async function markCustomerEmailVerified(
   email: string,
@@ -165,26 +174,52 @@ export async function markCustomerEmailVerified(
     throw new CustomerContactLockedError("Verified email is locked.")
   }
 
-  if (
-    await verifiedEmailHeldByAnotherCustomer(supabase, customer.id, emailHmac)
-  ) {
+  const conflict = async (): Promise<MarkCustomerEmailVerifiedResult> => {
+    // A locked email is verified here already; only an unverified copy goes.
+    if (!locked) {
+      await releaseConflictingEmail(supabase, {
+        customerId: customer.id,
+        email: verifiedEmail,
+        surface,
+      })
+    }
     return { status: "conflict" }
   }
 
+  if (
+    await verifiedEmailHeldByAnotherCustomer(supabase, customer.id, emailHmac)
+  ) {
+    return conflict()
+  }
+
+  const verifiedAt = new Date().toISOString()
   const update = locked
     ? { email_hmac: emailHmac }
     : {
         email: verifiedEmail,
         email_hmac: emailHmac,
-        email_verified_at: new Date().toISOString(),
+        email_verified_at: verifiedAt,
       }
   const { error } = await supabase
     .from("customers")
     .update(update)
     .eq("id", customer.id)
 
-  if (error?.code === UNIQUE_VIOLATION) return { status: "conflict" }
+  if (error?.code === UNIQUE_VIOLATION) return conflict()
   if (error) throw new Error(`Unable to confirm email: ${error.message}`)
+
+  if (
+    !locked &&
+    (await verifiedEmailHeldByAnotherCustomer(supabase, customer.id, emailHmac))
+  ) {
+    await withdrawRacedConfirmation(supabase, {
+      customerId: customer.id,
+      previousEmail: customer.email,
+      previousVerifiedAt: customer.emailVerifiedAt,
+      verifiedAt,
+    })
+    return conflict()
+  }
 
   await recordCustomerEmailAudit(supabase, {
     customerId: customer.id,
@@ -200,7 +235,7 @@ export async function markCustomerEmailVerified(
 }
 
 async function verifiedEmailHeldByAnotherCustomer(
-  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  supabase: ServiceRoleClient,
   customerId: string,
   emailHmac: string
 ): Promise<boolean> {
@@ -214,6 +249,92 @@ async function verifiedEmailHeldByAnotherCustomer(
 
   if (error) throw new Error(`Unable to check email: ${error.message}`)
   return (data ?? []).length > 0
+}
+
+/**
+ * Undoes this call's own confirmation after the post-write re-check found
+ * another verified holder of the same address.
+ *
+ * Why this is fail-closed without a transaction: every confirmation writes its
+ * row first and re-checks second, each as its own committed statement. For two
+ * racers A and B to both miss each other, A's re-check would have to run
+ * before B's write and B's re-check before A's write, which cannot happen
+ * because each writes before it re-checks. So at least one racer sees the
+ * other. Both may see each other and both withdraw (both guests get
+ * `conflict` and can try again); what cannot remain is two wallets holding the
+ * same verified email. The unique index from the follow-up migration makes
+ * this re-check redundant once it ships.
+ *
+ * Only what this call set is reverted: the guard on `email_verified_at` skips
+ * the write if anything has replaced this confirmation since. No
+ * `customer_email_verified` audit row was written, so none needs undoing. A
+ * failed withdrawal is thrown rather than reported as a conflict, because the
+ * duplicate would then still stand.
+ */
+async function withdrawRacedConfirmation(
+  supabase: ServiceRoleClient,
+  input: {
+    readonly customerId: string
+    readonly previousEmail: string | null
+    readonly previousVerifiedAt: string | null
+    readonly verifiedAt: string
+  }
+): Promise<void> {
+  const { error } = await supabase
+    .from("customers")
+    .update({
+      email: input.previousEmail,
+      email_hmac: null,
+      email_verified_at: input.previousVerifiedAt,
+    })
+    .eq("id", input.customerId)
+    .eq("email_verified_at", input.verifiedAt)
+
+  if (error) {
+    logger.error("customer_email_confirmation_withdraw_failed", {
+      code: error.code,
+    })
+    throw new Error(`Unable to withdraw email confirmation: ${error.message}`)
+  }
+}
+
+/**
+ * After a conflict, removes the refused address from this profile so a reload
+ * does not prefill it again. Only in one guarded write: the stored email must
+ * still be this address and still unverified, and the profile must keep a
+ * phone, since `customers_contact_present` requires an email or a phone. A
+ * cleared address is recorded in `audit_logs` as `customer_email_cleared`.
+ * Best effort: the guest's `conflict` answer stands if this write fails.
+ */
+async function releaseConflictingEmail(
+  supabase: ServiceRoleClient,
+  input: {
+    readonly customerId: string
+    readonly email: string
+    readonly surface: ContactEventSurface | null
+  }
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("customers")
+    .update({ email: null, email_hmac: null, email_verified_at: null })
+    .eq("id", input.customerId)
+    .eq("email", input.email)
+    .is("email_verified_at", null)
+    .or("phone_hmac.not.is.null,phone_last4.not.is.null")
+    .select("id")
+
+  if (error) {
+    logger.warn("customer_email_conflict_release_failed", { code: error.code })
+    return
+  }
+  if ((data ?? []).length === 0) return
+
+  await recordCustomerEmailAudit(supabase, {
+    customerId: input.customerId,
+    action: "customer_email_cleared",
+    surface: input.surface,
+    reason: "email_in_use",
+  })
 }
 
 export type SetCustomerEmailForVerificationResult =

@@ -7,12 +7,12 @@ import {
   type CardGift,
   type CustomerExperience,
   type CustomerExperienceKind,
-  type EmailPromptReason,
   type JoinCard,
   type JoinMerchant,
   type LocationRequirement,
   type ProfileGate,
   type RewardView,
+  type StampEmailPrompt,
   externalAccessProblem,
   type InternalAccessProblem,
 } from "./types"
@@ -87,7 +87,7 @@ export type CardContext =
       /** Shareable "Bring a Regular" join link (opaque referral_code), or absent. */
       referralShareUrl?: string
       referralBonusBank?: ReferralBonusBank
-      emailPrompt?: { reason: EmailPromptReason } | null
+      emailPrompt?: StampEmailPrompt | null
     }
 
 export type StampContext =

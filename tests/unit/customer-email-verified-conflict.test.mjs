@@ -5,16 +5,32 @@ import { build } from "esbuild"
 /**
  * One wallet per verified email. `markCustomerEmailVerified` refuses to confirm
  * an address another customer already holds as verified — by a pre-check on
- * the verified `email_hmac`, and by catching the unique violation (23505) that
- * a concurrent confirmation or the database index raises. Either way nothing
- * about this customer changes and the caller receives `conflict`.
+ * the verified `email_hmac`, by catching the unique violation (23505) that the
+ * database index raises, and by re-checking after its own write so two racing
+ * confirmations cannot both stand. Either way this customer is left without
+ * the address verified, and the caller receives `conflict`.
  */
+// The guarded write that releases a refused, still-unverified address, and
+// only while the profile keeps a phone (customers_contact_present).
+const RELEASE_OPS = [
+  ["update", { email: null, email_hmac: null, email_verified_at: null }],
+  ["eq", "id", "customer-a"],
+  ["eq", "email", "guest@example.test"],
+  ["is", "email_verified_at", null],
+  ["or", "phone_hmac.not.is.null,phone_last4.not.is.null"],
+  ["select", "id"],
+]
+
 async function loadProfile() {
   const modules = {
     "fixture-state": `export const state = {
       customer: { id: "customer-a", email: null, emailVerifiedAt: null },
       heldByOther: false,
+      // Per-query answers for the holder check, in order; then heldByOther.
+      holderResults: [],
       updateError: null,
+      laterUpdateErrors: [],
+      releasedRows: [],
       queries: [],
       updates: [],
       audits: [],
@@ -34,7 +50,7 @@ async function loadProfile() {
     "@/lib/customer/reward-invites":
       "export function attachRewardInvitesForCustomer() {}",
     "@/lib/observability/logger":
-      'import { state } from "fixture-state"; export const logger = { error(message, context) { state.logs.push([message, context]) } }',
+      'import { state } from "fixture-state"; export const logger = { error(message, context) { state.logs.push([message, context]) }, warn(message, context) { state.logs.push([message, context]) } }',
     "@/lib/supabase/server": `import { state } from "fixture-state";
       function builder() {
         const ops = []
@@ -44,13 +60,27 @@ async function loadProfile() {
           eq(column, value) { ops.push(["eq", column, value]); return chain },
           not(column, operator, value) { ops.push(["not", column, operator, value]); return chain },
           neq(column, value) { ops.push(["neq", column, value]); return chain },
+          is(column, value) { ops.push(["is", column, value]); return chain },
+          or(filters) { ops.push(["or", filters]); return chain },
           limit(count) { ops.push(["limit", count]); return chain },
           then(resolve, reject) {
             const isUpdate = ops[0][0] === "update"
-            const result = isUpdate
-              ? (state.updates.push(ops), { error: state.updateError })
-              : (state.queries.push(ops),
-                { data: state.heldByOther ? [{ id: "customer-b" }] : [], error: null })
+            let result
+            if (isUpdate) {
+              state.updates.push(ops)
+              // The first write is the confirmation; later ones take their own errors.
+              const error = state.updates.length === 1
+                ? state.updateError
+                : (state.laterUpdateErrors.shift() ?? null)
+              const returning = ops.some(([op]) => op === "select")
+              result = { data: returning ? state.releasedRows : null, error }
+            } else {
+              state.queries.push(ops)
+              const held = state.holderResults.length > 0
+                ? state.holderResults.shift()
+                : state.heldByOther
+              result = { data: held ? [{ id: "customer-b" }] : [], error: null }
+            }
             return Promise.resolve(result).then(resolve, reject)
           },
         }
@@ -109,14 +139,15 @@ async function loadProfile() {
   )
 }
 
-test("Given another wallet holds the verified email When the code is confirmed Then nothing is written and the result is conflict", async () => {
+test("Given another wallet holds the verified email When the code is confirmed Then nothing is confirmed and the result is conflict", async () => {
   const profile = await loadProfile()
   profile.state.heldByOther = true
 
   const result = await profile.markCustomerEmailVerified(" Guest@Example.test ")
 
   assert.deepEqual(result, { status: "conflict" })
-  assert.deepEqual(profile.state.updates, [])
+  // Only the guarded release is attempted; no row matched, so no audit.
+  assert.deepEqual(profile.state.updates, [RELEASE_OPS])
   assert.deepEqual(profile.state.audits, [])
   assert.equal(profile.state.afterCalls, 0)
   // The pre-check looks only at *verified* holders other than this customer.
@@ -139,7 +170,8 @@ test("Given a concurrent confirmation wins the unique index When the update rais
   const result = await profile.markCustomerEmailVerified("guest@example.test")
 
   assert.deepEqual(result, { status: "conflict" })
-  assert.equal(profile.state.updates.length, 1)
+  assert.equal(profile.state.updates.length, 2)
+  assert.deepEqual(profile.state.updates[1], RELEASE_OPS)
   assert.deepEqual(profile.state.audits, [])
   assert.equal(profile.state.afterCalls, 0)
 })
@@ -163,6 +195,10 @@ test("Given the email is free When the code is confirmed Then it is verified wit
   )
 
   assert.deepEqual(result, { status: "verified" })
+  // Pre-check and post-write re-check both ran and found no other holder.
+  assert.equal(profile.state.queries.length, 2)
+  assert.deepEqual(profile.state.queries[1], profile.state.queries[0])
+  assert.equal(profile.state.updates.length, 1)
   const [update, eq] = profile.state.updates[0]
   assert.equal(update[0], "update")
   assert.equal(update[1].email, "guest@example.test")
@@ -199,6 +235,8 @@ test("Given a locked email with a stale HMAC When it is re-confirmed Then only t
     "update",
     { email_hmac: "hmac:kept@example.test" },
   ])
+  // Nothing newly verified, so no post-write re-check.
+  assert.equal(profile.state.queries.length, 1)
   assert.equal(profile.state.afterCalls, 0)
   assert.deepEqual(profile.state.audits[0].metadata, {
     hmac_repair_only: true,
@@ -307,4 +345,139 @@ test("Given a verified email When another address is offered Then the verified e
     }),
     false
   )
+})
+
+test("Given a racing confirmation of the same address When the post-write re-check finds another holder Then this confirmation is withdrawn and the result is conflict", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "guest@example.test",
+    emailVerifiedAt: null,
+  }
+  // Free at the pre-check; held by the other racer at the re-check.
+  profile.state.holderResults = [false, true]
+
+  const result = await profile.markCustomerEmailVerified(
+    "guest@example.test",
+    "home_prompt"
+  )
+
+  assert.deepEqual(result, { status: "conflict" })
+  assert.equal(profile.state.queries.length, 2)
+  const [confirm, withdraw, release] = profile.state.updates
+  const verifiedAt = confirm[0][1].email_verified_at
+  assert.match(verifiedAt, /^\d{4}-\d{2}-\d{2}T/)
+  // Only this call's own confirmation is undone, back to the earlier state.
+  assert.deepEqual(withdraw, [
+    [
+      "update",
+      {
+        email: "guest@example.test",
+        email_hmac: null,
+        email_verified_at: null,
+      },
+    ],
+    ["eq", "id", "customer-a"],
+    ["eq", "email_verified_at", verifiedAt],
+  ])
+  assert.deepEqual(release, RELEASE_OPS)
+  // No verified row for a withdrawn confirmation, and no invite attachment.
+  assert.deepEqual(profile.state.audits, [])
+  assert.equal(profile.state.afterCalls, 0)
+})
+
+test("Given the post-write re-check is clean When the code is confirmed Then it stays verified and is audited once", async () => {
+  const profile = await loadProfile()
+  profile.state.holderResults = [false, false]
+
+  const result = await profile.markCustomerEmailVerified(
+    "guest@example.test",
+    "stamp_prompt"
+  )
+
+  assert.deepEqual(result, { status: "verified" })
+  assert.equal(profile.state.queries.length, 2)
+  assert.equal(profile.state.updates.length, 1)
+  assert.deepEqual(
+    profile.state.audits.map((row) => [row.action, row.metadata]),
+    [["customer_email_verified", { surface: "stamp_prompt" }]]
+  )
+  assert.equal(profile.state.afterCalls, 1)
+})
+
+test("Given the withdrawal itself fails When the re-check finds another holder Then it throws rather than claim a conflict over a standing duplicate", async () => {
+  const profile = await loadProfile()
+  profile.state.holderResults = [false, true]
+  profile.state.laterUpdateErrors = [{ code: "57014", message: "timeout" }]
+
+  await assert.rejects(
+    profile.markCustomerEmailVerified("guest@example.test"),
+    /Unable to withdraw email confirmation/
+  )
+  assert.deepEqual(profile.state.audits, [])
+  assert.deepEqual(profile.state.logs, [
+    ["customer_email_confirmation_withdraw_failed", { code: "57014" }],
+  ])
+})
+
+test("Given a conflict and a profile that keeps a phone When the refused address is released Then the clearing is audited without contact data", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "guest@example.test",
+    emailVerifiedAt: null,
+  }
+  profile.state.heldByOther = true
+  profile.state.releasedRows = [{ id: "customer-a" }]
+
+  const result = await profile.markCustomerEmailVerified(
+    "guest@example.test",
+    "home_prompt"
+  )
+
+  assert.deepEqual(result, { status: "conflict" })
+  assert.deepEqual(profile.state.updates, [RELEASE_OPS])
+  assert.deepEqual(profile.state.audits, [
+    {
+      actor_type: "customer",
+      actor_id: "customer-a",
+      customer_id: "customer-a",
+      target_table: "customers",
+      target_id: "customer-a",
+      action: "customer_email_cleared",
+      metadata: { surface: "home_prompt", reason: "email_in_use" },
+    },
+  ])
+})
+
+test("Given a conflict When the release write fails Then the conflict answer stands and the failure is logged without contact data", async () => {
+  const profile = await loadProfile()
+  profile.state.heldByOther = true
+  // The release is the first write here, so it takes the first-write error.
+  profile.state.updateError = { code: "57014", message: "timeout" }
+
+  const result = await profile.markCustomerEmailVerified("guest@example.test")
+
+  assert.deepEqual(result, { status: "conflict" })
+  assert.deepEqual(profile.state.audits, [])
+  assert.deepEqual(profile.state.logs, [
+    ["customer_email_conflict_release_failed", { code: "57014" }],
+  ])
+  assert.doesNotMatch(JSON.stringify(profile.state.logs), /example\.test/)
+})
+
+test("Given a locked email and another holder When it is re-confirmed Then the verified address is never released", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "kept@example.test",
+    emailVerifiedAt: "2026-09-01T00:00:00.000Z",
+  }
+  profile.state.heldByOther = true
+
+  const result = await profile.markCustomerEmailVerified("kept@example.test")
+
+  assert.deepEqual(result, { status: "conflict" })
+  assert.deepEqual(profile.state.updates, [])
+  assert.deepEqual(profile.state.audits, [])
 })

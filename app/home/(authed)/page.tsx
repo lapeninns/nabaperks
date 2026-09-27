@@ -7,6 +7,7 @@ import { HomeEmptyState } from "@/components/customer/home-empty-state"
 import { HomeRedeemBanner } from "@/components/customer/home-redeem-banner"
 import { HomeSummaryStrip } from "@/components/customer/home-summary-strip"
 import { emailPromptReason } from "@/lib/customer/email-auth-mode"
+import { emailPromptOpening } from "@/lib/customer/email-prompt-opening"
 import { getCustomerHomeDashboard } from "@/lib/customer/home"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { customerHasVerifiedEmail } from "@/lib/customer/profile"
@@ -37,13 +38,10 @@ export default async function HomeDashboardPage() {
     customer !== null && cards.length > 0 && !customerHasVerifiedEmail(customer)
   // Open the prompt at the code step only when a code for the saved address is
   // genuinely on its way to this customer; otherwise prefill the address.
-  const pendingEmail = needsEmail ? await getPendingEmailVerification() : null
-  const codePending = Boolean(
-    pendingEmail &&
-    customer &&
-    pendingEmail.customerId === customer.id &&
-    pendingEmail.email === customer.email?.trim().toLowerCase()
-  )
+  const emailOpening =
+    needsEmail && customer
+      ? emailPromptOpening(customer, await getPendingEmailVerification())
+      : null
   const birthdayPrompt = needsBirthday ? <HomeBirthdayPrompt /> : null
 
   return (
@@ -66,8 +64,8 @@ export default async function HomeDashboardPage() {
               ask, still shows the confirmation. */}
           <HomeEmailPrompt
             reason={needsEmail ? emailPromptReason() : null}
-            initialEmail={needsEmail ? customer?.email?.trim() || null : null}
-            codePending={codePending}
+            initialEmail={emailOpening?.initialEmail ?? null}
+            codePending={emailOpening?.codePending ?? false}
             fallback={birthdayPrompt}
           />
           <div className="grid gap-4">

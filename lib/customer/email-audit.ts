@@ -7,7 +7,9 @@ import type { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 type ServiceRoleClient = ReturnType<typeof createSupabaseServiceRoleClient>
 
 export type CustomerEmailAuditAction =
-  "customer_email_submitted" | "customer_email_verified"
+  | "customer_email_submitted"
+  | "customer_email_verified"
+  | "customer_email_cleared"
 
 export type CustomerEmailAuditInput = {
   readonly customerId: string
@@ -15,6 +17,8 @@ export type CustomerEmailAuditInput = {
   readonly surface: ContactEventSurface | null
   /** True when only a missing or stale HMAC was rewritten on a locked email. */
   readonly hmacRepairOnly?: boolean
+  /** Why an address was cleared without the guest asking. */
+  readonly reason?: "email_in_use"
 }
 
 /**
@@ -34,6 +38,7 @@ export async function recordCustomerEmailAudit(
   const metadata: Record<string, string | boolean> = {}
   if (input.surface) metadata.surface = input.surface
   if (input.hmacRepairOnly) metadata.hmac_repair_only = true
+  if (input.reason) metadata.reason = input.reason
 
   try {
     const { error } = await supabase.from("audit_logs").insert({

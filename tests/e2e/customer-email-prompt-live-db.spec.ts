@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto"
+import { randomBytes, randomUUID } from "node:crypto"
 
 import { expect, test, type BrowserContext } from "@playwright/test"
 
@@ -127,7 +127,7 @@ test.describe("@customer-flow customer email prompt (live database)", () => {
     }
   })
 
-  test("refuses an email already verified on another wallet and changes nothing", async ({
+  test("refuses an email already verified on another wallet and releases it from this profile", async ({
     context,
     page,
   }) => {
@@ -160,8 +160,10 @@ test.describe("@customer-flow customer email prompt (live database)", () => {
       await expect(prompt.getByText(CONFLICT_COPY)).toBeVisible()
       await expect(prompt.getByLabel("Email", { exact: true })).toBeVisible()
 
+      // The refused address is released (the guest keeps a phone), so a
+      // reload cannot prefill it; the holder's verified email is untouched.
       await expect(readCustomerEmail(sql, guestId)).resolves.toEqual({
-        email,
+        email: null,
         email_hmac: null,
         email_verified: false,
       })
@@ -176,7 +178,22 @@ test.describe("@customer-flow customer email prompt (live database)", () => {
       await expect(
         countEvents(sql, guestId, "customer_email_verified")
       ).resolves.toBe(0)
-      await expect(readEmailAudits(sql, guestId)).resolves.toEqual([])
+      // The clearing is audited, without the address; nothing was verified.
+      await expect(readEmailAudits(sql, guestId)).resolves.toEqual([
+        {
+          action: "customer_email_cleared",
+          actor_type: "customer",
+          actor_id: guestId,
+          metadata: { surface: "home_prompt", reason: "email_in_use" },
+        },
+      ])
+
+      // A reload opens the prompt at the email step with nothing prefilled.
+      await page.goto("/home")
+      const reloaded = page.getByTestId("email-prompt")
+      await expect(reloaded.getByLabel("Email", { exact: true })).toHaveValue(
+        ""
+      )
     } finally {
       await cleanupWallet(sql, fixture)
       await sql.end()
@@ -188,8 +205,8 @@ function uniqueEmail(prefix: string): string {
   return `${prefix}-${randomUUID().slice(0, 12)}@example.test`
 }
 
-// A guest with one card and an unverified email; optionally a second wallet
-// (no card) that already holds the same email verified.
+// A guest with one card, a phone and an unverified email; optionally a second
+// wallet (no card) that already holds the same email verified.
 async function seedWallet(
   sql: Sql,
   input: {
@@ -209,10 +226,19 @@ async function seedWallet(
 
   try {
     await sql`
-      insert into public.customers (id, email, full_name, date_of_birth)
+      insert into public.customers (
+        id,
+        email,
+        phone_hmac,
+        phone_last4,
+        full_name,
+        date_of_birth
+      )
       values (
         ${input.guestId}::uuid,
         ${input.guestEmail},
+        ${randomBytes(32).toString("hex")},
+        '0000',
         'Email Prompt Browser',
         date '1990-01-01'
       )`
