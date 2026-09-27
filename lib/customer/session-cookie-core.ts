@@ -5,7 +5,11 @@ import {
   readEncryptedPendingCookieValue,
 } from "@/lib/customer/pending-cookie-crypto"
 
-export type PendingPhonePurpose = "join" | "wallet"
+/**
+ * What a pending phone code is for: joining, signing in to a wallet, or
+ * adding a phone to the signed-in wallet (`attach`, bound to that wallet).
+ */
+export type PendingPhonePurpose = "join" | "wallet" | "attach"
 
 export type PendingPhoneChannel = "sms" | "whatsapp"
 
@@ -17,6 +21,8 @@ export type PendingPhonePayload = {
   readonly country: string
   /** Channel that carried the code; absent on cookies minted before it existed. */
   readonly channel?: PendingPhoneChannel
+  /** `attach` only: the signed-in wallet the phone is being added to. */
+  readonly customerId?: string
   readonly issuedAt: number
   readonly expiresAt: number
 }
@@ -212,11 +218,20 @@ function parsePendingPhonePayload(value: unknown): PendingPhonePayload | null {
   const phoneHmac = value.phoneHmac
   const country = value.country
   const channel = value.channel
+  const customerId = value.customerId
   const issuedAt = value.issuedAt
   const expiresAt = value.expiresAt
 
   if (version !== 2) return null
-  if (purpose !== "join" && purpose !== "wallet") return null
+  if (purpose !== "join" && purpose !== "wallet" && purpose !== "attach") {
+    return null
+  }
+  // An attach code is bound to one wallet; no other purpose carries one.
+  if (purpose === "attach") {
+    if (typeof customerId !== "string" || !customerId) return null
+  } else if (customerId !== undefined) {
+    return null
+  }
   if (typeof phone !== "string") return null
   if (typeof phoneHmac !== "string") return null
   if (typeof country !== "string") return null
@@ -235,6 +250,7 @@ function parsePendingPhonePayload(value: unknown): PendingPhonePayload | null {
     phoneHmac,
     country,
     ...(channel ? { channel } : {}),
+    ...(purpose === "attach" ? { customerId: customerId as string } : {}),
     issuedAt,
     expiresAt,
   }

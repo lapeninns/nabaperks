@@ -292,6 +292,20 @@ export async function updateHomeMarketingConsentAction(
 
   const optedIn = formData.get("optedIn") === "on"
 
+  // Text and WhatsApp offers need a phone. A wallet started with an email has
+  // none until one is added, so it cannot opt in to either; opting out is
+  // always allowed.
+  if (optedIn && (channel === "sms" || channel === "whatsapp")) {
+    const customer = await getCurrentCustomer()
+    if (!customer?.phoneLast4) {
+      return {
+        channel,
+        optedIn: false,
+        error: "Add a phone number first to get offers by text or WhatsApp.",
+      }
+    }
+  }
+
   try {
     await updateCustomerMarketingConsent({ channel, optedIn })
   } catch {

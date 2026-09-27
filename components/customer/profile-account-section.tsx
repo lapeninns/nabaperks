@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import { SectionHeader } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
@@ -12,15 +14,23 @@ import { Button } from "@/components/ui/button"
  * session clearing stays server-side. Sessions no longer lapse on their own,
  * so `signOutAllAction` is the customer's remedy for a lost or shared phone:
  * it revokes every session on the account, not just this browser's.
+ *
+ * `signInWith` names the ways this wallet can sign back in, worked out on the
+ * server from the contacts it holds and the email sign-in mode. `addPhone` is
+ * the "add a phone number" form, passed only for a wallet with no phone.
  */
 export function CustomerProfileAccountSection({
   memberSinceLabel,
   venueLabel,
+  signInWith = "your phone number",
+  addPhone,
   signOutAction,
   signOutAllAction,
 }: {
   memberSinceLabel: string
   venueLabel: string
+  signInWith?: string
+  addPhone?: ReactNode
   signOutAction: React.ComponentProps<"form">["action"]
   signOutAllAction: React.ComponentProps<"form">["action"]
 }) {
@@ -34,8 +44,10 @@ export function CustomerProfileAccountSection({
 
       <p className="text-sm leading-6 text-muted-foreground">
         You stay signed in on this device until you log out. Your cards, stamps
-        and rewards stay on your account — sign back in with your phone number.
+        and rewards stay on your account. Sign back in with {signInWith}.
       </p>
+
+      {addPhone}
 
       <form action={signOutAction}>
         {/* Default size keeps the account action on the 44px tap contract

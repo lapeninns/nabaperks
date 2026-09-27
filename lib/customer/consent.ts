@@ -13,6 +13,12 @@ const MARKETING_CHANNELS: readonly MarketingChannel[] = [
   "push",
 ]
 
+/** Channels delivered to a phone, so only for a wallet that holds one. */
+const PHONE_MARKETING_CHANNELS: ReadonlySet<MarketingChannel> = new Set([
+  "sms",
+  "whatsapp",
+])
+
 /**
  * The current join RPC records one policy version for the accepted venue terms
  * and the optional marketing row, so profile changes keep that version aligned.
@@ -38,6 +44,15 @@ export async function updateCustomerMarketingConsent({
 }): Promise<void> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")
+  // record_customer_marketing_consent accepts any channel, so the phone
+  // channels are refused here for a wallet with no phone (email-only).
+  if (
+    optedIn &&
+    PHONE_MARKETING_CHANNELS.has(channel) &&
+    !customer.phoneLast4
+  ) {
+    throw new Error("Phone marketing needs a phone number on the wallet.")
+  }
 
   const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase.rpc("record_customer_marketing_consent", {

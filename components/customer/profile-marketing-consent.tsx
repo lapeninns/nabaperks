@@ -50,13 +50,23 @@ const initialState: MarketingConsentState = {}
  */
 export function CustomerProfileMarketing({
   consents,
+  hasPhone = true,
 }: {
   consents: readonly MarketingConsent[]
+  /**
+   * False for a wallet started with an email and no phone yet: text and
+   * WhatsApp need a phone, so only email is offered (the server refuses the
+   * others too).
+   */
+  hasPhone?: boolean
 }) {
   const optedInByChannel = new Map(
     consents.map((consent) => [consent.channel, consent.optedIn])
   )
-  const hasAnyConsent = CHANNELS.some((entry) =>
+  const channels = hasPhone
+    ? CHANNELS
+    : CHANNELS.filter((entry) => entry.channel === "email")
+  const hasAnyConsent = channels.some((entry) =>
     optedInByChannel.has(entry.channel)
   )
 
@@ -68,7 +78,7 @@ export function CustomerProfileMarketing({
       </p>
 
       <ul className="grid gap-3">
-        {CHANNELS.map((entry) => {
+        {channels.map((entry) => {
           const optedIn = optedInByChannel.get(entry.channel) ?? false
           return (
             <li key={`${entry.channel}:${optedIn}`}>

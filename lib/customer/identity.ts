@@ -234,6 +234,67 @@ async function findCustomerByVerifiedAddress(
   return rows.length === 1 ? toCurrentCustomer(rows[0]) : null
 }
 
+export type AttachVerifiedPhoneResult =
+  | { readonly status: "attached"; readonly customer: CurrentCustomer }
+  /** Another wallet holds this phone. Nothing changes (D4: attach, never merge). */
+  | { readonly status: "contact_conflict" }
+  /** This wallet already has a phone, so there is nothing to add. */
+  | { readonly status: "already_has_phone" }
+
+/**
+ * Adds a phone the signed-in customer has just proven to their wallet, which
+ * must not have one yet (an email-only wallet). A phone another wallet holds
+ * is a conflict and nothing changes. The update is guarded by
+ * `phone_hmac is null`, so a concurrent attach cannot overwrite a phone, and
+ * the unique `phone_hmac` index turns a race with another wallet into a
+ * conflict too.
+ */
+export async function attachVerifiedPhoneToCustomer({
+  customerId,
+  phone,
+}: {
+  customerId: string
+  phone: NormalizedPhone
+}): Promise<AttachVerifiedPhoneResult> {
+  const holder = await findCustomerByVerifiedPhone(phone)
+  if (holder) {
+    return holder.id === customerId
+      ? { status: "already_has_phone" }
+      : { status: "contact_conflict" }
+  }
+
+  const pii = customerPhonePii(phone.e164)
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("customers")
+    .update({
+      phone_hmac: pii.phoneHmac,
+      phone_ciphertext: pii.phoneCiphertext,
+      phone_last4: pii.phoneLast4,
+      phone_country: phone.country,
+      phone_verified_at: new Date().toISOString(),
+    })
+    .eq("id", customerId)
+    .is("phone_hmac", null)
+    .select(CUSTOMER_COLUMNS)
+    .maybeSingle()
+
+  if (error) {
+    if (error.code === UNIQUE_VIOLATION) return { status: "contact_conflict" }
+    throw new Error(`Unable to add customer phone: ${error.message}`)
+  }
+  // No row matched: the wallet gained a phone since the check above.
+  if (!data) return { status: "already_has_phone" }
+
+  const customer = toCurrentCustomer(data)
+  if (!customer) throw new Error("Unable to add customer phone.")
+
+  // A merchant may have sent this phone a reward invite before it was added.
+  after(() => attachRewardInvitesForCustomer(customer.id))
+
+  return { status: "attached", customer }
+}
+
 export function firstOf<T>(value: T | T[] | null): T | null {
   if (value === null) return null
   return Array.isArray(value) ? (value[0] ?? null) : value
