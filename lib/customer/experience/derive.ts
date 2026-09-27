@@ -7,6 +7,7 @@ import {
   type CardGift,
   type CustomerExperience,
   type CustomerExperienceKind,
+  type EmailPromptReason,
   type JoinCard,
   type JoinMerchant,
   type LocationRequirement,
@@ -86,6 +87,7 @@ export type CardContext =
       /** Shareable "Bring a Regular" join link (opaque referral_code), or absent. */
       referralShareUrl?: string
       referralBonusBank?: ReferralBonusBank
+      emailPrompt?: { reason: EmailPromptReason } | null
     }
 
 export type StampContext =
@@ -231,6 +233,7 @@ function deriveCard(context: CardContext): CustomerExperience {
     justRedeemed: context.justRedeemed,
     referralShareUrl: context.referralShareUrl,
     referralBonusBank: context.referralBonusBank,
+    emailPrompt: context.justStamped ? (context.emailPrompt ?? null) : null,
   }
 }
 

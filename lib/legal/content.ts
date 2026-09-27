@@ -184,7 +184,7 @@ export const COOKIE_SECTIONS: LegalSection[] = [
   {
     id: "local-storage",
     title: "Local storage",
-    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, and dismissal of the birthday-profile prompt. The birthday dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
+    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the birthday-profile prompt (nabaperks.dob-prompt-dismissed), and dismissal of the add-your-email prompt (nabaperks.email-prompt-dismissed). Each prompt dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
   },
   {
     id: "push-and-analytics",
@@ -199,12 +199,12 @@ export const COOKIE_SECTIONS: LegalSection[] = [
 ]
 
 export const COOKIE_META = {
-  eyebrow: "Browser data · effective 15 July 2026",
+  eyebrow: "Browser data · effective 27 September 2026",
   title: "Cookie and browser-storage notice.",
   description:
     "The cookies, local browser storage, and push information used by Nabaperks.",
   cardTitle: "Browser storage",
-  docNumber: "CS-2026-07",
+  docNumber: "CS-2026-09-27",
 }
 
 export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [

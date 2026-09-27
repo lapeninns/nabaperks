@@ -129,8 +129,25 @@ export async function updateCustomerProfile(
   }
 }
 
-/** Confirms an email after the emailed code is accepted. */
-export async function markCustomerEmailVerified(email: string): Promise<void> {
+export type MarkCustomerEmailVerifiedResult =
+  { status: "verified" } | { status: "conflict" }
+
+/** Copy shown wherever a verified email turns out to belong to another wallet. */
+export const CUSTOMER_EMAIL_CONFLICT_MESSAGE =
+  "This email is already used by another Nabaperks wallet. Sign in with that email, or ask the venue for help."
+
+const UNIQUE_VIOLATION = "23505"
+
+/**
+ * Confirms an email after the emailed code is accepted. One wallet per verified
+ * email: when another customer already holds this verified email, nothing
+ * changes and the caller receives `conflict`. The pre-check covers today's
+ * data; the unique-violation catch covers a concurrent confirmation and the
+ * database index that enforces the same rule.
+ */
+export async function markCustomerEmailVerified(
+  email: string
+): Promise<MarkCustomerEmailVerifiedResult> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to confirm.")
 
@@ -138,33 +155,97 @@ export async function markCustomerEmailVerified(email: string): Promise<void> {
   if (!verifiedEmail) throw new Error("Email is required for confirmation.")
 
   const currentEmail = normalizedEmail(customer.email)
+  const emailHmac = customerEmailHmac(verifiedEmail)
   const supabase = createSupabaseServiceRoleClient()
-  if (hasLockedVerifiedEmail(customer)) {
-    if (verifiedEmail !== currentEmail) {
-      throw new CustomerContactLockedError("Verified email is locked.")
-    }
-    const { error } = await supabase
-      .from("customers")
-      .update({ email_hmac: customerEmailHmac(verifiedEmail) })
-      .eq("id", customer.id)
-
-    if (error) throw new Error(`Unable to confirm email: ${error.message}`)
-    return
+  const locked = hasLockedVerifiedEmail(customer)
+  if (locked && verifiedEmail !== currentEmail) {
+    throw new CustomerContactLockedError("Verified email is locked.")
   }
 
+  if (
+    await verifiedEmailHeldByAnotherCustomer(supabase, customer.id, emailHmac)
+  ) {
+    return { status: "conflict" }
+  }
+
+  const update = locked
+    ? { email_hmac: emailHmac }
+    : {
+        email: verifiedEmail,
+        email_hmac: emailHmac,
+        email_verified_at: new Date().toISOString(),
+      }
   const { error } = await supabase
     .from("customers")
-    .update({
-      email: verifiedEmail,
-      email_hmac: customerEmailHmac(verifiedEmail),
-      email_verified_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq("id", customer.id)
 
+  if (error?.code === UNIQUE_VIOLATION) return { status: "conflict" }
   if (error) throw new Error(`Unable to confirm email: ${error.message}`)
 
-  // A newly verified email may match a pending reward invite — attach it.
-  after(() => attachRewardInvitesForCustomer(customer.id))
+  if (!locked) {
+    // A newly verified email may match a pending reward invite — attach it.
+    after(() => attachRewardInvitesForCustomer(customer.id))
+  }
+  return { status: "verified" }
+}
+
+async function verifiedEmailHeldByAnotherCustomer(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  customerId: string,
+  emailHmac: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("email_hmac", emailHmac)
+    .not("email_verified_at", "is", null)
+    .neq("id", customerId)
+    .limit(1)
+
+  if (error) throw new Error(`Unable to check email: ${error.message}`)
+  return (data ?? []).length > 0
+}
+
+export type SetCustomerEmailForVerificationResult =
+  | { status: "verification_required"; email: string }
+  | { status: "already_verified" }
+
+/**
+ * Saves only the email, for the "add your email" prompts. `updateCustomerProfile`
+ * needs a name and date of birth, which these prompts do not ask for. A new or
+ * changed address clears any earlier verification; a customer who already holds
+ * a verified email keeps it (verified contacts are locked).
+ */
+export async function setCustomerEmailForVerification(
+  email: string
+): Promise<SetCustomerEmailForVerificationResult> {
+  const customer = await getCurrentCustomer()
+  if (!customer) throw new Error("No signed-in customer to update.")
+  if (hasLockedVerifiedEmail(customer)) return { status: "already_verified" }
+
+  const nextEmail = normalizedEmail(email)
+  if (!nextEmail) throw new Error("Email is required.")
+
+  if (nextEmail !== normalizedEmail(customer.email)) {
+    const supabase = createSupabaseServiceRoleClient()
+    const { error } = await supabase
+      .from("customers")
+      .update({ email: nextEmail, email_hmac: null, email_verified_at: null })
+      .eq("id", customer.id)
+
+    if (error) throw new Error(`Unable to update email: ${error.message}`)
+  }
+
+  return { status: "verification_required", email: nextEmail }
+}
+
+/** True when the customer holds a verified (and therefore locked) email. */
+export function customerHasVerifiedEmail(customer: {
+  email: string | null
+  emailVerifiedAt: string | null
+}): boolean {
+  return hasLockedVerifiedEmail(customer)
 }
 
 export async function clearCustomerEmail(): Promise<ClearCustomerEmailResult> {

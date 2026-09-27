@@ -272,3 +272,25 @@ test("a foreign card and a missing card are byte-identical to the customer", () 
   })
   assert.notDeepEqual(anonymous, missing)
 })
+
+test("Given no verified email When a card is derived Then the add-your-email card shows only straight after a stamp", () => {
+  const emailPrompt = { reason: "rewards" }
+
+  const stamped = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ justStamped: true, emailPrompt }),
+  })
+  assert.deepEqual(stamped.emailPrompt, emailPrompt)
+
+  const revisited = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ justStamped: false, emailPrompt }),
+  })
+  assert.equal(revisited.emailPrompt, null)
+
+  const verified = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ justStamped: true, emailPrompt: null }),
+  })
+  assert.equal(verified.emailPrompt, null)
+})

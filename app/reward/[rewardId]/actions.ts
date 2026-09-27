@@ -2,14 +2,15 @@
 
 import { revalidatePath } from "next/cache"
 
+import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
 import {
-  checkCustomerEmailVerification,
-  startCustomerEmailVerification,
-} from "@/lib/customer/email-verification"
+  confirmCustomerEmailCode,
+  emailConfirmationErrors,
+} from "@/lib/customer/email-confirmation"
+import { startCustomerEmailVerification } from "@/lib/customer/email-verification"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
   clearCustomerEmail,
-  markCustomerEmailVerified,
   updateCustomerProfile,
 } from "@/lib/customer/profile"
 import { validateProfileFields } from "@/lib/customer/profile-fields"
@@ -84,6 +85,12 @@ export async function saveProfileForRedeemAction(
         },
       }
     }
+    const customer = await getCurrentCustomer()
+    recordCustomerContactEvent({
+      eventName: "customer_email_verification_started",
+      customerId: customer?.id ?? null,
+      metadata: { method: "email", surface: "reward_gate" },
+    })
   }
 
   if (rewardId) revalidatePath(`/reward/${rewardId}`)
@@ -100,26 +107,9 @@ export async function verifyProfileEmailAction(
 
   if (!code) return { errors: { otp: "Enter the code from your email." } }
 
-  let result: Awaited<ReturnType<typeof checkCustomerEmailVerification>>
-  try {
-    result = await checkCustomerEmailVerification(code)
-  } catch {
-    return { errors: { form: "We couldn't check that code. Try again." } }
-  }
-
-  if (result.status !== "approved") {
-    return {
-      errors: {
-        otp: "That code didn't match. Check your email and try again.",
-      },
-    }
-  }
-
-  try {
-    await markCustomerEmailVerified(result.email)
-  } catch {
-    return { errors: { form: "We couldn't confirm your email. Try again." } }
-  }
+  const confirmation = await confirmCustomerEmailCode(code, "reward_gate")
+  const errors = emailConfirmationErrors(confirmation)
+  if (errors) return { errors }
 
   if (rewardId) revalidatePath(`/reward/${rewardId}`)
   return {}

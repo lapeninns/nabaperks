@@ -49,7 +49,13 @@ async function loadProfile() {
               "@/lib/customer/reward-invites":
                 "export function attachRewardInvitesForCustomer() {}",
               "@/lib/customer/profile-fields":
-                "export function validateProfileFields() {}",
+                "export function isEmailAddress() {} export function validateProfileFields() {}",
+              "@/lib/customer/contact-event-core":
+                'export function isEmailPromptSurface(value) {return value === "home_prompt" || value === "stamp_prompt"}',
+              "@/lib/customer/contact-events":
+                "export function recordCustomerContactEvent() {}",
+              "@/lib/customer/email-confirmation":
+                "export function confirmCustomerEmailCode() {} export function emailConfirmationErrors() {return null}",
               "@/lib/customer/session":
                 "export function clearPendingEmailVerification() {}",
               "@/lib/security/rate-limit":

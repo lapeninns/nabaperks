@@ -6,7 +6,10 @@ import type { CustomerExperience } from "@/lib/customer/experience/types"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const REFERRAL_BANK_EXPERIENCE: CustomerExperience = {
+const REFERRAL_BANK_EXPERIENCE: Extract<
+  CustomerExperience,
+  { kind: "card_collecting" }
+> = {
   kind: "card_collecting",
   membershipId: "mem_harness_referral_bank",
   merchantName: "Old Crown Girton",
@@ -31,15 +34,34 @@ const REFERRAL_BANK_EXPERIENCE: CustomerExperience = {
   },
 }
 
-export default function ReferralBankHarnessPage() {
+/**
+ * `?email=missing` shows the card straight after a stamp for a customer with
+ * no verified email, so the compact add-your-email card sits beside the
+ * referral panel (email sign-in Step 0).
+ */
+export default async function ReferralBankHarnessPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ email?: string }>
+}) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
 
+  const params = searchParams ? await searchParams : {}
+  const experience: CustomerExperience =
+    params.email === "missing"
+      ? {
+          ...REFERRAL_BANK_EXPERIENCE,
+          justStamped: true,
+          emailPrompt: { reason: "rewards" },
+        }
+      : REFERRAL_BANK_EXPERIENCE
+
   // This harness lane exercises the referral bank, not the offers rail.
   return (
     <CustomerCardExperience
-      experience={REFERRAL_BANK_EXPERIENCE}
+      experience={experience}
       offerPasses={[]}
       offerClaimNotice={null}
     />

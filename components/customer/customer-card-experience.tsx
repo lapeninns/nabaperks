@@ -9,6 +9,7 @@ import {
 import { Icon } from "@/components/brand"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import { GoogleReviewButton } from "@/components/customer/google-review-button"
+import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
 import { JoinFirstStampRecoveryPanel } from "@/components/customer/join-first-stamp-recovery-panel"
 import {
   CustomerActionNote,
@@ -314,6 +315,15 @@ function CardProgressPanel({
           membershipId={exp.membershipId}
           venueName={exp.merchantName}
           compact
+        />
+      ) : null}
+
+      {/* After a stamp only, and only without a verified email. Sits below
+          the stamp card, so the stamp itself is never held up by it. */}
+      {exp.emailPrompt ? (
+        <HomeEmailPrompt
+          surface="stamp_prompt"
+          reason={exp.emailPrompt.reason}
         />
       ) : null}
 

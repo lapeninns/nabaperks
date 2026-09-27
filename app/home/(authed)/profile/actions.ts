@@ -10,16 +10,25 @@ import {
   type MarketingChannel,
 } from "@/lib/customer/consent"
 import {
-  checkCustomerEmailVerification,
-  startCustomerEmailVerification,
-} from "@/lib/customer/email-verification"
+  isEmailPromptSurface,
+  type EmailPromptSurface,
+} from "@/lib/customer/contact-event-core"
+import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
+import {
+  confirmCustomerEmailCode,
+  emailConfirmationErrors,
+} from "@/lib/customer/email-confirmation"
+import { startCustomerEmailVerification } from "@/lib/customer/email-verification"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
   clearCustomerEmail,
-  markCustomerEmailVerified,
+  setCustomerEmailForVerification,
   updateCustomerProfile,
 } from "@/lib/customer/profile"
-import { validateProfileFields } from "@/lib/customer/profile-fields"
+import {
+  isEmailAddress,
+  validateProfileFields,
+} from "@/lib/customer/profile-fields"
 import { clearPendingEmailVerification } from "@/lib/customer/session"
 import { RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -96,6 +105,7 @@ export async function saveHomeProfileAction(
         },
       }
     }
+    await recordVerificationStarted("profile")
     revalidatePath(PROFILE_PATH)
     return {
       fields,
@@ -114,29 +124,139 @@ export async function verifyHomeProfileEmailAction(
   const code = value(formData, "otp")
   if (!code) return { errors: { otp: "Enter the code from your email." } }
 
-  let result: Awaited<ReturnType<typeof checkCustomerEmailVerification>>
-  try {
-    result = await checkCustomerEmailVerification(code)
-  } catch {
-    return { errors: { form: "We couldn't check that code. Try again." } }
+  const confirmation = await confirmCustomerEmailCode(code, "profile")
+  const errors = emailConfirmationErrors(confirmation)
+  if (errors) return { errors }
+
+  revalidatePath(PROFILE_PATH)
+  return { message: "Your email is confirmed." }
+}
+
+export type EmailPromptState = {
+  readonly step: "email" | "code" | "verified"
+  readonly email?: string
+  readonly errors?: {
+    readonly email?: string
+    readonly otp?: string
+    readonly form?: string
+  }
+  readonly message?: string
+}
+
+/**
+ * The "add your email" prompt (home, and after a stamp). One action for both
+ * steps so the prompt holds a single state: `intent=verify` confirms a code,
+ * anything else saves the email and sends (or re-sends) a code.
+ */
+export async function emailPromptAction(
+  state: EmailPromptState,
+  formData: FormData
+): Promise<EmailPromptState> {
+  return value(formData, "intent") === "verify"
+    ? verifyEmailPrompt(state, formData)
+    : startEmailPrompt(state, formData)
+}
+
+/**
+ * Step one: save only the email and send a code. Name and date of birth are
+ * not asked for here.
+ */
+async function startEmailPrompt(
+  state: EmailPromptState,
+  formData: FormData
+): Promise<EmailPromptState> {
+  const surface = promptSurface(formData)
+  const email = value(formData, "email") || state.email || ""
+  if (!email || !isEmailAddress(email)) {
+    return {
+      step: "email",
+      email,
+      errors: { email: "Enter a valid email address." },
+    }
   }
 
-  if (result.status !== "approved") {
+  let savedEmail: string
+  try {
+    const saved = await setCustomerEmailForVerification(email)
+    if (saved.status === "already_verified") {
+      return { step: "verified", message: "Your email is already confirmed." }
+    }
+    savedEmail = saved.email
+  } catch {
     return {
-      errors: {
-        otp: "That code didn't match. Check your email and try again.",
-      },
+      step: "email",
+      email,
+      errors: { form: "We couldn't save your email. Try again." },
     }
   }
 
   try {
-    await markCustomerEmailVerified(result.email)
-  } catch {
-    return { errors: { form: "We couldn't confirm your email. Try again." } }
+    await startCustomerEmailVerification(savedEmail)
+  } catch (error) {
+    return {
+      step: state.step === "code" ? "code" : "email",
+      email: savedEmail,
+      errors: {
+        form:
+          error instanceof RateLimitError
+            ? "Please wait a minute before requesting another code."
+            : "We couldn't email a code to that address. Try again.",
+      },
+    }
+  }
+
+  await recordVerificationStarted(surface)
+  return {
+    step: "code",
+    email: savedEmail,
+    message: "Enter the code we sent to your email.",
+  }
+}
+
+/** Step two of the prompt: confirm the emailed code. */
+async function verifyEmailPrompt(
+  state: EmailPromptState,
+  formData: FormData
+): Promise<EmailPromptState> {
+  const surface = promptSurface(formData)
+  const email = state.email
+  const code = value(formData, "otp")
+  if (!code) {
+    return {
+      step: "code",
+      email,
+      errors: { otp: "Enter the code from your email." },
+    }
+  }
+
+  const confirmation = await confirmCustomerEmailCode(code, surface)
+  const errors = emailConfirmationErrors(confirmation)
+  if (errors) {
+    // A conflict ends this address: go back to the email step so the guest can
+    // use another one. Anything else keeps the code step for another try.
+    return confirmation.status === "conflict"
+      ? { step: "email", errors }
+      : { step: "code", email, errors }
   }
 
   revalidatePath(PROFILE_PATH)
-  return { message: "Your email is confirmed." }
+  return { step: "verified", message: "Your email is confirmed." }
+}
+
+function promptSurface(formData: FormData): EmailPromptSurface {
+  const surface = value(formData, "surface")
+  return isEmailPromptSurface(surface) ? surface : "home_prompt"
+}
+
+async function recordVerificationStarted(
+  surface: "profile" | EmailPromptSurface
+): Promise<void> {
+  const customer = await getCurrentCustomer()
+  recordCustomerContactEvent({
+    eventName: "customer_email_verification_started",
+    customerId: customer?.id ?? null,
+    metadata: { method: "email", surface },
+  })
 }
 
 export type MarketingConsentState = {

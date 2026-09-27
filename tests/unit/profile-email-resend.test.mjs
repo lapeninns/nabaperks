@@ -35,9 +35,15 @@ async function loadAction() {
               "@/lib/customer/identity":
                 'import {state} from "fixture-state"; export async function getCurrentCustomer() {return state.customer}',
               "@/lib/customer/profile":
-                "export function clearCustomerEmail() {} export function markCustomerEmailVerified() {} export function updateCustomerProfile() {}",
+                "export function clearCustomerEmail() {} export function setCustomerEmailForVerification() {} export function updateCustomerProfile() {}",
               "@/lib/customer/profile-fields":
-                "export function validateProfileFields() {}",
+                "export function isEmailAddress() {} export function validateProfileFields() {}",
+              "@/lib/customer/contact-event-core":
+                'export function isEmailPromptSurface(value) {return value === "home_prompt" || value === "stamp_prompt"}',
+              "@/lib/customer/contact-events":
+                "export function recordCustomerContactEvent() {}",
+              "@/lib/customer/email-confirmation":
+                "export function confirmCustomerEmailCode() {} export function emailConfirmationErrors() {return null}",
               "@/lib/customer/session":
                 "export function clearPendingEmailVerification() {}",
               "@/lib/security/rate-limit":
