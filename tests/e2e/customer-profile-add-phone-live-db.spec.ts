@@ -83,6 +83,15 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
       await expect(
         page.locator("[data-add-phone]").getByRole("status")
       ).toHaveText(ATTACHED)
+      // After the re-render with a phone, only the confirmation remains.
+      await expect(
+        page
+          .locator("[data-add-phone]")
+          .getByRole("heading", { name: "Phone number added" })
+      ).toBeVisible()
+      await expect(
+        page.getByRole("heading", { name: "Add a phone number" })
+      ).toHaveCount(0)
 
       const after = await readContact(sql, customerId)
       expect(after).toEqual({

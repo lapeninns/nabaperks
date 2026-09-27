@@ -41,6 +41,22 @@ export function CustomerProfileAddPhone({
   const [state, submitAction, pending] = useActionState(action, initialState)
   if (hasPhone && state.step !== "attached") return null
 
+  // Once added, only the confirmation: the invitation to add a phone no
+  // longer describes this wallet.
+  if (state.step === "attached") {
+    return (
+      <div
+        className="grid gap-1 rounded-lg border-2 border-dashed border-border p-4"
+        data-add-phone
+      >
+        <h3 className="text-base font-extrabold">Phone number added</h3>
+        <p role="status" className="text-sm leading-6">
+          {state.message}
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div
       className="grid gap-3 rounded-lg border-2 border-dashed border-border p-4"
@@ -59,10 +75,6 @@ export function CustomerProfileAddPhone({
           submitAction={submitAction}
           pending={pending}
         />
-      ) : state.step === "attached" ? (
-        <p role="status" className="text-sm font-bold">
-          {state.message}
-        </p>
       ) : (
         <PhoneNumberForm
           state={state}

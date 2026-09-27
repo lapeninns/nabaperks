@@ -67,6 +67,17 @@ test.describe("@customer-flow @a11y email-only wallet profile", () => {
     await expect(section.getByRole("status")).toContainText(
       "Your phone number is added. You can sign in with it too."
     )
+    // Only the confirmation: the invitation to add a phone is gone.
+    await expect(
+      section.getByRole("heading", { name: "Phone number added" })
+    ).toBeVisible()
+    await expect(
+      section.getByRole("heading", { name: "Add a phone number" })
+    ).toHaveCount(0)
+    await expect(
+      section.getByText("Your wallet opens with your email.", { exact: false })
+    ).toHaveCount(0)
+    await expect(section.getByLabel("Phone code")).toHaveCount(0)
   })
 
   test("a number another wallet holds is refused with a way to get help", async ({
