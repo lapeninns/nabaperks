@@ -181,7 +181,7 @@ function PassQrRecovery({
               href={customerLoginHref(`/pass/${entitlementId}`)}
               className="font-bold underline underline-offset-4"
             >
-              sign in with your number
+              sign in again
             </Link>{" "}
             to bring your pass back.
           </span>
