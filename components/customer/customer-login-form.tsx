@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useActionState } from "react"
 
 import type { CustomerLoginOtpState } from "@/app/home/actions"
@@ -9,6 +10,7 @@ import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
+import { Button } from "@/components/ui/button"
 import { Field, FieldGroup } from "@/components/ui/field"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
@@ -30,7 +32,8 @@ export function CustomerLoginForm({
   const [state, submitAction, pending] = useActionState(loginAction, {})
   const editingContact = Boolean(state.fields?.editingContact)
   const contact = state.fields?.contact ?? ""
-  const otpSent = Boolean(state.fields?.otpSent) && !editingContact
+  const noCards = Boolean(state.fields?.noCards) && !editingContact
+  const otpSent = Boolean(state.fields?.otpSent) && !editingContact && !noCards
   const contactError = editingContact ? undefined : state.errors?.contact
   const verifyError = state.errors?.otp ?? state.errors?.form
   const message = editingContact || pending ? undefined : state.message
@@ -45,17 +48,45 @@ export function CustomerLoginForm({
         />
         <div className="grid gap-1">
           <h1 className="text-2xl leading-tight font-extrabold text-balance">
-            {otpSent ? "Enter your code" : "Welcome back"}
+            {noCards
+              ? "No cards on this number"
+              : otpSent
+                ? "Enter your code"
+                : "Welcome back"}
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            {otpSent
-              ? "Use the code from your message to open your cards."
-              : "Sign in to see every loyalty card you've collected, track your rewards, and pick up where you left off."}
+            {noCards
+              ? "Scan the venue QR at the counter. Your first card is created there."
+              : otpSent
+                ? "Use the code from your message to open your cards."
+                : "Sign in to see every loyalty card you've collected, track your rewards, and pick up where you left off."}
           </p>
         </div>
       </div>
 
-      {otpSent ? (
+      {noCards ? (
+        <div className="grid gap-4">
+          <p role="status" className="text-sm leading-6">
+            {message}
+          </p>
+          <Button asChild size="lg" className="w-full">
+            <Link href="/scan">Scan a venue QR</Link>
+          </Button>
+          <form action={submitAction}>
+            <input type="hidden" name="intent" value="edit" />
+            <input type="hidden" name="contact" value={contact} />
+            <SubmitButton
+              variant="link"
+              size="xs"
+              className="h-auto min-h-11 justify-start px-0 text-left whitespace-normal"
+              disabled={pending}
+              pendingLabel="Changing number…"
+            >
+              Use a different number
+            </SubmitButton>
+          </form>
+        </div>
+      ) : otpSent ? (
         <div className="grid gap-4">
           <form action={submitAction}>
             <input type="hidden" name="intent" value="verify" />
@@ -207,10 +238,12 @@ export function CustomerLoginForm({
         </form>
       )}
 
-      <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
-        New here? Scan a venue&apos;s QR code to collect your first stamp — your
-        first card is created automatically.
-      </p>
+      {noCards ? null : (
+        <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
+          New here? Scan a venue&apos;s QR code to collect your first stamp —
+          your first card is created automatically.
+        </p>
+      )}
     </ReceiptCard>
   )
 }

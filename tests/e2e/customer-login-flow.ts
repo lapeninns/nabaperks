@@ -27,8 +27,7 @@ function unusedUkMobile() {
     const candidate = `074${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`
     try {
       if (parsePhoneNumberWithError(candidate, "GB").isValid()) return candidate
-    } catch {
-    }
+    } catch {}
   }
   return "07911123456"
 }
@@ -92,6 +91,12 @@ export function describeCustomerLoginAntiEnumeration() {
       await expect(
         page.getByText(/No cards found for that number yet/i)
       ).toBeVisible()
+      await expect(
+        page.getByRole("link", { name: "Scan a venue QR" })
+      ).toHaveAttribute("href", "/scan")
+      await expect(
+        page.getByRole("button", { name: "Send code", exact: true })
+      ).toHaveCount(0)
 
       const cookies = await context.cookies()
       expect(

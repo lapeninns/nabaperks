@@ -35,6 +35,8 @@ export type CustomerLoginOtpState = {
     contact?: string
     /** A code has been sent — show the code entry step. */
     otpSent?: boolean
+    /** The code was valid and this number has no cards. Offer a scan, not another code. */
+    noCards?: boolean
     /** Focus the phone field after the customer asks to correct it. */
     editingContact?: boolean
   }
@@ -200,7 +202,7 @@ export async function verifyCustomerLoginOtpAction(
   if (!customer) {
     await clearPendingPhoneVerification()
     return {
-      fields: { contact },
+      fields: { contact, noCards: true },
       message:
         "No cards found for that number yet. Scan a venue QR to join first.",
     }

@@ -11,6 +11,20 @@ const projectRoot = path.resolve(
 const read = (...segments) =>
   readFileSync(path.join(projectRoot, ...segments), "utf8")
 
+test("the per-phone dispatch ceiling is 10 codes in 15 minutes", () => {
+  const migration = read(
+    "supabase",
+    "migrations",
+    "20261005100700_raise_customer_otp_phone_dispatch_limit.sql"
+  )
+
+  assert.match(migration, /enforce_rate_limit\(p_phone_bucket, 10, 900000\)/)
+  assert.doesNotMatch(
+    migration,
+    /enforce_rate_limit\(p_phone_bucket, 5, 900000\)/
+  )
+})
+
 test("recognised devices bypass only the anonymous allocation, never the hard ceiling", () => {
   const source = read("lib", "customer", "otp-rate-limit.ts")
   const migration = read(
