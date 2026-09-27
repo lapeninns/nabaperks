@@ -18,18 +18,20 @@ import { closeDb, db, dbUrl, isLiveDbReady } from "./helpers/db.mjs"
 const INDEX = "public.customers_verified_email_hmac_unique_idx"
 const RACERS = 6
 
-async function raceReady() {
-  if (!(await isLiveDbReady())) return false
-  try {
-    const [row] = await db()`select to_regclass(${INDEX}) is not null as ready`
-    return row.ready
-  } catch {
-    return false
-  }
+// Skipped only when there is no database. With one, a missing index is the
+// regression this proves against (duplicate wallets), so it fails instead.
+const live = await isLiveDbReady()
+const skip = live ? false : "local database not available"
+
+async function assertUniqueIndexDeployed() {
+  const [row] = await db()`select to_regclass(${INDEX}) is not null as ready`
+  assert.equal(
+    row.ready,
+    true,
+    `${INDEX} is missing: concurrent email sign-ups would create duplicate wallets`
+  )
 }
 
-const ready = await raceReady()
-const skip = ready ? false : "verified email uniqueness index not deployed"
 const connections = []
 after(async () => {
   await Promise.all(connections.map((sql) => sql.end({ timeout: 5 })))
@@ -80,9 +82,16 @@ async function removeWallets(emailHmac) {
 }
 
 test(
+  "the verified-email unique index that settles the race is deployed",
+  { skip },
+  assertUniqueIndexDeployed
+)
+
+test(
   "a second insert waits for the first and then loses to it with 23505",
   { skip },
   async () => {
+    await assertUniqueIndexDeployed()
     const email = `race-pair-${randomUUID()}@example.test`
     const emailHmac = hex64()
     const first = connect()
@@ -139,6 +148,7 @@ test(
   `${RACERS} concurrent creations of one verified email leave exactly one wallet`,
   { skip },
   async () => {
+    await assertUniqueIndexDeployed()
     const email = `race-many-${randomUUID()}@example.test`
     const emailHmac = hex64()
     const racers = Array.from({ length: RACERS }, () => connect())

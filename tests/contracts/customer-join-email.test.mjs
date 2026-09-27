@@ -134,19 +134,78 @@ test("Given the new cookies When they are encrypted Then each has its own pendin
   assert.doesNotMatch(core, /from "(next\/|@\/lib\/supabase)/)
 })
 
-test("Given public offer campaigns stay phone-only When an email-only wallet claims one Then it is told why", () => {
+test("Given public offer campaigns stay phone-only When an email-only wallet claims one Then only a live offer is refused with the reason", () => {
   const join = read("app", "m", "[merchantSlug]", "join", "actions.ts")
   const branch = join.slice(
     join.indexOf("async function claimOfferCampaignIfPresent"),
     join.indexOf("export async function joinRewardsAction")
   )
-  assert.match(branch, /status === "invalid" && !hasVerifiedPhone/)
-  assert.match(branch, /This offer needs a confirmed phone number/)
+  // Checked before the claim, so a stale or ended link (also 'invalid' from
+  // the claim) still falls through to an ordinary join.
   assert.ok(
-    branch.indexOf("await clearOfferCookie()") <
-      branch.indexOf('status === "invalid" && !hasVerifiedPhone')
+    branch.indexOf("offerNeedsConfirmedPhone(") <
+      branch.indexOf('supabase.rpc("claim_offer_campaign"')
+  )
+  assert.match(branch, /if \(!hasVerifiedPhone\) \{/)
+  assert.doesNotMatch(branch, /status === "invalid" && !hasVerifiedPhone/)
+  const gate = join.slice(
+    join.indexOf("async function offerNeedsConfirmedPhone"),
+    join.indexOf("async function claimOfferCampaignIfPresent")
+  )
+  assert.match(gate, /isOfferClaimAvailable\(claimTokenHash, merchantSlug\)/)
+  assert.match(gate, /if \(!available\) return null/)
+  assert.ok(
+    gate.indexOf("await clearOfferCookie()") <
+      gate.indexOf("This offer needs a confirmed phone number")
   )
   assert.match(join, /customer\.phoneLast4 !== null/)
+
+  const pendingOffer = read("lib", "customer", "pending-join-offer.ts")
+  const available = pendingOffer.slice(
+    pendingOffer.indexOf("export async function isOfferClaimAvailable")
+  )
+  assert.match(available, /"get_offer_claim_context"/)
+  assert.match(available, /row\?\.claim_status === "available"/)
+  assert.match(available, /row\.business_slug === merchantSlug/)
+  assert.doesNotMatch(available, /claim_offer_campaign"/)
+})
+
+test("Given a phone code is requested on the join page When it is sent Then no email challenge or handoff is left to hide the code step", () => {
+  const join = read("app", "m", "[merchantSlug]", "join", "actions.ts")
+  const request = join.slice(
+    join.indexOf("export async function requestCustomerIdentityAction"),
+    join.indexOf("function logVerificationSendFailure")
+  )
+  assert.match(
+    request,
+    /await clearPendingEmailSignIn\(\)\s*await clearVerifiedEmailHandoff\(\)/
+  )
+
+  // Signing in or out drops both signed-out email cookies too.
+  const session = read("lib", "customer", "session.ts")
+  for (const fn of [
+    "export async function setCustomerSession",
+    "export async function clearAllCustomerSessions",
+    "export async function clearCustomerSession",
+  ]) {
+    const body = session.slice(
+      session.indexOf(fn),
+      session.indexOf("\n}\n", session.indexOf(fn))
+    )
+    assert.match(body, /clearSignedOutEmailSignIn\(cookieStore\)/, fn)
+  }
+  assert.match(
+    session,
+    /cookieStore\.delete\(PENDING_EMAIL_SIGN_IN_COOKIE_NAME\)/
+  )
+  assert.match(
+    session,
+    /cookieStore\.delete\(VERIFIED_EMAIL_HANDOFF_COOKIE_NAME\)/
+  )
+
+  // And the loader follows whichever challenge was started last.
+  const loader = read("lib", "customer", "experience", "load-join.ts")
+  assert.match(loader, /newestSignedOutJoinChallenge\(/)
 })
 
 test("Given the join email modules When the app is scanned Then no client component imports the server-only sign-in module", () => {
@@ -181,9 +240,20 @@ test("Given the join email screens When they are read Then they carry the agreed
   const choice = forms.slice(
     forms.indexOf("export function CustomerEmailChoiceForm")
   )
-  assert.match(choice, /\{canCreate \? \(\s*<form action=\{createAction\}/)
+  assert.match(choice, /\{canCreate \? \(\s*<form\s+action=\{createAction\}/)
   assert.match(choice, /No, I&rsquo;m new here: start my wallet/)
   assert.match(choice, /Yes, with my phone number: use my phone/)
+  // Mode existing (D9): phone only, with its own heading, since a yes/no
+  // question with one answer would not make sense.
+  assert.match(choice, /: "Use my phone instead"\}/)
+  assert.match(copy, /headline: "No wallet uses this email yet"/)
+  assert.match(
+    copy,
+    /"Use the phone number you joined with\. You can add this email to your wallet once you're signed in\."/
+  )
+  // The contact method is remembered only when the choice starts a wallet.
+  assert.match(choice, /useRestoreContactMethodOnNoWallet\("email"\)/)
+  assert.match(choice, /onSubmit=\{rememberEmail\}/)
   assert.match(choice, /action=\{switchJoinToPhoneAction\}/)
   assert.equal((choice.match(/variant="outline"/g) ?? []).length, 2)
   assert.doesNotMatch(choice, /variant="default"/)
@@ -242,7 +312,7 @@ test("Given the device remembers its sign-in method When it is stored Then it is
   assert.match(emailOtp, /useRememberContactMethodOnVerify\("email"/)
 
   assert.match(legal, /\(nabaperks\.last-contact-method\)/)
-  const signIn = read("lib", "customer", "email-sign-in.ts")
+  const signIn = read("lib", "customer", "email-sign-in-core.ts")
   for (const cookie of [
     "nabaperks_pending_email_sign_in",
     "nabaperks_email_handoff",

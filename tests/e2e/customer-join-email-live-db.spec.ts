@@ -182,6 +182,14 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         page.getByRole("heading", { name: CHOICE_HEADING })
       ).toBeVisible()
 
+      // Confirmed, but no wallet opened: the device does not start leading
+      // with email because of it.
+      await expect(
+        page.evaluate(() =>
+          window.localStorage.getItem("nabaperks.last-contact-method")
+        )
+      ).resolves.toBeNull()
+
       await page.getByRole("button", { name: USE_PHONE }).click()
       await expect(page).toHaveURL(/step=phone/)
       await expect(page.getByLabel("UK phone number")).toBeVisible()
@@ -244,6 +252,53 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
             window.localStorage.getItem("nabaperks.last-contact-method")
           )
         ).resolves.toBe("phone")
+      },
+      phone
+    )
+  })
+
+  test("a phone code requested after the choice screen opens its code step", async ({
+    context,
+    page,
+  }) => {
+    const email = uniqueJoinEmail("then-phone")
+    const phone = disposableUkMobile()
+    await withJourney(
+      [email],
+      async ({ sql, fixture }) => {
+        await installKnownDevice(context)
+        await requestJoinEmailCode(page, fixture, email)
+        await confirmJoinCode(page)
+        await expect(
+          page.getByRole("heading", { name: CHOICE_HEADING })
+        ).toBeVisible()
+
+        // Away from the choice without answering it, then on to phone.
+        await page.getByRole("link", { name: "Use a different email" }).click()
+        await expect(page).toHaveURL(/step=email/)
+        await page
+          .getByRole("link", { name: "Use my phone number instead" })
+          .click()
+        await expect(page).toHaveURL(/step=phone/)
+        await page.getByLabel("UK phone number").fill(phone.national)
+        await page.getByRole("button", { name: "Send my code" }).click()
+
+        await expect(page).toHaveURL(/step=otp/)
+        await expect(
+          page.getByRole("heading", { name: "Enter your code" })
+        ).toBeVisible()
+        await expect(
+          page.getByRole("heading", { name: CHOICE_HEADING })
+        ).toHaveCount(0)
+        await expect(hasCookie(context, EMAIL_HANDOFF_COOKIE)).resolves.toBe(
+          false
+        )
+
+        await confirmJoinCode(page)
+        await expect(
+          page.getByRole("heading", { name: "Collect your first stamp" })
+        ).toBeVisible()
+        await expect(readEmailWallets(sql, email)).resolves.toEqual([])
       },
       phone
     )

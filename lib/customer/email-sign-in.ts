@@ -18,6 +18,8 @@ import {
   EMAIL_HANDOFF_TTL_SECONDS,
   EMAIL_SIGN_IN_RESEND_AFTER_SECONDS,
   EMAIL_SIGN_IN_TTL_SECONDS,
+  PENDING_EMAIL_SIGN_IN_COOKIE_NAME,
+  VERIFIED_EMAIL_HANDOFF_COOKIE_NAME,
   createPendingEmailSignInCookieValue,
   createVerifiedEmailHandoffCookieValue,
   emailSignInCodeHmac,
@@ -26,6 +28,7 @@ import {
   isEmailSignInCodeShape,
   readPendingEmailSignInCookieValue,
   readVerifiedEmailHandoffCookieValue,
+  unguessableEmailSignInDigest,
   verifiedEmailHandoffMatches,
   type EmailSignInPurpose,
   type PendingEmailSignInPayload,
@@ -55,16 +58,19 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
  * the code's digest, never the code (D6). Send admission, guess limits and
  * single use are Postgres rate-limit buckets. Every send answers the same way
  * for any address and when admission refuses (D8): the cookie is always set,
- * and a refused send mints a code that is never emailed.
+ * and a refused send mints a `held` challenge that has no code, so it looks
+ * the same but can never be verified.
  */
 
-export const pendingEmailSignInCookieName = "nabaperks_pending_email_sign_in"
-export const verifiedEmailHandoffCookieName = "nabaperks_email_handoff"
+export const pendingEmailSignInCookieName = PENDING_EMAIL_SIGN_IN_COOKIE_NAME
+export const verifiedEmailHandoffCookieName = VERIFIED_EMAIL_HANDOFF_COOKIE_NAME
 
-/** Guess limits (plan PR 3): per challenge, per address, per device. */
+/** Guess limits (plan PR 3): per challenge, per address, per device, per IP. */
 export const EMAIL_SIGN_IN_CHALLENGE_GUESS_LIMIT = 5
 export const EMAIL_SIGN_IN_EMAIL_GUESS_LIMIT = 10
 export const EMAIL_SIGN_IN_DEVICE_GUESS_LIMIT = 20
+/** Matches the per-IP send limit: a venue's Wi-Fi shares one address. */
+export const EMAIL_SIGN_IN_IP_GUESS_LIMIT = 60
 const CHALLENGE_WINDOW_MS = 15 * 60_000
 const HOUR_MS = 60 * 60_000
 
@@ -120,57 +126,70 @@ export async function startEmailSignInChallenge(
       ? existing
       : null
 
-  // A double submit or an early resend keeps the code already on its way
-  // instead of replacing it with one that admission would refuse to send.
+  // A double submit or an early resend keeps the challenge already live
+  // instead of replacing it with one that admission would refuse to send. A
+  // challenge whose send failed keeps saying so until it may be resent.
   if (current && now < current.resendAvailableAt) {
     await writeChallenge(current, secret)
-    return codeSent(current)
+    return answerFor(current)
   }
 
   const admission = await admitSend(email, emailHmac)
   if (admission === "unavailable") {
     recordSendFailure(input)
-    return deliveryFailed(email, now)
+    return deliveryFailed(email, now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS)
   }
 
-  const code = generateEmailSignInCode()
-  const payload =
-    admission === "refused" && current
+  if (admission === "refused") {
+    // The answer and the cookie look the same as an admitted send (D8), but a
+    // new challenge is `held`: no code exists, so it can never be verified.
+    const held: PendingEmailSignInPayload = current
       ? {
           ...current,
           resendAvailableAt: now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS,
         }
-      : mintChallenge({
-          email,
-          emailHmac,
-          purpose: input.purpose,
-          code,
-          now,
-          secret,
-        })
-
-  // The cookie is written whatever admission said, so the response never
-  // reveals a refusal. Only one sign-in challenge is live per browser.
-  await writeChallenge(payload, secret)
-  await clearPendingPhoneVerification()
-  await clearVerifiedEmailHandoff()
-
-  if (admission === "refused" || isLocalDevOtpConfigured()) {
-    return codeSent(payload)
+      : mintChallenge({ email, emailHmac, purpose: input.purpose, now, secret })
+    await makeOnlyLiveChallenge(held, secret)
+    return answerFor(held)
   }
 
-  try {
-    await sendEmailOtp({ to: email, code, idempotencyKey: payload.challengeId })
-  } catch (error) {
-    // Never log the provider message: it can echo the recipient.
-    logger.error("customer_email_sign_in_send_failed", {
-      purpose: input.purpose,
-      category: sendFailureCategory(error),
-    })
-    recordSendFailure(input)
-    return { ...codeSent(payload), status: "delivery_failed" }
+  const code = generateEmailSignInCode()
+  const payload = mintChallenge({
+    email,
+    emailHmac,
+    purpose: input.purpose,
+    code,
+    now,
+    secret,
+  })
+  if (!isLocalDevOtpConfigured()) {
+    try {
+      await sendEmailOtp({
+        to: email,
+        code,
+        idempotencyKey: payload.challengeId,
+      })
+    } catch (error) {
+      // Never log the provider message: it can echo the recipient.
+      logger.error("customer_email_sign_in_send_failed", {
+        purpose: input.purpose,
+        category: sendFailureCategory(error),
+      })
+      recordSendFailure(input)
+      // A code delivered earlier keeps working; otherwise this one stays in
+      // case the email arrives late. Either way it is marked failed, so a
+      // retry is never told a code is on its way.
+      const failed: PendingEmailSignInPayload = {
+        ...(current && current.delivery !== "held" ? current : payload),
+        delivery: "fail",
+        resendAvailableAt: now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS,
+      }
+      await makeOnlyLiveChallenge(failed, secret)
+      return answerFor(failed)
+    }
   }
 
+  await makeOnlyLiveChallenge(payload, secret)
   return codeSent(payload)
 }
 
@@ -190,30 +209,17 @@ export async function checkEmailSignInChallenge({
     return { status: "invalid_code" }
   }
 
-  const requestHeaders = await headers()
-  const device =
-    customerDeviceHashFromHeaders(requestHeaders) ??
-    `identity:${customerRateLimitIdentityFromHeaders(requestHeaders)}`
+  const held = pending.delivery === "held"
   try {
-    await enforceRateLimit({
-      key: `email-sign-in:verify:challenge:${pending.challengeId}`,
-      limit: EMAIL_SIGN_IN_CHALLENGE_GUESS_LIMIT,
-      windowMs: CHALLENGE_WINDOW_MS,
-    })
-    await enforceRateLimit({
-      key: `email-sign-in:verify:email:${pending.emailHmac}`,
-      limit: EMAIL_SIGN_IN_EMAIL_GUESS_LIMIT,
-      windowMs: HOUR_MS,
-    })
-    await enforceRateLimit({
-      key: `email-sign-in:verify:device:${device}`,
-      limit: EMAIL_SIGN_IN_DEVICE_GUESS_LIMIT,
-      windowMs: HOUR_MS,
-    })
+    await enforceGuessLimits(pending, held)
   } catch (error) {
     if (error instanceof RateLimitError) return { status: "rate_limited" }
     throw error
   }
+
+  // A refused send has no code, so nothing can match it, the dev code
+  // included. Its guesses are still charged to the challenge, device and IP.
+  if (held) return { status: "invalid_code" }
 
   const matches =
     devCode ||
@@ -281,6 +287,7 @@ export async function setVerifiedEmailHandoff({
   const issuedAt = nowSeconds()
   const payload: VerifiedEmailHandoffPayload = {
     version: 1,
+    handoffId: randomUUID(),
     email,
     emailHmac,
     deviceHash,
@@ -338,6 +345,65 @@ export async function clearVerifiedEmailHandoff(): Promise<void> {
   cookieStore.delete(verifiedEmailHandoffCookieName)
 }
 
+/**
+ * Spends the handoff server-side. Only the first call for a handoff returns
+ * true, so a copied cookie cannot be replayed to sign in to the wallet it
+ * created. Deleting the cookie alone would only stop this browser.
+ */
+export async function consumeVerifiedEmailHandoff(
+  handoff: VerifiedEmailHandoffPayload
+): Promise<boolean> {
+  try {
+    await enforceRateLimit({
+      key: `email-handoff:consumed:${handoff.handoffId}`,
+      limit: 1,
+      windowMs: EMAIL_HANDOFF_TTL_SECONDS * 1000,
+    })
+    return true
+  } catch (error) {
+    if (error instanceof RateLimitError) return false
+    throw error
+  }
+}
+
+/**
+ * Guess limits: per challenge, per device and per client IP always; per
+ * address only for a challenge whose code was sent, since guesses against a
+ * refused (`held`) one cannot succeed and must not lock the address out.
+ */
+async function enforceGuessLimits(
+  pending: PendingEmailSignInPayload,
+  held: boolean
+): Promise<void> {
+  const requestHeaders = await headers()
+  const device =
+    customerDeviceHashFromHeaders(requestHeaders) ??
+    `identity:${customerRateLimitIdentityFromHeaders(requestHeaders)}`
+  await enforceRateLimit({
+    key: `email-sign-in:verify:challenge:${pending.challengeId}`,
+    limit: EMAIL_SIGN_IN_CHALLENGE_GUESS_LIMIT,
+    windowMs: CHALLENGE_WINDOW_MS,
+  })
+  if (!held) {
+    await enforceRateLimit({
+      key: `email-sign-in:verify:email:${pending.emailHmac}`,
+      limit: EMAIL_SIGN_IN_EMAIL_GUESS_LIMIT,
+      windowMs: HOUR_MS,
+    })
+  }
+  await enforceRateLimit({
+    key: `email-sign-in:verify:device:${device}`,
+    limit: EMAIL_SIGN_IN_DEVICE_GUESS_LIMIT,
+    windowMs: HOUR_MS,
+  })
+  // Rotating the device cookie is cheap, so the IP caps guesses too.
+  await enforceRateLimit({
+    key: `email-sign-in:verify:ip:${trustedClientIp(requestHeaders).toLowerCase()}`,
+    limit: EMAIL_SIGN_IN_IP_GUESS_LIMIT,
+    windowMs: HOUR_MS,
+  })
+}
+
 async function readPendingChallenge(
   secret: string,
   now: number
@@ -361,6 +427,7 @@ async function writeChallenge(
   )
 }
 
+/** A new challenge; without a code it is `held` and can never be verified. */
 function mintChallenge({
   email,
   emailHmac,
@@ -372,7 +439,7 @@ function mintChallenge({
   email: string
   emailHmac: string
   purpose: EmailSignInPurpose
-  code: string
+  code?: string
   now: number
   secret: string
 }): PendingEmailSignInPayload {
@@ -383,17 +450,28 @@ function mintChallenge({
     email,
     emailHmac,
     challengeId,
-    codeHmac: emailSignInCodeHmac({
-      secret,
-      purpose,
-      challengeId,
-      email,
-      code,
-    }),
+    codeHmac:
+      code === undefined
+        ? unguessableEmailSignInDigest()
+        : emailSignInCodeHmac({ secret, purpose, challengeId, email, code }),
+    delivery: code === undefined ? "held" : "sent",
     issuedAt: now,
     expiresAt: now + EMAIL_SIGN_IN_TTL_SECONDS,
     resendAvailableAt: now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS,
   }
+}
+
+/**
+ * Writes the challenge and drops the other signed-out sign-in state, so only
+ * one challenge is live per browser.
+ */
+async function makeOnlyLiveChallenge(
+  payload: PendingEmailSignInPayload,
+  secret: string
+): Promise<void> {
+  await writeChallenge(payload, secret)
+  await clearPendingPhoneVerification()
+  await clearVerifiedEmailHandoff()
 }
 
 /**
@@ -473,12 +551,19 @@ function codeSent(payload: PendingEmailSignInPayload) {
   }
 }
 
-function deliveryFailed(email: string, now: number) {
+function deliveryFailed(email: string, resendAvailableAt: number) {
   return {
     status: "delivery_failed" as const,
     maskedEmail: maskEmail(email) ?? "",
-    resendAvailableAt: now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS,
+    resendAvailableAt,
   }
+}
+
+/** A `held` challenge answers as sent (D8); a failed one never does. */
+function answerFor(payload: PendingEmailSignInPayload): EmailSignInStartResult {
+  return payload.delivery === "fail"
+    ? deliveryFailed(payload.email, payload.resendAvailableAt)
+    : codeSent(payload)
 }
 
 function nowSeconds(): number {

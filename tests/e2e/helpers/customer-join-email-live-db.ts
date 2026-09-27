@@ -119,6 +119,7 @@ export async function installPendingEmailChallenge(
             email,
             code: input.code,
           }),
+          delivery: "sent",
           issuedAt: now - 120,
           expiresAt: now + EMAIL_SIGN_IN_TTL_SECONDS,
           resendAvailableAt: now - 60,
@@ -150,6 +151,7 @@ export async function installForeignDeviceHandoff(
       value: createVerifiedEmailHandoffCookieValue(
         {
           version: 1,
+          handoffId: randomUUID(),
           email: input.email,
           emailHmac: customerEmailHmac(input.email),
           deviceHash: input.deviceHash,
@@ -252,7 +254,8 @@ export async function verifyFixtureCustomerEmail(
 /**
  * Removes wallets, sessions and events for `emails`, plus the send, cooldown
  * and guess buckets their journeys spent (the shared IP and global send
- * buckets too, so repeated local runs start from the same limits).
+ * buckets and the shared IP guess bucket too, so repeated local runs start
+ * from the same limits).
  */
 export async function cleanupEmailJoinRows(
   sql: Sql,
@@ -263,6 +266,7 @@ export async function cleanupEmailJoinRows(
     `${prefix}:ip:unknown`,
     `${prefix}:global:minute`,
     `${prefix}:global:hour`,
+    "email-sign-in:verify:ip:unknown",
   ]
   for (const email of emails) {
     const hmac = customerEmailHmac(email)

@@ -68,6 +68,21 @@ Email is becoming the first sign-in method on the join page. It ships behind
 - Email sign-in sessions use the existing `new_identity`,
   `recognised_device` and `verified_email` continuity sources;
   `register_customer_session` is unchanged.
+- Code guessing is limited per challenge (5), per address (10 an hour), per
+  device (20 an hour) and per client IP (60 an hour). A send that admission
+  refuses still answers "code sent" and sets a challenge cookie, but that
+  challenge holds no code and can never be verified, so refused sends cannot
+  be farmed for guesses. There is no global guess limit: guesses need a
+  challenge whose code was actually emailed, and sends are capped globally
+  (150 an hour), so a global guess bucket would add a way to lock everyone
+  out without adding protection.
+- Accepted trade-off: the per-address limit can be spent by someone else.
+  Anyone can have codes sent to an address (3 per 15 minutes) and submit wrong
+  guesses, locking that address out of email sign-in for up to an hour. The
+  owner receives those code emails, and a wallet that also holds a phone can
+  still sign in by phone; an email-only wallet has to wait. Guesses against a
+  refused challenge do not count towards it. Revisit if support sees
+  lock-outs, for example by counting only failures from other devices.
 
 ### Exit condition
 

@@ -25,7 +25,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "joining",
     title: "Joining a venue",
-    body: "You join with a mobile phone number and a one-time code sent by text or, where the join page offers it, with an email address and a one-time code sent by email. An email that no wallet uses yet starts a new wallet only after you choose to start one; stamps stay on the wallet you joined with and are not moved between wallets. You must select the required loyalty-terms control before a membership is created. The join screen provides the current venue terms, these platform terms, and the privacy notice. Nabaperks records the venue terms version and an immutable copy of the venue terms accepted for that membership.",
+    body: "You join with a mobile phone number and a one-time code sent by text. You must select the required loyalty-terms control before a membership is created. The join screen provides the current venue terms, these platform terms, and the privacy notice. Nabaperks records the venue terms version and an immutable copy of the venue terms accepted for that membership.",
   },
   {
     id: "marketing",

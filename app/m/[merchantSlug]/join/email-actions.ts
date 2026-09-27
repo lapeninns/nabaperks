@@ -11,6 +11,7 @@ import { normalizeEmail } from "@/lib/customer/email-pii-core"
 import {
   checkEmailSignInChallenge,
   clearVerifiedEmailHandoff,
+  consumeVerifiedEmailHandoff,
   getPendingEmailSignIn,
   readVerifiedEmailHandoff,
   setVerifiedEmailHandoff,
@@ -82,6 +83,8 @@ const EMAIL_WALLET_CREATION_OFF =
 const EMAIL_DELAYED =
   "Email codes are delayed. Try again shortly or use your phone."
 const CARD_UNAVAILABLE = "This loyalty card is unavailable just now."
+const HANDOFF_EXPIRED =
+  "That email confirmation has expired. Enter your email again."
 const SESSION_FAILED = "We couldn't sign you in just now. Try again shortly."
 
 export async function requestCustomerEmailIdentityAction(
@@ -251,19 +254,20 @@ export async function startEmailWalletAction(
     merchantSlug: request.merchantSlug,
     qrId: request.qrId,
   })
-  if (!handoff) {
-    return {
-      errors: {
-        form: "That email confirmation has expired. Enter your email again.",
-      },
-    }
-  }
+  if (!handoff) return { errors: { form: HANDOFF_EXPIRED } }
 
   const merchantId = await availableJoinMerchantId(
     request.merchantSlug,
     request.qrId
   )
   if (!merchantId) return { errors: { form: CARD_UNAVAILABLE } }
+
+  // Single use on the server, not only in this browser: a replayed copy of
+  // the cookie must not sign in to the wallet the first use created.
+  if (!(await consumeVerifiedEmailHandoff(handoff))) {
+    await clearVerifiedEmailHandoff()
+    return { errors: { form: HANDOFF_EXPIRED } }
+  }
 
   const resolution = await createCustomerByVerifiedEmail(handoff.email)
   await clearVerifiedEmailHandoff()

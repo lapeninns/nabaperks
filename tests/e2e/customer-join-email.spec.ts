@@ -107,7 +107,7 @@ test.describe("@customer-flow @a11y join by email screens", () => {
       page.getByRole("button", { name: /start my wallet/ })
     ).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: "Use my phone number" })
+      page.getByRole("button", { name: "Use my phone instead" })
     ).toBeVisible()
   })
 

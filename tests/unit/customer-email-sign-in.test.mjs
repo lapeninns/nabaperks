@@ -145,6 +145,16 @@ function pendingCookie(mod) {
   return read.payload
 }
 
+async function withClockAhead(seconds, run) {
+  const realNow = Date.now
+  Date.now = () => realNow() + seconds * 1000
+  try {
+    await run()
+  } finally {
+    Date.now = realNow
+  }
+}
+
 beforeEach(() => {
   process.env.CUSTOMER_EMAIL_HMAC_SECRET = "h".repeat(48)
   delete process.env.CUSTOMER_DEV_OTP_CODE
@@ -213,8 +223,79 @@ test("Given admission refuses When a challenge starts Then the answer and cookie
 
   assert.equal(result.status, "code_sent")
   assert.equal(pendingCookie(mod).email, "guest@example.com")
+  assert.equal(pendingCookie(mod).delivery, "held")
   assert.deepEqual(mod.state.sends, [])
   assert.deepEqual(mod.state.events, [])
+
+  // Same size as the cookie an admitted send sets for the same address.
+  const admitted = await loadModule()
+  await admitted.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  assert.equal(
+    mod.state.cookies.get(mod.pendingEmailSignInCookieName).length,
+    admitted.state.cookies.get(admitted.pendingEmailSignInCookieName).length
+  )
+})
+
+test("Given a refused send When its challenge is checked Then no code verifies it and the address is not charged", async () => {
+  // The local dev code verifies any sent challenge, so it is the strongest
+  // guess there is; a held challenge refuses even that.
+  process.env.CUSTOMER_DEV_OTP_CODE = "424242"
+  const mod = await loadModule()
+  mod.state.admission = { message: "rate limit exceeded" }
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  const held = pendingCookie(mod)
+
+  for (const code of ["424242", "000000", "123456"]) {
+    assert.deepEqual(
+      await mod.checkEmailSignInChallenge({ code, purpose: "join" }),
+      { status: "invalid_code" }
+    )
+  }
+  assert.equal(
+    mod.state.buckets.has(`email-sign-in:consumed:${held.challengeId}`),
+    false
+  )
+  const charged = new Set(
+    mod.state.limits.map((limit) => limit.key.split(":").slice(0, 3).join(":"))
+  )
+  assert.deepEqual([...charged].sort(), [
+    "email-sign-in:verify:challenge",
+    "email-sign-in:verify:device",
+    "email-sign-in:verify:ip",
+  ])
+  // Guesses against it still count towards the challenge's own limit.
+  assert.equal(
+    mod.state.buckets.get(`email-sign-in:verify:challenge:${held.challengeId}`),
+    3
+  )
+})
+
+test("Given a refused resend of a code already sent When checked Then the emailed code still works", async () => {
+  const mod = await loadModule()
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  const code = mod.state.sends[0].code
+  await withClockAhead(61, async () => {
+    mod.state.admission = { message: "rate limit exceeded" }
+    const again = await mod.startEmailSignInChallenge({
+      email: "guest@example.com",
+      purpose: "join",
+    })
+    assert.equal(again.status, "code_sent")
+    assert.equal(pendingCookie(mod).delivery, "sent")
+    assert.equal(
+      (await mod.checkEmailSignInChallenge({ code, purpose: "join" })).status,
+      "verified"
+    )
+  })
 })
 
 test("Given a code already on its way When the same address is submitted again Then the challenge is kept, not replaced", async () => {
@@ -267,6 +348,88 @@ test("Given the provider rejects When a code is sent Then only a category is log
       },
     },
   ])
+})
+
+test("Given a failed send When the guest retries at once Then it is never reported as a code on its way", async () => {
+  const mod = await loadModule()
+  mod.state.sendError = new Error("Resend send failed (503)")
+  const first = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  assert.equal(first.status, "delivery_failed")
+  assert.equal(pendingCookie(mod).delivery, "fail")
+
+  // Within the resend window: the same honest answer, and no second send
+  // for the recipient cooldown to refuse.
+  mod.state.sendError = null
+  const retry = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  assert.equal(retry.status, "delivery_failed")
+  assert.equal(retry.resendAvailableAt, first.resendAvailableAt)
+  assert.equal(mod.state.rpcCalls.length, 1)
+  assert.equal(mod.state.sends.length, 1)
+
+  // Once it may be resent, the retry goes back through admission and sends.
+  await withClockAhead(61, async () => {
+    const later = await mod.startEmailSignInChallenge({
+      email: "guest@example.com",
+      purpose: "join",
+    })
+    assert.equal(later.status, "code_sent")
+    assert.equal(mod.state.rpcCalls.length, 2)
+    assert.equal(mod.state.sends.length, 2)
+    assert.equal(pendingCookie(mod).delivery, "sent")
+  })
+})
+
+test("Given a code already delivered When a resend fails Then that earlier code keeps working", async () => {
+  const mod = await loadModule()
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  const earlier = pendingCookie(mod)
+  const code = mod.state.sends[0].code
+
+  await withClockAhead(61, async () => {
+    mod.state.sendError = new Error("network")
+    const resend = await mod.startEmailSignInChallenge({
+      email: "guest@example.com",
+      purpose: "join",
+    })
+    assert.equal(resend.status, "delivery_failed")
+    const kept = pendingCookie(mod)
+    assert.equal(kept.challengeId, earlier.challengeId)
+    assert.equal(kept.delivery, "fail")
+    assert.equal(
+      (await mod.checkEmailSignInChallenge({ code, purpose: "join" })).status,
+      "verified"
+    )
+  })
+})
+
+test("Given a verified-email handoff When it is spent Then only the first use succeeds", async () => {
+  const mod = await loadModule()
+  const handoff = await mod.setVerifiedEmailHandoff({
+    email: "guest@example.com",
+    emailHmac: "a".repeat(64),
+    merchantSlug: "old-crown",
+    qrId: null,
+  })
+  assert.match(handoff.handoffId, /^[0-9a-f-]{36}$/)
+  assert.equal(await mod.consumeVerifiedEmailHandoff(handoff), true)
+  assert.equal(await mod.consumeVerifiedEmailHandoff(handoff), false)
+  const other = await mod.setVerifiedEmailHandoff({
+    email: "guest@example.com",
+    emailHmac: "a".repeat(64),
+    merchantSlug: "old-crown",
+    qrId: null,
+  })
+  assert.notEqual(other.handoffId, handoff.handoffId)
+  assert.equal(await mod.consumeVerifiedEmailHandoff(other), true)
 })
 
 test("Given a wallet sign-in send fails When tracked Then it is the login send failure", async () => {
@@ -398,7 +561,13 @@ test("Given the per-challenge limit When a sixth guess arrives Then it is rate l
     "email-sign-in:verify:challenge",
     "email-sign-in:verify:device",
     "email-sign-in:verify:email",
+    "email-sign-in:verify:ip",
   ])
+  const ip = mod.state.limits.find((limit) =>
+    limit.key.startsWith("email-sign-in:verify:ip:")
+  )
+  assert.equal(ip.key, "email-sign-in:verify:ip:203.0.113.9")
+  assert.equal(ip.limit, mod.EMAIL_SIGN_IN_IP_GUESS_LIMIT)
 })
 
 test("Given a challenge for another purpose or none When checked Then it has expired", async () => {

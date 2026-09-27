@@ -138,32 +138,78 @@ export function ContactStepLink({
   )
 }
 
-const NOT_SUBMITTED = Symbol("not-submitted")
+/**
+ * The stored method as it was when a code check was submitted, so it can be
+ * put back if that check does not end in a signed-in wallet. Module state
+ * survives the client-side navigation a server action's redirect makes.
+ */
+let beforeVerify: {
+  readonly method: JoinContactMethod
+  readonly previous: JoinContactMethod | null
+} | null = null
+
+/** Records `method` as the form submits, remembering what it replaced. */
+export function rememberContactMethodOnSubmit(method: JoinContactMethod): void {
+  beforeVerify = { method, previous: readStoredContactMethod() }
+  writeStoredContactMethod(method)
+}
 
 /**
- * Remembers `method` when a code check succeeds. The verify actions redirect
- * on success and answer with errors otherwise, so the method is recorded as
- * the form submits and put back as it was if the action answers with an
- * error. A redirect unmounts the form and the new value stays.
+ * The check answered in place instead of redirecting: a wrong code, a limit,
+ * or a verified contact that holds no wallet. None signed anyone in, so the
+ * stored method goes back to what it was.
+ */
+export function restoreContactMethodAfterAnswer(): void {
+  if (!beforeVerify) return
+  writeStoredContactMethod(beforeVerify.previous)
+  beforeVerify = null
+}
+
+/**
+ * A check for `method` redirected to a screen that signed no one in (the
+ * email choice screen: confirmed, but no wallet holds it). The stored method
+ * goes back to what it was; the choice itself records email if it starts a
+ * wallet.
+ */
+export function restoreContactMethodAfterNoWallet(
+  method: JoinContactMethod
+): void {
+  if (beforeVerify?.method !== method) return
+  restoreContactMethodAfterAnswer()
+}
+
+/**
+ * Remembers `method` when a code check signs a wallet in. The verify actions
+ * redirect on success and answer in place otherwise, so the method is
+ * recorded as the form submits and put back as it was if the action answers.
+ * A redirect unmounts the form and the new value stays, except on the email
+ * choice screen, which puts it back itself (`useRestoreContactMethodOnNoWallet`).
  *
  * Returns the form's `onSubmit` handler.
  */
 export function useRememberContactMethodOnVerify(
   method: JoinContactMethod,
-  state: { errors?: object }
+  state: object
 ): () => void {
-  const previous = useRef<JoinContactMethod | null | typeof NOT_SUBMITTED>(
-    NOT_SUBMITTED
-  )
+  const submitted = useRef(false)
 
   useEffect(() => {
-    if (previous.current === NOT_SUBMITTED) return
-    if (state.errors) writeStoredContactMethod(previous.current)
-    previous.current = NOT_SUBMITTED
+    if (!submitted.current) return
+    submitted.current = false
+    restoreContactMethodAfterAnswer()
   }, [state])
 
   return () => {
-    previous.current = readStoredContactMethod()
-    writeStoredContactMethod(method)
+    submitted.current = true
+    rememberContactMethodOnSubmit(method)
   }
+}
+
+/** For a screen a code check reaches without signing anyone in. */
+export function useRestoreContactMethodOnNoWallet(
+  method: JoinContactMethod
+): void {
+  useEffect(() => {
+    restoreContactMethodAfterNoWallet(method)
+  }, [method])
 }

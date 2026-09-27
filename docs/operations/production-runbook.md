@@ -499,7 +499,17 @@ not trustworthy.
 `CUSTOMER_EMAIL_AUTH_MODE` controls email on the customer join page: `off`
 (the default) hides it and every email action refuses, `existing` lets a
 verified email open the wallet that holds it, and `full` also lets email start
-a new wallet. Two rules hold once `full` has ever run in an environment:
+a new wallet.
+
+Before raising the mode above `off` in production, publish customer terms
+that describe joining by email as a new version: a new
+`CUSTOMER_LEGAL_VERSION` and `PLATFORM_TERMS_META` date and number in
+`lib/legal/content.ts`, with the matching `policy_version` guard migration
+and `tests/unit/legal-activation.test.mjs`, as the 2026-09-26 activation did.
+The terms in force until then describe joining by phone only, and joins record
+that version, so the text must not change under it.
+
+Two rules hold once `full` has ever run in an environment:
 
 1. Never set the mode below `existing` while email-only wallets exist. Those
    customers have no phone number, so with email off they cannot sign in at

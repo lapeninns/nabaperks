@@ -10,6 +10,10 @@ import {
   type CustomerEmailChoiceState,
   type CustomerEmailIdentityState,
 } from "@/app/m/[merchantSlug]/join/email-actions"
+import {
+  useRememberContactMethodOnVerify,
+  useRestoreContactMethodOnNoWallet,
+} from "@/components/customer/contact-method-order"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
@@ -157,6 +161,10 @@ export function CustomerEmailChoiceForm({
     startEmailWalletAction,
     choiceInitialState
   )
+  // The code check that led here signed no one in, so this device does not
+  // lead with email for it; starting a wallet with the email does.
+  useRestoreContactMethodOnNoWallet("email")
+  const rememberEmail = useRememberContactMethodOnVerify("email", state)
 
   return (
     <div className="grid gap-4">
@@ -169,7 +177,7 @@ export function CustomerEmailChoiceForm({
       ) : null}
       <div className="grid gap-3">
         {canCreate ? (
-          <form action={createAction} className="grid">
+          <form action={createAction} onSubmit={rememberEmail} className="grid">
             <JoinHiddenFields
               merchantSlug={merchantSlug}
               qrId={qrId}
@@ -199,7 +207,7 @@ export function CustomerEmailChoiceForm({
           >
             {canCreate
               ? "Yes, with my phone number: use my phone"
-              : "Use my phone number"}
+              : "Use my phone instead"}
           </SubmitButton>
         </form>
       </div>

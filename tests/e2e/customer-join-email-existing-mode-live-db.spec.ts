@@ -76,7 +76,7 @@ test.describe("@customer-flow join by email (live database, mode existing)", () 
         page.getByRole("button", { name: /start my wallet/ })
       ).toHaveCount(0)
       await expect(
-        page.getByRole("button", { name: "Use my phone number" })
+        page.getByRole("button", { name: "Use my phone instead" })
       ).toBeVisible()
 
       // Forge the new-wallet request: the harness renders the real choice form

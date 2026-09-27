@@ -23,9 +23,13 @@ import {
   getOrCreateCustomerByVerifiedPhone,
 } from "@/lib/customer/identity"
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
-import { clearPendingEmailSignIn } from "@/lib/customer/email-sign-in"
+import {
+  clearPendingEmailSignIn,
+  clearVerifiedEmailHandoff,
+} from "@/lib/customer/email-sign-in"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { joinEntry } from "@/lib/customer/join-observability-contract"
+import { isOfferClaimAvailable } from "@/lib/customer/pending-join-offer"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redirect"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
@@ -207,8 +211,10 @@ export async function requestCustomerIdentityAction(
       },
     }
   }
-  // One sign-in challenge per browser: a phone code supersedes an email one.
+  // One sign-in challenge per browser: a phone code supersedes an email code
+  // and a confirmed-email handoff, which would otherwise hide the code step.
   await clearPendingEmailSignIn()
+  await clearVerifiedEmailHandoff()
 
   await captureJoinFunnelEvent({
     eventName: "join_phone_requested",
@@ -467,6 +473,38 @@ async function claimLoyaltyInviteIfPresent(
 }
 
 /**
+ * Public offer campaigns stay phone-only: the claim refuses a wallet with no
+ * verified phone as 'invalid', the same answer as a stale link. So before
+ * claiming for an email-only wallet, a live offer is told apart from a stale
+ * one. A live offer is spent with plain copy saying why; anything else goes
+ * on to the claim and gets its usual answer.
+ */
+async function offerNeedsConfirmedPhone(
+  claimTokenHash: string,
+  merchantSlug: string
+): Promise<CustomerJoinState | null> {
+  const available = await isOfferClaimAvailable(claimTokenHash, merchantSlug)
+  if (available === null) {
+    // Unknown: keep the handoff so the retry this asks for still carries it.
+    return {
+      errors: {
+        form: "We couldn't add this offer. Try again or ask the venue team.",
+      },
+    }
+  }
+  if (!available) return null
+
+  // Final for this wallet: a retry is an ordinary join, and the poster can be
+  // scanned again once a phone number is confirmed.
+  await clearOfferCookie()
+  return {
+    errors: {
+      form: "This offer needs a confirmed phone number, so it was not added. Join again to save your card without it, or ask the venue team.",
+    },
+  }
+}
+
+/**
  * Consume a merchant offer campaign for this venue, if the encrypted cookie set
  * by /offer/[token] is present. Mirrors claimLoyaltyInviteIfPresent: returns
  * null when there is no offer for this merchant (so the caller does a normal
@@ -487,6 +525,14 @@ async function claimOfferCampaignIfPresent(
 ): Promise<CustomerJoinState | null> {
   const cookie = await readOfferCookie()
   if (!cookie || cookie.merchantSlug !== merchantSlug) return null
+
+  if (!hasVerifiedPhone) {
+    const phoneRequired = await offerNeedsConfirmedPhone(
+      cookie.claimTokenHash,
+      merchantSlug
+    )
+    if (phoneRequired) return phoneRequired
+  }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("claim_offer_campaign", {
@@ -564,18 +610,6 @@ async function claimOfferCampaignIfPresent(
     return {
       errors: {
         form: "This offer has finished, so nothing was added to your card.",
-      },
-    }
-  }
-
-  // Public offer campaigns stay phone-only (the claim refuses a wallet with no
-  // verified phone as 'invalid'), so an email-only wallet is told why instead
-  // of silently joining without the offer. The handoff is already spent: a
-  // retry is an ordinary join, and the poster can be scanned again.
-  if (status === "invalid" && !hasVerifiedPhone) {
-    return {
-      errors: {
-        form: "This offer needs a confirmed phone number, so it was not added. Join again to save your card without it, or ask the venue team.",
       },
     }
   }

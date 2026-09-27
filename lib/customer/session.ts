@@ -6,6 +6,10 @@ import { cache } from "react"
 
 import { cookies, headers } from "next/headers"
 
+import {
+  PENDING_EMAIL_SIGN_IN_COOKIE_NAME,
+  VERIFIED_EMAIL_HANDOFF_COOKIE_NAME,
+} from "@/lib/customer/email-sign-in-core"
 import type { OtpChannel } from "@/lib/customer/otp-channel-core"
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
 import {
@@ -214,8 +218,18 @@ export async function setCustomerSession(
     createCustomerSessionCookieValue(payload, requiredCustomerSessionSecret()),
     persistentCookieOptions(customerSessionTtlSeconds)
   )
+  // Signed in: no signed-out email challenge or handoff may outlive this, or
+  // it could resurface for whoever uses the browser after a log-out.
+  clearSignedOutEmailSignIn(cookieStore)
 
   return payload
+}
+
+function clearSignedOutEmailSignIn(
+  cookieStore: Awaited<ReturnType<typeof cookies>>
+): void {
+  cookieStore.delete(PENDING_EMAIL_SIGN_IN_COOKIE_NAME)
+  cookieStore.delete(VERIFIED_EMAIL_HANDOFF_COOKIE_NAME)
 }
 
 export type ResolvedCustomerSession = {
@@ -302,6 +316,7 @@ export async function clearAllCustomerSessions(): Promise<void> {
   }
   const cookieStore = await cookies()
   cookieStore.delete(customerSessionCookieName)
+  clearSignedOutEmailSignIn(cookieStore)
 }
 
 export async function clearCustomerSession(): Promise<void> {
@@ -318,6 +333,7 @@ export async function clearCustomerSession(): Promise<void> {
     }
   }
   cookieStore.delete(customerSessionCookieName)
+  clearSignedOutEmailSignIn(cookieStore)
 }
 
 async function registerCustomerSession(

@@ -1,4 +1,10 @@
-import { createHash, createHmac, randomInt, timingSafeEqual } from "node:crypto"
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomInt,
+  timingSafeEqual,
+} from "node:crypto"
 
 import {
   createEncryptedPendingCookieValue,
@@ -18,6 +24,10 @@ import {
 
 export type EmailSignInPurpose = "join" | "wallet"
 
+export const PENDING_EMAIL_SIGN_IN_COOKIE_NAME =
+  "nabaperks_pending_email_sign_in"
+export const VERIFIED_EMAIL_HANDOFF_COOKIE_NAME = "nabaperks_email_handoff"
+
 export const EMAIL_SIGN_IN_VERSION = 1
 /** A code is good for ten minutes. */
 export const EMAIL_SIGN_IN_TTL_SECONDS = 10 * 60
@@ -25,6 +35,20 @@ export const EMAIL_SIGN_IN_TTL_SECONDS = 10 * 60
 export const EMAIL_SIGN_IN_RESEND_AFTER_SECONDS = 60
 /** The verified-email handoff lasts as long as a code would. */
 export const EMAIL_HANDOFF_TTL_SECONDS = 10 * 60
+
+/**
+ * What happened to a challenge's code. Every value is four characters, so the
+ * encrypted cookie is the same length whichever one it holds and a refused
+ * send cannot be told apart from an admitted one by its Set-Cookie.
+ *
+ * - `sent`: the code was handed to the provider (or the local dev code stands
+ *   in for it).
+ * - `held`: admission refused, so no code exists. The digest is random bytes
+ *   derived from no code, and a check refuses it before comparing anything.
+ * - `fail`: the provider errored. The code still works if the email arrives
+ *   late, but the challenge is never reported as a code on its way.
+ */
+export type EmailSignInDelivery = "sent" | "held" | "fail"
 
 /** All times are epoch seconds, as the pending-cookie reader compares them. */
 export type PendingEmailSignInPayload = {
@@ -34,6 +58,7 @@ export type PendingEmailSignInPayload = {
   readonly emailHmac: string
   readonly challengeId: string
   readonly codeHmac: string
+  readonly delivery: EmailSignInDelivery
   readonly issuedAt: number
   readonly expiresAt: number
   readonly resendAvailableAt: number
@@ -46,6 +71,8 @@ export type PendingEmailSignInPayload = {
  */
 export type VerifiedEmailHandoffPayload = {
   readonly version: 1
+  /** Spent server-side on first use, so a copied cookie cannot be replayed. */
+  readonly handoffId: string
   readonly email: string
   readonly emailHmac: string
   readonly deviceHash: string
@@ -99,6 +126,14 @@ export function emailSignInCodeHmac({
 
 export function generateEmailSignInCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0")
+}
+
+/**
+ * The digest a refused (`held`) challenge carries: random bytes of the same
+ * shape as a real digest, derived from no code, so no code can match it.
+ */
+export function unguessableEmailSignInDigest(): string {
+  return randomBytes(32).toString("hex")
 }
 
 export function isEmailSignInCodeShape(code: string): boolean {
@@ -195,6 +230,7 @@ export function parsePendingEmailSignInPayload(
     emailHmac,
     challengeId,
     codeHmac,
+    delivery,
     issuedAt,
     expiresAt,
     resendAvailableAt,
@@ -204,6 +240,7 @@ export function parsePendingEmailSignInPayload(
   if (purpose !== "join" && purpose !== "wallet") return null
   if (!isNonEmptyString(email) || !isNonEmptyString(challengeId)) return null
   if (!isHexDigest(emailHmac) || !isHexDigest(codeHmac)) return null
+  if (!isDelivery(delivery)) return null
   if (!isEpochSeconds(issuedAt) || !isEpochSeconds(expiresAt)) return null
   if (!isEpochSeconds(resendAvailableAt)) return null
 
@@ -214,6 +251,7 @@ export function parsePendingEmailSignInPayload(
     emailHmac,
     challengeId,
     codeHmac,
+    delivery,
     issuedAt,
     expiresAt,
     resendAvailableAt,
@@ -226,6 +264,7 @@ export function parseVerifiedEmailHandoffPayload(
   if (!isRecord(value)) return null
   const {
     version,
+    handoffId,
     email,
     emailHmac,
     deviceHash,
@@ -236,6 +275,7 @@ export function parseVerifiedEmailHandoffPayload(
   } = value
 
   if (version !== 1) return null
+  if (!isNonEmptyString(handoffId)) return null
   if (!isNonEmptyString(email) || !isNonEmptyString(merchantSlug)) return null
   if (!isHexDigest(emailHmac) || !isHexDigest(deviceHash)) return null
   if (qrId !== null && !isNonEmptyString(qrId)) return null
@@ -243,6 +283,7 @@ export function parseVerifiedEmailHandoffPayload(
 
   return {
     version,
+    handoffId,
     email,
     emailHmac,
     deviceHash,
@@ -251,6 +292,41 @@ export function parseVerifiedEmailHandoffPayload(
     issuedAt,
     expiresAt,
   }
+}
+
+/**
+ * Which signed-out join challenge a visitor is in when more than one cookie is
+ * live: the most recently issued wins. Starting a challenge clears the others,
+ * so this only matters for cookies left from an older flow (Back, another
+ * tab); the screen then follows what the visitor did last.
+ */
+export type SignedOutJoinChallenge =
+  "email_handoff" | "email_code" | "phone_code"
+
+export function newestSignedOutJoinChallenge(issued: {
+  readonly emailHandoff?: number | null
+  readonly emailCode?: number | null
+  readonly phoneCode?: number | null
+}): SignedOutJoinChallenge | null {
+  const candidates: [SignedOutJoinChallenge, number | null | undefined][] = [
+    // Listed in the order a tie resolves to.
+    ["email_handoff", issued.emailHandoff],
+    ["email_code", issued.emailCode],
+    ["phone_code", issued.phoneCode],
+  ]
+  let newest: SignedOutJoinChallenge | null = null
+  let newestAt = Number.NEGATIVE_INFINITY
+  for (const [kind, at] of candidates) {
+    if (typeof at === "number" && at > newestAt) {
+      newest = kind
+      newestAt = at
+    }
+  }
+  return newest
+}
+
+function isDelivery(value: unknown): value is EmailSignInDelivery {
+  return value === "sent" || value === "held" || value === "fail"
 }
 
 function sameText(left: string, right: string): boolean {

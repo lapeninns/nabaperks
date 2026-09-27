@@ -57,3 +57,22 @@ export async function loadPendingJoinOffer(
     discountPercent: rpcNumberField(row, "discount_percent"),
   }
 }
+
+/**
+ * Whether the offer behind this hash is claimable at this venue right now:
+ * true or false, or null when the read failed. Read-only; the claim RPC stays
+ * the authority. Used to tell an email-only wallet that a live offer needs a
+ * confirmed phone, without mistaking a stale link for one.
+ */
+export async function isOfferClaimAvailable(
+  claimTokenHash: string,
+  merchantSlug: string
+): Promise<boolean | null> {
+  const { data, error } = await createSupabaseServiceRoleClient().rpc(
+    "get_offer_claim_context",
+    { p_claim_token_hash: claimTokenHash }
+  )
+  if (error) return null
+  const row = firstRpcRecord(data)
+  return row?.claim_status === "available" && row.business_slug === merchantSlug
+}

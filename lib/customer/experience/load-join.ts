@@ -7,6 +7,7 @@ import {
   emailSignInEnabled,
 } from "@/lib/customer/email-auth-mode"
 import { maskEmail } from "@/lib/customer/email-pii-core"
+import { newestSignedOutJoinChallenge } from "@/lib/customer/email-sign-in-core"
 import {
   getPendingEmailSignIn,
   readVerifiedEmailHandoff,
@@ -138,30 +139,42 @@ export async function loadJoinExperienceContext(
   // customer explicitly asked for a contact step (`step=phone` or `step=email`).
   const contactStepRequested =
     searchParams.step === "phone" || searchParams.step === "email"
-  const email: Awaited<ReturnType<typeof pendingEmailFacts>> =
+  const [email, pending] = await Promise.all([
     contactStepRequested
-      ? {}
-      : await pendingEmailFacts(merchantSlug, searchParams.qr)
-  if (email.emailHandoff || email.pendingEmail) {
+      ? null
+      : pendingEmailFacts(merchantSlug, searchParams.qr),
+    getPendingPhoneVerification(),
+  ])
+  const phoneCode = pending?.purpose === "join" ? pending : null
+  // Starting any challenge clears the others, but a cookie left from an older
+  // step must never hide the one the visitor started last.
+  const newest = contactStepRequested
+    ? null
+    : newestSignedOutJoinChallenge({
+        emailHandoff: email?.handoffIssuedAt,
+        emailCode: email?.pendingIssuedAt,
+        phoneCode: phoneCode?.issuedAt,
+      })
+
+  if (email && (newest === "email_handoff" || newest === "email_code")) {
     return {
       ...base,
-      ...email,
+      ...(newest === "email_handoff"
+        ? { emailHandoff: email.emailHandoff }
+        : { pendingEmail: email.pendingEmail }),
       hasSession: false,
       pendingOtp: false,
       membership: null,
     }
   }
 
-  const pending = await getPendingPhoneVerification()
-  const pendingOtp = !contactStepRequested && pending?.purpose === "join"
-
-  if (pendingOtp) {
+  if (newest === "phone_code" && phoneCode) {
     return {
       ...base,
       hasSession: false,
-      pendingOtp,
-      pendingPhone: pending.phone,
-      pendingChannel: pending.channel,
+      pendingOtp: true,
+      pendingPhone: phoneCode.phone,
+      pendingChannel: phoneCode.channel,
       membership: null,
     }
   }
@@ -169,38 +182,46 @@ export async function loadJoinExperienceContext(
   return {
     ...base,
     hasSession: false,
-    pendingOtp,
-    pendingPhone: pendingOtp ? pending.phone : undefined,
+    pendingOtp: false,
+    pendingPhone: undefined,
     membership: null,
   }
 }
 
+type PendingEmailFacts = {
+  pendingEmail?: { maskedEmail: string; resendAvailableAt: number }
+  pendingIssuedAt?: number
+  emailHandoff?: { maskedEmail: string }
+  handoffIssuedAt?: number
+}
+
 /**
  * Email sign-in facts for a signed-out visitor, read only while email sign-in
- * is on. A handoff (verified email, no wallet) outranks a pending code.
+ * is on, with when each was issued so the newest challenge can win.
  */
 async function pendingEmailFacts(
   merchantSlug: string,
   qrId: string | undefined
-): Promise<{
-  pendingEmail?: { maskedEmail: string; resendAvailableAt: number }
-  emailHandoff?: { maskedEmail: string }
-}> {
+): Promise<PendingEmailFacts> {
   if (!emailSignInEnabled()) return {}
 
-  const handoff = await readVerifiedEmailHandoff({ merchantSlug, qrId })
+  const [handoff, pending] = await Promise.all([
+    readVerifiedEmailHandoff({ merchantSlug, qrId }),
+    getPendingEmailSignIn(),
+  ])
+  const facts: PendingEmailFacts = {}
   if (handoff) {
-    return { emailHandoff: { maskedEmail: maskEmail(handoff.email) ?? "" } }
+    facts.emailHandoff = { maskedEmail: maskEmail(handoff.email) ?? "" }
+    facts.handoffIssuedAt = handoff.issuedAt
   }
-
-  const pending = await getPendingEmailSignIn()
-  if (pending?.purpose !== "join") return {}
-  return {
-    pendingEmail: {
+  if (pending?.purpose === "join") {
+    facts.pendingEmail = {
       maskedEmail: maskEmail(pending.email) ?? "",
       resendAvailableAt: pending.resendAvailableAt,
-    },
+    }
+    facts.pendingIssuedAt = pending.issuedAt
   }
+  return facts
 }
 
 function contactChannels(customer: CurrentCustomer) {

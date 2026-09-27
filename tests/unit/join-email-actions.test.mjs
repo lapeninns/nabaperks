@@ -28,6 +28,7 @@ const STUBS = {
     handoff: null,
     created: { customer: { id: "customer-new", phoneLast4: null }, created: true },
     returning: null,
+    spent: new Set(),
   };`,
   "server-only": "",
   "next/navigation": `export function redirect(destination) {
@@ -45,7 +46,12 @@ const STUBS = {
     export async function getPendingEmailSignIn() { state.calls.push(["pending"]); return state.pending }
     export async function setVerifiedEmailHandoff(input) { state.calls.push(["setHandoff", input]) }
     export async function readVerifiedEmailHandoff(input) { state.calls.push(["readHandoff", input]); return state.handoff }
-    export async function clearVerifiedEmailHandoff() { state.calls.push(["clearHandoff"]) }`,
+    export async function clearVerifiedEmailHandoff() { state.calls.push(["clearHandoff"]) }
+    export async function consumeVerifiedEmailHandoff(handoff) {
+      state.calls.push(["consumeHandoff", handoff.handoffId]);
+      if (state.spent.has(handoff.handoffId)) return false;
+      state.spent.add(handoff.handoffId); return true
+    }`,
   "@/lib/customer/identity": `import { state } from "fixture-state";
     export async function findCustomerByVerifiedEmail(email) { state.calls.push(["find", email]); return state.wallet }
     export async function createCustomerByVerifiedEmail(email) { state.calls.push(["create", email]); return state.created }`,
@@ -340,7 +346,7 @@ test("Given a rejected, expired or limited code When confirmed Then no wallet is
 test("Given mode full and a bound handoff When a new wallet is started Then it is created, signed in as new and sent to terms", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const { startEmailWalletAction, state } = await loadActions()
-  state.handoff = { email: "guest@example.com" }
+  state.handoff = { handoffId: "handoff-1", email: "guest@example.com" }
 
   const destination = await redirectOf(
     startEmailWalletAction({}, form({ qrId: "venue-qr" }))
@@ -349,11 +355,34 @@ test("Given mode full and a bound handoff When a new wallet is started Then it i
   assert.equal(destination, "/m/old-crown/join?qr=venue-qr&step=terms")
   assert.deepEqual(state.calls, [
     ["readHandoff", { merchantSlug: "old-crown", qrId: "venue-qr" }],
+    ["consumeHandoff", "handoff-1"],
     ["create", "guest@example.com"],
     ["clearHandoff"],
     ["session", "customer-new", true],
   ])
   assert.equal(state.events[0].eventName, "join_new_email_wallet_confirmed")
+})
+
+test("Given a handoff already used When a copy of it is replayed Then no wallet is created or signed in", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { startEmailWalletAction, state } = await loadActions()
+  state.handoff = { handoffId: "handoff-1", email: "guest@example.com" }
+  await redirectOf(startEmailWalletAction({}, form({ qrId: "venue-qr" })))
+
+  // The same cookie again, as a copy would present it after the first use.
+  state.calls = []
+  state.created = {
+    customer: { id: "customer-new", phoneLast4: null },
+    created: false,
+  }
+  const replay = await startEmailWalletAction({}, form({ qrId: "venue-qr" }))
+
+  assert.match(replay.errors.form, /confirmation has expired/)
+  assert.deepEqual(callNames(state), [
+    "readHandoff",
+    "consumeHandoff",
+    "clearHandoff",
+  ])
 })
 
 test("Given no handoff for this device and venue When a new wallet is started Then nothing is created", async () => {
