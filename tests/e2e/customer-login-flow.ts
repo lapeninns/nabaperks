@@ -16,8 +16,9 @@ import { dismissPwaInstall } from "./helpers/harness"
  * DB-free e2e CI job leaves it skipped.
  */
 
+// The same answer whether or not the number holds a wallet (#332 copy).
 const GENERIC_REQUEST_MESSAGE =
-  /If that number has Nabaperks cards, enter the code we sent/i
+  /If a code arrives for that number, enter it here\. Otherwise scan a venue QR to join first\./i
 const DEV_OTP = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const WRONG_OTP = DEV_OTP === "000000" ? "111111" : "000000"
 const SESSION_COOKIE = "nabaperks_customer_session"

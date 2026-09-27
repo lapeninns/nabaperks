@@ -40,9 +40,21 @@ export type CustomerLoginOtpState = {
     noCards?: boolean
     /** Focus the phone field after the customer asks to correct it. */
     editingContact?: boolean
+    /**
+     * The method this answer is about. Set once the customer has used or
+     * picked a method, so the screen stays on it instead of reordering.
+     */
+    method?: "phone" | "email"
+    /** The address the customer typed, to refill the field after a change. */
+    email?: string
+    /** Masked on the server ("j***@example.com") for the email code step. */
+    maskedEmail?: string
+    /** Epoch seconds when an email code may be resent. */
+    retryAt?: number
   }
   errors?: {
     contact?: string
+    email?: string
     otp?: string
     form?: string
   }

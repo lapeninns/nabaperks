@@ -116,7 +116,8 @@ test("CUS-P2-07: money-path form errors use StatusBanner, not hand-rolled 1px ba
   for (const file of [
     "join-forms.tsx",
     "join-otp-form.tsx",
-    "customer-login-form.tsx",
+    "customer-login-phone-step.tsx",
+    "customer-login-email-step.tsx",
   ]) {
     const source = readProjectFile("components", "customer", file)
     assert.doesNotMatch(

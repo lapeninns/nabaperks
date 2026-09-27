@@ -70,7 +70,12 @@ test("OTP entry normalises pasted codes and gives expiry a direct recovery", () 
   // customer login or the profile gate — and neither of those normalised at
   // all, which is the defect 02#53 recorded.
   const otpInput = read("components", "customer", "customer-otp-input.tsx")
-  const login = read("components", "customer", "customer-login-form.tsx")
+  const login = [
+    "customer-login-phone-step.tsx",
+    "customer-login-email-step.tsx",
+  ]
+    .map((file) => read("components", "customer", file))
+    .join("\n")
   const profileGate = read("components", "customer", "profile-gate-forms.tsx")
 
   assert.match(actions, /normalizeOtpInput\(value\(formData, "otp"\)\)/)

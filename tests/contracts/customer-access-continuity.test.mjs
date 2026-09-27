@@ -21,15 +21,18 @@ test("existing phone OTP reaches one shared continuity boundary before session m
     "join",
     "email-actions.ts"
   )
+  const emailWallet = read("app", "home", "login", "email-actions.ts")
   const boundary = read("lib", "customer", "access-continuity.ts")
 
-  for (const source of [wallet, join, emailJoin]) {
+  for (const source of [wallet, join, emailJoin, emailWallet]) {
     assert.doesNotMatch(source, /setCustomerSession\(/)
   }
   for (const source of [wallet, join]) {
     assert.match(source, /establishCustomerSessionAfterVerifiedPhone/)
   }
-  assert.match(emailJoin, /establishCustomerSessionAfterVerifiedEmail/)
+  for (const source of [emailJoin, emailWallet]) {
+    assert.match(source, /establishCustomerSessionAfterVerifiedEmail/)
+  }
   assert.match(
     boundary,
     /export async function establishCustomerSessionAfterVerifiedEmail[\s\S]*customerWasCreated[\s\S]*"new_identity"[\s\S]*customerDeviceIsRecognised[\s\S]*"recognised_device"[\s\S]*setCustomerSession\(customer\.id, "verified_email"\)/
