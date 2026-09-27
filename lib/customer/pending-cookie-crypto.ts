@@ -5,7 +5,14 @@ import {
   randomBytes,
 } from "node:crypto"
 
-export type PendingCookieContext = "access-recovery" | "email" | "phone"
+/**
+ * One key and one authenticated context per cookie, so a value minted for one
+ * cookie can never be read as another. `email-sign-in` is the signed-out email
+ * code challenge; `email-handoff` is the short-lived proof that an email was
+ * verified when no wallet holds it yet.
+ */
+export type PendingCookieContext =
+  "access-recovery" | "email" | "email-handoff" | "email-sign-in" | "phone"
 
 type ExpiringPayload = {
   readonly expiresAt: number

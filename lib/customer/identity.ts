@@ -4,6 +4,10 @@ import { cache } from "react"
 import { after } from "next/server"
 
 import {
+  customerEmailHmac,
+  normalizeEmail,
+} from "@/lib/customer/email-pii-core"
+import {
   customerPhoneHmac,
   customerPhonePii,
   maskedPhoneFromLast4,
@@ -118,6 +122,72 @@ export async function getOrCreateCustomerByVerifiedPhone(
 
   // Single creation choke point: a merchant may have sent this phone a reward
   // invite before they joined — attach any match (best-effort, after response).
+  after(() => attachRewardInvitesForCustomer(customer.id))
+
+  return { customer, created: true }
+}
+
+/**
+ * The wallet that holds this email as a VERIFIED address, or null (D3). An
+ * unverified email on a wallet grants nothing, so it is never matched here.
+ */
+export async function findCustomerByVerifiedEmail(
+  email: string
+): Promise<CurrentCustomer | null> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("customers")
+    .select(CUSTOMER_COLUMNS)
+    .eq("email_hmac", customerEmailHmac(email))
+    .not("email_verified_at", "is", null)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to load customer: ${error.message}`)
+  }
+
+  return data ? toCurrentCustomer(data) : null
+}
+
+const UNIQUE_VIOLATION = "23505"
+
+/**
+ * Starts a wallet for an email the caller has just proven. The only place an
+ * email-only wallet is created, and only after the customer chose to on the
+ * join page (D2). A concurrent creation of the same verified email loses to
+ * the unique index and returns the wallet that won.
+ */
+export async function createCustomerByVerifiedEmail(
+  email: string
+): Promise<{ customer: CurrentCustomer; created: boolean }> {
+  const verifiedEmail = normalizeEmail(email)
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("customers")
+    .insert({
+      auth_user_id: null,
+      email: verifiedEmail,
+      email_hmac: customerEmailHmac(verifiedEmail),
+      email_verified_at: new Date().toISOString(),
+    })
+    .select(CUSTOMER_COLUMNS)
+    .single()
+
+  if (error) {
+    if (error.code === UNIQUE_VIOLATION) {
+      const raced = await findCustomerByVerifiedEmail(verifiedEmail)
+      if (raced) return { customer: raced, created: false }
+    }
+
+    throw new Error(`Unable to create customer: ${error.message}`)
+  }
+
+  const customer = toCurrentCustomer(data)
+  if (!customer) {
+    throw new Error("Unable to create customer.")
+  }
+
+  // A merchant may have sent this address a reward invite before they joined.
   after(() => attachRewardInvitesForCustomer(customer.id))
 
   return { customer, created: true }

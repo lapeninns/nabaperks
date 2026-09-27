@@ -97,6 +97,39 @@ export async function establishCustomerSessionAfterVerifiedPhone({
   return "authenticated"
 }
 
+/**
+ * Mints the session after a verified email code (D5). A wallet created by this
+ * very verification is a `new_identity`; a device this wallet already trusts is
+ * `recognised_device`; otherwise the verified email itself is the proof
+ * (`verified_email`). There is no recovery branch: the email is the channel
+ * that recovery would have asked for.
+ */
+export async function establishCustomerSessionAfterVerifiedEmail({
+  customer,
+  customerWasCreated,
+}: {
+  customer: CurrentCustomer
+  customerWasCreated: boolean
+}): Promise<"authenticated"> {
+  const deviceHash = customerDeviceHashFromHeaders(await headers())
+  if (!deviceHash) {
+    throw new Error("A verified customer device is required.")
+  }
+
+  if (customerWasCreated) {
+    await setCustomerSession(customer.id, "new_identity")
+    return "authenticated"
+  }
+
+  if (await customerDeviceIsRecognised(customer.id, deviceHash)) {
+    await setCustomerSession(customer.id, "recognised_device")
+    return "authenticated"
+  }
+
+  await setCustomerSession(customer.id, "verified_email")
+  return "authenticated"
+}
+
 export async function verifyCustomerAccessRecovery(
   code: string
 ): Promise<CustomerAccessRecoveryCheck> {
