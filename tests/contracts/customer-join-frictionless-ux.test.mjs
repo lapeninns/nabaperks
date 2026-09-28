@@ -54,8 +54,9 @@ test("phone verification keeps retention context and distinct progress labels", 
 
   assert.match(form, /UK phone number/)
   assert.match(form, /JOIN_PHONE_RETENTION_HINT/)
-  assert.match(wizard, /Verify number · Phone/)
-  assert.match(wizard, /Verify number · Code/)
+  assert.match(wizard, /Verify · Phone/)
+  assert.match(wizard, /Verify · Email/)
+  assert.match(wizard, /Verify · Code/)
 })
 
 test("OTP entry normalises pasted codes and gives expiry a direct recovery", () => {
@@ -129,7 +130,11 @@ test("the consent step offers one-tap select-all without pre-ticking or hiding t
     /name="loyaltyTerms"[\s\S]*checked=\{loyaltyTermsAccepted\}/
   )
   assert.match(form, /name="marketingOptIn"[\s\S]*checked=\{marketingOptIn\}/)
-  assert.match(form, /offers from \{merchantName\} by WhatsApp or text/)
+  // The marketing line names only channels the wallet has confirmed: phone
+  // wallets keep WhatsApp or text, email-only wallets are offered email.
+  assert.match(form, /offers from \$\{merchantName\} by \$\{by\}/)
+  assert.match(form, /"WhatsApp or text"/)
   assert.match(form, /Optional, reply STOP or unsubscribe any time/)
+  assert.match(form, /by email\. Optional, unsubscribe any time/)
   assert.doesNotMatch(form, /defaultChecked/)
 })

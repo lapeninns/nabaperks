@@ -1,7 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState, useEffect, useRef, useState } from "react"
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 
 import {
   joinRewardsAction,
@@ -18,7 +24,10 @@ import {
 } from "@/lib/customer/otp-channel-core"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import { StatusBanner } from "@/components/loyalty"
-import type { JoinCard } from "@/lib/customer/experience/types"
+import type {
+  JoinCard,
+  JoinContactChannels,
+} from "@/lib/customer/experience/types"
 import { Button } from "@/components/ui/button"
 import {
   joinCompletionHint,
@@ -39,6 +48,8 @@ export type CustomerIdentityFormProps = {
   referralCode?: string
   /** Channel the code goes out on first; the button says where. */
   channel?: OtpChannel
+  /** The email alternative, directly under the button, when email is on. */
+  alternate?: ReactNode
 }
 
 export function CustomerIdentityForm({
@@ -46,6 +57,7 @@ export function CustomerIdentityForm({
   qrId,
   referralCode,
   channel = "whatsapp",
+  alternate,
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
@@ -116,6 +128,8 @@ export function CustomerIdentityForm({
         </p>
       </form>
 
+      {alternate}
+
       {/* A back affordance to re-read the offer always renders (VCU-P3-10):
           the QR journey returns to the welcome step; a direct join links the
           venue landing, which carries the same preview. */}
@@ -143,6 +157,8 @@ export type CustomerJoinFormProps = {
   referralCode?: string
   merchantName: string
   card: JoinCard
+  /** What the wallet can be contacted on; the marketing line follows it. */
+  contactChannels?: JoinContactChannels
 }
 
 export function CustomerJoinForm({
@@ -151,6 +167,7 @@ export function CustomerJoinForm({
   referralCode,
   merchantName,
   card,
+  contactChannels = { phone: true, email: false },
 }: CustomerJoinFormProps) {
   const [state, action, pending] = useActionState(
     joinRewardsAction,
@@ -266,8 +283,7 @@ export function CustomerJoinForm({
           <span className="grid gap-0.5">
             <Eyebrow>Offers and perks</Eyebrow>
             <span className="text-xs leading-5 text-muted-foreground">
-              Occasional offers from {merchantName} by WhatsApp or text.
-              Optional, reply STOP or unsubscribe any time.
+              {marketingChannelLine(merchantName, contactChannels)}
             </span>
           </span>
         </label>
@@ -287,7 +303,12 @@ export function CustomerJoinForm({
       {/* No text field on this step, so the action can pin to the bottom of
           the viewport on short phones (JoinActionBar) with the completion
           hint riding under it. */}
-      <JoinActionBar note={joinCompletionHint({ hasQr: Boolean(qrId) })}>
+      <JoinActionBar
+        note={joinCompletionHint({
+          hasQr: Boolean(qrId),
+          savedTo: contactChannels.phone ? "number" : "email",
+        })}
+      >
         <Button type="submit" size="lg" disabled={pending} className="w-full">
           {pending
             ? qrId
@@ -300,4 +321,20 @@ export function CustomerJoinForm({
       </JoinActionBar>
     </form>
   )
+}
+
+/**
+ * The marketing line names the channels the wallet has confirmed. Join never
+ * records WhatsApp or text consent for a wallet with no phone number, so an
+ * email-only wallet is offered email alone.
+ */
+function marketingChannelLine(
+  merchantName: string,
+  channels: JoinContactChannels
+): string {
+  if (!channels.phone) {
+    return `Occasional offers from ${merchantName} by email. Optional, unsubscribe any time.`
+  }
+  const by = channels.email ? "WhatsApp, text or email" : "WhatsApp or text"
+  return `Occasional offers from ${merchantName} by ${by}. Optional, reply STOP or unsubscribe any time.`
 }

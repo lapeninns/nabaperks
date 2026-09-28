@@ -43,7 +43,11 @@ const externalPropertyValues: Readonly<Record<string, ReadonlySet<string>>> = {
     "phone",
     "otp",
     "terms",
+    "email",
+    "email_choice",
   ]),
+  // How a customer proved who they are on the join page; never the contact.
+  method: new Set(["phone", "email"]),
   surface: new Set([
     "marketing",
     "merchant_signup",

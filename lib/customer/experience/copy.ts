@@ -42,14 +42,19 @@ type UnavailableExperience = Extract<
 /** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
   "You scanned the venue QR",
-  "Confirm your number with one message",
+  "Confirm it's you with one code",
   "Your first stamp lands on your card",
 ] as const
 
 export const JOIN_WELCOME_HOW_IT_WORKS_LABEL = "How it works" as const
 
+/**
+ * Under the welcome CTA. The name predates email sign-in; the copy stays true
+ * whichever method leads: the wallet is found by the contact it was joined
+ * with, so the same phone number or email opens the same card.
+ */
 export const JOIN_WELCOME_PHONE_REASSURANCE =
-  "Already have a card here? Same number, same card." as const
+  "Already have a card here? Sign in the same way as before." as const
 
 /** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
 export const JOIN_PHONE_CODE_HINT = "We'll send you a one-time code." as const
@@ -57,6 +62,18 @@ export const JOIN_PHONE_CODE_HINT = "We'll send you a one-time code." as const
 /** Join-only number guidance: the promise, not the plumbing. */
 export const JOIN_PHONE_RETENTION_HINT =
   "Only used to keep your stamps safe. No spam, ever." as const
+
+/** Under the email field: why email helps at a venue with no signal. */
+export const JOIN_EMAIL_WIFI_HINT =
+  "Works over the venue's Wi-Fi, even with no mobile signal." as const
+
+/** When the email provider failed to take a join code (plan section 7). */
+export const JOIN_EMAIL_DELAYED =
+  "Email codes are delayed. Try again shortly or use your phone." as const
+
+/** Shown on the email code step once the code has had time to arrive. */
+export const JOIN_EMAIL_SPAM_HINT =
+  "Not there yet? Check your spam or junk folder." as const
 
 /** Returns to the QR welcome card when the customer wants the full preview again. */
 export const JOIN_PHONE_BACK_LABEL = "What do I get?" as const
@@ -74,10 +91,18 @@ export function joinUnlockingRewardHook(stampsRequired: number): string {
  * system checks it. Operational policy (location checks, the stamp calendar)
  * lives in the venue terms and privacy notice, one tap away on every step.
  */
-export function joinCompletionHint({ hasQr }: { hasQr: boolean }): string {
+export function joinCompletionHint({
+  hasQr,
+  savedTo = "number",
+}: {
+  hasQr: boolean
+  /** A wallet with no phone number is saved to its email. */
+  savedTo?: "number" | "email"
+}): string {
+  const target = savedTo === "email" ? "your email" : "this number"
   return hasQr
-    ? "Your stamp and card stay saved to this number."
-    : "Your card is saved to this number, ready for your first visit."
+    ? `Your stamp and card stay saved to ${target}.`
+    : `Your card is saved to ${target}, ready for your first visit.`
 }
 
 export function waitingRewardTiming(
@@ -102,12 +127,14 @@ export function getCustomerExperienceViewModel(
         eyebrow: "Stamp 1 is ready",
         headline: "Your first stamp is ready",
         supportLine:
-          "Save it to your number in 20 seconds. No app, no password, and it's there on every visit.",
+          exp.contactStep === "email"
+            ? "Save it with your email in 20 seconds. No app, no password, and it's there on every visit."
+            : "Save it to your number in 20 seconds. No app, no password, and it's there on every visit.",
         primaryAction: {
           label: "Claim my first stamp",
           href: buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
-            step: "phone",
+            step: exp.contactStep,
           }),
         },
       }
@@ -117,12 +144,41 @@ export function getCustomerExperienceViewModel(
         headline: "Save your stamp to your number",
         supportLine: `One message confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
-    case "join_otp":
+    case "join_email":
       return {
-        eyebrow: "Check your messages",
-        headline: "Enter your code",
-        supportLine: "It's in the message we just sent you.",
+        eyebrow: "One email, no password",
+        headline: "Save your stamp with your email",
+        supportLine: `One code by email confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
+    case "join_email_choice":
+      return exp.canCreate
+        ? {
+            eyebrow: "Email confirmed",
+            headline: "Have you collected stamps with Nabaperks before?",
+            supportLine:
+              "Your stamps stay on the wallet you first joined with. You can add this email to it once you're signed in.",
+          }
+        : {
+            eyebrow: "Email confirmed",
+            headline: "No wallet uses this email yet",
+            supportLine:
+              "Use the phone number you joined with. You can add this email to your wallet once you're signed in.",
+          }
+    case "join_otp":
+      return exp.contact.method === "email"
+        ? {
+            eyebrow: "Check your email",
+            headline: "Enter your code",
+            // A failed send is never described as an email on its way.
+            supportLine: exp.contact.deliveryDelayed
+              ? "If the email doesn't arrive, send a new code or use your phone."
+              : "It's in the email we just sent you.",
+          }
+        : {
+            eyebrow: "Check your messages",
+            headline: "Enter your code",
+            supportLine: "It's in the message we just sent you.",
+          }
     case "join_terms":
       return exp.qrId
         ? {
@@ -140,7 +196,7 @@ export function getCustomerExperienceViewModel(
       return {
         eyebrow: "Welcome back",
         headline: `${exp.current} of ${exp.total} stamps saved`,
-        supportLine: `Your ${exp.merchant.name} card is already on this number.`,
+        supportLine: `Your ${exp.merchant.name} card is already in your wallet.`,
         primaryAction: {
           label: exp.qrId ? "Continue to today's stamp" : "Open my card",
           href: exp.qrId
@@ -247,10 +303,7 @@ function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
         }
   }
 
-  const setup = collectionSetup(
-    exp.profileGate,
-    exp.reward.requiresAgeCheck
-  )
+  const setup = collectionSetup(exp.profileGate, exp.reward.requiresAgeCheck)
 
   if (setup.outstanding) {
     return {

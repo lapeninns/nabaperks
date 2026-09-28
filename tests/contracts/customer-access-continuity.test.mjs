@@ -14,12 +14,26 @@ const read = (...segments) =>
 test("existing phone OTP reaches one shared continuity boundary before session minting", () => {
   const wallet = read("app", "home", "actions.ts")
   const join = read("app", "m", "[merchantSlug]", "join", "actions.ts")
+  const emailJoin = read(
+    "app",
+    "m",
+    "[merchantSlug]",
+    "join",
+    "email-actions.ts"
+  )
   const boundary = read("lib", "customer", "access-continuity.ts")
 
-  for (const source of [wallet, join]) {
-    assert.match(source, /establishCustomerSessionAfterVerifiedPhone/)
+  for (const source of [wallet, join, emailJoin]) {
     assert.doesNotMatch(source, /setCustomerSession\(/)
   }
+  for (const source of [wallet, join]) {
+    assert.match(source, /establishCustomerSessionAfterVerifiedPhone/)
+  }
+  assert.match(emailJoin, /establishCustomerSessionAfterVerifiedEmail/)
+  assert.match(
+    boundary,
+    /export async function establishCustomerSessionAfterVerifiedEmail[\s\S]*customerWasCreated[\s\S]*"new_identity"[\s\S]*customerDeviceIsRecognised[\s\S]*"recognised_device"[\s\S]*setCustomerSession\(customer\.id, "verified_email"\)/
+  )
   assert.match(
     boundary,
     /customerWasCreated[\s\S]*"new_identity"[\s\S]*customerDeviceIsRecognised[\s\S]*"recognised_device"[\s\S]*REQUIRE_DEVICE_CONTINUITY[\s\S]*startCustomerAccessRecovery[\s\S]*setCustomerSession\(customer\.id, "verified_phone"\)/

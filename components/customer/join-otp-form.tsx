@@ -8,6 +8,7 @@ import {
   verifyCustomerOtpAction,
   type CustomerIdentityState,
 } from "@/app/m/[merchantSlug]/join/actions"
+import { useRememberContactMethodOnVerify } from "@/components/customer/contact-method-order"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
@@ -46,6 +47,8 @@ export function CustomerOtpForm({
     identityInitialState
   )
   const state = verifyState
+  // This device leads with phone next time once the code is accepted (D12).
+  const rememberPhone = useRememberContactMethodOnVerify("phone", verifyState)
   // A failed or rate-limited resend returns errors; a successful one returns
   // a confirmation message. Both surface inside the aria-live card below so
   // the customer at the counter hears and sees the outcome (CUS-P1-02). While
@@ -79,7 +82,11 @@ export function CustomerOtpForm({
         </>
       ) : (
         <>
-          <form action={verifyAction} className="grid gap-4">
+          <form
+            action={verifyAction}
+            onSubmit={rememberPhone}
+            className="grid gap-4"
+          >
             <input type="hidden" name="merchantSlug" value={merchantSlug} />
             <input type="hidden" name="qrId" value={qrId ?? ""} />
             <input type="hidden" name="ref" value={referralCode ?? ""} />

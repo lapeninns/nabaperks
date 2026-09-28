@@ -50,12 +50,49 @@ are unaffected.
   `REQUIRE_DEVICE_CONTINUITY` in `lib/customer/access-continuity.ts`.
 - Customer existence remains undisclosed until after phone OTP proof.
 
+### Email sign-in (27 September 2026)
+
+Email is becoming the first sign-in method on the join page. It ships behind
+`CUSTOMER_EMAIL_AUTH_MODE` (`off`, `existing`, `full`; default `off`). In
+`full` the join page leads with email; phone stays one visible link away.
+
+- It narrows the reopened exposure only for customers who sign in by email: a
+  customer who never uses their phone number is not reachable through a
+  recycled number unless their wallet also holds that number.
+- It does not close it. Phone sign-in is unchanged, so a recycled number
+  still opens a wallet that holds it.
+- It adds the equivalent email exposure: whoever controls the mailbox opens
+  the wallet. Only a verified email opens a wallet, each verified email
+  belongs to at most one wallet (unique index on verified `email_hmac`), and
+  "no wallet uses this email" is only said after the code is accepted.
+- Email sign-in sessions use the existing `new_identity`,
+  `recognised_device` and `verified_email` continuity sources;
+  `register_customer_session` is unchanged.
+- Code guessing is limited per challenge (5), per address (10 an hour), per
+  device (20 an hour) and per client IP (60 an hour). A send that admission
+  refuses still answers "code sent" and sets a challenge cookie, but that
+  challenge holds no code and can never be verified, so refused sends cannot
+  be farmed for guesses. There is no global guess limit: guesses need a
+  challenge whose code was actually emailed, and sends are capped globally
+  (150 an hour), so a global guess bucket would add a way to lock everyone
+  out without adding protection.
+- Accepted trade-off: the per-address limit can be spent by someone else.
+  Anyone can have codes sent to an address (3 per 15 minutes) and submit wrong
+  guesses, locking that address out of email sign-in for up to an hour. The
+  owner receives those code emails, and a wallet that also holds a phone can
+  still sign in by phone; an email-only wallet has to wait. Guesses against a
+  refused challenge do not count towards it. Revisit if support sees
+  lock-outs, for example by counting only failures from other devices.
+
 ### Exit condition
 
 Restore the control once existing wallets carry a verified recovery email, or
 once a venue-attested re-trust path exists, so that enabling it no longer
-strands customers. Restoring means setting `REQUIRE_DEVICE_CONTINUITY` to true
-and reverting
+strands customers. Email sign-in on the join page and the add-your-email
+prompts are the route to the first condition: they give phone customers a way
+to add and use a verified email without relying on this device. Measure the
+share of active wallets with a verified email before deciding. Restoring
+means setting `REQUIRE_DEVICE_CONTINUITY` to true and reverting
 `supabase/migrations/20260908120000_allow_verified_phone_continuity.sql`.
 
 ## SEC-RISK-002: static QR cannot prove venue presence
@@ -166,3 +203,17 @@ masked contact details, and can start stamp or reward journeys.
 - wallets gain stored value or payment capability; or
 - an alternative sign-in channel (such as email) removes the SMS dependency
   that motivated this decision.
+
+### Trigger review: email sign-in (27 September 2026)
+
+The third trigger has started to fire. Email codes on the join page arrive
+over venue Wi-Fi, which removes the SMS dependency for customers who use
+email. The feature ships behind `CUSTOMER_EMAIL_AUTH_MODE`, default `off`, so
+nothing changes for customers until the mode is raised.
+
+Proposed decision, pending confirmation by the risk owner: keep this
+acceptance unchanged while the mode is `off` or `existing`, because phone-only
+wallets still depend on SMS. Within 30 days of the mode reaching `full` in
+production, review whether sessions should expire again, using the share of
+active wallets with a verified email and the email code delivery rate. Record
+the outcome here with its date.

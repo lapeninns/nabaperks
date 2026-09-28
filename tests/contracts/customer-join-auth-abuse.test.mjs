@@ -36,7 +36,14 @@ test("Given customer OTP dispatch When policy source is inspected Then GB-only p
     "merchant and QR context must be validated before code dispatch"
   )
   assert.match(verification, /AbortSignal\.timeout\(providerTimeoutMs\)/)
-  assert.match(verification, /process\.env\.VERCEL_ENV !== "preview"/)
+  // The local-only dev code check is shared with email sign-in.
+  const devOtp = read("lib", "customer", "dev-otp-core.ts")
+  assert.match(
+    verification,
+    /import \{ isLocalDevelopment \} from "@\/lib\/customer\/dev-otp-core"/
+  )
+  assert.match(devOtp, /env\.VERCEL_ENV !== "preview"/)
+  assert.match(devOtp, /env\.VERCEL_ENV !== "production"/)
   assert.match(limits, /admit_customer_otp_dispatch/)
   assert.match(limits, /customerOtpSendIdentityRateLimitKey\(requestIdentity\)/)
   assert.match(limits, /customerOtpSendPhoneRateLimitKey\(phone\)/)

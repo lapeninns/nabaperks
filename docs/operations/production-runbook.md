@@ -494,6 +494,35 @@ not trustworthy.
 7. Record timeline, affected users, data impact, provider state, commands,
    deployment IDs and the follow-up issue.
 
+### Email sign-in rollback rules
+
+[Customer email sign-in mode](#customer-email-sign-in-mode) describes each
+`CUSTOMER_EMAIL_AUTH_MODE` value and when it may be raised. Two rules hold once
+`full` has ever run in an environment:
+
+1. Never set the mode below `existing` while email-only wallets exist. Those
+   customers have no phone number, so with email off they cannot sign in at
+   all. Before lowering the mode, check with a read-only query:
+
+   ```sql
+   select count(*) from public.customers
+   where phone_hmac is null
+     and email_verified_at is not null
+     and coalesce(email, '') not like 'erased+%@privacy.invalid';
+   ```
+
+   Any count above zero means `existing` is the lowest safe mode. To stop new
+   email wallets, set `existing`, not `off`.
+
+2. Never roll the application back to a build without
+   `findCustomerByVerifiedEmail` (`lib/customer/identity.ts`) once email-only
+   wallets exist, for the same reason. Treat such a build as incompatible,
+   like a password build after the passwordless cut-over, and fix forward.
+
+If email delivery fails, leave the mode alone: the join page tells the
+customer "Email codes are delayed. Try again shortly or use your phone." and
+the phone path keeps working.
+
 ## Backup and recovery boundary
 
 Supabase daily backups are enabled and must be checked before each high-risk
@@ -650,18 +679,29 @@ supabase projects list
 
 ## Customer email sign-in mode
 
-`CUSTOMER_EMAIL_AUTH_MODE` is `off` unless set. `existing` lets a verified email
-open the wallet that holds it; `full` also lets email start a new wallet on the
-join page. The add-your-email prompts and the email-conflict message already
-read the mode, so setting it changes what guests are told about signing in by
-email.
+`CUSTOMER_EMAIL_AUTH_MODE` is `off` unless set, which hides email on the join
+page and makes every email sign-in action refuse. `existing` lets a verified
+email open the wallet that holds it; `full` also lets email start a new wallet
+on the join page. The add-your-email prompts and the email-conflict message
+already read the mode, so setting it changes what guests are told about signing
+in by email.
 
 - **Precondition:** keep the mode `off` in an environment until the application
   build with the email sign-in and email join flows, and the database
   migrations it needs, are live there. Before that, a non-`off` value promises
   guests a sign-in method the build does not offer.
-- **Rollback:** set the mode back to `off` and redeploy. Collected and verified
-  emails stay in place; no data migration is required.
+- **Terms:** before raising the mode above `off` in production, publish
+  customer terms that describe joining by email as a new version: a new
+  `CUSTOMER_LEGAL_VERSION` and `PLATFORM_TERMS_META` date and number in
+  `lib/legal/content.ts`, with the matching `policy_version` guard migration
+  and `tests/unit/legal-activation.test.mjs`, as the 2026-09-26 activation did.
+  The terms in force until then describe joining by phone only, and joins
+  record that version, so the text must not change under it.
+- **Rollback:** while `full` has never run in the environment, set the mode
+  back to `off` and redeploy. Collected and verified emails stay in place; no
+  data migration is required. Once `full` has run, email-only wallets may
+  exist, so follow the [email sign-in rollback rules](#email-sign-in-rollback-rules):
+  `existing` may be the lowest safe mode.
 
 ## Venue code (location-check fallback)
 

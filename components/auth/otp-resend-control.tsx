@@ -1,11 +1,14 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useEffect, useState } from "react"
 
 import { SubmitButton, type SubmitButtonProps } from "@/components/forms"
-import { merchantOtpRetryCountdown } from "@/lib/auth/merchant-auth-action-state"
+import { useOtpRetryCountdown } from "@/hooks/use-otp-retry-countdown"
 import { cn } from "@/lib/utils"
+
+// Moved to a shared hook so customer code steps can count down too; merchant
+// imports from here keep working.
+export { useOtpRetryCountdown }
 
 type OtpResendControlProps = {
   readonly retryAt?: string
@@ -64,53 +67,4 @@ export function OtpResendControl({
       </p>
     </div>
   )
-}
-
-export function useOtpRetryCountdown(retryAt: string | undefined) {
-  const [clock, setClock] = useState(() => ({
-    retryAt,
-    now: undefined as number | undefined,
-  }))
-  const retryAtMs = retryAt ? Date.parse(retryAt) : Number.NaN
-  const hasParsableRetryAt = Boolean(retryAt) && Number.isFinite(retryAtMs)
-  const clockMatchesRetry = clock.retryAt === retryAt
-  const ready =
-    !hasParsableRetryAt ||
-    (clockMatchesRetry && typeof clock.now === "number")
-  const countdown = !ready
-    ? {
-        active: true,
-        remainingSeconds: 0,
-      }
-    : merchantOtpRetryCountdown(retryAt, clock.now ?? Number.NaN)
-
-  useEffect(() => {
-    if (!hasParsableRetryAt || ready) return
-
-    const frame = window.requestAnimationFrame(() => {
-      setClock({ retryAt, now: Date.now() })
-    })
-    return () => window.cancelAnimationFrame(frame)
-  }, [hasParsableRetryAt, ready, retryAt])
-
-  useEffect(() => {
-    if (!ready || !countdown.active) return
-
-    const interval = window.setInterval(
-      () => setClock({ retryAt, now: Date.now() }),
-      1_000
-    )
-    return () => window.clearInterval(interval)
-  }, [countdown.active, ready, retryAt])
-
-  return {
-    ...countdown,
-    ready,
-    elapsed:
-      ready &&
-      clockMatchesRetry &&
-      Boolean(retryAt) &&
-      Number.isFinite(retryAtMs) &&
-      retryAtMs <= (clock.now ?? Number.NaN),
-  } as const
 }

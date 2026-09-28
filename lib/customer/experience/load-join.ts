@@ -2,7 +2,20 @@ import "server-only"
 
 import { headers } from "next/headers"
 
-import { getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  customerEmailAuthMode,
+  emailSignInEnabled,
+} from "@/lib/customer/email-auth-mode"
+import { maskEmail } from "@/lib/customer/email-pii-core"
+import { newestSignedOutJoinChallenge } from "@/lib/customer/email-sign-in-core"
+import {
+  getPendingEmailSignIn,
+  readVerifiedEmailHandoff,
+} from "@/lib/customer/email-sign-in"
+import {
+  getCurrentCustomer,
+  type CurrentCustomer,
+} from "@/lib/customer/identity"
 import {
   getMembershipForCustomer,
   getMerchantJoinContext,
@@ -85,6 +98,7 @@ export async function loadJoinExperienceContext(
     step: searchParams.step,
     location: baseLocation,
     primaryChannel: primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL),
+    emailMode: customerEmailAuthMode(),
   }
 
   const customer = await getCurrentCustomer()
@@ -102,6 +116,7 @@ export async function loadJoinExperienceContext(
       ...base,
       hasSession: true,
       pendingOtp: false,
+      customerChannels: customer ? contactChannels(customer) : undefined,
       membership: {
         id: membership.id,
         current: membership.current_stamp_count,
@@ -115,23 +130,51 @@ export async function loadJoinExperienceContext(
       location,
       hasSession: true,
       pendingOtp: false,
+      customerChannels: contactChannels(customer),
       membership: null,
     }
   }
 
   // No session: a pending join verification means show the code step — unless the
-  // customer explicitly asked to re-enter their number (`step=phone`).
-  const pending = await getPendingPhoneVerification()
-  const pendingOtp =
-    searchParams.step !== "phone" && pending?.purpose === "join"
+  // customer explicitly asked for a contact step (`step=phone` or `step=email`).
+  const contactStepRequested =
+    searchParams.step === "phone" || searchParams.step === "email"
+  const [email, pending] = await Promise.all([
+    contactStepRequested
+      ? null
+      : pendingEmailFacts(merchantSlug, searchParams.qr),
+    getPendingPhoneVerification(),
+  ])
+  const phoneCode = pending?.purpose === "join" ? pending : null
+  // Starting any challenge clears the others, but a cookie left from an older
+  // step must never hide the one the visitor started last.
+  const newest = contactStepRequested
+    ? null
+    : newestSignedOutJoinChallenge({
+        emailHandoff: email?.handoffIssuedAt,
+        emailCode: email?.pendingIssuedAt,
+        phoneCode: phoneCode?.issuedAt,
+      })
 
-  if (pendingOtp) {
+  if (email && (newest === "email_handoff" || newest === "email_code")) {
+    return {
+      ...base,
+      ...(newest === "email_handoff"
+        ? { emailHandoff: email.emailHandoff }
+        : { pendingEmail: email.pendingEmail }),
+      hasSession: false,
+      pendingOtp: false,
+      membership: null,
+    }
+  }
+
+  if (newest === "phone_code" && phoneCode) {
     return {
       ...base,
       hasSession: false,
-      pendingOtp,
-      pendingPhone: pending.phone,
-      pendingChannel: pending.channel,
+      pendingOtp: true,
+      pendingPhone: phoneCode.phone,
+      pendingChannel: phoneCode.channel,
       membership: null,
     }
   }
@@ -139,8 +182,61 @@ export async function loadJoinExperienceContext(
   return {
     ...base,
     hasSession: false,
-    pendingOtp,
-    pendingPhone: pendingOtp ? pending.phone : undefined,
+    pendingOtp: false,
+    pendingPhone: undefined,
     membership: null,
+  }
+}
+
+type PendingEmailFacts = {
+  pendingEmail?: {
+    maskedEmail: string
+    resendAvailableAt: number
+    deliveryDelayed?: boolean
+  }
+  pendingIssuedAt?: number
+  emailHandoff?: { maskedEmail: string }
+  handoffIssuedAt?: number
+}
+
+/**
+ * Email sign-in facts for a signed-out visitor, read only while email sign-in
+ * is on, with when each was issued so the newest challenge can win.
+ */
+async function pendingEmailFacts(
+  merchantSlug: string,
+  qrId: string | undefined
+): Promise<PendingEmailFacts> {
+  if (!emailSignInEnabled()) return {}
+
+  const [handoff, pending] = await Promise.all([
+    readVerifiedEmailHandoff({ merchantSlug, qrId }),
+    getPendingEmailSignIn(),
+  ])
+  const facts: PendingEmailFacts = {}
+  if (handoff) {
+    facts.emailHandoff = { maskedEmail: maskEmail(handoff.email) ?? "" }
+    facts.handoffIssuedAt = handoff.issuedAt
+  }
+  if (pending?.purpose === "join") {
+    // A challenge whose code never reached the customer (`fail`) is kept in
+    // case the email arrives late, but the code step must say it is delayed,
+    // not that it was just sent. A failed resend after a delivered code stays
+    // `sent`, since that code still works, and a refused (`held`) send still
+    // reads as sent (D8).
+    facts.pendingEmail = {
+      maskedEmail: maskEmail(pending.email) ?? "",
+      resendAvailableAt: pending.resendAvailableAt,
+      ...(pending.delivery === "fail" ? { deliveryDelayed: true } : {}),
+    }
+    facts.pendingIssuedAt = pending.issuedAt
+  }
+  return facts
+}
+
+function contactChannels(customer: CurrentCustomer) {
+  return {
+    phone: customer.phoneLast4 !== null,
+    email: Boolean(customer.email && customer.emailVerifiedAt),
   }
 }

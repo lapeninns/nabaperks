@@ -46,3 +46,27 @@ test("Given a join milestone When metadata projections are built Then first-part
     entry: "qr_referral",
   })
 })
+
+test("Given the email join steps When steps are derived Then each has its own funnel step", () => {
+  assert.equal(joinStepForExperienceKind("join_email"), "email")
+  assert.equal(joinStepForExperienceKind("join_email_choice"), "email_choice")
+})
+
+test("Given an email-verified milestone When metadata is built Then the method rides along to PostHog but never the contact", () => {
+  const firstParty = productEventJoinMetadata({
+    entry: "qr",
+    funnelKey: "b".repeat(64),
+    method: "email",
+    step: "otp",
+    surface: "customer_join",
+  })
+
+  assert.equal(firstParty.method, "email")
+  assert.deepEqual(postHogJoinMetadata(firstParty), {
+    source: "customer_join",
+    surface: "customer_join",
+    step: "otp",
+    entry: "qr",
+    method: "email",
+  })
+})

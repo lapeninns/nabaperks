@@ -82,12 +82,12 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "data-collected",
     title: "Information held",
-    body: "For customers, Nabaperks may hold a verified phone identity, phone country and last four digits, full name, date of birth, email and verification state. It also records venue memberships, accepted venue terms, stamps, rewards, referrals, consent choices, notifications, push subscriptions, fraud signals, sessions, product events, and support activity. For merchants, it may hold account, venue, address, loyalty-card, reward, QR, subscription, billing-reference, operational, support, cancellation-interview, and approved commercial-evidence records. Commercial evidence can include an approved attribution, before-and-after notes, a testimonial, reproducible aggregate metric snapshots, and secure references to supporting screenshots, recordings, or transcripts.",
+    body: "For customers, Nabaperks may hold a verified phone identity, phone country and last four digits, full name, date of birth, email and verification state. A customer wallet can be held by a verified phone number, a verified email address, or both. It also records venue memberships, accepted venue terms, stamps, rewards, referrals, consent choices, notifications, push subscriptions, fraud signals, sessions, product events, and support activity. For merchants, it may hold account, venue, address, loyalty-card, reward, QR, subscription, billing-reference, operational, support, cancellation-interview, and approved commercial-evidence records. Commercial evidence can include an approved attribution, before-and-after notes, a testimonial, reproducible aggregate metric snapshots, and secure references to supporting screenshots, recordings, or transcripts.",
   },
   {
     id: "identity-protection",
     title: "Identity protection",
-    body: "Verified customer phone numbers are encrypted at rest. Nabaperks also stores keyed digests for matching and limited phone details for masked display. Customer sessions use signed cookies backed by revocable server-side session records. Pending reward-invite records use keyed digests and masked contact details rather than storing the invitation contact in plain text.",
+    body: "Verified customer phone numbers are encrypted at rest. Nabaperks also stores keyed digests of phone numbers and email addresses for matching and limited contact details for masked display. An email address opens a wallet only once it has been verified with a one-time code. Customer sessions use signed cookies backed by revocable server-side session records. Pending reward-invite records use keyed digests and masked contact details rather than storing the invitation contact in plain text.",
   },
   {
     id: "uses",
@@ -107,7 +107,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "services",
     title: "Services used",
-    body: "The current application uses Supabase and PostgreSQL for application data and authentication, Stripe for merchant subscriptions, Twilio Verify for customer phone codes, Resend for email, browser Web Push services for optional notifications, and Vercel for deployment and scheduled jobs. Optional integrations include PostHog for pseudonymous server-side analytics, Google Places for merchant venue suggestions, and OpenStreetMap Nominatim for venue-address geocoding.",
+    body: "The current application uses Supabase and PostgreSQL for application data and authentication, Stripe for merchant subscriptions, Twilio Verify for customer phone codes, Resend for email including customer sign-in and join codes, browser Web Push services for optional notifications, and Vercel for deployment and scheduled jobs. Optional integrations include PostHog for pseudonymous server-side analytics, Google Places for merchant venue suggestions, and OpenStreetMap Nominatim for venue-address geocoding.",
   },
   {
     id: "communications",
@@ -122,7 +122,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "retention",
     title: "Retention and anonymisation",
-    body: "Pending phone and email verification cookies last 10 minutes, join-journey cookies last two hours, customer sessions last until you log out, the session cookie is renewed as you use Nabaperks and lapses after one year without use, and the device cookie lasts one year. Public-page browser performance samples are deleted after 90 days. Verified customer identities with no protected loyalty, consent, referral, session, request, or invitation history are eligible for anonymisation after seven days. Other stale customer identifiers are eligible for anonymisation after 365 days without recent customer, membership, stamp, or reward activity. Pending reward invitations expire after 90 days, their matching details are scrubbed, and terminal invite records are eligible for deletion after 365 days. Bulk loyalty invitation recipients are stored as encrypted contact; their address, masked readback, and link tokens are scrubbed when the invitation is claimed, when the campaign is cancelled, or after its 30-day link expiry; abandoned invitation drafts are purged after 24 hours; contact-free terminal recipient records are deleted after 365 days; and unsubscribe suppression hashes are retained to keep honouring opt-outs. Loyalty, consent, fraud, billing, product-event, and audit records do not have a general automatic deletion period encoded in the current application and may remain in anonymised form.",
+    body: "Pending phone and email verification cookies, and the cookie that holds a confirmed email while you choose how to continue, last 10 minutes, join-journey cookies last two hours, customer sessions last until you log out, the session cookie is renewed as you use Nabaperks and lapses after one year without use, and the device cookie lasts one year. Public-page browser performance samples are deleted after 90 days. Verified customer identities with no protected loyalty, consent, referral, session, request, or invitation history are eligible for anonymisation after seven days. Other stale customer identifiers are eligible for anonymisation after 365 days without recent customer, membership, stamp, or reward activity. Pending reward invitations expire after 90 days, their matching details are scrubbed, and terminal invite records are eligible for deletion after 365 days. Bulk loyalty invitation recipients are stored as encrypted contact; their address, masked readback, and link tokens are scrubbed when the invitation is claimed, when the campaign is cancelled, or after its 30-day link expiry; abandoned invitation drafts are purged after 24 hours; contact-free terminal recipient records are deleted after 365 days; and unsubscribe suppression hashes are retained to keep honouring opt-outs. Loyalty, consent, fraud, billing, product-event, and audit records do not have a general automatic deletion period encoded in the current application and may remain in anonymised form.",
   },
   {
     id: "requests",
@@ -142,19 +142,19 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
 ]
 
 export const PRIVACY_META = {
-  eyebrow: "For customers and merchants · effective 15 July 2026",
+  eyebrow: "For customers and merchants · effective 27 September 2026",
   title: "Nabaperks privacy notice.",
   description:
     "How Nabaperks collects, uses, shares, retains, and removes information about customers and merchants.",
   cardTitle: "Privacy notice",
-  docNumber: "PN-2026-07",
+  docNumber: "PN-2026-09",
 }
 
 export const COOKIE_SECTIONS: LegalSection[] = [
   {
     id: "customer-cookies",
     title: "Customer verification and session cookies",
-    body: "The HttpOnly nabaperks_pending_phone, nabaperks_pending_email, and nabaperks_access_recovery cookies each last up to 10 minutes while a phone number, email, or existing-wallet recovery is checked. After verification, the signed HttpOnly nabaperks_customer_session cookie identifies a revocable, device-bound server-side customer session that lasts until you log out on that device or on all devices. The cookie is renewed as you use Nabaperks and lapses after one year without use.",
+    body: "The HttpOnly nabaperks_pending_phone, nabaperks_pending_email, nabaperks_pending_email_sign_in, and nabaperks_access_recovery cookies each last up to 10 minutes while a phone number, email, email sign-in code, or existing-wallet recovery is checked. The encrypted HttpOnly nabaperks_email_handoff cookie lasts up to 10 minutes after an email is confirmed on a join page that no wallet uses yet; it is tied to that browser and venue, and it creates nothing by itself. After verification, the signed HttpOnly nabaperks_customer_session cookie identifies a revocable, device-bound server-side customer session that lasts until you log out on that device or on all devices. The cookie is renewed as you use Nabaperks and lapses after one year without use.",
   },
   {
     id: "device-cookie",
@@ -184,7 +184,7 @@ export const COOKIE_SECTIONS: LegalSection[] = [
   {
     id: "local-storage",
     title: "Local storage",
-    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the birthday-profile prompt (nabaperks.dob-prompt-dismissed), and dismissal of the add-your-email prompt (nabaperks.email-prompt-dismissed). Each prompt dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
+    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the birthday-profile prompt (nabaperks.dob-prompt-dismissed), dismissal of the add-your-email prompt (nabaperks.email-prompt-dismissed), and the sign-in method this browser last confirmed, email or phone (nabaperks.last-contact-method), so the join page can show that method first. Each prompt dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
   },
   {
     id: "push-and-analytics",

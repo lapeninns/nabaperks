@@ -70,10 +70,11 @@ export default function PrivacyPage() {
             <Eyebrow>If you&apos;re a customer</Eyebrow>
             <p className="text-sm leading-6 text-muted-foreground">
               Joining a venue&apos;s loyalty card stores your verified phone
-              identity, membership, stamps, rewards, accepted venue terms, and
-              consent choices. Marketing is optional and separate from
-              collecting stamps. You can ask for privacy, access, export,
-              deletion, or consent support using the contact details below.
+              number or email address, membership, stamps, rewards, accepted
+              venue terms, and consent choices. Marketing is optional and
+              separate from collecting stamps. You can ask for privacy, access,
+              export, deletion, or consent support using the contact details
+              below.
             </p>
           </div>
 

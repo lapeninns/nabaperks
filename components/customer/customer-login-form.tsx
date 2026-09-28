@@ -6,6 +6,7 @@ import { useActionState } from "react"
 import type { CustomerLoginOtpState } from "@/app/home/actions"
 import { submitCustomerLoginOtpAction } from "@/app/home/login/otp-action"
 import { ReceiptCard, VenueMark } from "@/components/brand"
+import { useRememberContactMethodOnVerify } from "@/components/customer/contact-method-order"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
@@ -37,6 +38,8 @@ export function CustomerLoginForm({
   const contactError = editingContact ? undefined : state.errors?.contact
   const verifyError = state.errors?.otp ?? state.errors?.form
   const message = editingContact || pending ? undefined : state.message
+  // A phone sign-in here makes the join page lead with phone next time (D12).
+  const rememberPhone = useRememberContactMethodOnVerify("phone", state)
 
   return (
     <ReceiptCard edge className="grid min-w-0 gap-6 short:gap-4">
@@ -88,7 +91,7 @@ export function CustomerLoginForm({
         </div>
       ) : otpSent ? (
         <div className="grid gap-4">
-          <form action={submitAction}>
+          <form action={submitAction} onSubmit={rememberPhone}>
             <input type="hidden" name="intent" value="verify" />
             <input type="hidden" name="contact" value={contact} />
             <input type="hidden" name="next" value={next} />

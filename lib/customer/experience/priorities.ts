@@ -34,7 +34,9 @@ export const JOIN_PRIORITY = [
   "unavailable",
   "join_returning",
   "join_terms",
+  "join_email_choice",
   "join_otp",
+  "join_email",
   "join_phone",
   "join_welcome",
 ] as const satisfies readonly CustomerExperienceKind[]
