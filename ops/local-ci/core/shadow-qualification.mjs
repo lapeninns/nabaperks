@@ -108,15 +108,25 @@ function combineStatus(halves) {
  *
  * Counts are summed, and stay null when either half has none, so half a
  * tally never reads as the project's. The status is the worst of the two,
- * execution is proven only when both halves prove it, and a half that was
- * skipped keeps its blocker, so a project that half ran is compared as one
- * that did not finish.
+ * and execution is proven only when both halves prove it.
+ *
+ * A project whose odd half failed and stopped the run before its even half
+ * was admitted is a failed project, not one blocked by itself: its execution
+ * is judged by the halves that ran, since a failed project can never qualify
+ * and the failure it reports is real. A skipped half's blocker is kept only
+ * when the project as a whole reads as skipped, and never when it is the
+ * project's own other half.
  */
 export function combineSplitLanes(projectId, halves, rename = (id) => id) {
   const [first] = halves
-  const skipped = halves.find((lane) => lane.status === "skipped")
+  const status = combineStatus(halves)
+  const ran = halves.filter((lane) => lane.status !== "skipped")
+  const judged =
+    ["failure", "timed_out", "cancelled"].includes(status) && ran.length > 0
+      ? ran
+      : halves
   const executionVerified = allTrue(
-    halves.map((lane) => lane.executionVerified)
+    judged.map((lane) => lane.executionVerified)
   )
   const combined = {
     ...Object.fromEntries(
@@ -125,7 +135,7 @@ export function combineSplitLanes(projectId, halves, rename = (id) => id) {
         .map((field) => [field, first[field]])
     ),
     laneId: projectId,
-    status: combineStatus(halves),
+    status,
     durationSeconds: Math.max(
       ...halves.map((lane) =>
         typeof lane.durationSeconds === "number" ? lane.durationSeconds : 0
@@ -135,16 +145,23 @@ export function combineSplitLanes(projectId, halves, rename = (id) => id) {
     testsPassed: sumCounts(halves.map((lane) => lane.testsPassed)),
     testsFailed: sumCounts(halves.map((lane) => lane.testsFailed)),
     testsSkipped: sumCounts(halves.map((lane) => lane.testsSkipped)),
-    flaky: sumCounts(halves.map((lane) => lane.flaky ?? 0)),
-    executionStarted: allTrue(halves.map((lane) => lane.executionStarted)),
+    flaky: sumCounts(halves.map((lane) => lane.flaky)),
+    executionStarted: allTrue(judged.map((lane) => lane.executionStarted)),
     ...(executionVerified === true ? { executionVerified: true } : {}),
   }
   const parsed = allTrue(halves.map((lane) => lane.countsParsed))
   if (parsed !== null) combined.countsParsed = parsed
   if (halves.some((lane) => lane.countsExpected === true))
     combined.countsExpected = true
-  if (skipped && typeof skipped.blockedByLaneId === "string")
-    combined.blockedByLaneId = rename(skipped.blockedByLaneId)
+  const blocker = halves
+    .filter(
+      (lane) =>
+        lane.status === "skipped" && typeof lane.blockedByLaneId === "string"
+    )
+    .map((lane) => rename(lane.blockedByLaneId))
+    .find((id) => id !== projectId)
+  if (status === "skipped" && blocker !== undefined)
+    combined.blockedByLaneId = blocker
   return combined
 }
 

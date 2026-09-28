@@ -13,6 +13,7 @@ import {
 } from "../../ops/local-ci/core/summary.mjs"
 
 import {
+  aggregateSplitEvidence,
   compareShadowEvidence,
   shadowEquivalenceStreak,
 } from "../../ops/local-ci/core/shadow-qualification.mjs"
@@ -822,4 +823,52 @@ test("a lane blocked by a failure that started later in profile order is still a
   assert.equal(fastResult.local.blockedByLaneId, "e2e-chromium")
   assert.equal(fastResult.blockedSkip, true)
   assert.doesNotMatch(result.reasons.join(" "), /invalid blocking lane/)
+})
+
+test("a half skipped behind its own failed sibling reads as the project's failure", () => {
+  // The browser memory cap can leave the even half pending when the odd half
+  // fails and stops the run; the project failed, it was not blocked by itself.
+  const input = splitLocal(fixture())
+  const odd = input.local.lanes.find(
+    (lane) => lane.laneId === "e2e-chromium-odd"
+  )
+  odd.status = "failure"
+  odd.testsFailed = 1
+  odd.testsPassed -= 1
+  const even = input.local.lanes.find(
+    (lane) => lane.laneId === "e2e-chromium-even"
+  )
+  Object.assign(even, {
+    status: "skipped",
+    blockedByLaneId: "e2e-chromium-odd",
+    executionStarted: false,
+    executionVerified: undefined,
+    testsRun: null,
+    testsPassed: null,
+    testsFailed: null,
+    testsSkipped: null,
+    flaky: null,
+  })
+  input.local.conclusion = "failure"
+
+  const folded = aggregateSplitEvidence(
+    input.local,
+    Object.keys(input.contract.shadowMode.qualification.lanes)
+  )
+  const chromium = folded.lanes.find((lane) => lane.laneId === "e2e-chromium")
+  assert.equal(chromium.status, "failure")
+  assert.equal(chromium.blockedByLaneId, undefined)
+  // Judged by the half that ran: the failure is real, and a failed project
+  // can never qualify.
+  assert.equal(chromium.executionStarted, true)
+  assert.equal(chromium.testsRun, null)
+  assert.equal(chromium.flaky, null)
+
+  const result = compareShadowEvidence(input)
+  assert.equal(result.verdict, "divergent", result.reasons.join("; "))
+  assert.doesNotMatch(result.reasons.join(" "), /invalid blocking lane/)
+  assert.match(result.reasons.join(" "), /e2e-chromium: status mismatch/)
+  const lane = result.lanes.find((entry) => entry.laneId === "e2e-chromium")
+  assert.equal(lane.local.status, "failure")
+  assert.equal(lane.local.blockedByLaneId, undefined)
 })
