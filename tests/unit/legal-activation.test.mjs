@@ -37,25 +37,42 @@ test("activation version reaches every join acceptance and its snapshot trigger"
 })
 
 test("customer terms describe joining and signing in by phone or email as shipped", () => {
-  const joining = PLATFORM_TERMS_SECTIONS.find(
-    (section) => section.id === "joining"
-  ).body
+  const section = (id) =>
+    PLATFORM_TERMS_SECTIONS.find((candidate) => candidate.id === id).body
+  const joining = section("joining")
   for (const rule of [
-    /one-time code sent by text message to your mobile number or, where the page offers it, by email/,
+    // Phone codes go by WhatsApp first with text as the alternative and the
+    // fallback (primaryOtpChannel), so the terms name both channels.
+    /one-time code sent to your mobile number by WhatsApp or text message or, where the page offers it, by email/,
     /control that phone number or inbox/,
-    /Each phone number and each verified email address can belong to only one Nabaperks wallet/,
     /An email address can start a new wallet only on a venue join page, after you choose to start one/,
     /opens only a wallet that already holds that verified address/,
-    /stamps stay on the wallet you first joined with/,
-    /does not merge wallets automatically/,
-    /a wallet started with an email address can add a mobile number, as long as no other wallet holds it/,
     /public offer link need a confirmed phone number/,
     /select the required loyalty-terms control before a membership is created/,
     /immutable copy of the venue terms accepted/,
   ]) {
     assert.match(joining, rule)
   }
-  assert.doesNotMatch(joining, /sent by text\. /)
+  assert.doesNotMatch(joining, /sent by text/)
+
+  const contacts = section("wallet-contacts")
+  for (const rule of [
+    /Each phone number and each verified email address can belong to only one Nabaperks wallet/,
+    /Once signed in, a wallet without a verified email address can add one, and a wallet without a mobile number can add one, as long as no other wallet already holds that email address or number/,
+    // prevent_verified_customer_contact_change locks verified contacts.
+    /Once verified, an email address or phone number cannot be changed or removed from your profile/,
+    /Stamps, rewards and venue memberships stay on the wallet they were recorded on/,
+    // No merge or transfer tooling exists (identity.ts: attach, never merge).
+    /Nabaperks does not combine wallets/,
+    /contact Nabaperks support using the details under Records and support/,
+  ]) {
+    assert.match(contacts, rule)
+  }
+  assert.doesNotMatch(contacts, /merge|first joined with/)
+  assert.ok(
+    PLATFORM_TERMS_SECTIONS.some(({ id }) => id === "records-and-support"),
+    "the support reference points at a real section"
+  )
 })
 
 test("venue terms preserve configured earning and individual reward terms", () => {

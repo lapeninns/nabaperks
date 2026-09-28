@@ -318,3 +318,68 @@ test(
     })
   }
 )
+
+test(
+  "Given a terms version with no snapshot trigger When a customer joins Then the join is refused and nothing is recorded",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [fixture] = await tx`
+        select qr.qr_id, merchants.business_slug
+        from public.qr_codes qr
+        join public.merchants merchants on merchants.id = qr.merchant_id
+        where qr.is_active and qr.destination_type = 'join'
+        order by qr.created_at limit 1`
+      assert.ok(fixture)
+
+      const [customer] = await tx`
+        insert into public.customers (email, email_verified_at, created_at, updated_at)
+        values (${`terms-unknown-${randomUUID()}@test.local`}, now(), now(), now())
+        returning id`
+
+      // A build that sends a newer version than the database knows must fail
+      // loudly instead of storing the join function's built-in snapshot.
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+              select * from public.join_customer_membership(
+                ${customer.id}::uuid, ${fixture.business_slug}, ${fixture.qr_id},
+                false, '2099-01-01'
+              )`
+          ),
+        (error) => {
+          assert.equal(error.code, "55000")
+          assert.match(
+            error.message,
+            /No venue terms snapshot is defined for policy version 2099-01-01/
+          )
+          return true
+        }
+      )
+      const [{ memberships, acceptances }] = await tx`
+        select
+          (select count(*)::int from public.customer_memberships
+            where customer_id = ${customer.id}::uuid) as memberships,
+          (select count(*)::int from public.customer_loyalty_terms_acceptances
+            where customer_id = ${customer.id}::uuid) as acceptances`
+      assert.equal(memberships, 0)
+      assert.equal(acceptances, 0)
+
+      // Versions with a snapshot trigger and versions before 2026-09-26 are
+      // unaffected.
+      for (const version of ["2026-09-28", "2026-09-26", "2026-06-06"]) {
+        const [other] = await tx`
+          insert into public.customers (email, email_verified_at, created_at, updated_at)
+          values (${`terms-known-${randomUUID()}@test.local`}, now(), now(), now())
+          returning id`
+        const [joined] = await tx`
+          select * from public.join_customer_membership(
+            ${other.id}::uuid, ${fixture.business_slug}, ${fixture.qr_id},
+            false, ${version}
+          )`
+        assert.equal(joined.created_membership, true, version)
+      }
+    })
+  }
+)

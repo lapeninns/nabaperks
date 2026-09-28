@@ -49,9 +49,11 @@ test("Given legal copy follows product behaviour When the shared content is insp
   for (const expected of [
     'CUSTOMER_LEGAL_VERSION = "2026-09-28"',
     'docNumber: "CT-2026-09-28"',
+    "sent to your mobile number by WhatsApp or text message",
     "by email to your email address",
     "each verified email address can belong to only one Nabaperks wallet",
-    "does not merge wallets automatically",
+    "Nabaperks does not combine wallets",
+    "cannot be changed or removed from your profile",
     "public offer link need a confirmed phone number",
     "venue trading day",
     "first active configured reward",
