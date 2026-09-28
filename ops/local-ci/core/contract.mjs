@@ -17,6 +17,13 @@ export const CONTRACT_PATH = "config/local-ci-contract.json"
 export const ENFORCEMENT_VALUES = Object.freeze(["advisory", "blocking"])
 
 /**
+ * The VM layers the agent can dispatch into. `lima` is the dedicated
+ * `nabaperks-ci` VM with no mounts; `docker-desktop` is the operator's Docker
+ * Desktop engine, whose VM is shared with other worktrees' containers.
+ */
+export const RUNTIME_KINDS = Object.freeze(["lima", "docker-desktop"])
+
+/**
  * Base class for every refusal raised inside ops/local-ci/core. Callers can
  * branch on `instanceof LocalCiError` for "this plane refused" and on `.code`
  * for the specific reason, which is what the agent logs and what the unit
@@ -455,6 +462,205 @@ function validateRuntimeEnv(runtimeEnv) {
   }
 }
 
+/**
+ * Which runtime the contract selects. A contract without a `runtime` block
+ * predates the adapter, and the only VM layer it can mean is Lima.
+ */
+export function runtimeKind(contract) {
+  const runtime = contract?.runtime
+  if (runtime === undefined || runtime === null) return "lima"
+  return runtime.kind
+}
+
+function requireAbsolutePath(value, path) {
+  requireNonEmptyString(value, path)
+  if (!value.startsWith("/") || value.split("/").includes("..")) {
+    fail(
+      "CONTRACT_SHAPE",
+      `${path} must be an absolute path with no ".." segment (received ${quoteForMessage(value)})`
+    )
+  }
+  return value
+}
+
+function requireStringList(value, path, { nonEmpty = false } = {}) {
+  requireArray(value, path)
+  if (nonEmpty && value.length === 0) {
+    fail("CONTRACT_SHAPE", `${path} must name at least one entry`)
+  }
+  for (const [index, entry] of value.entries()) {
+    requireNonEmptyString(entry, `${path}[${index}]`)
+  }
+  return value
+}
+
+function requireEmptyList(value, path, reason) {
+  requireArray(value, path)
+  if (value.length > 0) fail("RUNTIME_ISOLATION", `${path} ${reason}`)
+}
+
+/**
+ * The docker-desktop runtime's contract block.
+ *
+ * Each field below is re-read by the agent at dispatch time; this is the
+ * boundary check that a contract edit cannot quietly widen what a job is
+ * given. A declared bind mount or privileged container, a job network with a
+ * gateway, a sweep that may prune, or an env file that may carry a host
+ * secret is a refusal here, before any adapter code runs.
+ */
+function validateDockerDesktopRuntime(contract) {
+  const runtime = contract.runtime
+  requireNonEmptyString(runtime.adapter, "runtime.adapter")
+  requireNonEmptyString(runtime.context, "runtime.context")
+  requireAbsolutePath(runtime.dockerCli, "runtime.dockerCli")
+  requireAbsolutePath(runtime.dockerConfig, "runtime.dockerConfig")
+  requireAbsolutePath(runtime.workspaceRoot, "runtime.workspaceRoot")
+  if (!/^\d+\.\d+\.\d+$/.test(runtime.minServerVersion ?? "")) {
+    fail(
+      "CONTRACT_SHAPE",
+      `runtime.minServerVersion must be a MAJOR.MINOR.PATCH version (received ${describeValue(runtime.minServerVersion)})`
+    )
+  }
+  for (const field of [
+    "cpus",
+    "memoryGb",
+    "reserveCpus",
+    "reserveMemoryGb",
+    "externalMemoryFloorGb",
+  ]) {
+    requirePositiveInteger(runtime[field], `runtime.${field}`)
+  }
+  if (!/^nabaperks-ci-[a-z0-9][a-z0-9-]*$/.test(runtime.stateVolume ?? "")) {
+    fail(
+      "CONTRACT_SHAPE",
+      `runtime.stateVolume must be a nabaperks-ci- volume name (received ${describeValue(runtime.stateVolume)})`
+    )
+  }
+  requireEmptyList(
+    runtime.bindMounts,
+    "runtime.bindMounts",
+    "must be empty: no Mac directory is ever mounted into a container on the shared Docker Desktop VM"
+  )
+  requireEmptyList(
+    runtime.privilegedContainers,
+    "runtime.privilegedContainers",
+    "must be empty: a privileged container on the shared VM would reach its kernel and file shares"
+  )
+  requireStringList(
+    runtime.hostedOnlyRequirements,
+    "runtime.hostedOnlyRequirements"
+  )
+  const network = requireObject(runtime.jobNetwork, "runtime.jobNetwork")
+  if (network.internal !== true) {
+    fail(
+      "RUNTIME_ISOLATION",
+      "runtime.jobNetwork.internal must be true: a job network with a gateway reaches the Mac through host.docker.internal"
+    )
+  }
+  if (!/^10\.(\d{1,3})\.0\.0\/16$/.test(network.subnetPool ?? "")) {
+    fail(
+      "CONTRACT_SHAPE",
+      `runtime.jobNetwork.subnetPool must be a 10.x.0.0/16 pool (received ${describeValue(network.subnetPool)})`
+    )
+  }
+  const cleanup = requireObject(runtime.cleanup, "runtime.cleanup")
+  requireNonEmptyString(cleanup.namePrefix, "runtime.cleanup.namePrefix")
+  requireNonEmptyString(cleanup.labelPrefix, "runtime.cleanup.labelPrefix")
+  if (cleanup.prune !== false) {
+    fail(
+      "RUNTIME_ISOLATION",
+      "runtime.cleanup.prune must be false: the daemon is shared with other worktrees' stacks"
+    )
+  }
+  const helper = requireObject(runtime.helper, "runtime.helper")
+  if (!/^\d+:\d+$/.test(helper.user ?? "") || helper.user.startsWith("0:")) {
+    fail(
+      "CONTRACT_SHAPE",
+      `runtime.helper.user must be a non-root uid:gid (received ${describeValue(helper.user)})`
+    )
+  }
+  const egress = requireObject(helper.egress, "runtime.helper.egress")
+  requireOneOf(egress.mode, ["allowlist-proxy"], "runtime.helper.egress.mode")
+  requireStringList(egress.hosts, "runtime.helper.egress.hosts", {
+    nonEmpty: true,
+  })
+  requireArray(egress.ports, "runtime.helper.egress.ports")
+  if (
+    egress.ports.length === 0 ||
+    !egress.ports.every((port) => Number.isInteger(port) && port > 0)
+  ) {
+    fail("CONTRACT_SHAPE", "runtime.helper.egress.ports must list ports")
+  }
+  if (egress.publicAddressesOnly !== true) {
+    fail(
+      "RUNTIME_ISOLATION",
+      "runtime.helper.egress.publicAddressesOnly must be true"
+    )
+  }
+  requireStringList(helper.installFlags, "runtime.helper.installFlags", {
+    nonEmpty: true,
+  })
+  if (helper.refuseConfigDependencies !== true) {
+    fail(
+      "RUNTIME_ISOLATION",
+      "runtime.helper.refuseConfigDependencies must be true"
+    )
+  }
+  requireStringList(runtime.jobInstallFlags, "runtime.jobInstallFlags", {
+    nonEmpty: true,
+  })
+  const envFiles = requireObject(runtime.envFiles, "runtime.envFiles")
+  if (
+    envFiles.mode !== "0600" ||
+    envFiles.passedAs !== "--env-file" ||
+    envFiles.carriesHostSecrets !== false
+  ) {
+    fail(
+      "RUNTIME_ISOLATION",
+      "runtime.envFiles must be mode 0600, passed as --env-file and carry no host secret"
+    )
+  }
+  const sharing = requireObject(runtime.fileSharing, "runtime.fileSharing")
+  requireNonEmptyString(
+    sharing.settingsFile,
+    "runtime.fileSharing.settingsFile"
+  )
+  requireStringList(
+    sharing.protectedPaths,
+    "runtime.fileSharing.protectedPaths",
+    {
+      nonEmpty: true,
+    }
+  )
+
+  const container = contract.container
+  if (container.dockerInDocker !== false) {
+    fail(
+      "RUNTIME_ISOLATION",
+      "container.dockerInDocker must be false on the docker-desktop runtime: its sidecar would be privileged on the shared VM"
+    )
+  }
+  if (
+    container.cpus + runtime.reserveCpus > runtime.cpus ||
+    container.memoryGb +
+      runtime.reserveMemoryGb +
+      runtime.externalMemoryFloorGb >
+      runtime.memoryGb
+  ) {
+    fail(
+      "RESOURCE_OVERCOMMIT",
+      "container CPU and memory, the runtime reserve and the external-memory floor must fit inside runtime.cpus and runtime.memoryGb"
+    )
+  }
+}
+
+function validateRuntime(contract) {
+  if (contract.runtime === undefined) return
+  const runtime = requireObject(contract.runtime, "runtime")
+  requireOneOf(runtime.kind, RUNTIME_KINDS, "runtime.kind")
+  if (runtime.kind === "docker-desktop") validateDockerDesktopRuntime(contract)
+}
+
 function validateProfilesMap(contract) {
   const profiles = requireObject(contract.profiles, "profiles")
   const names = Object.keys(profiles)
@@ -539,6 +745,10 @@ export function validateContract(contract) {
       `container.timeoutMinutes (${container.timeoutMinutes}) must be strictly less than bridge.timeoutMinutes (${contract.bridge.timeoutMinutes}) so the agent reports a killed run before the bridge times out`
     )
   }
+
+  requirePositiveNumber(container.cpus, "container.cpus")
+  requirePositiveNumber(container.memoryGb, "container.memoryGb")
+  validateRuntime(contract)
 
   validateProfilesMap(contract)
   validateArchValues(contract)

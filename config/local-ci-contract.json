@@ -123,7 +123,7 @@
   "agent": {
     "pollIntervalSeconds": 60,
     "maxConcurrentJobs": 1,
-    "maxConcurrentLanes": 6,
+    "maxConcurrentLanes": 8,
     "logRetentionDays": 30,
     "heartbeatIntervalMinutes": 5,
     "queueDepthLimit": 8,
@@ -131,22 +131,76 @@
     "installRoot": "/opt/nabaperks-local-ci/current",
     "stateRoot": "~/.nabaperks-local-ci",
     "launchdLabel": "com.nabaperks.local-ci",
-    "notes": "maxConcurrentJobs bounds whole CI runs (one head SHA at a time). maxConcurrentLanes is an upper bound; the scheduler also caps summed lane CPU/RAM, sidecars and VM reserves. Each resource-sized lane owns an independent checkout. Lanes sharing a concurrencyGroup remain serialised. gitFetchDepth 0 is required because the quality lane's docs:check runs git diff --exit-code."
+    "notes": "maxConcurrentJobs bounds whole CI runs (one head SHA at a time). maxConcurrentLanes is an upper bound; the scheduler also caps summed lane CPU/RAM, sidecars, the active runtime's reserves and, on a shared Docker Desktop daemon, the live memory of containers the agent does not own. Lanes are admitted longest first, by the median of the last five host-local durations of the same lane, and results keep profile order. Each resource-sized lane owns an independent checkout. Lanes sharing a concurrencyGroup remain serialised. gitFetchDepth 0 is required because the quality lane's docs:check runs git diff --exit-code."
   },
   "container": {
-    "cpus": 10,
-    "memoryGb": 32,
+    "cpus": 16,
+    "memoryGb": 40,
     "timeoutMinutes": 110,
-    "dockerInDocker": true,
+    "dockerInDocker": false,
     "mountHostDockerSocket": false,
     "network": "bridge",
     "readOnlyRootFilesystem": false,
     "workspacePath": "/workspace",
-    "notes": "timeoutMinutes is deliberately 10 minutes inside bridge.timeoutMinutes so the agent kills and reports a run before the hosted bridge job gives up on it. dockerInDocker is what lets the DB lane run `supabase start` without ever handing a job the host Docker socket; mountHostDockerSocket must stay false, because the host socket is a container escape. Admission retains 32 GiB for job containers plus the 6 GiB daemon and 2 GiB VM reserve, within 40 GiB total. Browser lanes keep an 8 GiB cgroup cap; browserMemory reserves 4 GiB outside V8 old space. No VM or sidecar capacity is borrowed to raise a lane ceiling.",
+    "notes": "timeoutMinutes is deliberately 10 minutes inside bridge.timeoutMinutes so the agent kills and reports a run before the hosted bridge job gives up on it. mountHostDockerSocket must stay false, because the host socket is a container escape. dockerInDocker is false on the docker-desktop runtime: a privileged sidecar on the shared Docker Desktop VM would hand candidate code that VM's kernel, its file shares and other worktrees' containers, so lanes that need a daemon (db, db-stress) are reported hosted-only through runtime.hostedOnlyRequirements. The Lima rollback path sets runtime.kind to lima and dockerInDocker back to true, and then the daemon block below applies. Admission gives job containers 16 CPUs and 40 GiB inside the 18 CPU / 50 GiB Docker Desktop budget, beside a 2 CPU / 4 GiB reserve for Desktop's own VM and a 6 GiB floor for other worktrees' containers. Browser lanes keep an 8 GiB cgroup cap; browserMemory reserves 4 GiB outside V8 old space.",
     "daemon": {
       "cpus": 1,
       "memoryGb": 6
     }
+  },
+  "runtime": {
+    "kind": "docker-desktop",
+    "adapter": "ops/local-ci/agent/runtime-docker-desktop.mjs",
+    "context": "desktop-linux",
+    "dockerCli": "/usr/local/bin/docker",
+    "dockerConfig": "/opt/nabaperks-local-ci/docker-config",
+    "minServerVersion": "29.0.0",
+    "cpus": 18,
+    "memoryGb": 50,
+    "reserveCpus": 2,
+    "reserveMemoryGb": 4,
+    "externalMemoryFloorGb": 6,
+    "stateVolume": "nabaperks-ci-state",
+    "workspaceRoot": "/var/lib/nabaperks-ci",
+    "bindMounts": [],
+    "privilegedContainers": [],
+    "hostedOnlyRequirements": ["privileged-daemon"],
+    "jobNetwork": {
+      "internal": true,
+      "subnetPool": "10.213.0.0/16"
+    },
+    "cleanup": {
+      "namePrefix": "nabaperks-ci-",
+      "labelPrefix": "com.nabaperks.local-ci.",
+      "prune": false
+    },
+    "helper": {
+      "user": "1001:1001",
+      "egress": {
+        "mode": "allowlist-proxy",
+        "hosts": ["github.com", "codeload.github.com", "registry.npmjs.org"],
+        "ports": [443],
+        "publicAddressesOnly": true
+      },
+      "installFlags": [
+        "--frozen-lockfile",
+        "--ignore-scripts",
+        "--ignore-pnpmfile",
+        "--config.package-import-method=copy"
+      ],
+      "refuseConfigDependencies": true
+    },
+    "jobInstallFlags": ["--offline", "--frozen-lockfile"],
+    "envFiles": {
+      "mode": "0600",
+      "passedAs": "--env-file",
+      "carriesHostSecrets": false
+    },
+    "fileSharing": {
+      "settingsFile": "Library/Group Containers/group.com.docker/settings-store.json",
+      "protectedPaths": ["~/.nabaperks-local-ci"]
+    },
+    "notes": "The agent dispatches into the operator's Docker Desktop engine, addressed only as `docker --context desktop-linux` through the CLI at dockerCli, with DOCKER_CONFIG at dockerConfig so no credential store or registry login is ever used. The owner accepted the weaker isolation of a VM shared with other worktrees' containers on 2026-09-28 (docs/operations/local-ci.md section 7). Before every dispatch the agent refuses unless `docker info` reports Docker Desktop on linux/aarch64 at minServerVersion or later with at least cpus and memoryGb, seccomp is on, the file-sharing list is explicit and covers none of protectedPaths nor the whole home directory, and a negative canary on a fresh internal network cannot reach a Mac 127.0.0.1 listener through host.docker.internal or 192.168.65.254. Workspaces live in the stateVolume named volume: a job sees only its own lane directory through a volume-subpath mount and the run's pnpm store read-only, never a Mac path. Job networks are --internal networks from jobNetwork.subnetPool, so a job has no gateway, no host.docker.internal and no internet; the trusted helper clones and installs with helper.installFlags through an allowlist CONNECT proxy, and the job then installs offline with jobInstallFlags. Privileged containers and bind mounts are refused by the argv builders. The sweep removes only inspected IDs carrying both cleanup.labelPrefix labels and the cleanup.namePrefix name, including volumes, and never prunes. Setting kind to lima selects the dormant Lima runtime and the vm block instead."
   },
   "vm": {
     "name": "nabaperks-ci",
@@ -159,7 +213,7 @@
     "mounts": [],
     "forwardAgent": false,
     "inboundConnections": "blocked",
-    "notes": "The self-check re-asserts every value here against `limactl list --json` at start and before every dispatch, and refuses on any mount entry, a forwarded agent, or a private key readable beyond 0600.",
+    "notes": "Applies only when runtime.kind is lima: the dormant rollback path, kept rather than retired (#297). The self-check then re-asserts every value here against `limactl list --json` at start and before every dispatch, and refuses on any mount entry, a forwarded agent, or a private key readable beyond 0600.",
     "reserveCpus": 1,
     "reserveMemoryGb": 2
   },
