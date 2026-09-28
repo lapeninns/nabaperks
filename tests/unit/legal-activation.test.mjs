@@ -4,12 +4,14 @@ import { readFileSync } from "node:fs"
 import {
   CUSTOMER_LEGAL_VERSION,
   PLATFORM_TERMS_META,
+  PLATFORM_TERMS_SECTIONS,
   buildVenueTermsSections,
 } from "@/lib/legal/content"
 
 test("activation version reaches every join acceptance and its snapshot trigger", () => {
-  assert.equal(CUSTOMER_LEGAL_VERSION, "2026-09-26")
-  assert.match(PLATFORM_TERMS_META.eyebrow, /26 September 2026/)
+  assert.equal(CUSTOMER_LEGAL_VERSION, "2026-09-28")
+  assert.match(PLATFORM_TERMS_META.eyebrow, /28 September 2026/)
+  assert.equal(PLATFORM_TERMS_META.docNumber, "CT-2026-09-28")
   const action = readFileSync("app/m/[merchantSlug]/join/actions.ts", "utf8")
   assert.match(action, /const policyVersion = CUSTOMER_LEGAL_VERSION/)
   assert.equal(
@@ -17,12 +19,43 @@ test("activation version reaches every join acceptance and its snapshot trigger"
     3
   )
   const migration = readFileSync(
-    "supabase/migrations/20260926100000_loyalty_terms_snapshot_v20260926.sql",
+    "supabase/migrations/20261007100000_loyalty_terms_snapshot_v20260928.sql",
     "utf8"
   )
   assert.ok(
     migration.includes(`new.policy_version <> '${CUSTOMER_LEGAL_VERSION}'`)
   )
+  const joining = buildVenueTermsSections({
+    merchantName: "Venue",
+    stampsRequired: 4,
+    rewardTerms: "",
+  }).find((section) => section.id === "joining").body
+  assert.ok(
+    migration.includes(`'body', '${joining}'`),
+    "the database snapshot records the joining text the join page shows"
+  )
+})
+
+test("customer terms describe joining and signing in by phone or email as shipped", () => {
+  const joining = PLATFORM_TERMS_SECTIONS.find(
+    (section) => section.id === "joining"
+  ).body
+  for (const rule of [
+    /one-time code sent by text message to your mobile number or, where the page offers it, by email/,
+    /control that phone number or inbox/,
+    /Each phone number and each verified email address can belong to only one Nabaperks wallet/,
+    /An email address can start a new wallet only on a venue join page, after you choose to start one/,
+    /opens only a wallet that already holds that verified address/,
+    /stamps stay on the wallet you first joined with/,
+    /does not merge wallets automatically/,
+    /a wallet started with an email address can add a mobile number, as long as no other wallet holds it/,
+    /public offer link need a confirmed phone number/,
+    /select the required loyalty-terms control before a membership is created/,
+    /immutable copy of the venue terms accepted/,
+  ]) {
+    assert.match(joining, rule)
+  }
+  assert.doesNotMatch(joining, /sent by text\. /)
 })
 
 test("venue terms preserve configured earning and individual reward terms", () => {

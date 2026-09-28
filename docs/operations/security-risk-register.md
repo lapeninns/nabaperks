@@ -217,3 +217,22 @@ wallets still depend on SMS. Within 30 days of the mode reaching `full` in
 production, review whether sessions should expire again, using the share of
 active wallets with a verified email and the email code delivery rate. Record
 the outcome here with its date.
+
+### Owner decision: email sign-in mode `full` (28 September 2026)
+
+On 28 September 2026 the risk owner decided to enable customer email sign-in
+in mode `full`, so that email can open an existing wallet and start a new one
+on the join page. Customer terms version `2026-09-28` describes joining and
+signing in by email, which the production runbook requires before the mode is
+raised. This records that decision only; it does not change the session
+decision, residual risk or safeguards above.
+
+The conditions already written in this entry still apply:
+
+- Within 30 days of the mode reaching `full` in production, review whether
+  sessions should expire again, using the share of active wallets with a
+  verified email and the email code delivery rate, and record the outcome here
+  with its date.
+- Reconsider immediately if a customer reports wallet misuse from a lost or
+  shared device, or if wallets gain stored value or payment capability.
+- The review due date of 27 December 2026 stands.

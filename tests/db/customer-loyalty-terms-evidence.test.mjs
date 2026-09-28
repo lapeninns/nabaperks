@@ -244,3 +244,77 @@ test(
     })
   }
 )
+
+test(
+  "Given the 2026-09-28 terms When an email-only customer joins Then the snapshot describes phone or email verification and changes nothing else",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [fixture] = await tx`
+        select qr.qr_id, merchants.business_slug
+        from public.qr_codes qr
+        join public.merchants merchants on merchants.id = qr.merchant_id
+        where qr.is_active and qr.destination_type = 'join'
+        order by qr.created_at limit 1`
+      assert.ok(fixture)
+
+      const joinAs = async (policyVersion) => {
+        const email = `terms-v${policyVersion.replaceAll("-", "")}-${randomUUID()}@test.local`
+        const [customer] = await tx`
+          insert into public.customers (
+            email, email_hmac, email_verified_at, created_at, updated_at
+          )
+          values (
+            ${email}, encode(extensions.digest(${email}, 'sha256'), 'hex'),
+            now(), now(), now()
+          )
+          returning id, phone_hmac`
+        assert.equal(customer.phone_hmac, null)
+        const [joined] = await tx`
+          select * from public.join_customer_membership(
+            ${customer.id}::uuid, ${fixture.business_slug}, ${fixture.qr_id},
+            false, ${policyVersion}
+          )`
+        assert.equal(joined.created_membership, true)
+        const [evidence] = await tx`
+          select policy_version, terms_snapshot,
+                 terms_sha256 = encode(
+                   extensions.digest(terms_snapshot::text, 'sha256'), 'hex'
+                 ) as hash_matches
+          from public.customer_loyalty_terms_acceptances
+          where membership_id = ${joined.membership_id}::uuid`
+        assert.equal(evidence.policy_version, policyVersion)
+        assert.equal(evidence.hash_matches, true)
+        return evidence.terms_snapshot
+      }
+
+      const previous = await joinAs("2026-09-26")
+      const current = await joinAs("2026-09-28")
+
+      const joining = current.sections.find(
+        (section) => section.id === "joining"
+      )
+      assert.deepEqual(joining, {
+        id: "joining",
+        title: "Joining the card",
+        body: "Join by verifying your mobile phone number or, where offered, your email address with a one-time code, and accepting these venue terms and the Nabaperks customer terms after being shown the privacy notice. Marketing is optional and is not required to keep the card, collect stamps, or redeem an eligible reward.",
+      })
+      assert.match(
+        current.sections.find((section) => section.id === "redemption").body,
+        /A verified email address is required before reward collection\./
+      )
+
+      // Only the joining section differs from the corrected 2026-09-26 snapshot.
+      assert.deepEqual(
+        current.sections.filter((section) => section.id !== "joining"),
+        previous.sections.filter((section) => section.id !== "joining")
+      )
+      assert.equal(current.merchant_name, previous.merchant_name)
+      assert.equal(current.card_name, previous.card_name)
+      assert.notDeepEqual(
+        previous.sections.find((section) => section.id === "joining"),
+        joining
+      )
+    })
+  }
+)

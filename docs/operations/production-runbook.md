@@ -697,6 +697,14 @@ in by email.
   and `tests/unit/legal-activation.test.mjs`, as the 2026-09-26 activation did.
   The terms in force until then describe joining by phone only, and joins
   record that version, so the text must not change under it.
+  **Satisfied by version `2026-09-28`** (customer terms `CT-2026-09-28`,
+  effective 28 September 2026, snapshot migration
+  `20261007100000_loyalty_terms_snapshot_v20260928.sql`), once both that
+  migration and the application build that sends `2026-09-28` are live in
+  the environment. Apply the migration before the build: until it is applied,
+  a join recording `2026-09-28` stores the join function's older default
+  snapshot instead of the 2026-09-28 venue terms text.
+  A later change to how customers join or sign in needs another version.
 - **Rollback:** while `full` has never run in the environment, set the mode
   back to `off` and redeploy. Collected and verified emails stay in place; no
   data migration is required. Once `full` has run, email-only wallets may

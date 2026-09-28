@@ -12,7 +12,7 @@ export type LegalSection = {
   body: string
 }
 
-export const CUSTOMER_LEGAL_VERSION = "2026-09-26"
+export const CUSTOMER_LEGAL_VERSION = "2026-09-28"
 
 export const NO_ADDITIONAL_EXCLUSIONS = "No additional exclusions configured."
 
@@ -25,7 +25,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "joining",
     title: "Joining a venue",
-    body: "You join with a mobile phone number and a one-time code sent by text. You must select the required loyalty-terms control before a membership is created. The join screen provides the current venue terms, these platform terms, and the privacy notice. Nabaperks records the venue terms version and an immutable copy of the venue terms accepted for that membership.",
+    body: "You join a venue, or sign back in to your wallet, with a one-time code sent by text message to your mobile number or, where the page offers it, by email to your email address. Entering the code shows that you control that phone number or inbox. Each phone number and each verified email address can belong to only one Nabaperks wallet. An email address can start a new wallet only on a venue join page, after you choose to start one; signing in elsewhere by email opens only a wallet that already holds that verified address. Your stamps stay on the wallet you first joined with, and Nabaperks does not merge wallets automatically; if you have more than one, ask the venue team or contact Nabaperks support for help. From your profile, a wallet without a verified email address can add one, and a wallet started with an email address can add a mobile number, as long as no other wallet holds it. Offers claimed from a venue’s public offer link need a confirmed phone number. You must select the required loyalty-terms control before a membership is created. The join screen provides the current venue terms, these platform terms, and the privacy notice. Nabaperks records the venue terms version and an immutable copy of the venue terms accepted for that membership.",
   },
   {
     id: "marketing",
@@ -70,12 +70,12 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
 ]
 
 export const PLATFORM_TERMS_META = {
-  eyebrow: "For customers · effective 26 September 2026",
+  eyebrow: "For customers · effective 28 September 2026",
   title: "Nabaperks customer terms.",
   description:
     "The terms for keeping venue loyalty cards, collecting stamps, and redeeming rewards through Nabaperks.",
   cardTitle: "Customer terms",
-  docNumber: "CT-2026-09-26",
+  docNumber: "CT-2026-09-28",
 }
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
@@ -382,7 +382,7 @@ export function buildVenueTermsSections({
     {
       id: "joining",
       title: "Joining the card",
-      body: "Join by verifying your mobile phone number and accepting these venue terms and the Nabaperks customer terms after being shown the privacy notice. Marketing is optional and is not required to keep the card, collect stamps, or redeem an eligible reward.",
+      body: "Join by verifying your mobile phone number or, where offered, your email address with a one-time code, and accepting these venue terms and the Nabaperks customer terms after being shown the privacy notice. Marketing is optional and is not required to keep the card, collect stamps, or redeem an eligible reward.",
     },
     {
       id: "earning-rule",
