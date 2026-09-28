@@ -189,7 +189,7 @@ export const COOKIE_SECTIONS: LegalSection[] = [
   {
     id: "local-storage",
     title: "Local storage",
-    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the birthday-profile prompt (nabaperks.dob-prompt-dismissed), dismissal of the add-your-email prompt (nabaperks.email-prompt-dismissed), and the sign-in method this browser last confirmed, email or phone (nabaperks.last-contact-method), so the join page can show that method first. Each prompt dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
+    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the birthday-profile prompt (nabaperks.dob-prompt-dismissed), and dismissal of the add-your-email prompt (nabaperks.email-prompt-dismissed). An older entry recording the sign-in method this browser last used (nabaperks.last-contact-method) is no longer used and is removed when the join or sign-in page loads. Each prompt dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
   },
   {
     id: "push-and-analytics",

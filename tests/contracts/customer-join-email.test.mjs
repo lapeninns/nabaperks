@@ -399,8 +399,7 @@ test("Given email is a fallback When the join and login screens load Then no dev
     .concat(walk(path.join(projectRoot, "lib")))
     .concat(walk(path.join(projectRoot, "app")))
     .concat(walk(path.join(projectRoot, "hooks")))) {
-    // The privacy notice still names the retired key until its storage
-    // sentence is updated; drop this exemption with that change.
+    // The privacy notice names the retired key only to say it is removed.
     if (file.endsWith(path.join("lib", "legal", "content.ts"))) continue
     if (file.endsWith(forget)) continue
     assert.doesNotMatch(
