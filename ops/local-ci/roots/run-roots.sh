@@ -8,7 +8,8 @@
 # Roots: fast coverage quality build a11y visual e2e lighthouse zap db
 # (default: all). Browser roots run inside the CI-pinned Playwright image
 # (same digest as .github/workflows/ci.yml) on a clean clone of the branch
-# (`git clone --local --no-hardlinks` into $LOCAL_CI_WORK/tree-<name>), so
+# (`git clone --local --no-hardlinks` into $LOCAL_CI_WORK/tree-serial,
+# tree-slot-<1..N> or tree-host, fetched and reset between tasks), so
 # the local checkout's env files and excluded folders never leak in and
 # Docker only needs the cache directory shared, not the repository.
 # Lighthouse and ZAP build the branch on the host; db starts an isolated
@@ -137,7 +138,7 @@ if [ "$DRY_RUN" = 1 ]; then
       read -r cpus mem <<<"$(budget "$task")"
       echo "  task $task cpus=$cpus memory=${mem}g estimate=$(estimate "$task")s"
     done
-    mounts "$WORK/tree-<task>" "$VOLUME_PREFIX-node-modules-<slot>"; echo "  mounts: ${MOUNTS[*]}"
+    mounts "$WORK/tree-slot-<slot>" "$VOLUME_PREFIX-node-modules-<slot>"; echo "  mounts: ${MOUNTS[*]}"
   fi
   [ ${#HOST_ROOTS[@]} -eq 0 ] || echo "host, serial: ${HOST_ROOTS[*]}"
   exit 0
@@ -148,9 +149,12 @@ mkdir -p "$LOG" "$CI_DIR"; : >"$RESULTS"
 node "$REPO/ops/local-ci/roots/workflow-env.mjs" "$REPO/.github/workflows/ci.yml" >"$CI_DIR/env.sh"
 cp "$REPO/ops/local-ci/roots/container-roots.sh" "$CI_DIR/container-roots.sh"
 
-BG_PIDS=()
+# Only live children of this run: finish_slot clears a slot's PID as soon as
+# it reaps it, so an exit never signals a PID the OS may have reused.
+SLOT_PID=()
 cleanup() {
-  for pid in ${BG_PIDS[@]+"${BG_PIDS[@]}"}; do kill "$pid" 2>/dev/null || true; done
+  local pid
+  for pid in ${SLOT_PID[@]+"${SLOT_PID[@]}"}; do [ -z "$pid" ] || kill "$pid" 2>/dev/null || true; done
   local ids
   ids="$(docker ps -aq --filter "label=nabaperks.local-ci.run=$RUN_ID" 2>/dev/null || true)"
   # shellcheck disable=SC2086 # one container id per word
@@ -228,8 +232,10 @@ if [ ${#TASKS[@]} -gt 0 ]; then
     SLOT_PID[s]=""; SLOT_TASK[s]=""; SLOT_START[s]=0; SLOT_MEM[s]=0
     ensure_volume "$VOLUME_PREFIX-node-modules-$s"
   done
+  # One clone per slot, reset between tasks, so the cache holds at most N
+  # clones however many tasks run.
   run_task() { # <slot> <task> <cpus> <memory GiB>
-    local tree="$WORK/tree-$2"
+    local tree="$WORK/tree-slot-$1"
     prepare_tree "$tree" || return 125
     mounts "$tree" "$VOLUME_PREFIX-node-modules-$1"
     docker run --rm --init --ipc=host "${LABELS[@]}" --name "nabaperks-roots-$RUN_ID-$2" \
@@ -239,6 +245,7 @@ if [ ${#TASKS[@]} -gt 0 ]; then
   finish_slot() { # <slot>
     local s="$1" task="${SLOT_TASK[$1]}" rc wall
     wait "${SLOT_PID[$s]}" 2>/dev/null || true
+    SLOT_PID[s]=""
     rc="$(cat "$LOG/$task.rc")"; wall=$((SECONDS - SLOT_START[s]))
     grep '^=== ROOT .* EXIT ' "$LOG/$task.log" || true
     record_log "$LOG/$task.log" "$wall" || { [ "$rc" != 0 ] || rc=1; }
@@ -248,7 +255,7 @@ if [ ${#TASKS[@]} -gt 0 ]; then
       echo "--- $task failed (container exit $rc after ${wall}s); last lines of $LOG/$task.log:"; tail -n 20 "$LOG/$task.log"
     fi
     USED=$((USED - SLOT_MEM[s])); RUNNING=$((RUNNING - 1))
-    SLOT_PID[s]=""; SLOT_TASK[s]=""
+    SLOT_TASK[s]=""
   }
   NEXT=0; RUNNING=0; USED=0
   while [ "$NEXT" -lt ${#TASKS[@]} ] || [ "$RUNNING" -gt 0 ]; do
@@ -270,7 +277,7 @@ if [ ${#TASKS[@]} -gt 0 ]; then
         echo "$rc" >"$LOG/$task.rc"
       ) &
       SLOT_PID[s]=$!; SLOT_TASK[s]="$task"; SLOT_START[s]=$SECONDS; SLOT_MEM[s]=$mem
-      BG_PIDS+=("$!"); USED=$((USED + mem)); RUNNING=$((RUNNING + 1)); NEXT=$((NEXT + 1))
+      USED=$((USED + mem)); RUNNING=$((RUNNING + 1)); NEXT=$((NEXT + 1))
     done
     [ "$RUNNING" -eq 0 ] || sleep 2
   done

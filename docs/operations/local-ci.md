@@ -18,8 +18,10 @@ runs the hosted roots (`fast`, `coverage`, `quality`, `build`, `a11y`,
 `visual`, `e2e`, `lighthouse`, `zap`, `db`) on a clean clone of the branch
 before a PR is opened or updated, so hosted minutes are spent only on what
 local proof cannot give. Each clone is `git clone --local --no-hardlinks`
-into `~/.cache/nabaperks-local-ci/tree-<name>` (override with
-`LOCAL_CI_WORK`), fetched and reset on later runs. Containers mount only that
+into `~/.cache/nabaperks-local-ci/` (override with `LOCAL_CI_WORK`):
+`tree-serial` for `--jobs 1`, `tree-slot-1` to `tree-slot-N` for `--jobs N`
+and `tree-host` for the host roots. A clone is fetched, checked out and
+cleaned before each task that reuses it. Containers mount only that
 cache directory and named volumes, never the repository or its `.git`, so the
 plane keeps working when Docker Desktop file sharing is restricted to the
 cache. Browser roots run inside the CI-pinned Playwright image on the headless
@@ -51,9 +53,15 @@ wall-time summary and exits non-zero when any root failed. Containers carry
 the `nabaperks.local-ci.run=<run id>` label, and an interrupted run removes
 only its own containers. `LOCAL_CI_VOLUME_PREFIX` and `LOCAL_CI_EXTRA_LABEL`
 isolate and label trial runs. Each clone holds a full copy of the object
-store (about 0.7 GiB); delete `~/.cache/nabaperks-local-ci/tree-*` to reclaim
-the space. The earlier single `tree` worktree is no longer used and can be
-removed with `git worktree remove`.
+store: about 0.75 GiB with its checkout (measured 2026-09-28), before build
+output. The number of clones follows the slots, not the tasks: a `--jobs N`
+run uses at most `N + 1` (the slots and `tree-host`), about 3.7 GiB for
+`--jobs 4`, and `tree-serial` stays from any earlier `--jobs 1` run. The
+copy is deliberate: root containers can write to the mounted clone, and a
+hardlinked object store would share those files with the repository. Delete
+`~/.cache/nabaperks-local-ci/tree-*` to reclaim the space. The earlier single
+`tree` worktree is no longer used and can be removed with
+`git worktree remove`.
 
 This is advisory proof: hosted CI on the PR remains the merge authority.
 Known local differences: the host is arm64 while hosted runners are amd64, so

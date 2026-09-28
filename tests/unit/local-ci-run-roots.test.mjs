@@ -92,6 +92,11 @@ test("--jobs N plans one capped container per hosted job, longest first", () => 
       `${source} must be under the cache directory or a named volume`
     )
   assert.doesNotMatch(mounts, /\.git/)
+  // Clones follow slots, not tasks: at most N copies of the object store.
+  assert.ok(
+    sources.includes(`${WORK}/tree-slot-<slot>`),
+    "each slot must reuse one clone"
+  )
   assert.match(run.stdout, /^host, serial: lighthouse$/m)
   assert.equal(existsSync(WORK), false, "a dry run must not create the cache")
 })
