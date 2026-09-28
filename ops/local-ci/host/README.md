@@ -405,8 +405,10 @@ Docker Desktop's VM is shared with other worktrees' containers and sees the
 directories in Docker Desktop's file-sharing list. The owner accepted that
 weaker isolation on 2026-09-28; `docs/operations/local-ci.md` section 7.6
 records the residual risk, including two paths found afterwards - the
-forwarded SSH agent in the VM and the VM's unrestricted network - that still
-need the owner's acceptance before the agent is loaded. The barriers that replace Lima's are, again,
+forwarded SSH agent in the VM and the VM's unrestricted network - which the
+owner also accepted on 2026-09-28, on condition that the macOS `ssh-agent`
+holds no GitHub-capable key while the agent is loaded and file sharing lists
+only `~/LapenInns Project` and `~/.cache/nabaperks-local-ci`. The barriers that replace Lima's are, again,
 mechanisms rather than policy, and the agent re-checks them before every
 dispatch, refusing on any failure:
 

@@ -1526,11 +1526,13 @@ job container reaches the Docker Desktop VM, the directories it shares and the
 other worktrees' containers on it. It does not reach the App private key or the
 installation token through file sharing.
 
-**Residual risk not covered by the 2026-09-28 acceptance.** Review of this
-record on 2026-09-28 found two further things a kernel escape reaches, which
-the owner was not shown when accepting. They need the owner's acceptance of the
-corrected scope; until it is recorded here, do not load the agent on this
-runtime.
+**Corrected scope, owner-accepted on 2026-09-28.** Review of this record on
+2026-09-28 found further things a kernel escape reaches, which the owner was
+not shown at first. They were put to the owner the same day, and the owner
+accepted the corrected scope below, on condition that the macOS `ssh-agent`
+holds no GitHub-capable key while the agent is loaded (see Conditions), and
+with Docker Desktop file sharing limited to `~/LapenInns Project` and
+`~/.cache/nabaperks-local-ci`.
 
 - **The operator's forwarded SSH agent, and so their GitHub identity.** Docker
   Desktop for Mac forwards the Mac's SSH agent into its VM at
@@ -1557,11 +1559,15 @@ revisit it with the owner if any changes:
 - Docker Desktop's file sharing stays restricted as in item 1. The agent
   refuses every dispatch otherwise, so a reset to the defaults stops the plane
   rather than weakening it.
-- Proposed, pending the owner's acceptance of the corrected scope: while the
-  agent is loaded, the macOS `ssh-agent` holds no key that can authenticate to
-  GitHub (`ssh-add -l` reports no identities), or every such key needs
-  hardware confirmation for each use. The agent does not enforce this; it is
-  an operator condition.
+- Accepted by the owner on 2026-09-28: while the agent is loaded, the macOS
+  `ssh-agent` holds no key that can authenticate to GitHub (`ssh-add -l`
+  reports no identities; true when checked on 2026-09-28), or every such key
+  needs hardware confirmation for each use. The agent does not enforce this;
+  it is an operator condition, checked before each install.
+- Docker Desktop file sharing lists only `~/LapenInns Project` and
+  `~/.cache/nabaperks-local-ci` (owner decision, 2026-09-28). An escape can
+  therefore read that project tree, including its `.env.local` files, but not
+  the rest of the home directory or `~/.nabaperks-local-ci`.
 - Local results stay advisory: no local check joins a required context, and
   `LOCAL_CI_MODE` and the enforcement fields are not flipped.
 - The repository stays public, because the helper fetches anonymously.

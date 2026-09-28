@@ -46,7 +46,8 @@
  * internet and the Mac's loopback services, and Docker Desktop forwards the
  * Mac's SSH agent into it at /run/host-services/ssh-auth.sock; a kernel
  * escape from a job container gets both. docs/operations/local-ci.md section
- * 7.6 records that this was not part of the 2026-09-28 acceptance.
+ * 7.6 records the owner's acceptance of this on 2026-09-28, conditional on the
+ * macOS ssh-agent holding no GitHub-capable key while the agent is loaded.
  *
  * A Broken or stopped engine is never repaired here. Every check refuses, and
  * the poll loop publishes nothing new until the engine is healthy again.
