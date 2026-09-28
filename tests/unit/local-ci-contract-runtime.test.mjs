@@ -83,3 +83,39 @@ test("a runtime block that widens what a job is given is refused at load", () =>
     )
   }
 })
+
+test("a Lima rollback that does not fit its VM is refused at load, not on every dispatch", () => {
+  // Flipping only the kind keeps the Docker Desktop job budget (16 CPU,
+  // 40 GiB), which with the daemon and the VM reserve exceeds the 12 CPU /
+  // 40 GiB VM.
+  for (const edit of [
+    (c) => (c.runtime = { kind: "lima" }),
+    (c) => delete c.runtime,
+    (c) => {
+      Object.assign(c, limaRollback(c))
+      c.container.memoryGb = 33
+    },
+    (c) => {
+      Object.assign(c, limaRollback(c))
+      c.vm.reserveCpus = 2
+    },
+  ]) {
+    const contract = raw()
+    edit(contract)
+    assert.throws(
+      () => validateContract(contract),
+      (error) => {
+        assert.equal(error.code, "RESOURCE_OVERCOMMIT", edit.toString())
+        assert.match(error.message, /lima runtime/)
+        return true
+      }
+    )
+  }
+  const missingReserve = limaRollback(raw())
+  delete missingReserve.vm.reserveMemoryGb
+  assert.throws(() => validateContract(missingReserve), {
+    code: "CONTRACT_SHAPE",
+  })
+  // The documented rollback fits exactly.
+  assert.equal(runtimeKind(validateContract(limaRollback(raw()))), "lima")
+})

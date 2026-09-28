@@ -654,11 +654,47 @@ function validateDockerDesktopRuntime(contract) {
   }
 }
 
+/**
+ * The Lima VM's budget, checked at load as assertResourceBudgets checks it
+ * before every dispatch: job container, Docker-in-Docker daemon and VM
+ * reserve inside the VM. Without this a rollback that flips only
+ * `runtime.kind` loads, passes the health check, and then fails every job
+ * with RESOURCE_OVERCOMMIT after its check was opened.
+ */
+function validateLimaBudget(contract) {
+  const vm = requireObject(contract.vm, "vm")
+  const container = contract.container
+  const daemon = requireObject(container.daemon, "container.daemon")
+  for (const [value, label] of [
+    [daemon.cpus, "container.daemon.cpus"],
+    [daemon.memoryGb, "container.daemon.memoryGb"],
+    [vm.cpus, "vm.cpus"],
+    [vm.memoryGb, "vm.memoryGb"],
+    [vm.reserveCpus, "vm.reserveCpus"],
+    [vm.reserveMemoryGb, "vm.reserveMemoryGb"],
+  ]) {
+    requirePositiveNumber(value, label)
+  }
+  if (
+    container.cpus + daemon.cpus + vm.reserveCpus > vm.cpus ||
+    container.memoryGb + daemon.memoryGb + vm.reserveMemoryGb > vm.memoryGb
+  ) {
+    fail(
+      "RESOURCE_OVERCOMMIT",
+      `on the lima runtime, container (${container.cpus} CPU, ${container.memoryGb} GiB), the daemon (${daemon.cpus} CPU, ${daemon.memoryGb} GiB) and the VM reserve (${vm.reserveCpus} CPU, ${vm.reserveMemoryGb} GiB) must fit inside vm.cpus ${vm.cpus} and vm.memoryGb ${vm.memoryGb}`
+    )
+  }
+}
+
 function validateRuntime(contract) {
-  if (contract.runtime === undefined) return
+  if (contract.runtime === undefined) {
+    validateLimaBudget(contract)
+    return
+  }
   const runtime = requireObject(contract.runtime, "runtime")
   requireOneOf(runtime.kind, RUNTIME_KINDS, "runtime.kind")
   if (runtime.kind === "docker-desktop") validateDockerDesktopRuntime(contract)
+  else validateLimaBudget(contract)
 }
 
 function validateProfilesMap(contract) {
