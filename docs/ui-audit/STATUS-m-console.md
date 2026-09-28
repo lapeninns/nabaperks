@@ -47,9 +47,14 @@ Decisions that changed under review:
   `harness-offers-*`) were regenerated inside the CI-pinned
   `mcr.microsoft.com/playwright:v1.62.1-noble` image (same digest as
   `ci.yml`) and committed on the L8 branch.
-- Deferred to a staged-input follow-up: adding the console routes, the
+- Deferred, and currently not staged: adding the console routes, the
   greyscale receipt and the 320–1024 breakpoint matrix to `visual.spec.ts`,
-  and the numbers / more / billing / paused lanes to the a11y sweep. Those
+  and the numbers / more / billing / paused lanes to the a11y sweep. #355
+  staged those copies (7f563f9a), but they could not activate without Linux
+  baselines for the new visual tests, so the hosted speed-ups staging PR
+  withdrew them to byte-identical mirrors. To restore the coverage, re-stage
+  both copies from 7f563f9a together with console baselines generated in the
+  CI image; this still needs a tracking issue. Those
   two files sit in the CI selection dependency graph, so editing them turns
   a product PR into a qualification-policy change that needs a
   `config/ci-qualification-inputs/<path>.source` review. The console specs

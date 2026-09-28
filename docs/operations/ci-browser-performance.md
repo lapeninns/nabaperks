@@ -93,7 +93,9 @@ packs are far from even — `mobile-safari` packs 1–4 carried 368 s, ~170 s,
 322 s and 306 s of test time on run 34689434054 — so the consecutive grouping
 that `packShards` deliberately keeps (see [ci-cost-baseline.md](ci-cost-baseline.md))
 now costs roughly 45–60 s of wall clock against a measured-weight grouping.
-That is a real but second-order lever; it is recorded here, not taken.
+That is a real but second-order lever. A duration-balanced per-project pack
+plan is now staged as a qualification input; it is not active until an
+activation PR applies it (see [ci-cost-baseline.md](ci-cost-baseline.md)).
 
 The two things that actually broke the bar:
 

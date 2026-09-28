@@ -111,6 +111,18 @@ once" proof, which is the property that makes the no-tests-dropped argument
 readable. Adjacent pairing is therefore the deliberate choice, and the ~15s of
 wall clock is the stated price of the ~22 machine-minutes.
 
+**Staged change, not yet active.** A qualification proposal in
+`config/ci-qualification-inputs/scripts/ci/run-browser-pack.mjs.source`
+replaces the consecutive blocks with a per-project `PACK_PLAN`: each project's
+32 shards are assigned to its four packs longest-processing-time-first on
+measured slot times, and a load-time assertion checks that every project's
+packs still tile 1..32 exactly once. Until an activation PR applies that copy,
+the active script is the consecutive-block version described above. The
+activation PR must rewrite this paragraph, and the matching passages in
+[ci-redesign.md](ci-redesign.md) and
+[ci-browser-performance.md](ci-browser-performance.md), to describe the
+balanced plan as the landed shape.
+
 Everything in this section is modelled from **one run's** job timings. It must be
 confirmed against real runs after merge before it is quoted as an achieved
 saving.

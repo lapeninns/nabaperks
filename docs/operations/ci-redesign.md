@@ -107,7 +107,10 @@ Two honest qualifications:
   slight regression of roughly 15s is expected. The landed `packShards` emits
   consecutive blocks, so adjacent pairing is what ships; balanced pairing
   (1+8, 2+7, 3+6, 4+5) would recover about 8s for identical machine-minutes but
-  would cost the script its one-line tiling proof, so it was not taken. An
+  would cost the script its one-line tiling proof, so it was not taken at
+  landing. A duration-balanced per-project pack plan with a load-time tiling
+  assertion is now staged as a qualification input, not active; see
+  [ci-cost-baseline.md](ci-cost-baseline.md) for its status. An
   earlier ~285s estimate assumed even shard weights and should not be relied
   upon. The a11y tier has no such problem: summing real adjacent shard pairs
   gives a slowest job of 144s, and the 20-minute bound is generous either way.
