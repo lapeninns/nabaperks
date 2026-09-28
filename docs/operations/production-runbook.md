@@ -684,7 +684,10 @@ page and makes every email sign-in action refuse. `existing` lets a verified
 email open the wallet that holds it; `full` also lets email start a new wallet
 on the join page. The add-your-email prompts and the email-conflict message
 already read the mode, so setting it changes what guests are told about signing
-in by email.
+in by email. In every mode phone is the first and only contact form on the join
+page and at `/home/login`; above `off`, email appears only on the phone code
+step, 30 seconds after the server sent the code (owner decision, 28 September
+2026).
 
 - **Precondition:** keep the mode `off` in an environment until the application
   build with the email sign-in and email join flows, and the database
