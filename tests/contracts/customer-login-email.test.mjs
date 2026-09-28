@@ -64,6 +64,8 @@ test("Given /home/login When a verified email holds no wallet Then it never crea
     source,
     /"No wallet uses this email yet\. Scan a venue QR to join, or sign in with your phone\."/
   )
+  // A failed lookup or session after a matched code keeps that code usable.
+  assert.match(source, /await keepEmailSignInForRetry\(verified\)/)
   // The same scan step as a phone with no cards (#387), not another code.
   assert.match(
     verify.body,

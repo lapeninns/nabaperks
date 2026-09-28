@@ -10,11 +10,16 @@ import { normalizeEmail } from "@/lib/customer/email-pii-core"
 import {
   checkEmailSignInChallenge,
   clearPendingEmailSignIn,
+  type EmailSignInVerified,
   getPendingEmailSignIn,
+  keepEmailSignInForRetry,
   startEmailSignInChallenge,
 } from "@/lib/customer/email-sign-in"
 import { normalizeOtpInput } from "@/lib/customer/experience/otp-field"
-import { findCustomerByVerifiedEmail } from "@/lib/customer/identity"
+import {
+  type CurrentCustomer,
+  findCustomerByVerifiedEmail,
+} from "@/lib/customer/identity"
 import { isEmailAddress } from "@/lib/customer/profile-fields"
 import { clearPendingPhoneVerification } from "@/lib/customer/session"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
@@ -30,6 +35,10 @@ import { logger } from "@/lib/observability/logger"
  * Every action reads the rollout mode on the server and refuses while email
  * sign-in is off, whatever the form posted. Sessions are minted only through
  * `establishCustomerSessionAfterVerifiedEmail`, never directly.
+ *
+ * A matched code is spent. If the wallet lookup or the session then fails,
+ * the same code is restored under a new challenge (as on the join page), so a
+ * passing fault never costs the customer their code.
  */
 
 const EMAIL_SIGN_IN_OFF =
@@ -38,7 +47,8 @@ const EMAIL_DELAYED =
   "Email codes are delayed. Try again shortly or use your phone."
 const INVALID_EMAIL = "Enter a valid email address."
 const CODE_EXPIRED = "Request a new email code."
-const SESSION_FAILED = "We couldn't sign you in just now. Try again shortly."
+const SIGN_IN_RETRY =
+  "We couldn't sign you in just now. Enter the same code again shortly."
 const REQUEST_MESSAGE = "If a code arrives at that address, enter it here."
 const RESEND_MESSAGE = "Use the latest code we sent."
 const NO_WALLET_MESSAGE =
@@ -139,8 +149,16 @@ export async function verifyCustomerLoginEmailAction(
     }
   }
 
+  // The code is spent from here on. If anything below fails, the same code is
+  // restored under a new challenge, so the customer can simply try again.
+  let customer: CurrentCustomer | null
+  try {
+    customer = await findCustomerByVerifiedEmail(result.email)
+  } catch {
+    return retryVerifiedCode(result, codeFields, "find_customer")
+  }
+
   // Said only now, after the customer proved the inbox is theirs.
-  const customer = await findCustomerByVerifiedEmail(result.email)
   if (!customer) {
     recordCustomerContactEvent({
       eventName: "customer_login_no_wallet",
@@ -159,13 +177,7 @@ export async function verifyCustomerLoginEmailAction(
       customerWasCreated: false,
     })
   } catch {
-    logger.error("customer_email_login_session_failed", {
-      operation: "establish_session",
-    })
-    return {
-      fields: { method: "email", email },
-      errors: { form: SESSION_FAILED },
-    }
+    return retryVerifiedCode(result, codeFields, "establish_session")
   }
 
   recordCustomerContactEvent({
@@ -210,6 +222,20 @@ export async function switchCustomerLoginMethodAction(
   }
   await clearPendingEmailSignIn()
   return { fields: { method: "phone" } }
+}
+
+/**
+ * After a matched code, a failed lookup or session restores the same code
+ * under a new challenge and keeps the customer on the code step.
+ */
+async function retryVerifiedCode(
+  verified: EmailSignInVerified,
+  fields: NonNullable<LoginState["fields"]>,
+  operation: string
+): Promise<LoginState> {
+  logger.error("customer_email_login_sign_in_failed", { operation })
+  await keepEmailSignInForRetry(verified)
+  return { fields, errors: { form: SIGN_IN_RETRY } }
 }
 
 function emailSignInOff(): LoginState {

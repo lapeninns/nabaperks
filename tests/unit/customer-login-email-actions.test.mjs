@@ -23,8 +23,9 @@ const STUBS = {
     events: [],
     start: { status: "code_sent", maskedEmail: "g***@example.com", resendAvailableAt: 1060 },
     pending: null,
-    check: { status: "verified", email: "guest@example.com", emailHmac: "a".repeat(64) },
+    check: { status: "verified", email: "guest@example.com", emailHmac: "a".repeat(64), retryChallenge: { challengeId: "retry-1" } },
     wallet: null,
+    findFails: false,
     sessionFails: false,
   };`,
   "server-only": "",
@@ -45,9 +46,14 @@ const STUBS = {
     export async function startEmailSignInChallenge(input) { state.calls.push(["start", input]); return state.start }
     export async function checkEmailSignInChallenge(input) { state.calls.push(["check", input]); return state.check }
     export async function getPendingEmailSignIn() { state.calls.push(["pending"]); return state.pending }
-    export async function clearPendingEmailSignIn() { state.calls.push(["clearEmail"]) }`,
+    export async function clearPendingEmailSignIn() { state.calls.push(["clearEmail"]) }
+    export async function keepEmailSignInForRetry(verified) { state.calls.push(["keepForRetry", verified.retryChallenge.challengeId]) }`,
   "@/lib/customer/identity": `import { state } from "fixture-state";
-    export async function findCustomerByVerifiedEmail(email) { state.calls.push(["find", email]); return state.wallet }
+    export async function findCustomerByVerifiedEmail(email) {
+      state.calls.push(["find", email]);
+      if (state.findFails) throw new Error("database unavailable");
+      return state.wallet
+    }
     export async function createCustomerByVerifiedEmail() { throw new Error("login must never create a wallet") }`,
   "@/lib/customer/profile-fields":
     "export function isEmailAddress(raw) { return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(raw) }",
@@ -352,22 +358,68 @@ test("Given a wrong, expired or over-limit code When it is checked Then no walle
   assert.deepEqual(state.events, [])
 })
 
-test("Given the session cannot be established When a wallet's email is confirmed Then the customer is told and no sign-in is recorded", async () => {
+for (const fault of ["session", "lookup"]) {
+  test(`Given the ${fault} fails after a matched code When the email is confirmed Then the same code is kept for a retry and no sign-in is recorded`, async () => {
+    process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+    const { verifyCustomerLoginEmailAction, state } = await loadActions()
+    state.wallet = CUSTOMER
+    state.sessionFails = fault === "session"
+    state.findFails = fault === "lookup"
+
+    const result = await verifyCustomerLoginEmailAction(
+      {
+        fields: {
+          email: "guest@example.com",
+          maskedEmail: "g***@example.com",
+          retryAt: 1060,
+        },
+      },
+      form({ otp: "123456" })
+    )
+
+    // Still on the code step, so the customer can enter the same code again.
+    assert.deepEqual(result, {
+      fields: {
+        method: "email",
+        email: "guest@example.com",
+        otpSent: true,
+        maskedEmail: "g***@example.com",
+        retryAt: 1060,
+      },
+      errors: {
+        form: "We couldn't sign you in just now. Enter the same code again shortly.",
+      },
+    })
+    assert.deepEqual(
+      state.calls.at(-1),
+      ["keepForRetry", "retry-1"],
+      "the matched code is restored under its new challenge"
+    )
+    assert.equal(
+      state.calls.some(([name]) => name === "session"),
+      fault === "session"
+    )
+    assert.deepEqual(state.events, [])
+  })
+}
+
+test("Given a verified email no wallet holds When the code is confirmed Then the spent code is not restored", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { verifyCustomerLoginEmailAction, state } = await loadActions()
+
+  await verifyCustomerLoginEmailAction({}, form({ otp: "123456" }))
+
+  assert.ok(!state.calls.some(([name]) => name === "keepForRetry"))
+})
+
+test("Given a signed-in wallet When the email code is confirmed Then the spent code is not restored", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const { verifyCustomerLoginEmailAction, state } = await loadActions()
   state.wallet = CUSTOMER
-  state.sessionFails = true
 
-  const result = await verifyCustomerLoginEmailAction(
-    {},
-    form({ otp: "123456" })
-  )
+  await redirectOf(verifyCustomerLoginEmailAction({}, form({ otp: "123456" })))
 
-  assert.equal(
-    result.errors.form,
-    "We couldn't sign you in just now. Try again shortly."
-  )
-  assert.deepEqual(state.events, [])
+  assert.ok(!state.calls.some(([name]) => name === "keepForRetry"))
 })
 
 test("Given the code step When the customer changes email or method Then only the method being left loses its pending code", async () => {
