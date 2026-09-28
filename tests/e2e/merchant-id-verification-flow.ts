@@ -7,6 +7,7 @@ import jsQR from "jsqr"
 import { PNG } from "pngjs"
 
 import { adminLiveDbSkipReason, connectLocalDb } from "./helpers/admin-live-db"
+import { isIncidentalAbortedPrefetch } from "./helpers/aborted-rsc-request"
 import { dismissPwaInstall } from "./helpers/harness"
 import {
   cleanupRewardCollectionFixture,
@@ -17,16 +18,6 @@ import {
   installRewardCustomerSession,
   installRewardOwnerSession,
 } from "./helpers/reward-id-check-sessions"
-
-// WebKit reports a Next.js router (RSC) request that a navigation cancels as an
-// uncaught "… ?_rsc=… due to access control checks." page error. The request is
-// abandoned by the browser, not failed by the app, so only that exact shape is
-// ignored; every other page error still fails the journey.
-const ABORTED_RSC_REQUEST = /[?&]_rsc=\S+ due to access control checks\.?$/
-
-function isAbortedRscRequestError(message: string) {
-  return ABORTED_RSC_REQUEST.test(message)
-}
 
 export function registerMerchantIdVerificationTests() {
   test.describe("merchant in-person ID verification", () => {
@@ -51,6 +42,7 @@ export function registerMerchantIdVerificationTests() {
       page,
       context,
       browser,
+      browserName,
       baseURL,
     }, testInfo) => {
       const sql = connectLocalDb()
@@ -73,7 +65,8 @@ export function registerMerchantIdVerificationTests() {
       const merchant = await merchantContext.newPage()
       const errors: string[] = []
       const recordPageError = (error: Error) => {
-        if (!isAbortedRscRequestError(error.message)) errors.push(error.message)
+        if (!isIncidentalAbortedPrefetch(error.message, browserName))
+          errors.push(error.message)
       }
       page.on("pageerror", recordPageError)
       merchant.on("pageerror", recordPageError)
