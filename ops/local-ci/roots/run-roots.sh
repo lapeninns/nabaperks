@@ -77,9 +77,11 @@ budget() {
     *) echo "2 8" ;;
   esac
 }
-# Expected seconds, used only to start the longest work first: hosted median
-# test-step times sampled on 2026-09-28 (e2e per pack; mobile-safari's late
-# packs are the hosted critical path). Unknown or local-only costs are guesses.
+# Expected seconds, used only to start the longest work first. e2e packs are
+# hosted median test-step times sampled on 2026-09-28 (mobile-safari's late
+# packs are the hosted critical path); fast and quality are local root times
+# from the same day (32-39s and 6-10s); visual, a11y, build and coverage are
+# estimates from hosted machine time.
 estimate() {
   case "$1" in
     visual) echo 400 ;;
@@ -91,8 +93,8 @@ estimate() {
     e2e-desktop-safari-3) echo 316 ;; e2e-desktop-safari-4) echo 223 ;;
     e2e-chromium-1) echo 332 ;; e2e-chromium-2) echo 263 ;;
     e2e-chromium-3) echo 294 ;; e2e-chromium-4) echo 182 ;;
-    fast) echo 180 ;; a11y-*) echo 150 ;; build) echo 150 ;;
-    quality) echo 110 ;; coverage) echo 100 ;; *) echo 60 ;;
+    a11y-*) echo 150 ;; build) echo 150 ;; coverage) echo 100 ;;
+    fast) echo 40 ;; quality) echo 10 ;; *) echo 60 ;;
   esac
 }
 
@@ -243,7 +245,7 @@ if [ ${#TASKS[@]} -gt 0 ]; then
     grep -q '^=== ALL DONE' "$LOG/$task.log" || { [ "$rc" != 0 ] || rc=1; }
     [ "$rc" = 0 ] || record "$task(container)" "$rc" "?" "$wall"
     if [ "$rc" != 0 ] || grep -q '^=== ROOT .* EXIT [1-9]' "$LOG/$task.log"; then
-      echo "--- $task: container exit $rc after ${wall}s; last lines of $LOG/$task.log:"; tail -n 20 "$LOG/$task.log"
+      echo "--- $task failed (container exit $rc after ${wall}s); last lines of $LOG/$task.log:"; tail -n 20 "$LOG/$task.log"
     fi
     USED=$((USED - SLOT_MEM[s])); RUNNING=$((RUNNING - 1))
     SLOT_PID[s]=""; SLOT_TASK[s]=""
