@@ -12,7 +12,10 @@ import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Field, FieldGroup } from "@/components/ui/field"
 import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
-import { OTP_SEND_LABEL } from "@/lib/customer/otp-channel-core"
+import {
+  OTP_SEND_LABEL,
+  OTP_TEXT_FALLBACK_LABEL,
+} from "@/lib/customer/otp-channel-core"
 
 type ProfilePhoneAction = (
   state: ProfilePhoneState,
@@ -150,6 +153,9 @@ function PhoneNumberForm({ state, submitAction, pending }: StepProps) {
 function PhoneCodeForm({ state, submitAction, pending }: StepProps) {
   const phone = state.phone ?? ""
   const codeError = state.errors?.otp
+  // As on the join code step: a text is offered only when the code went out
+  // on WhatsApp; if it already went by text, WhatsApp refused the number.
+  const offersText = state.channel === "whatsapp"
   return (
     <div className="grid gap-3">
       <form action={submitAction}>
@@ -204,7 +210,11 @@ function PhoneCodeForm({ state, submitAction, pending }: StepProps) {
           className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1"
         >
           <input type="hidden" name="intent" value="request" />
+          <input type="hidden" name="resend" value="1" />
           <input type="hidden" name="phone" value={phone} />
+          {state.channel ? (
+            <input type="hidden" name="channel" value={state.channel} />
+          ) : null}
           <p className="text-sm text-muted-foreground">
             Phone ending{" "}
             <span className="font-bold text-foreground tabular-nums">
@@ -220,6 +230,23 @@ function PhoneCodeForm({ state, submitAction, pending }: StepProps) {
             Resend code
           </SubmitButton>
         </form>
+        {offersText ? (
+          <form action={submitAction}>
+            <input type="hidden" name="intent" value="request" />
+            <input type="hidden" name="resend" value="1" />
+            <input type="hidden" name="phone" value={phone} />
+            <input type="hidden" name="channel" value="sms" />
+            <SubmitButton
+              variant="link"
+              size="xs"
+              className="h-auto min-h-11 justify-start px-0"
+              disabled={pending}
+              pendingLabel="Sending…"
+            >
+              {OTP_TEXT_FALLBACK_LABEL}
+            </SubmitButton>
+          </form>
+        ) : null}
         <form action={submitAction}>
           <input type="hidden" name="intent" value="edit" />
           <input type="hidden" name="phone" value={phone} />

@@ -114,7 +114,7 @@ test("Given the profile When the wallet has no phone Then it offers to add one a
   )
   assert.match(
     profileActions,
-    /optedIn && \(channel === "sms" \|\| channel === "whatsapp"\)[\s\S]{0,160}customer\?\.phoneLast4/
+    /optedIn && PHONE_MARKETING_CHANNELS\.has\(channel\)[\s\S]{0,160}customer\?\.phoneLast4/
   )
   const consent = read("lib", "customer", "consent.ts")
   assert.match(

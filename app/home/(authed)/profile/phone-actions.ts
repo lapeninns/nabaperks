@@ -9,7 +9,11 @@ import {
   attachVerifiedPhoneToCustomer,
   getCurrentCustomer,
 } from "@/lib/customer/identity"
-import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
+import {
+  parseOtpChannel,
+  primaryOtpChannel,
+  type OtpChannel,
+} from "@/lib/customer/otp-channel-core"
 import {
   enforceCustomerOtpSendRateLimit,
   enforceCustomerOtpVerifyRateLimit,
@@ -52,6 +56,8 @@ const CODE_EXPIRED = "Request a new code."
 const REQUEST_MESSAGE = "If a code arrives for that number, enter it here."
 const ALREADY_HAS_PHONE = "Your wallet already has a phone number."
 const ATTACHED = "Your phone number is added. You can sign in with it too."
+const ADD_FAILED =
+  "We couldn't add this phone number just now. Try again shortly."
 const CONTACT_CONFLICT =
   "This phone number is already used by another Nabaperks wallet. Sign in with that number, or ask the venue for help."
 
@@ -59,6 +65,8 @@ export type ProfilePhoneState = {
   readonly step: "phone" | "code" | "attached"
   /** The number as typed on the phone step, or E.164 once a code is sent. */
   readonly phone?: string
+  /** The channel that carried the code, so the code step can offer a text. */
+  readonly channel?: OtpChannel
   readonly errors?: {
     readonly phone?: string
     readonly otp?: string
@@ -69,7 +77,9 @@ export type ProfilePhoneState = {
 
 /**
  * One action for the section, chosen by `intent`: `verify` checks a code,
- * `edit` goes back to the number, anything else sends a code.
+ * `edit` goes back to the number, anything else sends a code. A send marked
+ * `resend` reuses the pending number and, unless the form names another
+ * channel ("Text me instead"), the channel that carried the last code.
  */
 export async function profilePhoneAction(
   state: ProfilePhoneState,
@@ -95,10 +105,10 @@ async function requestAttachPhone(
 
   const raw = value(formData, "phone")
   const requestHeaders = await headers()
-  const normalized = normalizePhone(
-    raw,
-    defaultCountryFromHeaders(requestHeaders)
-  )
+  const resent = await pendingAttachFor(customer.id, formData)
+  const normalized = resent
+    ? ({ ok: true, phone: resent } as const)
+    : normalizePhone(raw, defaultCountryFromHeaders(requestHeaders))
   if (!normalized.ok) {
     return { step: "phone", phone: raw, errors: { phone: normalized.error } }
   }
@@ -112,7 +122,10 @@ async function requestAttachPhone(
     scope: "attach",
     deviceHash: customerDeviceHashFromHeaders(requestHeaders),
   })
-  let channel = primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL)
+  let channel =
+    parseOtpChannel(value(formData, "channel")) ??
+    resent?.channel ??
+    primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL)
   if (admitted) {
     const sent = await startCustomerPhoneVerification(phone.e164, channel)
     if (sent.status === "unavailable") {
@@ -133,7 +146,24 @@ async function requestAttachPhone(
     return { step: "phone", phone: raw, errors: { form: SEND_FAILED } }
   }
 
-  return { step: "code", phone: phone.e164, message: REQUEST_MESSAGE }
+  return { step: "code", phone: phone.e164, channel, message: REQUEST_MESSAGE }
+}
+
+/** This wallet's pending attach code, when the form asks to resend it. */
+async function pendingAttachFor(
+  customerId: string,
+  formData: FormData
+): Promise<{ e164: string; country: string; channel?: OtpChannel } | null> {
+  if (value(formData, "resend") !== "1") return null
+  const pending = await getPendingPhoneVerification()
+  if (pending?.purpose !== "attach" || pending.customerId !== customerId) {
+    return null
+  }
+  return {
+    e164: pending.phone,
+    country: pending.country,
+    ...(pending.channel ? { channel: pending.channel } : {}),
+  }
 }
 
 async function verifyAttachPhone(
@@ -153,7 +183,11 @@ async function verifyAttachPhone(
     return { step: "phone", errors: { phone: CODE_EXPIRED } }
   }
 
-  const codeStep = { step: "code" as const, phone: pending.phone }
+  const codeStep = {
+    step: "code" as const,
+    phone: pending.phone,
+    ...(pending.channel ? { channel: pending.channel } : {}),
+  }
   const otp = normalizeOtpInput(value(formData, "otp"))
   if (!/^\d{4,8}$/.test(otp)) {
     return { ...codeStep, errors: { otp: "Enter the code from your message." } }
@@ -173,6 +207,11 @@ async function verifyAttachPhone(
   })
   await clearPendingPhoneVerification()
 
+  // The phone was taken off again because its audit row could not be
+  // written; the code is spent, so the customer starts over.
+  if (result.status === "audit_failed") {
+    return { step: "phone", phone: pending.phone, errors: { form: ADD_FAILED } }
+  }
   if (result.status === "contact_conflict") {
     recordCustomerContactEvent({
       eventName: "customer_contact_conflict",

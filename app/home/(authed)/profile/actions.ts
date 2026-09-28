@@ -6,6 +6,7 @@ import { after } from "next/server"
 import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
 import {
   isMarketingChannel,
+  PHONE_MARKETING_CHANNELS,
   updateCustomerMarketingConsent,
   type MarketingChannel,
 } from "@/lib/customer/consent"
@@ -295,7 +296,7 @@ export async function updateHomeMarketingConsentAction(
   // Text and WhatsApp offers need a phone. A wallet started with an email has
   // none until one is added, so it cannot opt in to either; opting out is
   // always allowed.
-  if (optedIn && (channel === "sms" || channel === "whatsapp")) {
+  if (optedIn && PHONE_MARKETING_CHANNELS.has(channel)) {
     const customer = await getCurrentCustomer()
     if (!customer?.phoneLast4) {
       return {

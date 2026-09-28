@@ -14,7 +14,7 @@ const MARKETING_CHANNELS: readonly MarketingChannel[] = [
 ]
 
 /** Channels delivered to a phone, so only for a wallet that holds one. */
-const PHONE_MARKETING_CHANNELS: ReadonlySet<MarketingChannel> = new Set([
+export const PHONE_MARKETING_CHANNELS: ReadonlySet<MarketingChannel> = new Set([
   "sms",
   "whatsapp",
 ])

@@ -55,6 +55,7 @@ function loadAction() {
     "@/lib/rewards/issue-birthday":
       "export function triggerBirthdayIssuanceForCustomer() {}",
     "@/lib/customer/consent": `import {state} from "fixture-state";
+      export const PHONE_MARKETING_CHANNELS = new Set(["sms", "whatsapp"])
       export function isMarketingChannel(value) { return ["email", "sms", "whatsapp", "push"].includes(value) }
       export async function updateCustomerMarketingConsent(input) { state.recorded.push(input) }`,
     "@/lib/customer/identity":

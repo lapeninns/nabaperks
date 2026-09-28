@@ -28,7 +28,8 @@ async function loadIdentity() {
   const modules = {
     "fixture-state": `export const state = {
       holder: null,
-      updateResult: null,
+      updateResults: [],
+      order: [],
       queries: [],
       updates: [],
       afterCalls: [],
@@ -57,13 +58,15 @@ async function loadIdentity() {
         let updating = false
         const chain = {
           select(columns) { ops.push(["select"]); return chain },
-          update(values) { updating = true; state.updates.push(values); return chain },
+          update(values) { updating = true; state.updates.push(values); state.order.push("update"); return chain },
           eq(column, value) { ops.push(["eq", column, value]); return chain },
           is(column, value) { ops.push(["is", column, value]); return chain },
           maybeSingle() {
             state.queries.push(ops)
             return Promise.resolve(
-              updating ? state.updateResult : { data: state.holder, error: null }
+              updating
+                ? (state.updateResults.shift() ?? { data: null, error: null })
+                : { data: state.holder, error: null }
             )
           },
         }
@@ -73,7 +76,7 @@ async function loadIdentity() {
         return {
           from(table) {
             if (table === "audit_logs") {
-              return { insert(values) { state.audits.push(values); return Promise.resolve({ error: state.auditError }) } }
+              return { insert(values) { state.audits.push(values); state.order.push("audit"); return Promise.resolve({ error: state.auditError }) } }
             }
             if (table !== "customers") throw new Error(table)
             return builder()
@@ -116,31 +119,50 @@ async function loadIdentity() {
   )
 }
 
-test("Given an unused phone When it is attached Then only a phoneless wallet row is updated and invites are attached", async () => {
-  const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
-  state.updateResult = {
-    data: row({ phone_last4: "0123", phone_country: "GB" }),
-    error: null,
-  }
+const STAGED = { data: { id: "customer-1" }, error: null }
+const VERIFIED = {
+  data: row({ phone_last4: "0123", phone_country: "GB" }),
+  error: null,
+}
+const RELEASE = {
+  phone_hmac: null,
+  phone_ciphertext: null,
+  phone_last4: null,
+  phone_country: null,
+}
+const THIS_CALLS_UNVERIFIED_PHONE = [
+  ["eq", "id", "customer-1"],
+  ["eq", "phone_hmac", "phone-hmac:+447700900123"],
+  ["is", "phone_verified_at", null],
+  ["select"],
+]
+const ATTACH = { customerId: "customer-1", phone: PHONE, surface: "profile" }
 
-  const result = await attachVerifiedPhoneToCustomer({
-    customerId: "customer-1",
-    phone: PHONE,
-    surface: "profile",
-  })
+test("Given an unused phone When it is attached Then it is staged, audited, and only then marked verified, and invites are attached", async () => {
+  const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
+  state.updateResults = [STAGED, VERIFIED]
+
+  const result = await attachVerifiedPhoneToCustomer(ATTACH)
 
   assert.equal(result.status, "attached")
   assert.equal(result.customer.phoneLast4, "0123")
-  const [update] = state.updates
-  assert.equal(update.phone_hmac, "phone-hmac:+447700900123")
-  assert.equal(update.phone_ciphertext, "cipher")
-  assert.equal(update.phone_last4, "0123")
-  assert.equal(update.phone_country, "GB")
-  assert.match(update.phone_verified_at, /^\d{4}-\d{2}-\d{2}T/)
+  // The verified timestamp is written only once the audit row exists.
+  assert.deepEqual(state.order, ["update", "audit", "update"])
+  const [staged, verified] = state.updates
+  assert.deepEqual(staged, {
+    phone_hmac: "phone-hmac:+447700900123",
+    phone_ciphertext: "cipher",
+    phone_last4: "0123",
+    phone_country: "GB",
+  })
+  assert.deepEqual(Object.keys(verified), ["phone_verified_at"])
+  assert.match(verified.phone_verified_at, /^\d{4}-\d{2}-\d{2}T/)
   // Never plaintext at rest.
-  assert.equal("phone" in update, false)
-  assert.equal(Object.values(update).includes(PHONE.e164), false)
-  const [lookup, guarded] = state.queries
+  for (const update of state.updates) {
+    assert.equal("phone" in update, false)
+    assert.equal(Object.values(update).includes(PHONE.e164), false)
+  }
+  const [lookup, guarded, confirmed] = state.queries
   assert.deepEqual(lookup, [
     ["select"],
     ["eq", "phone_hmac", "phone-hmac:+447700900123"],
@@ -150,6 +172,7 @@ test("Given an unused phone When it is attached Then only a phoneless wallet row
     ["is", "phone_hmac", null],
     ["select"],
   ])
+  assert.deepEqual(confirmed, THIS_CALLS_UNVERIFIED_PHONE)
   assert.deepEqual(state.audits, [
     {
       actor_type: "customer",
@@ -162,27 +185,27 @@ test("Given an unused phone When it is attached Then only a phoneless wallet row
     },
   ])
   assert.doesNotMatch(JSON.stringify(state.audits), /0123|447700|hmac|cipher/)
+  assert.deepEqual(state.logs, [])
   assert.equal(state.afterCalls.length, 1)
   state.afterCalls[0]()
   assert.equal(state.attached, "customer-1")
 })
 
-test("Given the audit write fails When a phone is attached Then the committed phone stands and the failure is logged without contact data", async () => {
+test("Given the audit write fails When a phone is attached Then this call's phone is taken off again and the add is refused", async () => {
   const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
-  state.updateResult = {
-    data: row({ phone_last4: "0123", phone_country: "GB" }),
-    error: null,
-  }
+  state.updateResults = [STAGED, STAGED]
   state.auditError = { code: "42501", message: "permission denied" }
 
-  const result = await attachVerifiedPhoneToCustomer({
-    customerId: "customer-1",
-    phone: PHONE,
-    surface: "profile",
-  })
+  const result = await attachVerifiedPhoneToCustomer(ATTACH)
 
-  assert.equal(result.status, "attached")
-  assert.equal(state.audits.length, 1)
+  assert.deepEqual(result, { status: "audit_failed" })
+  assert.deepEqual(state.order, ["update", "audit", "update"])
+  // Only what this call wrote, and only while the row still holds it
+  // unverified; the verified timestamp was never set.
+  assert.deepEqual(state.updates[1], RELEASE)
+  assert.deepEqual(state.queries[2], THIS_CALLS_UNVERIFIED_PHONE)
+  assert.ok(!state.updates.some((update) => "phone_verified_at" in update))
+  assert.deepEqual(state.afterCalls, [])
   assert.deepEqual(state.logs, [
     [
       "customer_phone_audit_failed",
@@ -190,6 +213,42 @@ test("Given the audit write fails When a phone is attached Then the committed ph
     ],
   ])
   assert.doesNotMatch(JSON.stringify(state.logs), /0123|447700/)
+})
+
+test("Given the audit write fails When the staged phone cannot be taken off Then the call throws instead of reporting an outcome", async () => {
+  for (const release of [
+    { data: null, error: { code: "57014", message: "statement timeout" } },
+    // The row no longer holds this call's unverified phone.
+    { data: null, error: null },
+  ]) {
+    const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
+    state.updateResults = [STAGED, release]
+    state.auditError = { code: "42501", message: "permission denied" }
+
+    await assert.rejects(
+      attachVerifiedPhoneToCustomer(ATTACH),
+      /Unable to release unaudited customer phone/
+    )
+    assert.deepEqual(state.updates[1], RELEASE)
+    assert.deepEqual(state.afterCalls, [])
+  }
+})
+
+test("Given the phone is audited When marking it verified fails Then the staged phone is taken off and the call throws", async () => {
+  const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
+  state.updateResults = [
+    STAGED,
+    { data: null, error: { code: "57014", message: "statement timeout" } },
+    STAGED,
+  ]
+
+  await assert.rejects(
+    attachVerifiedPhoneToCustomer(ATTACH),
+    /Unable to confirm customer phone/
+  )
+  assert.deepEqual(state.order, ["update", "audit", "update", "update"])
+  assert.deepEqual(state.updates[2], RELEASE)
+  assert.deepEqual(state.afterCalls, [])
 })
 
 test("Given another wallet holds the phone When it is attached Then it is a conflict and nothing is written", async () => {
@@ -225,10 +284,9 @@ test("Given the phone is already this wallet's When it is attached Then nothing 
 
 test("Given a race When the unique phone index or the phoneless guard refuses Then the answer is a conflict or no change", async () => {
   const raced = await loadIdentity()
-  raced.state.updateResult = {
-    data: null,
-    error: { code: "23505", message: "duplicate key value" },
-  }
+  raced.state.updateResults = [
+    { data: null, error: { code: "23505", message: "duplicate key value" } },
+  ]
   assert.deepEqual(
     await raced.attachVerifiedPhoneToCustomer({
       customerId: "customer-1",
@@ -241,7 +299,7 @@ test("Given a race When the unique phone index or the phoneless guard refuses Th
   assert.deepEqual(raced.state.audits, [])
 
   const guarded = await loadIdentity()
-  guarded.state.updateResult = { data: null, error: null }
+  guarded.state.updateResults = [{ data: null, error: null }]
   assert.deepEqual(
     await guarded.attachVerifiedPhoneToCustomer({
       customerId: "customer-1",
@@ -253,10 +311,9 @@ test("Given a race When the unique phone index or the phoneless guard refuses Th
   assert.deepEqual(guarded.state.audits, [])
 
   const broken = await loadIdentity()
-  broken.state.updateResult = {
-    data: null,
-    error: { code: "42501", message: "permission denied" },
-  }
+  broken.state.updateResults = [
+    { data: null, error: { code: "42501", message: "permission denied" } },
+  ]
   await assert.rejects(
     broken.attachVerifiedPhoneToCustomer({
       customerId: "customer-1",

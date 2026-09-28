@@ -80,6 +80,58 @@ test.describe("@customer-flow @a11y email-only wallet profile", () => {
     await expect(section.getByLabel("Phone code")).toHaveCount(0)
   })
 
+  test("a WhatsApp code that never arrives can be sent by text instead", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(page, EMAIL_ONLY)
+    const section = page.locator("[data-add-phone]")
+    await section
+      .getByLabel("Phone number", { exact: true })
+      .fill("07700900123")
+    await section.getByRole("button", { name: "Send my code" }).click()
+    const textInstead = section.getByRole("button", { name: "Text me instead" })
+    await expect(textInstead).toBeVisible()
+    await expect(
+      section.getByRole("button", { name: "Resend code" })
+    ).toBeVisible()
+
+    await textInstead.click()
+    // Sent by text now: nothing left to switch to, and the code step stays.
+    await expect(textInstead).toHaveCount(0)
+    await expect(section.getByText("Phone ending")).toContainText("0123")
+    await expect(section.getByRole("status")).toContainText(
+      "If a code arrives for that number, enter it here."
+    )
+    await expectNoAxeViolations(page, "add phone code step after a text")
+    await section.getByLabel("Phone code").fill("424242")
+    await section.getByRole("button", { name: "Add phone number" }).click()
+    await expect(
+      section.getByRole("heading", { name: "Phone number added" })
+    ).toBeVisible()
+  })
+
+  test("a phone that cannot be recorded is not added and can be tried again", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(page, EMAIL_ONLY)
+    const section = page.locator("[data-add-phone]")
+    await section
+      .getByLabel("Phone number", { exact: true })
+      .fill("07700900998")
+    await section.getByRole("button", { name: "Send my code" }).click()
+    await section.getByLabel("Phone code").fill("424242")
+    await section.getByRole("button", { name: "Add phone number" }).click()
+    await expect(section.getByRole("alert")).toContainText(
+      "We couldn't add this phone number just now. Try again shortly."
+    )
+    await expect(
+      section.getByRole("heading", { name: "Add a phone number" })
+    ).toBeVisible()
+    await expect(
+      section.getByRole("button", { name: "Send my code" })
+    ).toBeVisible()
+  })
+
   test("a number another wallet holds is refused with a way to get help", async ({
     page,
   }) => {

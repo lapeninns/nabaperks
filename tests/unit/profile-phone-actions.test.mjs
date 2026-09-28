@@ -124,6 +124,7 @@ test("Given an email-only wallet When a phone code is requested Then it is admit
   assert.deepEqual(result, {
     step: "code",
     phone: "+447700900123",
+    channel: "sms",
     message: "If a code arrives for that number, enter it here.",
   })
   assert.deepEqual(state.calls, [
@@ -328,4 +329,113 @@ test("Given the code step When the customer changes the number Then the pending 
 
   assert.deepEqual(result, { step: "phone", phone: "+447700900123" })
   assert.deepEqual(state.calls, [["clearPending"]])
+})
+
+const WHATSAPP_PENDING = {
+  purpose: "attach",
+  phone: "+447700900123",
+  country: "GB",
+  channel: "whatsapp",
+  customerId: "customer-1",
+}
+
+test("Given a WhatsApp code When the customer resends Then the pending number and WhatsApp are kept, whatever the configured primary", async () => {
+  process.env.CUSTOMER_OTP_PRIMARY_CHANNEL = "sms"
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = WHATSAPP_PENDING
+  state.sent = { status: "sent", channel: "whatsapp" }
+
+  const result = await profilePhoneAction(
+    { step: "code", phone: "+447700900123", channel: "whatsapp" },
+    // The pending code, not the posted number, says where it goes.
+    form({ intent: "request", resend: "1", phone: "tampered" })
+  )
+
+  assert.deepEqual(result, {
+    step: "code",
+    phone: "+447700900123",
+    channel: "whatsapp",
+    message: "If a code arrives for that number, enter it here.",
+  })
+  assert.deepEqual(state.calls.slice(0, 2), [
+    ["admit", "attach", "+447700900123"],
+    ["send", "+447700900123", "whatsapp"],
+  ])
+  assert.equal(state.pending.channel, "whatsapp")
+})
+
+test("Given a WhatsApp code that never arrives When the customer asks for a text Then it is resent by SMS and the code step records SMS", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = WHATSAPP_PENDING
+  state.sent = { status: "sent", channel: "sms" }
+
+  const result = await profilePhoneAction(
+    { step: "code", phone: "+447700900123", channel: "whatsapp" },
+    form({
+      intent: "request",
+      resend: "1",
+      phone: "+447700900123",
+      channel: "sms",
+    })
+  )
+
+  assert.equal(result.step, "code")
+  assert.equal(result.channel, "sms")
+  assert.deepEqual(state.calls[1], ["send", "+447700900123", "sms"])
+  assert.equal(state.pending.channel, "sms")
+  assert.equal(state.pending.customerId, "customer-1")
+})
+
+test("Given another wallet's pending code When a resend is posted Then the posted number is validated as a fresh request", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = { ...WHATSAPP_PENDING, customerId: "customer-2" }
+
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "request", resend: "1", phone: "+447700900123" })
+  )
+
+  // The stubbed normaliser takes national numbers only.
+  assert.deepEqual(result.errors, { phone: "Enter a valid phone number." })
+  assert.ok(!state.calls.some(([name]) => name === "send"))
+})
+
+test("Given a wrong code on a WhatsApp code step When it is refused Then the step still knows the channel", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = WHATSAPP_PENDING
+  state.check = { status: "rejected" }
+
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "000000" })
+  )
+
+  assert.deepEqual(result, {
+    step: "code",
+    phone: "+447700900123",
+    channel: "whatsapp",
+    errors: { otp: "That code was not accepted." },
+  })
+})
+
+test("Given the phone could not be audited When the code is confirmed Then the customer is asked to try again and nothing is refreshed", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = WHATSAPP_PENDING
+  state.attach = { status: "audit_failed" }
+
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+
+  assert.deepEqual(result, {
+    step: "phone",
+    phone: "+447700900123",
+    errors: {
+      form: "We couldn't add this phone number just now. Try again shortly.",
+    },
+  })
+  assert.equal(state.pending, null)
+  assert.deepEqual(state.revalidated, [])
+  assert.deepEqual(state.events, [])
 })

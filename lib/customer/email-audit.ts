@@ -53,22 +53,27 @@ export async function recordCustomerEmailAudit(
 /**
  * The same evidence for a verified phone added to an email-only wallet. The
  * row never holds the number, its HMAC, last four digits or the code.
+ *
+ * Unlike the email writer this reports whether the row was written: the
+ * phone is added only after its audit row exists, and a failed write makes
+ * the caller take its staged phone off again.
  */
 export async function recordCustomerPhoneAttachedAudit(
   supabase: ServiceRoleClient,
   input: { readonly customerId: string; readonly surface: ContactEventSurface }
-): Promise<void> {
-  await recordCustomerContactAudit(supabase, {
+): Promise<boolean> {
+  return recordCustomerContactAudit(supabase, {
     ...input,
     action: "customer_phone_attached",
     failureEvent: "customer_phone_audit_failed",
   })
 }
 
+/** Writes the row; failures are logged without contact data. True if written. */
 async function recordCustomerContactAudit(
   supabase: ServiceRoleClient,
   input: CustomerContactAuditInput
-): Promise<void> {
+): Promise<boolean> {
   const metadata: Record<string, string | boolean> = {}
   if (input.surface) metadata.surface = input.surface
   if (input.hmacRepairOnly) metadata.hmac_repair_only = true
@@ -84,16 +89,16 @@ async function recordCustomerContactAudit(
       action: input.action,
       metadata,
     })
-    if (error) {
-      logger.error(input.failureEvent, {
-        action: input.action,
-        code: error.code,
-      })
-    }
+    if (!error) return true
+    logger.error(input.failureEvent, {
+      action: input.action,
+      code: error.code,
+    })
   } catch (error) {
     logger.error(input.failureEvent, {
       action: input.action,
       error: error instanceof Error ? error.name : "unknown",
     })
   }
+  return false
 }

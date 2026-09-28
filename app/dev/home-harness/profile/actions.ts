@@ -7,6 +7,8 @@ import type { ProfilePhoneState } from "@/app/home/(authed)/profile/phone-action
 const DISPLAY_OTP = "424242"
 /** A number another fixture wallet "holds", for the conflict answer. */
 const HELD_PHONE = "07700900999"
+/** A number whose add "fails" its audit write, so it is taken off again. */
+const UNAUDITED_PHONE = "07700900998"
 
 /**
  * Display-only stand-in for profilePhoneAction: exercises the real "add a
@@ -28,6 +30,15 @@ export async function harnessProfilePhoneAction(
         errors: { otp: "That code was not accepted." },
       }
     }
+    if (state.phone === UNAUDITED_PHONE) {
+      return {
+        step: "phone",
+        phone: state.phone,
+        errors: {
+          form: "We couldn't add this phone number just now. Try again shortly.",
+        },
+      }
+    }
     return state.phone === HELD_PHONE
       ? {
           step: "phone",
@@ -47,9 +58,11 @@ export async function harnessProfilePhoneAction(
       errors: { phone: "Enter a valid phone number." },
     }
   }
+  // As if WhatsApp is the primary channel; "Text me instead" resends by SMS.
   return {
     step: "code",
     phone,
+    channel: data.get("channel") === "sms" ? "sms" : "whatsapp",
     message: "If a code arrives for that number, enter it here.",
   }
 }

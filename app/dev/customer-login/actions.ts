@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation"
 
 import type { CustomerLoginOtpState } from "@/app/home/actions"
+import { isEmailAddress } from "@/lib/customer/profile-fields"
 
 const DISPLAY_OTP = "424242"
 
@@ -129,7 +130,7 @@ async function requestEmailLoginFixture(
     : String(data.get("email") ?? "")
         .trim()
         .toLowerCase()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!isEmailAddress(email)) {
     return {
       fields: { method: "email", email },
       errors: { email: "Enter a valid email address." },
