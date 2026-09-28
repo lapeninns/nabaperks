@@ -7,6 +7,7 @@ import jsQR from "jsqr"
 import { PNG } from "pngjs"
 
 import { adminLiveDbSkipReason, connectLocalDb } from "./helpers/admin-live-db"
+import { isIncidentalAbortedPrefetch } from "./helpers/aborted-rsc-request"
 import { dismissPwaInstall } from "./helpers/harness"
 import {
   cleanupRewardCollectionFixture,
@@ -41,6 +42,7 @@ export function registerMerchantIdVerificationTests() {
       page,
       context,
       browser,
+      browserName,
       baseURL,
     }, testInfo) => {
       const sql = connectLocalDb()
@@ -62,8 +64,12 @@ export function registerMerchantIdVerificationTests() {
       })
       const merchant = await merchantContext.newPage()
       const errors: string[] = []
-      page.on("pageerror", (error) => errors.push(error.message))
-      merchant.on("pageerror", (error) => errors.push(error.message))
+      const recordPageError = (error: Error) => {
+        if (!isIncidentalAbortedPrefetch(error.message, browserName))
+          errors.push(error.message)
+      }
+      page.on("pageerror", recordPageError)
+      merchant.on("pageerror", recordPageError)
       try {
         await dismissPwaInstall(page)
         await dismissPwaInstall(merchant)
