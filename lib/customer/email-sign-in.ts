@@ -137,7 +137,7 @@ export async function startEmailSignInChallenge(
 
   // A double submit or an early resend keeps the challenge already live
   // instead of replacing it with one that admission would refuse to send. A
-  // challenge whose send failed keeps saying so until it may be resent.
+  // challenge with no delivered code keeps saying so until it may be resent.
   if (current && now < current.resendAvailableAt) {
     await writeChallenge(current, secret)
     return answerFor(current)
@@ -185,16 +185,13 @@ export async function startEmailSignInChallenge(
         category: sendFailureCategory(error),
       })
       recordSendFailure(input)
-      // A code delivered earlier keeps working; otherwise this one stays in
-      // case the email arrives late. Either way it is marked failed, so a
-      // retry is never told a code is on its way.
-      const failed: PendingEmailSignInPayload = {
-        ...(current && current.delivery !== "held" ? current : payload),
-        delivery: "fail",
-        resendAvailableAt: now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS,
-      }
-      await makeOnlyLiveChallenge(failed, secret)
-      return answerFor(failed)
+      const resendAvailableAt = now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS
+      await makeOnlyLiveChallenge(
+        keptAfterFailedSend(current, payload, resendAvailableAt),
+        secret
+      )
+      // This attempt failed whatever is kept, so the action says so in place.
+      return deliveryFailed(email, resendAvailableAt)
     }
   }
 
@@ -517,7 +514,36 @@ function mintChallenge({
   }
 }
 
-/** The same code under a new challenge ID, for {@link keepEmailSignInForRetry}. */
+/**
+ * The challenge kept after a send failed. `delivery` records whether this
+ * browser was told a code is on its way, not how the latest send went; the
+ * action reports that failure in place.
+ *
+ * - After a delivered code (`sent`), that code keeps working and the page
+ *   keeps saying it was sent, which is true.
+ * - After a refused send (`held`), the page already said a code was sent
+ *   (D8), so it must keep saying so exactly as for `sent`. The new code is
+ *   kept, so an email that arrives late still works.
+ * - Otherwise no code has reached the customer: the new code is kept in case
+ *   it arrives late, and the page says it is delayed (`fail`).
+ */
+function keptAfterFailedSend(
+  current: PendingEmailSignInPayload | null,
+  attempted: PendingEmailSignInPayload,
+  resendAvailableAt: number
+): PendingEmailSignInPayload {
+  if (current?.delivery === "sent") return { ...current, resendAvailableAt }
+  return {
+    ...attempted,
+    delivery: current?.delivery === "held" ? "sent" : "fail",
+    resendAvailableAt,
+  }
+}
+
+/**
+ * The same code under a new challenge ID, for {@link keepEmailSignInForRetry}.
+ * The code matched, so it was delivered, whatever the challenge said before.
+ */
 function rebindChallenge(
   pending: PendingEmailSignInPayload,
   code: string,
@@ -526,6 +552,7 @@ function rebindChallenge(
   const challengeId = randomUUID()
   return {
     ...pending,
+    delivery: "sent",
     challengeId,
     codeHmac: emailSignInCodeHmac({
       secret,
@@ -635,7 +662,7 @@ function deliveryFailed(email: string, resendAvailableAt: number) {
   }
 }
 
-/** A `held` challenge answers as sent (D8); a failed one never does. */
+/** A `held` challenge answers as sent (D8); one never delivered never does. */
 function answerFor(payload: PendingEmailSignInPayload): EmailSignInStartResult {
   return payload.delivery === "fail"
     ? deliveryFailed(payload.email, payload.resendAvailableAt)

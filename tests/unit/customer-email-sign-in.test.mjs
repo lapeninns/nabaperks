@@ -385,13 +385,14 @@ test("Given a failed send When the guest retries at once Then it is never report
   })
 })
 
-test("Given a code already delivered When a resend fails Then that earlier code keeps working", async () => {
+test("Given a code already delivered When a resend fails Then that earlier code keeps working and is not called delayed", async () => {
   const mod = await loadModule()
   await mod.startEmailSignInChallenge({
     email: "guest@example.com",
     purpose: "join",
   })
   const earlier = pendingCookie(mod)
+  const sentCookie = mod.state.cookies.get(mod.pendingEmailSignInCookieName)
   const code = mod.state.sends[0].code
 
   await withClockAhead(61, async () => {
@@ -400,12 +401,52 @@ test("Given a code already delivered When a resend fails Then that earlier code 
       email: "guest@example.com",
       purpose: "join",
     })
+    // The failed attempt is reported in place, with a renewed cooldown.
     assert.equal(resend.status, "delivery_failed")
     const kept = pendingCookie(mod)
+    assert.equal(resend.resendAvailableAt, kept.resendAvailableAt)
+    assert.ok(kept.resendAvailableAt > earlier.resendAvailableAt)
     assert.equal(kept.challengeId, earlier.challengeId)
-    assert.equal(kept.delivery, "fail")
+    // Code A arrived, so a refresh must not say "Not sent yet" (the join
+    // loader marks only `fail` as delayed).
+    assert.equal(kept.delivery, "sent")
+    assert.equal(
+      mod.state.cookies.get(mod.pendingEmailSignInCookieName).length,
+      sentCookie.length
+    )
     assert.equal(
       (await mod.checkEmailSignInChallenge({ code, purpose: "join" })).status,
+      "verified"
+    )
+  })
+})
+
+test("Given a refused send When the resend after it fails Then the page still reads as sent and a late email works", async () => {
+  const mod = await loadModule()
+  mod.state.admission = { message: "rate limit exceeded" }
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  assert.equal(pendingCookie(mod).delivery, "held")
+
+  await withClockAhead(61, async () => {
+    mod.state.admission = null
+    mod.state.sendError = new Error("network")
+    const resend = await mod.startEmailSignInChallenge({
+      email: "guest@example.com",
+      purpose: "join",
+    })
+    assert.equal(resend.status, "delivery_failed")
+    // Exactly what a failed resend after a delivered code keeps (D8).
+    assert.equal(pendingCookie(mod).delivery, "sent")
+    assert.equal(
+      (
+        await mod.checkEmailSignInChallenge({
+          code: mod.state.sends[0].code,
+          purpose: "join",
+        })
+      ).status,
       "verified"
     )
   })
@@ -702,6 +743,37 @@ test("Given a matched code When the sign-in after it fails and the code is kept 
   assert.deepEqual(
     await mod.checkEmailSignInChallenge({ code, purpose: "join" }),
     { status: "expired" }
+  )
+})
+
+test("Given a first send that failed When its late code matches but the sign-in fails Then the restored code is not called delayed", async () => {
+  const mod = await loadModule()
+  mod.state.sendError = new Error("network")
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  assert.equal(pendingCookie(mod).delivery, "fail")
+  const failedCookie = mod.state.cookies.get(mod.pendingEmailSignInCookieName)
+
+  // The email arrived late and its code matched, proving delivery.
+  const code = mod.state.sends[0].code
+  const verified = await mod.checkEmailSignInChallenge({
+    code,
+    purpose: "join",
+  })
+  assert.equal(verified.status, "verified")
+  assert.equal(verified.retryChallenge.delivery, "sent")
+
+  await mod.keepEmailSignInForRetry(verified)
+  assert.equal(pendingCookie(mod).delivery, "sent")
+  assert.equal(
+    mod.state.cookies.get(mod.pendingEmailSignInCookieName).length,
+    failedCookie.length
+  )
+  assert.equal(
+    (await mod.checkEmailSignInChallenge({ code, purpose: "join" })).status,
+    "verified"
   )
 })
 
