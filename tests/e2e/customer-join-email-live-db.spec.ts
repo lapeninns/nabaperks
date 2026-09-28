@@ -35,7 +35,9 @@ import {
  * Joining by email against the real server actions and local Supabase, with
  * CUSTOMER_EMAIL_AUTH_MODE=full. The DB-free harness spec
  * (customer-join-email.spec.ts) covers what each screen offers; this covers
- * who gets signed in, what is created and what is refused.
+ * who gets signed in, what is created and what is refused. Every email
+ * journey starts where a customer does: a text to their phone, then the
+ * email fallback the code step offers 30 seconds later.
  *
  * Opt-in: CUSTOMER_FLOW_E2E=1, local Supabase (SUPABASE_DB_URL), the dev
  * server's CUSTOMER_SESSION_SECRET and CUSTOMER_EMAIL_HMAC_SECRET, and
@@ -51,6 +53,8 @@ const KNOWN_CODE = "135790"
 type Journey = {
   readonly sql: Sql
   readonly fixture: PublicQrRouterFixture
+  /** The number the journey texts first; cleaned up with the journey. */
+  readonly phone: DisposablePhone
 }
 
 function skipReason(): string | undefined {
@@ -71,12 +75,12 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
     context,
     page,
   }) => {
-    await withJourney([], async ({ sql, fixture }, emails) => {
+    await withJourney([], async ({ sql, fixture, phone }, emails) => {
       const email = await verifyFixtureCustomerEmail(sql, fixture)
       emails.push(email)
       const device = await installKnownDevice(context)
 
-      await requestJoinEmailCode(page, fixture, email)
+      await requestJoinEmailCode(page, fixture, email, phone)
       await confirmJoinCode(page)
 
       // Same routing as the phone path: an existing member goes to today's stamp.
@@ -109,10 +113,10 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
     page,
   }) => {
     const email = uniqueJoinEmail("new")
-    await withJourney([email], async ({ sql, fixture }) => {
+    await withJourney([email], async ({ sql, fixture, phone }) => {
       const device = await installKnownDevice(context)
 
-      await requestJoinEmailCode(page, fixture, email)
+      await requestJoinEmailCode(page, fixture, email, phone)
       await confirmJoinCode(page)
 
       await expect(page).toHaveURL(/step=email_choice/)
@@ -174,21 +178,13 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
     page,
   }) => {
     const email = uniqueJoinEmail("phone")
-    await withJourney([email], async ({ sql, fixture }) => {
+    await withJourney([email], async ({ sql, fixture, phone }) => {
       await installKnownDevice(context)
-      await requestJoinEmailCode(page, fixture, email)
+      await requestJoinEmailCode(page, fixture, email, phone)
       await confirmJoinCode(page)
       await expect(
         page.getByRole("heading", { name: CHOICE_HEADING })
       ).toBeVisible()
-
-      // Confirmed, but no wallet opened: the device does not start leading
-      // with email because of it.
-      await expect(
-        page.evaluate(() =>
-          window.localStorage.getItem("nabaperks.last-contact-method")
-        )
-      ).resolves.toBeNull()
 
       await page.getByRole("button", { name: USE_PHONE }).click()
       await expect(page).toHaveURL(/step=phone/)
@@ -209,7 +205,7 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
     })
   })
 
-  test("the phone path still joins from the email-first screen", async ({
+  test("the welcome CTA opens the phone step, and the phone path joins with no email offered first", async ({
     context,
     page,
   }) => {
@@ -220,11 +216,10 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         await installKnownDevice(context)
         await page.goto(publicQrPath(fixture.activeQrId))
         await page.getByRole("link", { name: "Claim my first stamp" }).click()
-        await expect(page.getByLabel("Email address")).toBeVisible()
-        await page
-          .getByRole("link", { name: "Use my phone number instead" })
-          .click()
         await expect(page).toHaveURL(/step=phone/)
+        await expect(page.getByLabel("UK phone number")).toBeVisible()
+        await expect(page.getByLabel("Email address")).toHaveCount(0)
+        await expect(page.getByRole("link", { name: /email/i })).toHaveCount(0)
 
         await page.getByLabel("UK phone number").fill(phone.national)
         await page.getByRole("button", { name: "Send my code" }).click()
@@ -246,12 +241,6 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         ])
         const joined = await readJoinedMembership(sql, fixture, phone)
         expect(joined?.stamp_count).toBe(1)
-        // A device that confirmed by phone leads with phone next time.
-        await expect(
-          page.evaluate(() =>
-            window.localStorage.getItem("nabaperks.last-contact-method")
-          )
-        ).resolves.toBe("phone")
       },
       phone
     )
@@ -266,8 +255,9 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
     await withJourney(
       [email],
       async ({ sql, fixture }) => {
+        // The same number texted first, before the email fallback.
         await installKnownDevice(context)
-        await requestJoinEmailCode(page, fixture, email)
+        await requestJoinEmailCode(page, fixture, email, phone)
         await confirmJoinCode(page)
         await expect(
           page.getByRole("heading", { name: CHOICE_HEADING })
@@ -358,9 +348,9 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
     page,
   }) => {
     const email = uniqueJoinEmail("device")
-    await withJourney([email], async ({ sql, fixture }) => {
+    await withJourney([email], async ({ sql, fixture, phone }) => {
       const first = await installKnownDevice(context)
-      await requestJoinEmailCode(page, fixture, email)
+      await requestJoinEmailCode(page, fixture, email, phone)
       await confirmJoinCode(page)
       await expect(
         page.getByRole("heading", { name: CHOICE_HEADING })
@@ -409,7 +399,7 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
 async function withJourney(
   emails: string[],
   run: (journey: Journey, emails: string[]) => Promise<void>,
-  phone?: DisposablePhone
+  phone: DisposablePhone = disposableUkMobile()
 ): Promise<void> {
   const sql = connectLocalDb()
   test.skip(!sql, "local Supabase DB is not configured")
@@ -420,7 +410,7 @@ async function withJourney(
     fixture = await createPublicQrRouterFixture(sql)
     test.skip(!fixture, "seed merchant owner is not available")
     if (!fixture) return
-    await run({ sql, fixture }, emails)
+    await run({ sql, fixture, phone }, emails)
   } finally {
     await cleanupCustomerJoinRows(sql, fixture, phone)
     await cleanupEmailJoinRows(sql, emails)

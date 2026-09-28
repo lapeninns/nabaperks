@@ -14,19 +14,30 @@ import {
   readEmailWallets,
   uniqueJoinEmail,
 } from "./helpers/customer-join-email-live-db"
-import { DEV_OTP } from "./helpers/customer-join-live-db"
+import {
+  DEV_OTP,
+  cleanupCustomerJoinRows,
+  disposableUkMobile,
+  type DisposablePhone,
+} from "./helpers/customer-join-live-db"
 import {
   connectCustomerReadbackDb,
   customerReadbackLiveDbSkipReason,
 } from "./helpers/customer-readback-live-db"
 import { pickSeedCustomerSetup } from "./helpers/customer-readback-seed"
+import {
+  installFallbackClock,
+  takeEmailFallback,
+} from "./helpers/email-fallback"
 import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 
 /**
  * Email at /home/login against the real server actions and local Supabase,
  * with CUSTOMER_EMAIL_AUTH_MODE=full. The DB-free harness spec
  * (customer-login-email.spec.ts) covers what each step shows; this covers who
- * is signed in and that the page never creates a wallet.
+ * is signed in and that the page never creates a wallet. Each journey starts
+ * where a customer does: a text to a phone, then the email fallback the code
+ * step offers 30 seconds later.
  *
  * Opt-in: CUSTOMER_FLOW_E2E=1, local Supabase (SUPABASE_DB_URL), the dev
  * server's CUSTOMER_SESSION_SECRET and CUSTOMER_EMAIL_HMAC_SECRET, and
@@ -36,7 +47,6 @@ import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 const NO_WALLET =
   "No wallet uses this email yet. Scan a venue QR to join, or sign in with your phone."
 const SESSION_COOKIE = "nabaperks_customer_session"
-const LAST_METHOD_KEY = "nabaperks.last-contact-method"
 
 type EmailWallet = {
   readonly customerId: string
@@ -70,13 +80,13 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
     page,
   }) => {
     const email = uniqueJoinEmail("login")
-    await withDb([email], async (sql) => {
+    await withDb([email], async (sql, phone) => {
       const wallet = await seedEmailWallet(sql, { email, verified: true })
       test.skip(!wallet, "seed merchant is not available")
       if (!wallet) return
       const device = await installKnownDevice(context)
 
-      await requestLoginEmailCode(page, email)
+      await requestLoginEmailCode(page, email, phone)
       await page.getByLabel("Email code").fill(DEV_OTP)
       await page.getByRole("button", { name: "Open my cards" }).click()
 
@@ -98,13 +108,6 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
           countLoginEvents(sql, wallet.customerId, "customer_login_verified")
         )
         .toBe(1)
-      // A device that signed in by email leads with email next time.
-      await expect(
-        page.evaluate(
-          (key) => window.localStorage.getItem(key),
-          LAST_METHOD_KEY
-        )
-      ).resolves.toBe("email")
     })
   })
 
@@ -113,10 +116,10 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
     page,
   }) => {
     const email = uniqueJoinEmail("login-none")
-    await withDb([email], async (sql) => {
+    await withDb([email], async (sql, phone) => {
       await installKnownDevice(context)
 
-      await requestLoginEmailCode(page, email)
+      await requestLoginEmailCode(page, email, phone)
       await page.getByLabel("Email code").fill(DEV_OTP)
       await page.getByRole("button", { name: "Open my cards" }).click()
 
@@ -131,12 +134,6 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
       ).toHaveCount(0)
       await expect(readEmailWallets(sql, email)).resolves.toEqual([])
       await expect(hasSessionCookie(page)).resolves.toBe(false)
-      await expect(
-        page.evaluate(
-          (key) => window.localStorage.getItem(key),
-          LAST_METHOD_KEY
-        )
-      ).resolves.toBeNull()
 
       await page.getByRole("button", { name: "Use a different email" }).click()
       await expect(page.getByLabel("Email address")).toHaveValue(email)
@@ -148,13 +145,13 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
     page,
   }) => {
     const email = uniqueJoinEmail("login-unverified")
-    await withDb([email], async (sql) => {
+    await withDb([email], async (sql, phone) => {
       const wallet = await seedEmailWallet(sql, { email, verified: false })
       test.skip(!wallet, "seed merchant is not available")
       if (!wallet) return
       const device = await installKnownDevice(context)
 
-      await requestLoginEmailCode(page, email)
+      await requestLoginEmailCode(page, email, phone)
       await page.getByLabel("Email code").fill(DEV_OTP)
       await page.getByRole("button", { name: "Open my cards" }).click()
 
@@ -174,8 +171,22 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
   })
 })
 
-async function requestLoginEmailCode(page: Page, email: string) {
+/** Phone first, the 30-second fallback, then a code to `email`. */
+async function requestLoginEmailCode(
+  page: Page,
+  email: string,
+  phone: DisposablePhone
+) {
+  await installFallbackClock(page)
   await gotoHydratedPage(page, "/home/login")
+  await expect(page.getByLabel("Email address")).toHaveCount(0)
+  await page.locator("#contact").fill(phone.national)
+  await page.getByRole("button", { name: "Send code" }).click()
+  await expect(page.getByLabel("Phone code")).toBeVisible()
+  await takeEmailFallback(page)
+  await expect(
+    page.getByRole("heading", { name: "Get your code by email instead" })
+  ).toBeVisible()
   const field = page.getByLabel("Email address")
   await expect(field).toBeVisible()
   await field.fill(email)
@@ -188,17 +199,20 @@ async function requestLoginEmailCode(page: Page, email: string) {
 
 async function withDb(
   emails: string[],
-  run: (sql: Sql) => Promise<void>
+  run: (sql: Sql, phone: DisposablePhone) => Promise<void>
 ): Promise<void> {
   const sql = connectCustomerReadbackDb()
   test.skip(!sql, "local Supabase DB is not configured")
   if (!sql) return
 
+  // The number texted before the email fallback; no wallet holds it.
+  const phone = disposableUkMobile()
   try {
-    await run(sql)
+    await run(sql, phone)
   } finally {
     for (const email of emails) await deleteWalletsByEmail(sql, email)
     await cleanupEmailJoinRows(sql, emails)
+    await cleanupCustomerJoinRows(sql, undefined, phone)
     await sql.end()
   }
 }

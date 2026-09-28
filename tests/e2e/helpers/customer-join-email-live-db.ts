@@ -13,11 +13,13 @@ import {
 import { issueCustomerDeviceToken } from "@/lib/security/customer-device-token"
 
 import type { Sql } from "./admin-live-db"
-import { DEV_OTP } from "./customer-join-live-db"
 import {
-  publicQrPath,
-  type PublicQrRouterFixture,
-} from "./public-qr-router-live-db"
+  DEV_OTP,
+  openOtpStep,
+  type DisposablePhone,
+} from "./customer-join-live-db"
+import { installFallbackClock, takeEmailFallback } from "./email-fallback"
+import type { PublicQrRouterFixture } from "./public-qr-router-live-db"
 
 /**
  * Fixtures for the join-by-email journeys against local Supabase. The server
@@ -171,22 +173,27 @@ export async function installForeignDeviceHandoff(
 }
 
 /**
- * Scan the venue QR, take the contact step the device leads with (email on a
- * fresh device in mode full), and send a code to `email`.
+ * Scan the venue QR and send a text to `phone` (phone always leads), wait out
+ * the 30 seconds on the page clock, take the email fallback, and send a code
+ * to `email`. Installs the page clock, so call it before any navigation.
+ * Pass the same `phone` to the journey's cleanup: its send buckets are spent.
  */
 export async function requestJoinEmailCode(
   page: Page,
   fixture: PublicQrRouterFixture,
-  email: string
+  email: string,
+  phone: DisposablePhone
 ): Promise<void> {
-  await page.goto(publicQrPath(fixture.activeQrId))
+  await installFallbackClock(page)
+  await openOtpStep(page, fixture, phone)
+  await takeEmailFallback(page)
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("step") === "email" &&
+      url.searchParams.get("qr") === fixture.activeQrId
+  )
   await expect(
-    page.getByRole("heading", { name: "Your first stamp is ready" })
-  ).toBeVisible()
-  await page.getByRole("link", { name: "Claim my first stamp" }).click()
-  await expect(page).toHaveURL(/step=email/)
-  await expect(
-    page.getByRole("heading", { name: "Save your stamp with your email" })
+    page.getByRole("heading", { name: "Get your code by email instead" })
   ).toBeVisible()
   await expect(page.getByLabel("UK phone number")).toHaveCount(0)
 
