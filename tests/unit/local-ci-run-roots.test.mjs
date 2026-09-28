@@ -1,12 +1,14 @@
 import assert from "node:assert/strict"
-import { spawnSync } from "node:child_process"
+import { spawn, spawnSync } from "node:child_process"
 import {
   chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs"
 import { tmpdir } from "node:os"
@@ -23,9 +25,9 @@ import { fileURLToPath } from "node:url"
  * 8 GiB a sequential pack needs, and a container may only see paths under
  * the cache directory (so restricted Docker file sharing still works).
  * --dry-run touches neither Docker nor the cache, so this runs anywhere.
- * The admission and db-setup tests run the script for real against stub
- * `docker`, `supabase` and `pnpm` commands in a temporary cache directory;
- * they clone this repository but never reach Docker or Supabase.
+ * The scheduler, admission, host and db tests run the script for real
+ * against stub `docker`, `supabase` and `pnpm` commands in a temporary cache
+ * directory; they clone this repository but never reach Docker or Supabase.
  */
 
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url))
@@ -181,9 +183,9 @@ test("every visual run inside a container is one project shard", () => {
   assert.match(whole, /for shard in 1 2 3 4; do visual_shard /)
 })
 
-// Runs the script for real in a temporary cache with stub commands first on
-// PATH; returns the run and a reader for files the stubs wrote.
-function runWithStubs(args, stubs, env = {}) {
+// A temporary directory holding the stub commands (first on PATH) and
+// whatever they record; the cache directory lives inside it too.
+function stubSandbox(stubs, env) {
   const dir = mkdtempSync(join(tmpdir(), "run-roots-stub-"))
   const bin = join(dir, "bin")
   mkdirSync(bin)
@@ -191,24 +193,37 @@ function runWithStubs(args, stubs, env = {}) {
     writeFileSync(join(bin, name), `#!/usr/bin/env bash\n${body}\n`)
     chmodSync(join(bin, name), 0o755)
   }
+  const options = {
+    cwd: REPO_ROOT,
+    env: {
+      ...process.env,
+      PATH: `${bin}:${process.env.PATH}`,
+      LOCAL_CI_WORK: join(dir, "work"),
+      STUB_DIR: dir,
+      ...env,
+    },
+  }
+  // Every file a stub wrote at the top level, by name.
+  const files = () => {
+    const found = {}
+    for (const name of readdirSync(dir))
+      if (statSync(join(dir, name)).isFile())
+        found[name] = readFileSync(join(dir, name), "utf8")
+    return new Proxy(found, { get: (target, key) => target[key] ?? "" })
+  }
+  return { dir, options, files }
+}
+
+// Runs the script for real in a stub sandbox; returns the run, its output
+// and the files the stubs wrote.
+function runWithStubs(args, stubs, env = {}) {
+  const { dir, options, files } = stubSandbox(stubs, env)
   try {
     const run = spawnSync("bash", [SCRIPT, "HEAD", ...args], {
-      cwd: REPO_ROOT,
+      ...options,
       encoding: "utf8",
-      env: {
-        ...process.env,
-        PATH: `${bin}:${process.env.PATH}`,
-        LOCAL_CI_WORK: join(dir, "work"),
-        STUB_DIR: dir,
-        ...env,
-      },
     })
-    const files = {}
-    for (const name of ["supabase", "pnpm", "config.toml"])
-      files[name] = existsSync(join(dir, name))
-        ? readFileSync(join(dir, name), "utf8")
-        : ""
-    return { run, output: run.stdout + run.stderr, files }
+    return { run, output: run.stdout + run.stderr, files: files() }
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -296,4 +311,148 @@ cp "$3/supabase/config.toml" "$STUB_DIR/config.toml"
       assert.deepEqual(files.pnpm.trim().split("\n"), ["db:seed", "test:db"])
     }
   }
+})
+
+// Docker for the scheduler tests: 100 GiB and nothing else running. A
+// container is a file under live/ holding its process id until it exits or
+// `docker rm -f` kills it; `ps` with this run's label lists the live ones.
+// Each run records its caller (the slot subshell) in slots, and `rm` notes
+// any slot still alive when it is called. Tasks named in
+// STUB_HANG never finish; the others end as their case says.
+const SCHEDULER_DOCKER = `
+case "$1" in
+  info) echo 107374182400 ;;
+  ps) case "$*" in *nabaperks.local-ci.run=*) ls "$STUB_DIR/live" 2>/dev/null ;; esac ;;
+  rm) shift; [ "$1" != -f ] || shift
+    for pid in $(cat "$STUB_DIR/slots"); do
+      ! kill -0 "$pid" 2>/dev/null || echo "$pid" >>"$STUB_DIR/slots-alive-at-rm"
+    done
+    for id in "$@"; do
+      echo "$id" >>"$STUB_DIR/removed"
+      kill "$(cat "$STUB_DIR/live/$id")" 2>/dev/null; rm -f "$STUB_DIR/live/$id"
+    done ;;
+  run)
+    name=; prev=; for arg in "$@"; do [ "$prev" != --name ] || name="$arg"; prev="$arg"; done
+    task="\${!#}"; mkdir -p "$STUB_DIR/live"
+    echo "$PPID" >>"$STUB_DIR/slots"; echo "$$" >"$STUB_DIR/live/$name"
+    case " $STUB_HANG " in *" $task "*) exec sleep 60 ;; esac
+    rm -f "$STUB_DIR/live/$name"
+    case "$task" in
+      coverage) echo "=== ROOT coverage EXIT 3 00:00:00 1s"; echo "=== ALL DONE" ;;
+      quality) exit 137 ;;
+      build) echo "=== ROOT build EXIT 0 00:00:00 1s" ;;
+      *) echo "=== ROOT $task EXIT 0 00:00:00 1s"; echo "=== ALL DONE" ;;
+    esac ;;
+esac`
+
+function isAlive(pid) {
+  try {
+    process.kill(Number(pid), 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+test("concurrent tasks record their own exit codes and fail the run", () => {
+  // Two slots for four tasks, so slots are reused. coverage's root fails in
+  // a clean container, quality's container dies (137) before printing any
+  // root, and build's root passes but its container never finishes.
+  const { run, output } = runWithStubs(
+    ["fast", "coverage", "quality", "build", "--jobs", "2"],
+    { docker: SCHEDULER_DOCKER }
+  )
+  assert.equal(run.status, 1, output)
+  const summary = output.slice(output.indexOf("=== SUMMARY"))
+  assert.match(summary, /failed=3/)
+  const rows = Object.fromEntries(
+    [...summary.matchAll(/^(\S+) +(\S+) +\S+ +\S+$/gm)]
+      .filter(([, name]) => name !== "root")
+      .map(([, name, exit]) => [name, exit])
+  )
+  assert.deepEqual(rows, {
+    fast: "0",
+    coverage: "3",
+    "quality(container)": "137",
+    build: "0",
+    "build(container)": "1",
+  })
+  for (const task of ["coverage", "quality", "build"])
+    assert.match(output, new RegExp(`^--- ${task} failed `, "m"))
+  assert.doesNotMatch(output, /^--- fast failed /m)
+})
+
+test("SIGTERM stops only this run's live slots and containers", async () => {
+  const { dir, options, files } = stubSandbox(
+    { docker: SCHEDULER_DOCKER },
+    { STUB_HANG: "coverage build" }
+  )
+  const live = () => {
+    try {
+      return readdirSync(join(dir, "live"))
+    } catch {
+      return []
+    }
+  }
+  try {
+    const child = spawn(
+      "bash",
+      [SCRIPT, "HEAD", "fast", "coverage", "build", "--jobs", "3"],
+      options
+    )
+    let output = ""
+    child.stdout.on("data", (chunk) => (output += chunk))
+    child.stderr.on("data", (chunk) => (output += chunk))
+    const status = await new Promise((resolve, reject) => {
+      const deadline = setTimeout(() => {
+        child.kill("SIGKILL")
+        reject(new Error(`run-roots.sh did not stop:\n${output}`))
+      }, 60_000)
+      // Interrupt once fast has finished and been reaped while coverage and
+      // build are still running.
+      const poll = setInterval(() => {
+        if (/^=== ROOT fast EXIT 0 /m.test(output) && live().length === 2) {
+          clearInterval(poll)
+          child.kill("SIGTERM")
+        }
+      }, 100)
+      child.on("close", (code) => {
+        clearInterval(poll)
+        clearTimeout(deadline)
+        resolve(code)
+      })
+    })
+    assert.equal(status, 130, output)
+    const removed = files().removed.trim().split("\n").sort()
+    assert.equal(removed.length, 2, output)
+    assert.match(removed[0], /^nabaperks-roots-\d+-\d+-build$/)
+    assert.match(removed[1], /^nabaperks-roots-\d+-\d+-coverage$/)
+    assert.deepEqual(live(), [], "every container of the run is removed")
+    // The live slots were stopped before their containers were removed.
+    assert.equal(files()["slots-alive-at-rm"], "", output)
+    const slots = files().slots.trim().split("\n")
+    assert.equal(slots.length, 3)
+    for (const pid of slots)
+      assert.equal(isAlive(pid), false, `slot ${pid} outlived the run`)
+  } finally {
+    for (const name of live())
+      try {
+        process.kill(Number(readFileSync(join(dir, "live", name), "utf8")))
+      } catch {
+        // already gone
+      }
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("a failed host build skips lighthouse and zap and fails them", () => {
+  const { run, output, files } = runWithStubs(["lighthouse", "zap"], {
+    docker: `echo "$1" >>"$STUB_DIR/docker"`,
+    pnpm: `echo "$1" >>"$STUB_DIR/pnpm"; [ "$1" != build ] || exit 4`,
+  })
+  assert.notEqual(run.status, 0, output)
+  for (const root of ["build-host", "lighthouse", "zap"])
+    assert.match(output, new RegExp(`^=== ROOT ${root} EXIT 4 `, "m"))
+  assert.deepEqual(files.pnpm.trim().split("\n"), ["build"])
+  assert.doesNotMatch(files.docker, /^run$/m, "no ZAP container may start")
 })

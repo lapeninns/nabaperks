@@ -52,7 +52,9 @@ run against an earlier candidate's database.
   project starts containers and speeds up when they stop. Each slot has its
   own `node_modules` volume; the pnpm store volume is shared.
 - Lighthouse, ZAP and `db` always run on the host, one after another, after
-  the container roots.
+  the container roots. Lighthouse and ZAP share one host build
+  (`build-host`); when it fails they are skipped and reported with its exit
+  code.
 - `--dry-run` prints the plan, caps and mounts without touching git, Docker or
   the cache.
 

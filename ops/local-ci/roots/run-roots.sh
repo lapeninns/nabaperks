@@ -306,7 +306,16 @@ if wants lighthouse || wants zap; then
   ( set +eu; source "$CI_DIR/env.sh"; unset CUSTOMER_DEV_OTP_CODE
     cd "$HOST_TREE" || exit 1; [ -e node_modules ] || ln -s "$REPO/node_modules" node_modules
     eval "$(node scripts/generate-ci-vapid-env.mjs | sed 's/^/export /')"
-    t=$SECONDS; pnpm build >/dev/null; report build-host $? $((SECONDS - t))
+    t=$SECONDS; pnpm build >/dev/null; rc=$?; report build-host "$rc" $((SECONDS - t))
+    # Lighthouse and ZAP need that build: without it they would fail for an
+    # unrelated-looking reason (ZAP only after two minutes of polling), so
+    # they are skipped and carry the build's exit code instead.
+    if [ "$rc" != 0 ]; then
+      echo "--- build-host failed (exit $rc): lighthouse and zap skipped"
+      if wants lighthouse; then report lighthouse "$rc" 0; fi
+      if wants zap; then report zap "$rc" 0; fi
+      exit 0
+    fi
     if wants lighthouse; then t=$SECONDS; pnpm lighthouse >/dev/null 2>&1; report lighthouse $? $((SECONDS - t)); fi
     if wants zap; then
       t=$SECONDS
