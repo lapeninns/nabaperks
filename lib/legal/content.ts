@@ -12,7 +12,7 @@ export type LegalSection = {
   body: string
 }
 
-export const CUSTOMER_LEGAL_VERSION = "2026-09-26"
+export const CUSTOMER_LEGAL_VERSION = "2026-09-28"
 
 export const NO_ADDITIONAL_EXCLUSIONS = "No additional exclusions configured."
 
@@ -25,7 +25,12 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "joining",
     title: "Joining a venue",
-    body: "You join with a mobile phone number and a one-time code sent by text. You must select the required loyalty-terms control before a membership is created. The join screen provides the current venue terms, these platform terms, and the privacy notice. Nabaperks records the venue terms version and an immutable copy of the venue terms accepted for that membership.",
+    body: "You join a venue, or sign back in to your wallet, with a one-time code sent to your mobile number by WhatsApp or text message or, where the page offers it, by email to your email address. Entering the code shows that you control that phone number or inbox. An email address can start a new wallet only on a venue join page, after you choose to start one; signing in elsewhere by email opens only a wallet that already holds that verified address. Offers claimed from a venue’s public offer link need a confirmed phone number. You must select the required loyalty-terms control before a membership is created. The join screen provides the current venue terms, these platform terms, and the privacy notice. Nabaperks records the venue terms version and an immutable copy of the venue terms accepted for that membership.",
+  },
+  {
+    id: "wallet-contacts",
+    title: "Your wallet and contact details",
+    body: "Each phone number and each verified email address can belong to only one Nabaperks wallet. Once signed in, a wallet without a verified email address can add one, and a wallet without a mobile number can add one, as long as no other wallet already holds that email address or number. Once verified, an email address or phone number cannot be changed or removed by editing your profile; you can still ask for it to be deleted through a privacy request, as described under Records and support. Stamps, rewards and venue memberships stay on the wallet they were recorded on, and Nabaperks does not combine wallets. For help with a verified contact detail or with more than one wallet, contact Nabaperks support using the details under Records and support.",
   },
   {
     id: "marketing",
@@ -70,12 +75,12 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
 ]
 
 export const PLATFORM_TERMS_META = {
-  eyebrow: "For customers · effective 26 September 2026",
+  eyebrow: "For customers · effective 28 September 2026",
   title: "Nabaperks customer terms.",
   description:
     "The terms for keeping venue loyalty cards, collecting stamps, and redeeming rewards through Nabaperks.",
   cardTitle: "Customer terms",
-  docNumber: "CT-2026-09-26",
+  docNumber: "CT-2026-09-28",
 }
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
@@ -382,7 +387,7 @@ export function buildVenueTermsSections({
     {
       id: "joining",
       title: "Joining the card",
-      body: "Join by verifying your mobile phone number and accepting these venue terms and the Nabaperks customer terms after being shown the privacy notice. Marketing is optional and is not required to keep the card, collect stamps, or redeem an eligible reward.",
+      body: "Join by verifying your mobile phone number or, where offered, your email address with a one-time code, and accepting these venue terms and the Nabaperks customer terms after being shown the privacy notice. Marketing is optional and is not required to keep the card, collect stamps, or redeem an eligible reward.",
     },
     {
       id: "earning-rule",

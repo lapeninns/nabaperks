@@ -42,7 +42,9 @@ async function emailWalletDbReady() {
 
 const ready = await emailWalletDbReady()
 const skip = ready ? false : "email-only wallet migrations not deployed"
-const POLICY = "2026-10-06"
+// A terms version with a snapshot trigger: dated versions from 2026-09-26
+// without one are refused (20261007100100).
+const POLICY = "2026-09-28"
 const ADMIN_UID = "00000000-0000-0000-0000-000000000001"
 after(closeDb)
 

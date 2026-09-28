@@ -24,9 +24,9 @@ const MIGRATION_FILENAME = /^(\d{14})_[a-z0-9_]+\.sql$/
 // New migrations must sort after it. To raise the mark, update all three
 // constants together to the new latest filename and the reported actual values.
 const BASELINE = {
-  highWaterMark: "20261006100600_otp_dispatch_attach_scope.sql",
-  count: 233,
-  digest: "f58c0404279ced0213ee87b56fe38c557f058dd68467994bbf7d6ea49ca3a3dd",
+  highWaterMark: "20261007100100_require_terms_version_snapshot.sql",
+  count: 235,
+  digest: "d3d70546bc92ffd2f30dd92a5b164878941cd5913a9219b5128c11bee225ef5e",
 }
 
 function versionOf(file) {

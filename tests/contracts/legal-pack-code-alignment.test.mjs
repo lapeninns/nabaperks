@@ -47,7 +47,15 @@ test("Given legal copy follows product behaviour When the shared content is insp
   const content = readProjectFile("lib", "legal", "content.ts")
 
   for (const expected of [
-    'CUSTOMER_LEGAL_VERSION = "2026-09-26"',
+    'CUSTOMER_LEGAL_VERSION = "2026-09-28"',
+    'docNumber: "CT-2026-09-28"',
+    "sent to your mobile number by WhatsApp or text message",
+    "by email to your email address",
+    "each verified email address can belong to only one Nabaperks wallet",
+    "Nabaperks does not combine wallets",
+    "cannot be changed or removed by editing your profile",
+    "you can still ask for it to be deleted through a privacy request",
+    "public offer link need a confirmed phone number",
     "venue trading day",
     "first active configured reward",
     "configured reward weightings",
@@ -168,4 +176,56 @@ test("Given the reward-logic activation When September terms are accepted Then t
     )
   }
   assert.doesNotMatch(migration, /normally expire within 56 days/)
+})
+
+test("Given email joining When 2026-09-28 terms are accepted Then the snapshot describes phone or email verification and keeps the corrected rules", () => {
+  const migration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20261007100000_loyalty_terms_snapshot_v20260928.sql"
+  )
+
+  assert.match(migration, /new\.policy_version <> '2026-09-28'/)
+  assert.match(
+    migration,
+    /create trigger customer_terms_apply_v20260928_snapshot\s+before insert on public\.customer_loyalty_terms_acceptances/
+  )
+  assert.match(
+    migration,
+    /extensions\.digest\(new\.terms_snapshot::text, 'sha256'\)/
+  )
+  assert.match(
+    migration,
+    /grant execute on function public\.apply_customer_legal_terms_snapshot_v20260928\(\)\s+to service_role/
+  )
+
+  for (const section of [
+    "joining",
+    "earning-rule",
+    "reward",
+    "redemption",
+    "reward-pool",
+    "collection-windows",
+    "exclusions",
+    "referrals-and-additional-rewards",
+    "fraud-and-abuse",
+    "availability",
+    "merchant-contact",
+  ]) {
+    assert.ok(migration.includes(`'id', '${section}'`))
+  }
+
+  for (const displayedRule of [
+    "Join by verifying your mobile phone number or, where offered, your email address with a one-time code",
+    "A verified email address is required before reward collection",
+    "venue trading day",
+    "immediately opens a fresh card",
+    "30-day grace period",
+  ]) {
+    assert.ok(
+      migration.includes(displayedRule),
+      `2026-09-28 snapshot includes ${displayedRule}`
+    )
+  }
+  assert.doesNotMatch(migration, /Email is optional; if supplied/)
 })

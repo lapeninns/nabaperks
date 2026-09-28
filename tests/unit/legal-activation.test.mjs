@@ -4,12 +4,14 @@ import { readFileSync } from "node:fs"
 import {
   CUSTOMER_LEGAL_VERSION,
   PLATFORM_TERMS_META,
+  PLATFORM_TERMS_SECTIONS,
   buildVenueTermsSections,
 } from "@/lib/legal/content"
 
 test("activation version reaches every join acceptance and its snapshot trigger", () => {
-  assert.equal(CUSTOMER_LEGAL_VERSION, "2026-09-26")
-  assert.match(PLATFORM_TERMS_META.eyebrow, /26 September 2026/)
+  assert.equal(CUSTOMER_LEGAL_VERSION, "2026-09-28")
+  assert.match(PLATFORM_TERMS_META.eyebrow, /28 September 2026/)
+  assert.equal(PLATFORM_TERMS_META.docNumber, "CT-2026-09-28")
   const action = readFileSync("app/m/[merchantSlug]/join/actions.ts", "utf8")
   assert.match(action, /const policyVersion = CUSTOMER_LEGAL_VERSION/)
   assert.equal(
@@ -17,11 +19,59 @@ test("activation version reaches every join acceptance and its snapshot trigger"
     3
   )
   const migration = readFileSync(
-    "supabase/migrations/20260926100000_loyalty_terms_snapshot_v20260926.sql",
+    "supabase/migrations/20261007100000_loyalty_terms_snapshot_v20260928.sql",
     "utf8"
   )
   assert.ok(
     migration.includes(`new.policy_version <> '${CUSTOMER_LEGAL_VERSION}'`)
+  )
+  const joining = buildVenueTermsSections({
+    merchantName: "Venue",
+    stampsRequired: 4,
+    rewardTerms: "",
+  }).find((section) => section.id === "joining").body
+  assert.ok(
+    migration.includes(`'body', '${joining}'`),
+    "the database snapshot records the joining text the join page shows"
+  )
+})
+
+test("customer terms describe joining and signing in by phone or email as shipped", () => {
+  const section = (id) =>
+    PLATFORM_TERMS_SECTIONS.find((candidate) => candidate.id === id).body
+  const joining = section("joining")
+  for (const rule of [
+    // Phone codes go by WhatsApp first with text as the alternative and the
+    // fallback (primaryOtpChannel), so the terms name both channels.
+    /one-time code sent to your mobile number by WhatsApp or text message or, where the page offers it, by email/,
+    /control that phone number or inbox/,
+    /An email address can start a new wallet only on a venue join page, after you choose to start one/,
+    /opens only a wallet that already holds that verified address/,
+    /public offer link need a confirmed phone number/,
+    /select the required loyalty-terms control before a membership is created/,
+    /immutable copy of the venue terms accepted/,
+  ]) {
+    assert.match(joining, rule)
+  }
+  assert.doesNotMatch(joining, /sent by text/)
+
+  const contacts = section("wallet-contacts")
+  for (const rule of [
+    /Each phone number and each verified email address can belong to only one Nabaperks wallet/,
+    /Once signed in, a wallet without a verified email address can add one, and a wallet without a mobile number can add one, as long as no other wallet already holds that email address or number/,
+    // prevent_verified_customer_contact_change locks verified contacts.
+    /Once verified, an email address or phone number cannot be changed or removed by editing your profile; you can still ask for it to be deleted through a privacy request/,
+    /Stamps, rewards and venue memberships stay on the wallet they were recorded on/,
+    // No merge or transfer tooling exists (identity.ts: attach, never merge).
+    /Nabaperks does not combine wallets/,
+    /contact Nabaperks support using the details under Records and support/,
+  ]) {
+    assert.match(contacts, rule)
+  }
+  assert.doesNotMatch(contacts, /merge|first joined with/)
+  assert.ok(
+    PLATFORM_TERMS_SECTIONS.some(({ id }) => id === "records-and-support"),
+    "the support reference points at a real section"
   )
 })
 
