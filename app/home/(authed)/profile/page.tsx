@@ -32,10 +32,14 @@ export default async function HomeProfilePage() {
     redirect(customerLoginHref("/home/profile"))
   }
 
-  const incomplete = !profile.fullName || !profile.dateOfBirth
+  const incomplete =
+    !profile.fullName ||
+    !profile.dateOfBirth ||
+    !profile.emailVerified ||
+    !profile.phoneVerified
   // An email-only wallet: no phone, so no phone messages or phone marketing
-  // until one is added from the account section.
-  const hasPhone = Boolean(profile.phone)
+  // until one is added from the contact details section.
+  const hasPhone = profile.phoneVerified
   const venueLabel = `${profile.membershipCount} ${
     profile.membershipCount === 1 ? "venue" : "venues"
   }`
@@ -45,18 +49,20 @@ export default async function HomeProfilePage() {
       <PageTitle
         eyebrow="My Nabaperks"
         title="Your details"
-        description="How venues can reach you: phone, name, and optional email."
+        description="Your contact details and the information needed to collect rewards."
       />
 
       {incomplete ? (
         <StatusBanner title="Finish your details" tone="warning">
-          Add your name and date of birth so rewards are ready for collection.
+          Complete your name and date of birth, and verify your email and phone
+          number before collecting a reward. You can keep earning stamps
+          meanwhile.
         </StatusBanner>
       ) : null}
 
       <CustomerProfileAboutYou
         profile={{
-          phone: profile.phone,
+          phone: profile.phoneVerified ? profile.phone : null,
           fullName: profile.fullName,
           dateOfBirth: profile.dateOfBirth,
           email: profile.email,
@@ -65,6 +71,7 @@ export default async function HomeProfilePage() {
           needsEmailVerification: profile.needsEmailVerification,
         }}
         emailReason={emailPromptReason()}
+        addPhone={<CustomerProfileAddPhone hasPhone={hasPhone} />}
       />
 
       <CustomerProfileMarketing
@@ -88,9 +95,6 @@ export default async function HomeProfilePage() {
           hasVerifiedEmail: profile.emailVerified,
           emailSignInEnabled: emailSignInEnabled(),
         })}
-        // Always mounted, so the confirmation survives the re-render that
-        // follows an added phone; it hides itself once the wallet has one.
-        addPhone={<CustomerProfileAddPhone hasPhone={hasPhone} />}
         signOutAction={signOutCustomerAction}
         signOutAllAction={signOutAllCustomerDevicesAction}
       />

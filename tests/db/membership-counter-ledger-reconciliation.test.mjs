@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 /**
  * STAMP-08 — membership counters must reconcile with the event ledger.
@@ -106,6 +107,7 @@ test(
                 '1990-01-01', now(), now())
         returning id`
       await ensureVerifiedCustomerEmail(tx, customer.id)
+      await ensureVerifiedCustomerPhone(tx, customer.id)
       await tx`
         update public.customers
         set date_of_birth_verified_at = now(),

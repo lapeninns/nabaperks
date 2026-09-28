@@ -70,7 +70,7 @@ test.describe("@customer-flow join by email (live database, mode existing)", () 
         page.getByRole("heading", { name: NO_WALLET_HEADING })
       ).toBeVisible()
       await expect(
-        page.getByRole("button", { name: /start my wallet/ })
+        page.getByRole("button", { name: /Continue with email/ })
       ).toHaveCount(0)
       await expect(
         page.getByRole("button", { name: "Use my phone instead" })
@@ -84,7 +84,7 @@ test.describe("@customer-flow join by email (live database, mode existing)", () 
         "/dev/welcome-offer?surface=email-choice&offer=none"
       )
       const start = page.getByRole("button", {
-        name: "No, I’m new here: start my wallet",
+        name: "Continue with email",
       })
       const form = start.locator("xpath=ancestor::form")
       await form

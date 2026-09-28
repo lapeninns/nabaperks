@@ -47,8 +47,8 @@ test("Given legal copy follows product behaviour When the shared content is insp
   const content = readProjectFile("lib", "legal", "content.ts")
 
   for (const expected of [
-    'CUSTOMER_LEGAL_VERSION = "2026-09-28"',
-    'docNumber: "CT-2026-09-28"',
+    'CUSTOMER_LEGAL_VERSION = "2026-09-28.1"',
+    'docNumber: "CT-2026-09-28.1"',
     "sent to your mobile number by WhatsApp or text message",
     "by email to your email address",
     "each verified email address can belong to only one Nabaperks wallet",
@@ -60,7 +60,7 @@ test("Given legal copy follows product behaviour When the shared content is insp
     "first active configured reward",
     "configured reward weightings",
     "be at least 18",
-    "A verified email address is required before reward collection",
+    "A verified email address and verified mobile phone number are required before reward collection",
     "active or trialling",
     "eligible for anonymisation after seven days",
     "eligible for anonymisation after 365 days",

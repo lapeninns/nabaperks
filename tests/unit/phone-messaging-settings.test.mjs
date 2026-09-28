@@ -21,7 +21,11 @@ async function loadProfile() {
           build.onResolve(
             { filter: /^(fixture-state|server-only|next\/|@\/lib\/)/ },
             ({ path }) => {
-              if (path === "@/lib/customer/profile") return null
+              if (
+                path === "@/lib/customer/profile" ||
+                path === "@/lib/customer/phone-verification-state"
+              )
+                return null
               return { path, namespace: "fixture" }
             }
           )
@@ -69,7 +73,8 @@ async function loadProfile() {
               "@/lib/supabase/server": `import {state} from "fixture-state";
               export function createSupabaseServiceRoleClient() { return {
                 from() { return { select() { return { eq() { return {
-                  count: 1, error: null, order() { return {data: [], error: null} }
+                  count: 1, error: null, order() { return {data: [], error: null} },
+                  maybeSingle() { return { data: { phone_hmac: "fixture-phone", phone_verified_at: "2026-09-28T12:00:00Z" }, error: null } }
                 } } } } } },
                 async rpc(name, args) {
                   state.calls.push({name, args});

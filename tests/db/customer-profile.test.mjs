@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 /**
  * customer home / customer auth wallet (profile) — live-DB tier.
@@ -115,6 +116,7 @@ test(
                set full_name = null, date_of_birth = null
                where id = ${m.customer_id}`
       await ensureVerifiedCustomerEmail(tx, m.customer_id)
+      await ensureVerifiedCustomerPhone(tx, m.customer_id)
       const [reward] = await tx`
         insert into public.reward_events
           (merchant_id, customer_id, membership_id, loyalty_card_id, status,

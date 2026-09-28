@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
 import { normalizeOtpInput } from "@/lib/customer/experience/otp-field"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
 import {
   attachVerifiedPhoneToCustomer,
   getCurrentCustomer,
@@ -36,8 +37,8 @@ import {
 } from "@/lib/security/rate-limit"
 
 /**
- * Adding a phone to an email-only wallet from the profile (email sign-in
- * PR 4). Only a signed-in customer whose wallet has no phone gets here. The
+ * Adding or recovering an unverified phone from Profile or reward collection.
+ * Only a signed-in customer without a verified phone gets here. The
  * code goes out under the phone OTP admission with its own `attach` scope,
  * and the pending code is bound to this wallet, so it cannot be spent on
  * another. A phone another wallet holds is refused and nothing changes (D4).
@@ -85,8 +86,23 @@ export async function profilePhoneAction(
   state: ProfilePhoneState,
   formData: FormData
 ): Promise<ProfilePhoneState> {
+  return phoneAction(state, formData, "profile")
+}
+
+export async function rewardPhoneAction(
+  state: ProfilePhoneState,
+  formData: FormData
+): Promise<ProfilePhoneState> {
+  return phoneAction(state, formData, "reward_gate")
+}
+
+async function phoneAction(
+  state: ProfilePhoneState,
+  formData: FormData,
+  surface: "profile" | "reward_gate"
+): Promise<ProfilePhoneState> {
   const intent = value(formData, "intent")
-  if (intent === "verify") return verifyAttachPhone(formData)
+  if (intent === "verify") return verifyAttachPhone(formData, surface)
   if (intent === "edit") {
     await clearPendingPhoneVerification()
     return { step: "phone", phone: value(formData, "phone") || state.phone }
@@ -99,7 +115,7 @@ async function requestAttachPhone(
 ): Promise<ProfilePhoneState> {
   const customer = await getCurrentCustomer()
   if (!customer) return { step: "phone", errors: { form: SIGN_IN_FIRST } }
-  if (customer.phoneLast4) {
+  if (await customerHasVerifiedPhone(customer.id)) {
     return { step: "attached", message: ALREADY_HAS_PHONE }
   }
 
@@ -167,7 +183,8 @@ async function pendingAttachFor(
 }
 
 async function verifyAttachPhone(
-  formData: FormData
+  formData: FormData,
+  surface: "profile" | "reward_gate"
 ): Promise<ProfilePhoneState> {
   const customer = await getCurrentCustomer()
   if (!customer) return { step: "phone", errors: { form: SIGN_IN_FIRST } }
@@ -203,7 +220,7 @@ async function verifyAttachPhone(
       country: pending.country,
       last4: pending.phone.slice(-4),
     },
-    surface: "profile",
+    surface,
   })
   await clearPendingPhoneVerification()
 
@@ -216,12 +233,13 @@ async function verifyAttachPhone(
     recordCustomerContactEvent({
       eventName: "customer_contact_conflict",
       customerId: customer.id,
-      metadata: { method: "phone", surface: "profile", reason: "phone_in_use" },
+      metadata: { method: "phone", surface, reason: "phone_in_use" },
     })
     return { step: "phone", errors: { form: CONTACT_CONFLICT } }
   }
 
   revalidatePath(PROFILE_PATH)
+  revalidatePath("/reward", "layout")
   return {
     step: "attached",
     message: result.status === "attached" ? ATTACHED : ALREADY_HAS_PHONE,

@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 /**
  * customer card stamp (edges) — live-DB tier.
@@ -135,6 +136,8 @@ test(
       await s.ageStamps()
       await s.stamp()
       assert.equal(await s.count(), 0, "reward issuance opens cycle 2 empty")
+
+      await ensureVerifiedCustomerPhone(tx, s.customer.id)
 
       await tx`
         update public.reward_events

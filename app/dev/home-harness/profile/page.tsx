@@ -6,6 +6,7 @@ import { CustomerProfileAccountSection } from "@/components/customer/profile-acc
 import { CustomerProfileAddPhone } from "@/components/customer/profile-add-phone"
 import { CustomerProfileMarketing } from "@/components/customer/profile-marketing-consent"
 import { PhoneMessagingSettings } from "@/components/customer/phone-messaging-settings"
+import { StatusBanner } from "@/components/loyalty"
 import { customerSignInMethodsLabel } from "@/lib/customer/sign-in-methods"
 import { harnessProfilePhoneAction } from "./actions"
 
@@ -39,7 +40,7 @@ export default async function CustomerProfileHarnessPage({
       <PageTitle
         eyebrow="My Nabaperks"
         title="Your details"
-        description="How venues can reach you: phone, name, and optional email."
+        description="Your contact details and the information needed to collect rewards."
       />
       <CustomerProfileAboutYou
         profile={{
@@ -75,8 +76,13 @@ function EmailOnlyProfile() {
       <PageTitle
         eyebrow="My Nabaperks"
         title="Your details"
-        description="How venues can reach you: phone, name, and optional email."
+        description="Your contact details and the information needed to collect rewards."
       />
+      <StatusBanner title="Finish your details" tone="warning">
+        Complete your name and date of birth, and verify your email and phone
+        number before collecting a reward. You can keep earning stamps
+        meanwhile.
+      </StatusBanner>
       <CustomerProfileAboutYou
         profile={{
           phone: null,
@@ -87,6 +93,9 @@ function EmailOnlyProfile() {
           emailLocked: true,
           needsEmailVerification: false,
         }}
+        addPhone={
+          <CustomerProfileAddPhone action={harnessProfilePhoneAction} />
+        }
       />
       <CustomerProfileMarketing
         consents={[{ channel: "email", optedIn: true }]}
@@ -100,9 +109,6 @@ function EmailOnlyProfile() {
           hasVerifiedEmail: true,
           emailSignInEnabled: true,
         })}
-        addPhone={
-          <CustomerProfileAddPhone action={harnessProfilePhoneAction} />
-        }
         signOutAction={noopSignOutAction}
         signOutAllAction={noopSignOutAction}
       />

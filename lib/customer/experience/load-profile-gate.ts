@@ -27,6 +27,7 @@ export async function loadProfileGate(): Promise<ProfileGate> {
     complete: completion.complete,
     dateOfBirthVerified: completion.dateOfBirthVerified,
     needsEmailVerification: completion.needsEmailVerification,
+    needsPhoneVerification: completion.needsPhoneVerification,
     fullName: completion.fullName,
     dateOfBirth: completion.dateOfBirth,
     email: completion.email,

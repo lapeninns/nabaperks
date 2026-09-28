@@ -315,10 +315,14 @@ export async function proveRolledBackLoyaltyJourney(sql, config) {
       await tx`select set_config('request.jwt.claim.sub', '', true)`
       await tx`
         insert into public.customers (
-          id, email, email_verified_at, full_name, date_of_birth, created_at, updated_at
+          id, email, email_verified_at, phone_hmac, phone_last4, phone_verified_at,
+          full_name, date_of_birth, created_at, updated_at
         ) values (
           ${customerId}::uuid,
           ${`customer-${suffix}@example.invalid`},
+          now(),
+          ${customerId.replaceAll("-", "").repeat(2)},
+          '0123',
           now(),
           'Release Proof Customer',
           '1990-01-01',

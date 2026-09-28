@@ -30,6 +30,8 @@ async function loadIdentity() {
       afterCalls: [],
     };`,
     "server-only": "",
+    "@/lib/customer/phone-verification-state":
+      "export async function customerHasVerifiedPhone() { return false }",
     react: "export function cache(fn) { return fn }",
     "next/server":
       'import { state } from "fixture-state"; export function after(fn) { state.afterCalls.push(fn) }',

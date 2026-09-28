@@ -9,9 +9,9 @@ import {
 } from "@/lib/legal/content"
 
 test("activation version reaches every join acceptance and its snapshot trigger", () => {
-  assert.equal(CUSTOMER_LEGAL_VERSION, "2026-09-28")
+  assert.equal(CUSTOMER_LEGAL_VERSION, "2026-09-28.1")
   assert.match(PLATFORM_TERMS_META.eyebrow, /28 September 2026/)
-  assert.equal(PLATFORM_TERMS_META.docNumber, "CT-2026-09-28")
+  assert.equal(PLATFORM_TERMS_META.docNumber, "CT-2026-09-28.1")
   const action = readFileSync("app/m/[merchantSlug]/join/actions.ts", "utf8")
   assert.match(action, /const policyVersion = CUSTOMER_LEGAL_VERSION/)
   assert.equal(
@@ -19,7 +19,7 @@ test("activation version reaches every join acceptance and its snapshot trigger"
     3
   )
   const migration = readFileSync(
-    "supabase/migrations/20261007100000_loyalty_terms_snapshot_v20260928.sql",
+    "supabase/migrations/20261007100300_loyalty_terms_snapshot_v20260928_1.sql",
     "utf8"
   )
   assert.ok(
@@ -100,7 +100,7 @@ test("venue terms preserve configured earning and individual reward terms", () =
   assert.doesNotMatch(body("reward-pool"), /Soup: Lunch only[^\n]*Photo ID/)
   assert.match(
     body("redemption"),
-    /A verified email address is required before reward collection/
+    /A verified email address and verified mobile phone number are required before reward collection/
   )
   assert.match(body("availability"), /grace period/)
 })
@@ -125,7 +125,7 @@ test("null expiry and disabled spend terms do not invent a deadline or transacti
   assert.doesNotMatch(redemption, /56 days|weekday/)
   assert.match(
     redemption,
-    /A verified email address is required before reward collection/
+    /A verified email address and verified mobile phone number are required before reward collection/
   )
 })
 

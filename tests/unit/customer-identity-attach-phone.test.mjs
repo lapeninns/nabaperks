@@ -28,6 +28,7 @@ async function loadIdentity() {
   const modules = {
     "fixture-state": `export const state = {
       holder: null,
+      phoneVerified: false,
       updateResults: [],
       order: [],
       queries: [],
@@ -40,6 +41,8 @@ async function loadIdentity() {
     "@/lib/observability/logger":
       'import { state } from "fixture-state"; export const logger = { error(message, context) { state.logs.push([message, context]) } }',
     "server-only": "",
+    "@/lib/customer/phone-verification-state": `import { state } from "fixture-state";
+      export async function customerHasVerifiedPhone() { return state.phoneVerified }`,
     react: "export function cache(fn) { return fn }",
     "next/server":
       'import { state } from "fixture-state"; export function after(fn) { state.afterCalls.push(fn) }',
@@ -138,6 +141,33 @@ const THIS_CALLS_UNVERIFIED_PHONE = [
 ]
 const ATTACH = { customerId: "customer-1", phone: PHONE, surface: "profile" }
 
+test("Given an interrupted phone attachment When the same phone is proven again Then verification resumes with an audit", async () => {
+  const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
+  state.holder = row({ phone_last4: "0123" })
+  state.phoneVerified = false
+  state.updateResults = [STAGED, VERIFIED]
+  const result = await attachVerifiedPhoneToCustomer(ATTACH)
+  assert.equal(result.status, "attached")
+  assert.deepEqual(state.order, ["update", "audit", "update"])
+  assert.deepEqual(state.queries[1], [
+    ["eq", "id", "customer-1"],
+    ["is", "phone_verified_at", null],
+    ["select"],
+  ])
+})
+
+test("Given a different staged phone When a new unused phone is proven Then it can replace only the unverified contact", async () => {
+  const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
+  state.updateResults = [STAGED, VERIFIED]
+  const result = await attachVerifiedPhoneToCustomer(ATTACH)
+  assert.equal(result.status, "attached")
+  assert.deepEqual(state.queries[1], [
+    ["eq", "id", "customer-1"],
+    ["is", "phone_verified_at", null],
+    ["select"],
+  ])
+})
+
 test("Given an unused phone When it is attached Then it is staged, audited, and only then marked verified, and invites are attached", async () => {
   const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
   state.updateResults = [STAGED, VERIFIED]
@@ -169,7 +199,7 @@ test("Given an unused phone When it is attached Then it is staged, audited, and 
   ])
   assert.deepEqual(guarded, [
     ["eq", "id", "customer-1"],
-    ["is", "phone_hmac", null],
+    ["is", "phone_verified_at", null],
     ["select"],
   ])
   assert.deepEqual(confirmed, THIS_CALLS_UNVERIFIED_PHONE)
@@ -270,6 +300,7 @@ test("Given another wallet holds the phone When it is attached Then it is a conf
 test("Given the phone is already this wallet's When it is attached Then nothing changes", async () => {
   const { attachVerifiedPhoneToCustomer, state } = await loadIdentity()
   state.holder = row({ phone_last4: "0123" })
+  state.phoneVerified = true
 
   assert.deepEqual(
     await attachVerifiedPhoneToCustomer({

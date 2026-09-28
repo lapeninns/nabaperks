@@ -235,14 +235,12 @@ test("Given the join email screens When they are read Then they carry the agreed
     /"Works over the venue's Wi-Fi, even with no mobile signal\."/
   )
 
-  // The choice: the create button exists only when the server allows it, and
-  // neither answer is styled as the expected one.
   const choice = forms.slice(
     forms.indexOf("export function CustomerEmailChoiceForm")
   )
   assert.match(choice, /\{canCreate \? \(\s*<form\s+action=\{createAction\}/)
-  assert.match(choice, /No, I&rsquo;m new here: start my wallet/)
-  assert.match(choice, /Yes, with my phone number: use my phone/)
+  assert.match(choice, /Continue with email/)
+  assert.match(choice, /Open my existing wallet with my phone/)
   // Mode existing (D9): phone only, with its own heading, since a yes/no
   // question with one answer would not make sense.
   assert.match(choice, /: "Use my phone instead"\}/)
@@ -252,7 +250,7 @@ test("Given the join email screens When they are read Then they carry the agreed
     /"Use the phone number you joined with\. You can add this email to your wallet once you're signed in\."/
   )
   assert.match(choice, /action=\{switchJoinToPhoneAction\}/)
-  assert.equal((choice.match(/variant="outline"/g) ?? []).length, 2)
+  assert.equal((choice.match(/variant="outline"/g) ?? []).length, 1)
   assert.doesNotMatch(choice, /variant="default"/)
 
   // The code step: masked address, shared code field, a countdown on the

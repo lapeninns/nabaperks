@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 /**
  * customer * — live-DB customer lifecycle JOURNEY tier.
@@ -74,6 +75,7 @@ test(
         returning id`
       assert.ok(customer?.id, "created a fresh verified customer")
       await ensureVerifiedCustomerEmail(tx, customer.id)
+      await ensureVerifiedCustomerPhone(tx, customer.id)
       await tx`
         update public.customers
         set date_of_birth_verified_at = now(),

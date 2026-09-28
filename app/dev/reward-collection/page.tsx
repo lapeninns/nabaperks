@@ -61,6 +61,16 @@ const LONG_MERCHANT = "The extraordinarily long neighbourhood venue name"
  * `id-check` is complete but unverified in person, `ready` is fully cleared.
  */
 const GATES: Record<string, ProfileGate> = {
+  phone: {
+    complete: false,
+    dateOfBirthVerified: false,
+    needsEmailVerification: false,
+    needsPhoneVerification: true,
+    fullName: "Alex Regular",
+    dateOfBirth: "1990-01-01",
+    email: "alex@example.test",
+    emailLocked: true,
+  },
   details: {
     complete: false,
     dateOfBirthVerified: false,
