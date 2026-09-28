@@ -54,7 +54,7 @@ Decisions that changed under review:
   baselines for the new visual tests, so the hosted speed-ups staging PR
   withdrew them to byte-identical mirrors. To restore the coverage, re-stage
   both copies from 7f563f9a together with console baselines generated in the
-  CI image; this still needs a tracking issue. Those
+  CI image (tracked in #401). Those
   two files sit in the CI selection dependency graph, so editing them turns
   a product PR into a qualification-policy change that needs a
   `config/ci-qualification-inputs/<path>.source` review. The console specs
