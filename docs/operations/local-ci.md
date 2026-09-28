@@ -2,14 +2,17 @@
 
 Owner: Lapen Inns product operations
 Repository: `lapeninns/nabaperks`
-Execution host: one Apple-silicon Mac running a single Lima VM (`nabaperks-ci`)
+Execution host: one Apple-silicon Mac running Docker Desktop (runtime
+`docker-desktop`, section 8); the Lima VM `nabaperks-ci` is kept stopped as the
+rollback runtime
 Escalation inbox: `info@lapeninns.com`
 
 This runbook covers every part of the local CI execution plane that **cannot be
-performed from inside the repository**: provisioning the VM, creating and
-installing the GitHub App, installing the host service, qualifying the local
-plane against the hosted plane, recovering from an offline Mac, verifying log
-evidence, and auditing the security boundary.
+performed from inside the repository**: preparing the runtime (Docker Desktop,
+or the Lima VM on rollback), creating and installing the GitHub App, installing
+the host service, qualifying the local plane against the hosted plane,
+recovering from an offline Mac, verifying log evidence, and auditing the
+security boundary.
 
 ## Running the nine roots locally first
 
@@ -57,6 +60,13 @@ has been updated.
 - `LOCAL_CI_MODE` controls hosted observation, not service startup. The installed
   agent polls independently; leave a paused watcher paused until its separate
   operational resumption is authorised.
+- The agent dispatches into the runtime `config/local-ci-contract.json` selects.
+  Source selects `docker-desktop` since 2026-09-28 (section 8); the Lima VM is
+  the dormant rollback runtime. Merging that change does not reinstall the host
+  agent: until an operator runs `install.sh` from the merged revision, the
+  installed release keeps the runtime it was installed with. On the Docker
+  Desktop runtime an agent whose runtime fails its checks claims no job and
+  publishes nothing new; the work waits in the queue.
 
 `config/local-ci-contract.json` still carries the historical `bridge-shadow`
 agent policy. Its older cutover-step labels and polling ceilings are not rollout
@@ -88,13 +98,14 @@ Three things this runbook describes are implemented in source but **not live**:
 - The `Trusted local proof preparation` workflow has never run.
 
 **Coverage the local plane does not have.** The `pr` and `main` profiles declare
-ten lanes — `fast`, `quality`, `print-kit`, four `e2e-*`, two `a11y-*` and `db`.
-Mapped onto the nine hosted roots that gate a merge, they cover `fast`,
-`quality`, `e2e`, `a11y` and `db`; `print-kit` has no hosted root of its own —
-hosted print-kit verification runs inside the `quality` job. There
-is **no local lane for `build`, `visual`, `lighthouse` or `zap-baseline`**. The
-local plane is therefore not a substitute for the hosted gate, and no amount of
-local green changes that.
+fourteen lanes — `fast`, `quality`, `print-kit`, eight `e2e-*` (each project's
+odd and even shards), two `a11y-*` and `db`. Mapped onto the nine hosted roots
+that gate a merge, they cover `fast`, `quality`, `e2e`, `a11y` and `db`;
+`print-kit` has no hosted root of its own — hosted print-kit verification runs
+inside the `quality` job. On the Docker Desktop runtime `db` is hosted-only
+(section 8.4), so that runtime covers four. There is **no local lane for
+`build`, `visual`, `lighthouse` or `zap-baseline`**. The local plane is therefore
+not a substitute for the hosted gate, and no amount of local green changes that.
 
 **Measured performance and reliability.** One `main`-profile run on
 `d5f5c3641` completed in 947 seconds across 10 lanes and 4,089 tests, conclusion
@@ -123,7 +134,9 @@ created by hand on the Mac host.
 
 | Path                                               | Where    | Purpose                                                                                                                |
 | -------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `config/local-ci-contract.json`                    | repo     | The declarative contract: VM shape, timeouts, check names, App permissions, retention                                  |
+| `config/local-ci-contract.json`                    | repo     | The declarative contract: runtime, VM shape, timeouts, check names, App permissions, retention                         |
+| `ops/local-ci/agent/runtime-docker-desktop.mjs`    | repo     | The Docker Desktop runtime: isolation verdict, canary, helper, proxy, volume mounts                                    |
+| `ops/local-ci/agent/runtime-lima.mjs`              | repo     | The dormant Lima runtime (rollback path)                                                                               |
 | `ops/local-ci/host/lima-nabaperks-ci.yaml`         | repo     | Lima VM definition and its provisioning scripts                                                                        |
 | `ops/local-ci/host/install.sh`                     | repo     | The only supported installer/upgrader for the host agent                                                               |
 | `ops/local-ci/host/com.nabaperks.local-ci.plist`   | repo     | launchd LaunchAgent definition                                                                                         |
@@ -136,6 +149,8 @@ created by hand on the Mac host.
 | `.github/workflows/nightly-proof.yml`              | repo     | Nightly proof verifier (`scripts/check-nightly-proof.mjs`)                                                             |
 | `/opt/nabaperks-local-ci/current/`                 | Mac host | Symlink to the installed, reviewed agent revision                                                                      |
 | `/opt/nabaperks-local-ci/logs/agent.{out,err}.log` | Mac host | Agent process logs, rotated by newsyslog                                                                               |
+| `/opt/nabaperks-local-ci/docker-config/`           | Mac host | The agent's `DOCKER_CONFIG`: the desktop-linux context and an empty `config.json`                                      |
+| volume `nabaperks-ci-state`                        | Desktop  | Mirror clone, per-run clones, lane checkouts and per-run pnpm stores                                                   |
 | `~/.nabaperks-local-ci/app-private-key.pem`        | Mac host | GitHub App private key, mode `0600`                                                                                    |
 | `~/.nabaperks-local-ci/runs/<sha>/<run>/`          | Mac host | Per-run lane evidence, one directory per run, retained 30 days                                                         |
 
@@ -147,6 +162,9 @@ that workflow. Verify current source before using older provisioning examples.
 ---
 
 ## 1. Provisioning the Lima VM
+
+This section applies to the Lima runtime, which is dormant since 2026-09-28 and
+kept as the rollback path. The current runtime is Docker Desktop; see section 8.
 
 The VM is the execution boundary. Everything that runs unreviewed pull-request
 code runs inside it, in a container, on a kernel that is not the Mac's.
@@ -1276,8 +1294,10 @@ these under `hostSecrets`, with `hostSecretsPolicy.neverEnterContainer: true`:
 - The installed agent tree at `/opt/nabaperks-local-ci/current/`, the agent
   process logs, and the per-run evidence.
 
-The VM cannot reach any of these: it has **no mounts** and **no forwarded SSH
-agent** (section 1.3), so there is no path from the guest to `$HOME`. A
+The Lima VM cannot reach any of these: it has **no mounts** and **no forwarded
+SSH agent** (section 1.3), so there is no path from the guest to `$HOME`. On the
+Docker Desktop runtime the credential directory is kept out of Docker Desktop's
+file sharing instead, and no container is given any Mac path (section 7.6). A
 repository secret cannot reach this plane at all — which is exactly why lanes
 that need one stay hosted.
 
@@ -1296,7 +1316,13 @@ They are fixtures, not credentials, and they are regenerated per run.
 
 ### 7.2 The container topology
 
-Two containers per job:
+On the Docker Desktop runtime there is one container per job and no daemon: the
+job container mounts its own lane directory of the `nabaperks-ci-state` volume
+at `/workspace` through a `volume-subpath` mount and its run's pnpm store
+read-only, joins its own `--internal` network, and is created, inspected and
+only then started (section 8.2). The Lima topology below is the rollback path.
+
+On the Lima runtime, two containers per job:
 
 - A Docker-in-Docker daemon (`container.dockerInDocker: true`), whose state is
   a fresh volume removed with the job.
@@ -1403,6 +1429,189 @@ request, so a change that mounts the socket, imports the network into the pure
 core, widens the environment map, or removes the `pmset` prohibition reddens
 the merge lane rather than waiting for a manual audit.
 
+On the Docker Desktop runtime the separation is checked through the agent's own
+verdict and the daemon's view of a running job:
+
+```sh
+# 1. The whole pre-dispatch verdict: engine, file sharing, state volume, canary.
+DOCKER_CONFIG=/opt/nabaperks-local-ci/docker-config \
+  node /opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs \
+  --profile main --sha "$(git rev-parse origin/main)" --dry-run
+
+# 2. During a running job: no bind, no privilege, no port, an internal network.
+name="$(docker --context desktop-linux ps --filter name=nabaperks-ci-job- \
+  --format '{{.Names}}' | head -1)"
+docker --context desktop-linux inspect --format \
+  '{{.HostConfig.Privileged}} {{json .HostConfig.Binds}} {{json .HostConfig.PortBindings}} {{.HostConfig.NetworkMode}}' \
+  "$name"
+docker --context desktop-linux network inspect --format '{{.Internal}}' \
+  "$(docker --context desktop-linux inspect --format '{{.HostConfig.NetworkMode}}' "$name")"
+# expect: false null {} nabaperks-ci-net-..., then true
+
+# 3. Only agent resources carry the agent's labels, and nothing is ever pruned.
+docker --context desktop-linux ps -a --filter label=com.nabaperks.local-ci.role \
+  --format '{{.Names}}'
+```
+
+### 7.6 Docker Desktop runtime: residual risk, owner-accepted on 2026-09-28
+
+Moving the agent from the dedicated Lima VM to Docker Desktop weakens one
+property. The repository owner accepted that weaker isolation on 2026-09-28,
+with hosted CI unchanged as the only merge authority, `LOCAL_CI_MODE` at
+`shadow`, `bridge.requiredCheck` false, and db and db-stress hosted-only on
+this runtime. This section is the record of that acceptance and of the
+conditions it rests on.
+
+**What is weaker.** Lima gave this plane a VM of its own with `mounts: []`: an
+escape from a job container landed in a VM that held nothing of the Mac's.
+Docker Desktop's VM is shared with other worktrees' containers - their local
+Supabase stacks and anything else the operator runs - and it sees every
+directory in Docker Desktop's file-sharing list. A kernel exploit from an
+unprivileged job container would reach that VM, the directories it shares
+(which include repositories' `.env.local` files if a project tree is shared)
+and the other containers on it. Docker Desktop's Enhanced Container Isolation
+would close this; it is not available or configured here.
+
+**What still holds.** Each item is enforced by the agent before every dispatch
+or by the argv builders, and fails closed:
+
+1. The credential directory is outside Docker Desktop's file sharing. The list
+   must be explicit (the default shares `/Users`) and may not cover
+   `~/.nabaperks-local-ci` or the whole home directory, so even an escape into
+   the VM does not reach the App private key. The installation token exists
+   only in the agent's memory on the Mac.
+2. No privileged container runs, and none executes candidate code: there is no
+   Docker-in-Docker sidecar on this runtime, so `db` and `db-stress` are
+   reported hosted-only and the hosted `db` root stays authoritative.
+3. No container is given a Mac path. Workspaces live in the
+   `nabaperks-ci-state` named volume; a job sees only its lane directory
+   (`volume-subpath`) and its run's pnpm store read-only. Bind mounts are
+   refused when the argv is built, and every job container is inspected after
+   creation and before start: no binds, no privilege, no added capability, no
+   ports, only agent-labelled volume mounts, and an internal pool network.
+4. A job cannot reach the Mac, the LAN or the internet. Job networks are
+   `--internal` networks from `10.213.0.0/16`, and a negative canary proves on
+   every dispatch that a listener on the Mac's `127.0.0.1` is unreachable
+   through `host.docker.internal` and `192.168.65.254`.
+5. No candidate code runs while anything has network access. The trusted
+   helper clones and installs with lifecycle scripts, pnpmfile hooks and
+   `configDependencies` refused, through an allowlist proxy to `github.com`,
+   `codeload.github.com` and `registry.npmjs.org` on 443 at public addresses
+   only; the job then installs offline.
+6. The daemon is shared, so the agent removes only resources that carry both
+   its `com.nabaperks.local-ci.` labels and its `nabaperks-ci-` name prefix,
+   by inspected ID, and never prunes.
+7. Everything in sections 7.1 to 7.4 is unchanged: fork code never runs,
+   `hostSecrets` never enter a container, and the agent is never updated from
+   pull-request code.
+
+**The residual risk that was accepted.** A kernel exploit from an unprivileged
+job container reaches the Docker Desktop VM, the directories it shares and the
+other worktrees' containers on it. It does not reach the App private key or the
+installation token.
+
+**Conditions.** The acceptance holds only while all of these are true;
+revisit it with the owner if any changes:
+
+- Docker Desktop's file sharing stays restricted as in item 1. The agent
+  refuses every dispatch otherwise, so a reset to the defaults stops the plane
+  rather than weakening it.
+- Local results stay advisory: no local check joins a required context, and
+  `LOCAL_CI_MODE` and the enforcement fields are not flipped.
+- The repository stays public, because the helper fetches anonymously.
+- Enhanced Container Isolation, or a return to a dedicated VM, is reconsidered
+  before the local plane is proposed as merge authority.
+
+---
+
+## 8. The Docker Desktop runtime
+
+`config/local-ci-contract.json` `runtime.kind: "docker-desktop"` selects it;
+`ops/local-ci/agent/runtime-docker-desktop.mjs` implements it. Everything above
+the VM layer - the App poller and publisher, the allowlist, the queue, the
+attempts journal and outbox, the profiles and the job image - is unchanged.
+
+### 8.1 Operator settings
+
+Apply these in the Docker Desktop GUI before installing:
+
+- Resources: CPUs 18; memory at least the contract's `runtime.memoryGb`
+  (50 GiB: a 52 GiB setting reports about 50.9 GiB); swap 1 GiB; disk at least
+  256 GiB.
+- File sharing: replace the `/Users` default with an explicit list that
+  excludes `~/.nabaperks-local-ci` and does not cover the whole home directory.
+  The agent needs no share of its own; share only what other local stacks
+  need.
+- Start Docker Desktop when you sign in; turn off automatic update download and
+  install, and Resource Saver, so the engine does not stop mid-run. Rosetta
+  stays off.
+- Stop the Lima VM first (`limactl stop -f nabaperks-ci`) and keep it: it is the
+  rollback path, and the two together need more memory than the Mac has.
+
+### 8.2 What happens on a dispatch
+
+1. The loop asks the runtime before claiming a queued job. The verdict checks
+   the agent's `DOCKER_CONFIG` has no credential, `docker info` (Docker
+   Desktop, linux/aarch64, at least `runtime.minServerVersion`, the budget's
+   CPUs and memory, seccomp), the file-sharing list, the labels of the state
+   volume, and runs the negative canary. If any part fails, nothing is claimed
+   and nothing is published; the log names the reason once, and the job starts
+   when the runtime is healthy again. The same verdict runs again inside the
+   dispatch, immediately before a workspace is prepared.
+2. The resource sweep removes leftovers carrying the agent's labels and name
+   prefix, by ID.
+3. The helper prepares the run: the mirror clone and fetch through the proxy,
+   the run's clone, and the run's own pnpm store seeded from the image.
+4. Each admitted lane gets its own clone, then the helper's
+   `pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+--config.package-import-method=copy` on the run's prep network. The job
+   container is created with its lane directory and the read-only store, is
+   inspected, and starts with `pnpm install --offline --frozen-lockfile` and
+   `pnpm rebuild --pending` before the lane's own commands.
+5. Lanes are admitted longest first within the runtime budget less the live
+   memory of containers the agent does not own. The in-progress check is
+   updated as each lane finishes; the conclusion is published at the end.
+6. The workspace is released: proxy and prep networks removed, no labelled
+   container left, the run's directories and env files deleted. The state
+   volume and its mirror clone persist between runs.
+
+### 8.3 Install and verify
+
+Install with the same `ops/local-ci/host/install.sh` from a clean checkout of
+merged `main`. On this runtime it checks the `desktop-linux` engine and the
+file-sharing rule, builds `nabaperks-ci-job:<sha>` on `desktop-linux` from the
+verified revision when that image is absent, pins it, and writes
+`/opt/nabaperks-local-ci/docker-config`. Verify with the dry run in section 7.5
+before loading the agent, then read the first run's verdict and lane table in
+`/opt/nabaperks-local-ci/logs/agent.out.log`.
+
+### 8.4 Known local gaps on this runtime
+
+- `db` and `db-stress` are hosted-only: their Docker-in-Docker sidecar would be
+  privileged on the shared VM. The published check lists them under "Lanes left
+  to the GitHub-hosted plane", and the shadow comparison records `db` as
+  pinned-hosted, never as passed.
+- The fast lane's `pnpm security:audit --ignore-registry-errors` cannot reach
+  the registry from an internal network, so it passes without auditing. The
+  hosted `fast` root is the dependency audit. The step still spends about 70
+  seconds retrying first: job env files set `npm_config_fetch_retries=0`, which
+  a pnpm command the lane runs directly honours, but pnpm 10.28.0's script
+  runner re-exports that variable empty to the nested `pnpm audit`, which
+  then uses its default two retries (observed in the 2026-09-28 dry runs).
+- Build cache from image builds stays in Docker Desktop's builder; removing it
+  would need a builder prune, which affects other projects and is never run by
+  the agent.
+
+### 8.5 Rollback
+
+1. `launchctl bootout "gui/$(id -u)/com.nabaperks.local-ci"`.
+2. Lower Docker Desktop's memory, then `limactl start nabaperks-ci`.
+3. Either reinstall a release from before the switch with
+   `ops/local-ci/host/install.sh --revision <sha> --job-image <the Lima image tag>`,
+   or merge a pull request that sets `runtime.kind` to `lima` with the Lima
+   `container` budget (10 CPUs, 32 GiB, `dockerInDocker: true`) and install it.
+4. Never run both runtimes' agents: `agent.maxConcurrentJobs` is 1 per host.
+
 ---
 
 ## Related documents
@@ -1449,11 +1658,14 @@ owner. Deleting the journal or inventing a replacement successful result is
 not recovery. On shutdown, delayed publication callbacks cannot dispatch more
 work or write the released controller's journal.
 
-The resource contract caps simultaneous unprivileged jobs at 10 CPUs/32 GiB.
-Each Docker sidecar needs 1 CPU/6 GiB, and admission preserves at least
-1 CPU/2 GiB for the 12 CPU/40 GiB VM. The scheduler admits up to six lanes
-only when all resource and concurrency-group budgets fit; four 8 GiB browser
-lanes already consume the entire job-memory budget. Every lane has its own
+On the Docker Desktop runtime the resource contract caps simultaneous
+unprivileged jobs at 16 CPUs/40 GiB inside the 18 CPU/50 GiB Desktop budget,
+keeps 2 CPUs/4 GiB for Desktop's own VM, and subtracts the live memory of other
+containers on the daemon (never less than 6 GiB) before each admission. On the
+Lima rollback runtime it is 10 CPUs/32 GiB, each Docker sidecar needs
+1 CPU/6 GiB, and admission preserves at least 1 CPU/2 GiB for the
+12 CPU/40 GiB VM. The scheduler admits up to eight lanes, longest first, only
+when all resource and concurrency-group budgets fit. Every lane has its own
 checkout, Git metadata, dependencies and generated output.
 Both containers disable additional swap. The runner rejects overcommitted or
 malformed budgets before admission. The sidecar's privileges remain inside the

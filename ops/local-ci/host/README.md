@@ -1,9 +1,19 @@
 # Local CI host provisioning
 
-This directory holds everything that lives **outside** a container: the Lima VM
-definition, the macOS launchd service, and the installer that wires them
-together. The agent code it installs lives in `ops/local-ci/`; the disposable
-job image it runs lives in `ops/local-ci/image/Dockerfile`.
+This directory holds everything that lives **outside** a container: the macOS
+launchd service, the installer that wires it together, and the definition of
+the dormant Lima VM. The agent code it installs lives in `ops/local-ci/`; the
+disposable job image it runs lives in `ops/local-ci/image/Dockerfile`.
+
+The agent dispatches into the runtime `config/local-ci-contract.json` selects
+with `runtime.kind`. Since 2026-09-28 that is **`docker-desktop`**: the
+operator's Docker Desktop engine, addressed only as
+`docker --context desktop-linux` (see
+[the Docker Desktop runtime](#the-docker-desktop-runtime) below and section 7
+and 8 of `docs/operations/local-ci.md`). The **`lima`** runtime - the dedicated
+`nabaperks-ci` VM described in the rest of this file - is kept stopped as the
+rollback path, not retired (#297). Do not run both at full size: together they
+need more memory than the Mac has.
 
 Nothing here runs in GitHub Actions. These are operator artifacts for one
 specific Apple silicon Mac.
@@ -17,6 +27,7 @@ specific Apple silicon Mac.
 | `install.sh`                   | Idempotent installer. Verifies the checkout, places credentials, installs the service. |
 | `uninstall.sh`                 | Idempotent uninstaller. Removes only OS registrations unless told otherwise.           |
 | `../image/Dockerfile`          | The disposable per-job container image.                                                |
+| `../image/build-pins.env`      | Reviewed k6 and Supabase CLI build arguments `install.sh` passes to the image build.   |
 
 ## Host layout after installation
 
@@ -25,6 +36,10 @@ specific Apple silicon Mac.
 ├── releases/<sha>/                 root:wheel 0755   `git archive` of a merged commit
 │   └── ops/local-ci/agent/main.mjs
 ├── current -> releases/<sha>       root:wheel        atomically repointed symlink
+├── job-image                       root:wheel 0644   the pinned job image tag
+├── docker-config/                  root:wheel 0755   docker-desktop only: the agent's DOCKER_CONFIG
+│   ├── config.json                                   `{}` - no credsStore, no auths
+│   └── contexts/                                     the desktop-linux context
 └── logs/                           <operator>:staff 0750
     ├── agent.out.log
     └── agent.err.log
@@ -36,7 +51,11 @@ specific Apple silicon Mac.
 ├── github-app-private-key.pem      <operator> 0600
 └── uptimerobot-heartbeat-url       <operator> 0600 (optional legacy provider)
 
-~/.lima/nabaperks-ci/               the VM instance: 12 vCPU, 40 GiB RAM, 150 GiB disk
+~/.lima/nabaperks-ci/               the Lima VM (rollback runtime): 12 vCPU, 40 GiB RAM, 150 GiB disk
+
+Docker Desktop (desktop-linux)      the docker-desktop runtime
+├── volume nabaperks-ci-state       the mirror clone, per-run clones and pnpm stores
+└── image nabaperks-ci-job:<sha>    built by install.sh from the installed revision
 ```
 
 `/etc/newsyslog.d/com.nabaperks.local-ci.conf` rotates both logs once they
@@ -53,6 +72,10 @@ The agent resolves its invocation path through `current` before deciding whether
 to run its CLI; invoking the installed path with `--help` must print usage.
 
 ## Trust boundary
+
+This section describes the Lima runtime. The Docker Desktop runtime keeps the
+same four host-side properties with different mechanisms, listed under
+[the Docker Desktop runtime](#the-docker-desktop-runtime).
 
 The GitHub App private key can mint installation tokens for the repository, and
 an optional monitoring heartbeat URL can silence the agent-liveness alarm. Both are
@@ -159,6 +182,8 @@ changing both sides in the same commit.
 | Lima instance name `nabaperks-ci`                                             | `install.sh`, `uninstall.sh`          |
 | Log paths `/opt/nabaperks-local-ci/logs/agent.{out,err}.log`                  | plist, `install.sh`                   |
 | Job image pin `/opt/nabaperks-local-ci/job-image`                             | plist, `install.sh`, `main.mjs`       |
+| Agent `DOCKER_CONFIG` `/opt/nabaperks-local-ci/docker-config`                 | plist, `install.sh`, contract         |
+| Docker CLI `/usr/local/bin/docker`, context `desktop-linux`                   | contract, adapter, `install.sh`       |
 
 `install.sh` fails loudly if the agent entrypoint is missing from the commit it
 is installing, so a rename cannot ship half-applied. It refuses just as loudly
@@ -341,6 +366,8 @@ Expected refusals, all of which are correct behaviour:
 | `no job image is pinned ...`                     | Pass `--job-image`, or start the VM so the tag can be derived.               |
 | `image '...' does not exist inside ...`          | Build the job image first (section 3).                                       |
 | `the plist does not set LOCAL_CI_JOB_IMAGE_FILE` | The plist and the installer drifted apart; fix both in one commit.           |
+| `Docker Desktop uses its default file sharing`   | Restrict Docker Desktop's file sharing first (see below).                    |
+| `the desktop-linux engine does not meet ...`     | Raise Docker Desktop's CPU or memory to the contract's `runtime` budget.     |
 
 ### 7. Verify
 
@@ -367,6 +394,90 @@ turns every missed window into a late run instead. See the header comment in
 node /opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs --nightly --dry-run
 ```
 
+## The Docker Desktop runtime
+
+Selected by `runtime.kind: "docker-desktop"`. The agent's own code for it is
+`ops/local-ci/agent/runtime-docker-desktop.mjs`.
+
+### What keeps the host secrets away from job code here
+
+Docker Desktop's VM is shared with other worktrees' containers and sees the
+directories in Docker Desktop's file-sharing list. The owner accepted that
+weaker isolation on 2026-09-28; `docs/operations/local-ci.md` section 7.6
+records the residual risk. The barriers that replace Lima's are, again,
+mechanisms rather than policy, and the agent re-checks them before every
+dispatch, refusing on any failure:
+
+1. **The credential directory is not shared with the VM.** Docker Desktop's
+   `FilesharingDirectories` must be an explicit list, and no entry may cover
+   `~/.nabaperks-local-ci` or the whole home directory. The default list
+   includes `/Users`, so a fresh Docker Desktop fails this until the operator
+   restricts it.
+2. **No container is given a Mac path, a daemon or privilege.** Workspaces
+   live in the `nabaperks-ci-state` named volume; a job mounts only its own
+   lane directory through `volume-subpath` and its run's pnpm store read-only.
+   Bind mounts, `--privileged`, added capabilities and host devices are refused
+   when the argv is built, and every job container is inspected after it is
+   created and before it starts. No Docker-in-Docker sidecar runs: `db` and
+   `db-stress` are hosted-only here.
+3. **A job cannot reach the Mac or the network.** Job networks are
+   `--internal` networks from `10.213.0.0/16`: no gateway, no
+   `host.docker.internal`, no internet. A negative canary proves it before
+   every dispatch against a one-shot listener on the Mac's `127.0.0.1`. Only
+   the trusted helper, which clones and installs with scripts and pnpmfile
+   hooks off, has egress, through an allowlist proxy to `github.com`,
+   `codeload.github.com` and `registry.npmjs.org` on 443.
+4. **The CLI cannot be redirected or handed a credential.** Every command is
+   `/usr/local/bin/docker --context desktop-linux`, with `DOCKER_CONFIG` at
+   `/opt/nabaperks-local-ci/docker-config`, whose `config.json` has no
+   credential store and no logins.
+
+### One-time Docker Desktop settings (operator, GUI)
+
+- Resources: CPUs 18, Memory at least the contract's `runtime.memoryGb` (50
+  GiB; Docker Desktop reports about 50.9 GiB of a 52 GiB setting), Swap 1 GiB,
+  disk at least 256 GiB.
+- File sharing: remove the `/Users` default and share only what other local
+  stacks need; never `~/.nabaperks-local-ci` and never the whole home
+  directory. The agent's own workspaces need no file share at all.
+- General: start Docker Desktop when you sign in. Software updates: turn off
+  automatic download and install, so the engine does not restart mid-run.
+  Resource Saver off. Rosetta stays off.
+- Stop the Lima VM before raising Docker Desktop's memory:
+  `limactl stop -f nabaperks-ci`. Keep the instance; it is the rollback path.
+
+### Install
+
+The same `install.sh`, from a clean checkout of merged `main`:
+
+```sh
+ops/local-ci/host/install.sh --github-app-key ~/Downloads/<app>.private-key.pem
+```
+
+For the docker-desktop runtime it additionally checks the `desktop-linux`
+engine against the contract's `runtime` block and the file-sharing rule above,
+builds `nabaperks-ci-job:<sha>` on `desktop-linux` from the verified revision
+with the reviewed arguments in `ops/local-ci/image/build-pins.env` (when that
+image is not already there), pins it, and writes the agent's `DOCKER_CONFIG`
+directory. Then verify:
+
+```sh
+DOCKER_CONFIG=/opt/nabaperks-local-ci/docker-config   node /opt/nabaperks-local-ci/current/ops/local-ci/agent/main.mjs   --profile main --sha "$(git rev-parse origin/main)" --dry-run
+tail -f /opt/nabaperks-local-ci/logs/agent.err.log
+```
+
+The dry run prints the isolation verdict - engine, file sharing, state volume
+and canary - and dispatches nothing.
+
+### Rollback to Lima
+
+1. `launchctl bootout "gui/$(id -u)/com.nabaperks.local-ci"`.
+2. Lower Docker Desktop's memory, then `limactl start nabaperks-ci`.
+3. Either reinstall a release from before the switch
+   (`install.sh --revision <sha> --job-image <lima image tag>`), or merge a
+   pull request that sets `runtime.kind` to `lima` with the Lima `container`
+   budget (10 CPUs, 32 GiB, `dockerInDocker: true`) and reinstall it.
+
 ## Pin ledger
 
 Every pin in the image and the VM template, with the command that refreshes it.
@@ -383,7 +494,7 @@ Dockerfile.
 | Supabase CLI             | `2.106.0`                                                          | `supabase/setup-cli` `version` input in `ci.yml`                                           |
 | Supabase CLI digest      | `a004217bc9e146e6aede8f7f26138fbd94cfdffa5ed4c6b9983bc8b804e5c928` | `sha256sum supabase_2.106.0_linux_arm64.deb`                                               |
 | Docker Engine / CLI      | `5:27.5.1-1~ubuntu.24.04~noble`                                    | `apt-cache madison docker-ce` with the Docker repo enabled                                 |
-| k6 version               | `2.2.0`                                                            | qualification pin; `nightly.yml` uses `grafana/setup-k6-action@v1` with no `version` input |
+| k6 version               | `2.2.0`                                                            | `../image/build-pins.env`; `nightly.yml` uses `grafana/setup-k6-action@v1` with no version |
 | k6 digest                | `4ecd64cadcc792402d16293836115480419c4447c032858f564852d98f1bf54c` | `sha256sum k6-v<version>-linux-arm64.tar.gz`                                               |
 | `opencv-python-headless` | `4.10.0.84`                                                        | matches the package `ci.yml` installs for `posters:verify-pdfs`                            |
 | `pymupdf`                | `1.24.10`                                                          | as above                                                                                   |
@@ -405,6 +516,14 @@ lane retains a fresh, disposable Docker daemon and the same timeout. Registry
 credentials and host overrides are not forwarded. A change to these profiles
 takes effect only after the reviewed revision merges and the operator installs
 it from main; a PR cannot update the running agent's profiles.
+
+### Ubuntu package refresh — 2026-09-28
+
+The 2026-09-28 Docker Desktop spike could not build the image from `main`:
+`E: Version '8.5.0-2ubuntu10.13' for 'curl' was not found`. The archive
+candidate was `8.5.0-2ubuntu10.15`, and a build with that value (and every
+other pin unchanged) succeeded on `desktop-linux` the same day, so
+`APT_CURL` is now `8.5.0-2ubuntu10.15`.
 
 ### Ubuntu package refresh — 2026-09-05
 
@@ -523,8 +642,7 @@ Snapshot inspection errors fail the lane instead of being treated as a clean dif
 The polling and nightly timers keep Node alive while idle; neither holds a Mac
 power assertion while waiting.
 
-The browser lanes request a 12 GiB Next.js heap through
-`PLAYWRIGHT_NODE_HEAP_MB` inside the 32 GiB job-container limit. Hosted shards
-retain their 8 GiB default. The override accepts only bounded integer values
-(1–16 GiB); it cannot add shell arguments. This gives the larger local shards
-headroom without relaxing any test assertion or retry policy.
+The browser lanes set a 4096 MiB V8 old space through
+`PLAYWRIGHT_NODE_HEAP_MB` inside each lane's 8 GiB cgroup. Hosted shards retain
+their 8 GiB default. The override accepts only bounded integer values
+(1–16 GiB); it cannot add shell arguments.

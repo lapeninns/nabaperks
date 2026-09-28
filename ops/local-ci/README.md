@@ -28,7 +28,7 @@ ops/local-ci/
 ├── agent/       the runtime that executes those decisions
 ├── profiles/    pr.json, main.json, nightly.json — what each run does
 ├── image/       the disposable job container image
-└── host/        Lima VM definition, launchd plist, install/uninstall scripts
+└── host/        launchd plist, install/uninstall scripts, the dormant Lima VM definition
 ```
 
 `config/local-ci-contract.json` is the single source of truth. Both planes, the
@@ -40,14 +40,17 @@ the contract do not make that workflow wait.
 
 ## The agent, file by file
 
-| File                  | What it owns                                                                                                                   | Impure?                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `agent/github.mjs`    | GitHub App auth (RS256 JWT → installation token), check runs, ref and pull-request listing, the single permitted Actions write | network only                                                        |
-| `agent/container.mjs` | the `docker run` argv for a disposable job container and its sidecar daemon, plus the lifecycle around them                    | argv builders are pure; `runContainer` spawns                       |
-| `agent/runner.mjs`    | executing a profile's lanes, parsing test tallies, building lane-result records                                                | everything but `createRunner` is pure                               |
-| `agent/loop.mjs`      | the poll tick: list → classify → enqueue → supersede → run one job → heartbeat                                                 | `tick()` is driven by injected dependencies                         |
-| `agent/heartbeat.mjs` | the monitoring heartbeat                                                                                                       | network only                                                        |
-| `agent/main.mjs`      | argv parsing, credential resolution, composition, exit status                                                                  | **the only file that reads `process.env`, the filesystem or exits** |
+| File                               | What it owns                                                                                                                   | Impure?                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `agent/github.mjs`                 | GitHub App auth (RS256 JWT → installation token), check runs, ref and pull-request listing, the single permitted Actions write | network only                                                        |
+| `agent/container.mjs`              | the `docker run` argv for a disposable job container and its sidecar daemon, plus the lifecycle around them                    | argv builders are pure; `runContainer` spawns                       |
+| `agent/runtime-docker-desktop.mjs` | the Docker Desktop runtime: isolation verdict, negative canary, helper and proxy, volume mounts, post-create inspection        | verdicts are pure; the runtime spawns through `execHost`            |
+| `agent/runtime-lima.mjs`           | the dormant Lima runtime: the VM verdict and the VM shell, moved unchanged from `main.mjs`                                     | verdicts are pure; the runtime spawns through `execHost`            |
+| `agent/workspace.mjs`              | the workspace preparation and lane clone scripts both runtimes run                                                             | pure                                                                |
+| `agent/runner.mjs`                 | executing a profile's lanes, parsing test tallies, building lane-result records                                                | everything but `createRunner` is pure                               |
+| `agent/loop.mjs`                   | the poll tick: list → classify → enqueue → supersede → run one job → heartbeat                                                 | `tick()` is driven by injected dependencies                         |
+| `agent/heartbeat.mjs`              | the monitoring heartbeat                                                                                                       | network only                                                        |
+| `agent/main.mjs`                   | argv parsing, credential resolution, runtime selection, composition, exit status                                               | **the only file that reads `process.env`, the filesystem or exits** |
 
 Every module takes its dependencies as arguments — `fetch`, `now`, `spawn`, the
 file reader — so the whole package is unit-testable offline with no VM, no
@@ -109,17 +112,21 @@ environment from an _allowlist_ of host variables — not a denylist, which leak
 whatever it has not heard of — then layers the profile's declared values over
 it, deletes every name in `hostSecrets`, and finally proves the result carries
 neither a host-secret name, nor a host-secret value under a different name, nor
-a PEM block. The Lima VM has `mounts: []` and `forwardAgent: false`, so
-`~/.nabaperks-local-ci` does not merely have permissions inside the guest — it
-does not exist there.
+a PEM block. On the Docker Desktop runtime no container is given a Mac path and
+the agent refuses to dispatch unless Docker Desktop's file sharing excludes
+`~/.nabaperks-local-ci`; on the dormant Lima runtime the VM has `mounts: []` and
+`forwardAgent: false`. Either way `~/.nabaperks-local-ci` does not merely have
+permissions inside the execution environment — it does not exist there.
 
 **3. The container that runs repository code is never privileged.**
 `container.mjs`'s `buildContainerArgv` refuses to emit `--privileged`, any host
 namespace, or any published port, and refuses any argument naming the host
-Docker daemon socket. Lanes that need a Docker daemon (`supabase start`) get a
-sibling `dind` container on a job-private network, reachable over TCP at the
-alias the job image's `DOCKER_HOST` already points at. The privilege lives in
-the sidecar. Candidate code can reach its Docker API, so this is not proof
+Docker daemon socket; on Docker Desktop it also refuses every bind mount, added
+capability and host device. On the Lima runtime, lanes that need a Docker
+daemon (`supabase start`) get a sibling `dind` container on a job-private
+network, reachable over TCP at the alias the job image's `DOCKER_HOST` already
+points at, and the privilege lives in the sidecar. The Docker Desktop runtime
+starts no privileged container at all and reports those lanes hosted-only. Candidate code can reach its Docker API, so this is not proof
 that the persistent guest is safe for authoritative unreviewed execution. `docs/operations/local-ci.md`
 §9 verifies this from the outside with `docker inspect`.
 

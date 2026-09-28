@@ -11,6 +11,19 @@
 > requires a new reviewed implementation, isolation and proof qualification,
 > equivalent hosted fallback and separately verified provider requirements.
 
+> **Execution runtime, 2026-09-28.** The agent's VM layer is now selected by
+> `runtime.kind` in `config/local-ci-contract.json`. Source selects
+> `docker-desktop`: the operator's Docker Desktop engine replaces the dedicated
+> Lima VM, whose instance is kept stopped as the rollback runtime. The owner
+> accepted the weaker isolation of that shared VM on 2026-09-28; the record,
+> its conditions and the runtime runbook are sections 7.6 and 8 of
+> `docs/operations/local-ci.md`. Where this document says "the VM", read the
+> runtime the contract selects. The move changes no authority: hosted CI stays
+> the merge gate, `LOCAL_CI_MODE` stays `shadow`, and `db` and `db-stress` are
+> hosted-only on the Docker Desktop runtime. It still takes effect on the host
+> only when an operator installs a merged revision with
+> `ops/local-ci/host/install.sh`.
+
 ## Historical proposal (not current operating instructions)
 
 The historical cutover step 1 merged the local CI execution plane as **inert
