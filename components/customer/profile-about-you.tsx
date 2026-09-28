@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState, useState, type ReactNode } from "react"
 
 import {
   clearHomeProfileEmailAction,
@@ -59,10 +59,12 @@ const EMAIL_HINT: Record<EmailPromptReason, string> = {
 export function CustomerProfileAboutYou({
   profile,
   emailReason = "rewards",
+  addPhone,
 }: {
   profile: AboutYouProfile
   /** Chosen on the server from the email sign-in mode. */
   emailReason?: EmailPromptReason
+  addPhone?: ReactNode
 }) {
   const serverMode = initialModeFor(profile)
   const [mode, setMode] = useState<Mode>(serverMode)
@@ -111,6 +113,7 @@ export function CustomerProfileAboutYou({
       ) : null}
 
       {mode === "verify" ? <AboutYouEmailVerify email={profile.email} /> : null}
+      {addPhone}
     </section>
   )
 }

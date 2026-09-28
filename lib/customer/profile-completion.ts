@@ -9,6 +9,7 @@ export type CustomerProfileCompletion = {
   emailVerified: boolean
   emailLocked: boolean
   needsEmailVerification: boolean
+  needsPhoneVerification: boolean
 }
 
 type ProfileFields = {
@@ -17,6 +18,7 @@ type ProfileFields = {
   dateOfBirthVerifiedAt: string | null
   email: string | null
   emailVerifiedAt: string | null
+  phoneVerified: boolean
 }
 
 export function profileCompletionFrom(
@@ -32,7 +34,12 @@ export function profileCompletionFrom(
   const emailVerified = Boolean(email) && Boolean(customer.emailVerifiedAt)
   const emailLocked = emailVerified
   const needsEmailVerification = Boolean(email) && !customer.emailVerifiedAt
-  const complete = Boolean(fullName) && Boolean(dateOfBirth) && emailVerified
+  const needsPhoneVerification = !customer.phoneVerified
+  const complete =
+    Boolean(fullName) &&
+    Boolean(dateOfBirth) &&
+    emailVerified &&
+    !needsPhoneVerification
 
   return {
     complete,
@@ -43,5 +50,6 @@ export function profileCompletionFrom(
     emailVerified,
     emailLocked,
     needsEmailVerification,
+    needsPhoneVerification,
   }
 }

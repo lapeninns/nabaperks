@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 /**
  * db integrity hardening — live-DB tier.
@@ -46,6 +47,7 @@ async function seedRewardEvent(tx) {
     )
     returning id`
   await ensureVerifiedCustomerEmail(tx, customer.id)
+  await ensureVerifiedCustomerPhone(tx, customer.id)
   const [joined] = await tx`
     select * from public.join_customer_membership_with_first_stamp(
       ${customer.id}::uuid, ${v.business_slug}, ${v.qr_id}, false, '2026-06-06')`

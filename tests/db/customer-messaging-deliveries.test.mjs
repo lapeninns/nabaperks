@@ -479,7 +479,7 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const f = await createRewardPoolFixture(tx)
+      const f = await createRewardPoolFixture(tx, { verifiedPhone: false })
       // Phone-channel consent needs a phone; the fixture customer is email-only.
       await tx`update public.customers
         set phone_hmac = ${randomUUID().replaceAll("-", "").repeat(2)},

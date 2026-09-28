@@ -222,6 +222,7 @@ async function verifyAttachPhone(
   }
 
   revalidatePath(PROFILE_PATH)
+  revalidatePath("/reward", "layout")
   return {
     step: "attached",
     message: result.status === "attached" ? ATTACHED : ALREADY_HAS_PHONE,

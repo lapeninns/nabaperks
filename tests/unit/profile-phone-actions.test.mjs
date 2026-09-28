@@ -215,7 +215,7 @@ test("Given a code for this wallet When it is confirmed Then the phone is attach
     ],
     ["clearPending"],
   ])
-  assert.deepEqual(state.revalidated, ["/home/profile"])
+  assert.deepEqual(state.revalidated, ["/home/profile", "/reward"])
   assert.deepEqual(state.events, [])
 })
 

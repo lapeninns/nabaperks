@@ -7,6 +7,7 @@ import { after, test } from "node:test"
 import postgres from "postgres"
 
 import { assertLocalSupabaseDbUrl } from "./helpers/db-target.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 const DEFAULT_LOCAL_DB_URL =
   "postgres://postgres:postgres@127.0.0.1:54322/postgres"
@@ -933,6 +934,8 @@ async function createFixture(sql, options) {
       now()
     )
   `
+
+  await ensureVerifiedCustomerPhone(sql, fixture.customerId)
 
   await sql`
     insert into public.customer_memberships (

@@ -51,9 +51,9 @@ import {
  * CUSTOMER_EMAIL_AUTH_MODE=full. The local dev code stands in for the email.
  */
 
-const CHOICE_HEADING = "Have you collected stamps with Nabaperks before?"
-const START_WALLET = "No, I’m new here: start my wallet"
-const USE_PHONE = "Yes, with my phone number: use my phone"
+const CHOICE_HEADING = "Continue with your email"
+const START_WALLET = "Continue with email"
+const USE_PHONE = "Open my existing wallet with my phone"
 const NOT_ACCEPTED = "That code was not accepted."
 const KNOWN_CODE = "135790"
 

@@ -143,9 +143,7 @@ export type CustomerEmailChoiceFormProps = {
 
 /**
  * The email is proven but no wallet holds it. Nothing has been created yet:
- * the customer says whether they are new here or joined before with a phone
- * number. Neither answer is styled as the expected one, because a wrong guess
- * either way costs them their stamps.
+ * the customer can continue with email or recover a wallet held by their phone.
  */
 export function CustomerEmailChoiceForm({
   merchantSlug,
@@ -178,12 +176,11 @@ export function CustomerEmailChoiceForm({
               referralCode={referralCode}
             />
             <SubmitButton
-              variant="outline"
               size="lg"
               className="h-auto min-h-12 w-full py-3 whitespace-normal"
               pendingLabel="Starting your wallet…"
             >
-              No, I&rsquo;m new here: start my wallet
+              Continue with email
             </SubmitButton>
           </form>
         ) : null}
@@ -200,7 +197,7 @@ export function CustomerEmailChoiceForm({
             pendingLabel="Opening…"
           >
             {canCreate
-              ? "Yes, with my phone number: use my phone"
+              ? "Open my existing wallet with my phone"
               : "Use my phone instead"}
           </SubmitButton>
         </form>

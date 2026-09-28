@@ -25,7 +25,7 @@ test.describe("@customer-flow @a11y email-only wallet profile", () => {
       account.getByText("Sign back in with your email.", { exact: false })
     ).toBeVisible()
     await expect(
-      account.getByRole("heading", { name: "Add a phone number" })
+      page.getByRole("heading", { name: "Add a phone number" })
     ).toBeVisible()
     await expect(
       page.getByRole("region", { name: "Phone messages" })

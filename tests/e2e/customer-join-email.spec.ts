@@ -113,19 +113,19 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     )
     await expect(
       page.getByRole("heading", {
-        name: "Have you collected stamps with Nabaperks before?",
+        name: "Continue with your email",
       })
     ).toBeVisible()
     const create = page.getByRole("button", {
-      name: "No, I’m new here: start my wallet",
+      name: "Continue with email",
     })
     const phone = page.getByRole("button", {
-      name: "Yes, with my phone number: use my phone",
+      name: "Open my existing wallet with my phone",
     })
     await expect(create).toBeVisible()
     await expect(phone).toBeVisible()
-    // Same classes: neither answer is styled as the expected one.
-    await expect(create).toHaveClass((await phone.getAttribute("class")) ?? "")
+    await expect(create).toBeEnabled()
+    await expect(phone).toBeEnabled()
     await expectNoAxeViolations(page, "join email choice")
 
     await gotoHydratedPage(
@@ -136,7 +136,7 @@ test.describe("@customer-flow @a11y join by email screens", () => {
       page.getByRole("heading", { name: "No wallet uses this email yet" })
     ).toBeVisible()
     await expect(
-      page.getByRole("button", { name: /start my wallet/ })
+      page.getByRole("button", { name: /Continue with email/ })
     ).toHaveCount(0)
     await expect(
       page.getByRole("button", { name: "Use my phone instead" })

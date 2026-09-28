@@ -1,6 +1,7 @@
 import "server-only"
 
 import { after } from "next/server"
+import { cache } from "react"
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentCustomer } from "@/lib/customer/identity"
@@ -45,6 +46,7 @@ export type CustomerProfile = {
   emailLocked: boolean
   needsEmailVerification: boolean
   phone: string | null
+  phoneVerified: boolean
   memberSince: string
   membershipCount: number
   consents: CustomerConsent[]
@@ -55,8 +57,23 @@ export async function getCustomerProfileCompletion(): Promise<CustomerProfileCom
   const customer = await getCurrentCustomer()
   if (!customer) return null
 
-  return profileCompletionFrom(customer)
+  return profileCompletionFrom({
+    ...customer,
+    phoneVerified: await customerPhoneVerified(customer.id),
+  })
 }
+
+const customerPhoneVerified = cache(
+  async (customerId: string): Promise<boolean> => {
+    const { data, error } = await createSupabaseServiceRoleClient()
+      .from("customers")
+      .select("phone_hmac, phone_verified_at")
+      .eq("id", customerId)
+      .maybeSingle()
+    if (error) throw error
+    return Boolean(data?.phone_hmac && data.phone_verified_at)
+  }
+)
 
 export type UpdateCustomerProfileInput = {
   fullName: string
@@ -455,7 +472,8 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
     ([channel, optedIn]) => ({ channel, optedIn })
   )
 
-  const completion = profileCompletionFrom(customer)
+  const phoneVerified = await customerPhoneVerified(customer.id)
+  const completion = profileCompletionFrom({ ...customer, phoneVerified })
   const phone: unknown = Array.isArray(phoneResult.data)
     ? phoneResult.data[0]
     : phoneResult.data
@@ -486,6 +504,7 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
     emailLocked: completion.emailLocked,
     needsEmailVerification: completion.needsEmailVerification,
     phone: customer.phone,
+    phoneVerified,
     memberSince: customer.createdAt,
     membershipCount: membershipResult.count ?? 0,
     consents,

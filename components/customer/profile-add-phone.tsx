@@ -68,8 +68,8 @@ export function CustomerProfileAddPhone({
       <div className="grid gap-1">
         <h3 className="text-base font-extrabold">Add a phone number</h3>
         <p className="text-sm leading-6 text-muted-foreground">
-          Your wallet opens with your email. Add a phone number to sign in with
-          a text code too. Some venue offers need a confirmed phone number.
+          Add and verify your phone number before collecting a reward. You can
+          keep earning stamps with your email while you do this later.
         </p>
       </div>
       {state.step === "code" ? (

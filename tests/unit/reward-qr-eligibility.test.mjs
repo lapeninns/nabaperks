@@ -17,6 +17,7 @@ test("an otherwise eligible unverified adult can display a QR for ID review", ()
     dateOfBirthVerifiedAt: null,
     email: "test@example.test",
     emailVerifiedAt: "2026-09-01T12:00:00Z",
+    phoneVerified: true,
   })
   assert.equal(profile.complete, true)
   assert.equal(profile.dateOfBirthVerified, false)
