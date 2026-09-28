@@ -30,7 +30,7 @@ jobs:
           persist-credentials: false
 
       - name: Review with Claude
-        uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
+        uses: anthropics/claude-code-action@756cc22e19660d20e8cc9496b4f242475a7f7790 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Post as github-actions[bot] so the Claude GitHub App is not required.
