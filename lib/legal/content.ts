@@ -147,7 +147,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
 ]
 
 export const PRIVACY_META = {
-  eyebrow: "For customers and merchants · effective 27 September 2026",
+  eyebrow: "For customers and merchants · effective 28 September 2026",
   title: "Nabaperks privacy notice.",
   description:
     "How Nabaperks collects, uses, shares, retains, and removes information about customers and merchants.",
@@ -204,12 +204,12 @@ export const COOKIE_SECTIONS: LegalSection[] = [
 ]
 
 export const COOKIE_META = {
-  eyebrow: "Browser data · effective 27 September 2026",
+  eyebrow: "Browser data · effective 28 September 2026",
   title: "Cookie and browser-storage notice.",
   description:
     "The cookies, local browser storage, and push information used by Nabaperks.",
   cardTitle: "Browser storage",
-  docNumber: "CS-2026-09-27",
+  docNumber: "CS-2026-09-28",
 }
 
 export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
