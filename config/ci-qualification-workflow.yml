@@ -77,10 +77,16 @@ jobs:
     steps:
       # The PR cannot edit the classifier that judges its own scope. Read its
       # immutable merge tree using Git, while executing policy from main's base.
+      # Classification reads only the base, head and merge-candidate trees. On
+      # a pull request those are the merge commit and its two parents, so a
+      # depth of two holds every object it needs; the whole-history fetch
+      # (666 MiB) took 87-143s in 8 of 50 sampled checkouts, on this critical
+      # path. A push keeps the full history: its base is the previous tip,
+      # which a rebase merge can leave several commits back.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 0
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
           persist-credentials: false
       - name: Select the already reviewed policy tree
         run: |
@@ -466,13 +472,12 @@ jobs:
     # Bound the complete eight-shard pack, including fresh-server teardown.
     # Setup - checkout, ./.github/actions/setup, container pull and browser
     # verification - costs ~54s per job and is paid once per job however much
-    # test work follows, so halving the job count removes half of that toll.
-    # Replaying run 34290952137's real per-job timings through this grouping
-    # models the slowest pack at ~376s (up from 239s), so 30 minutes still
-    # leaves nearly a 5x margin. Note the trade: that ~376s is above the 369s
-    # whole-run wall clock Lighthouse used to set, so the critical path moves
-    # here and the run gets roughly 15s longer in exchange for ~22 saved
-    # machine-minutes. See scripts/ci/run-browser-pack.mjs.
+    # test work follows, so sixteen packs pay it sixteen times. The slowest
+    # pack sets the critical path of the whole workflow. Packs are balanced by
+    # measured shard duration per project; replaying ten runs' logs puts the
+    # slowest pack's test time at ~376s (from ~430s with consecutive blocks),
+    # so 30 minutes still leaves over a 4x margin. See
+    # scripts/ci/run-browser-pack.mjs.
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -480,8 +485,8 @@ jobs:
         project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
         # Each pack retains eight original /32 shards with fresh servers. The
         # /32 denominator is untouched, so Playwright distributes tests exactly
-        # as before; only the grouping into jobs is coarser (4 packs x 8 shards
-        # = the same 32 shards, each run exactly once per project).
+        # as before; only the grouping into jobs changes (4 packs x 8 shards =
+        # the same 32 shards, each run exactly once per project).
         pack: [1, 2, 3, 4]
     env:
       # The dev-server tier is single-worker on purpose: under two parallel
@@ -782,10 +787,22 @@ jobs:
     # Allow cold checkout time without turning this short verdict into a wait.
     timeout-minutes: 5
     steps:
+      # always() keeps this verdict running on a cancelled run, so a cancelled
+      # run still fails the required check instead of skipping it. A cancelled
+      # run can never pass, so fail before the checkout and setup: a superseded
+      # pull-request run otherwise holds its concurrency group (and the newer
+      # run's start) for that ~40s. The later steps are skipped after a failure.
+      - name: Refuse evidence from a cancelled run
+        if: ${{ cancelled() }}
+        run: |
+          echo "::error::This CI run was cancelled, so it cannot provide release evidence."
+          exit 1
+      # Same Git inputs as selection: the merge commit and its two parents on a
+      # pull request, the full history on a push.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 0
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
           persist-credentials: false
       - name: Select the reviewed gate policy
         run: |
