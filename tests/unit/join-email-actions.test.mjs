@@ -23,12 +23,22 @@ const STUBS = {
     events: [],
     start: { status: "code_sent", maskedEmail: "g***@example.com", resendAvailableAt: 1060 },
     pending: null,
-    check: { status: "verified", email: "guest@example.com", emailHmac: "a".repeat(64) },
+    check: {
+      status: "verified",
+      email: "guest@example.com",
+      emailHmac: "a".repeat(64),
+      retryChallenge: { challengeId: "challenge-retry" },
+    },
     wallet: null,
+    findError: null,
+    handoffError: null,
+    sessionError: null,
     handoff: null,
-    created: { customer: { id: "customer-new", phoneLast4: null }, created: true },
+    created: { status: "created", customer: { id: "customer-new", phoneLast4: null } },
+    createError: null,
     returning: null,
     spent: new Set(),
+    reissued: 0,
   };`,
   "server-only": "",
   "next/navigation": `export function redirect(destination) {
@@ -36,7 +46,9 @@ const STUBS = {
   }`,
   "@/lib/customer/access-continuity": `import { state } from "fixture-state";
     export async function establishCustomerSessionAfterVerifiedEmail(input) {
-      state.calls.push(["session", input.customer.id, input.customerWasCreated]); return "authenticated"
+      state.calls.push(["session", input.customer.id, input.customerWasCreated]);
+      if (state.sessionError) throw state.sessionError;
+      return "authenticated"
     }`,
   "@/lib/customer/email-pii-core":
     "export function normalizeEmail(email) { return email.trim().toLowerCase() }",
@@ -44,7 +56,18 @@ const STUBS = {
     export async function startEmailSignInChallenge(input) { state.calls.push(["start", input]); return state.start }
     export async function checkEmailSignInChallenge(input) { state.calls.push(["check", input]); return state.check }
     export async function getPendingEmailSignIn() { state.calls.push(["pending"]); return state.pending }
-    export async function setVerifiedEmailHandoff(input) { state.calls.push(["setHandoff", input]) }
+    export async function setVerifiedEmailHandoff(input) {
+      state.calls.push(["setHandoff", input]); if (state.handoffError) throw state.handoffError
+    }
+    export async function keepEmailSignInForRetry(verified) {
+      state.calls.push(["keepForRetry", verified.retryChallenge.challengeId])
+    }
+    export async function reissueVerifiedEmailHandoff(spent) {
+      state.reissued += 1;
+      const next = { ...spent, handoffId: spent.handoffId + "-reissued-" + state.reissued };
+      state.calls.push(["reissueHandoff", spent.handoffId, next.handoffId]);
+      state.handoff = next; return next
+    }
     export async function readVerifiedEmailHandoff(input) { state.calls.push(["readHandoff", input]); return state.handoff }
     export async function clearVerifiedEmailHandoff() { state.calls.push(["clearHandoff"]) }
     export async function consumeVerifiedEmailHandoff(handoff) {
@@ -53,8 +76,14 @@ const STUBS = {
       state.spent.add(handoff.handoffId); return true
     }`,
   "@/lib/customer/identity": `import { state } from "fixture-state";
-    export async function findCustomerByVerifiedEmail(email) { state.calls.push(["find", email]); return state.wallet }
-    export async function createCustomerByVerifiedEmail(email) { state.calls.push(["create", email]); return state.created }`,
+    export async function findCustomerByVerifiedEmail(email) {
+      state.calls.push(["find", email]); if (state.findError) throw state.findError; return state.wallet
+    }
+    export async function createCustomerByVerifiedEmail(email) {
+      state.calls.push(["create", email]); if (state.createError) throw state.createError; return state.created
+    }`,
+  "@/lib/customer/experience/copy":
+    'export const JOIN_EMAIL_DELAYED = "Email codes are delayed. Try again shortly or use your phone."',
   "@/lib/customer/join": `export async function getMerchantJoinContext(slug) {
     return slug === "closed" ? { available: false } : { available: true, merchant: { id: "merchant-1" } }
   }`,
@@ -357,8 +386,8 @@ test("Given mode full and a bound handoff When a new wallet is started Then it i
     ["readHandoff", { merchantSlug: "old-crown", qrId: "venue-qr" }],
     ["consumeHandoff", "handoff-1"],
     ["create", "guest@example.com"],
-    ["clearHandoff"],
     ["session", "customer-new", true],
+    ["clearHandoff"],
   ])
   assert.equal(state.events[0].eventName, "join_new_email_wallet_confirmed")
 })
@@ -372,8 +401,8 @@ test("Given a handoff already used When a copy of it is replayed Then no wallet 
   // The same cookie again, as a copy would present it after the first use.
   state.calls = []
   state.created = {
+    status: "existing",
     customer: { id: "customer-new", phoneLast4: null },
-    created: false,
   }
   const replay = await startEmailWalletAction({}, form({ qrId: "venue-qr" }))
 
@@ -403,4 +432,171 @@ test("Given email sign-in is on When the customer switches to phone Then the han
     "/m/old-crown/join?ref=friend&step=phone"
   )
   assert.deepEqual(callNames(state), ["clearHandoff"])
+})
+
+test("Given a failed resend When the provider errors Then the renewed cooldown is returned for the countdown", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { requestCustomerEmailIdentityAction, state } = await loadActions()
+  state.pending = { purpose: "join", email: "guest@example.com" }
+  state.start = {
+    status: "delivery_failed",
+    maskedEmail: "g***@example.com",
+    resendAvailableAt: 2120,
+  }
+
+  const result = await requestCustomerEmailIdentityAction(
+    {},
+    form({ resend: "1" })
+  )
+
+  assert.equal(
+    result.errors.form,
+    "Email codes are delayed. Try again shortly or use your phone."
+  )
+  assert.deepEqual(result.fields, {
+    merchantSlug: "old-crown",
+    qrId: "",
+    emailOtpSent: true,
+    resendAvailableAt: 2120,
+  })
+})
+
+test("Given a matched code When the sign-in after it fails Then the same code is kept for one more try and nothing redirects", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { verifyCustomerEmailOtpAction, state } = await loadActions()
+  const failures = {
+    find: () => {
+      state.findError = new Error("database unavailable")
+    },
+    setHandoff: () => {
+      state.handoffError = new Error("no device")
+    },
+    session: () => {
+      state.wallet = CUSTOMER
+      state.sessionError = new Error("session rpc unavailable")
+    },
+  }
+
+  for (const [failingStep, arrange] of Object.entries(failures)) {
+    state.calls = []
+    state.findError = null
+    state.handoffError = null
+    state.sessionError = null
+    state.wallet = null
+    arrange()
+
+    const result = await verifyCustomerEmailOtpAction(
+      {},
+      form({ otp: "123456", qrId: "venue-qr" })
+    )
+
+    assert.equal(
+      result.errors.form,
+      "We couldn't sign you in just now. Enter the same code again shortly.",
+      failingStep
+    )
+    assert.deepEqual(result.fields, {
+      merchantSlug: "old-crown",
+      qrId: "venue-qr",
+      emailOtpSent: true,
+    })
+    assert.equal(callNames(state).at(-2), failingStep)
+    assert.deepEqual(state.calls.at(-1), ["keepForRetry", "challenge-retry"])
+  }
+
+  // A successful sign-in never keeps the code.
+  state.calls = []
+  state.sessionError = null
+  await redirectOf(verifyCustomerEmailOtpAction({}, form({ otp: "123456" })))
+  assert.equal(callNames(state).includes("keepForRetry"), false)
+})
+
+test("Given a spent handoff When creating the wallet or its session fails Then a new handoff allows a retry and the spent copy stays refused", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { startEmailWalletAction, state } = await loadActions()
+  const original = { handoffId: "handoff-1", email: "guest@example.com" }
+  state.handoff = original
+  state.createError = new Error("database unavailable")
+
+  const createFailed = await startEmailWalletAction({}, form({}))
+  assert.equal(
+    createFailed.errors.form,
+    "We couldn't start your wallet just now. Try again shortly."
+  )
+  assert.deepEqual(state.calls.at(-1), [
+    "reissueHandoff",
+    "handoff-1",
+    "handoff-1-reissued-1",
+  ])
+  assert.equal(callNames(state).includes("session"), false)
+
+  // The wallet is made, but the session fails: re-issued again.
+  state.createError = null
+  state.sessionError = new Error("session rpc unavailable")
+  const sessionFailed = await startEmailWalletAction({}, form({}))
+  assert.equal(
+    sessionFailed.errors.form,
+    "We couldn't sign you in just now. Try again shortly."
+  )
+  assert.deepEqual(state.calls.at(-1), [
+    "reissueHandoff",
+    "handoff-1-reissued-1",
+    "handoff-1-reissued-1-reissued-2",
+  ])
+  assert.equal(callNames(state).includes("clearHandoff"), false)
+
+  // The retry finds the wallet the first try made and signs in to it.
+  state.sessionError = null
+  state.created = {
+    status: "existing",
+    customer: { id: "customer-new", phoneLast4: null },
+  }
+  state.calls = []
+  state.events = []
+  assert.equal(
+    await redirectOf(startEmailWalletAction({}, form({}))),
+    "/m/old-crown/join?step=terms"
+  )
+  assert.deepEqual(state.calls.slice(-2), [
+    ["session", "customer-new", false],
+    ["clearHandoff"],
+  ])
+  assert.deepEqual(state.events, [])
+
+  // A copy of any spent handoff is still refused.
+  for (const spent of [
+    original,
+    { ...original, handoffId: "handoff-1-reissued-1" },
+  ]) {
+    state.handoff = spent
+    state.calls = []
+    const replay = await startEmailWalletAction({}, form({}))
+    assert.match(replay.errors.form, /confirmation has expired/)
+    assert.deepEqual(callNames(state), [
+      "readHandoff",
+      "consumeHandoff",
+      "clearHandoff",
+    ])
+  }
+})
+
+test("Given another wallet holds the address unmatched When a wallet is started Then nothing is signed in and support copy is shown", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { startEmailWalletAction, state } = await loadActions()
+  state.handoff = { handoffId: "handoff-1", email: "guest@example.com" }
+  state.created = { status: "conflict" }
+
+  const result = await startEmailWalletAction({}, form({}))
+
+  assert.equal(
+    result.errors.form,
+    "This email is already used by another Nabaperks wallet. Use your phone number instead, or ask the venue for help."
+  )
+  assert.deepEqual(callNames(state), [
+    "readHandoff",
+    "consumeHandoff",
+    "create",
+    "clearHandoff",
+  ])
+  assert.deepEqual(state.events, [])
 })

@@ -419,6 +419,7 @@ function OtpStep({
           referralCode={referralCode}
           maskedEmail={exp.contact.maskedEmail}
           resendAvailableAt={exp.contact.resendAvailableAt}
+          deliveryDelayed={exp.contact.deliveryDelayed}
           emailStepHref={buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
             referralCode,

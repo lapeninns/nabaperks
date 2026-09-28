@@ -23,6 +23,7 @@ async function loadIdentity() {
   const modules = {
     "fixture-state": `export const state = {
       selectResults: [],
+      listResults: [],
       insertResult: null,
       queries: [],
       inserts: [],
@@ -49,6 +50,7 @@ async function loadIdentity() {
           eq(column, value) { ops.push(["eq", column, value]); return chain },
           not(column, operator, value) { ops.push(["not", column, operator, value]); return chain },
           maybeSingle() { state.queries.push(ops); return Promise.resolve(state.selectResults.shift() ?? { data: null, error: null }) },
+          limit(count) { ops.push(["limit", count]); state.queries.push(ops); return Promise.resolve(state.listResults.shift() ?? { data: [], error: null }) },
           single() { return Promise.resolve(state.insertResult) },
         }
         return chain
@@ -119,7 +121,7 @@ test("Given a new verified email When a wallet is created Then it holds only the
 
   const result = await createCustomerByVerifiedEmail("Guest@Example.com")
 
-  assert.equal(result.created, true)
+  assert.equal(result.status, "created")
   assert.equal(result.customer.id, "customer-1")
   const [insert] = state.inserts
   assert.equal(insert.auth_user_id, null)
@@ -146,9 +148,68 @@ test("Given a concurrent creation wins When the insert hits the unique index The
   const result = await createCustomerByVerifiedEmail("guest@example.com")
 
   assert.deepEqual(
-    { id: result.customer.id, created: result.created },
-    { id: "customer-2", created: false }
+    { id: result.customer.id, status: result.status },
+    { id: "customer-2", status: "existing" }
   )
+  assert.equal(state.afterCalls.length, 0)
+  assert.equal(state.queries.length, 1)
+})
+
+const ADDRESS_INDEX_CONFLICT = {
+  data: null,
+  error: {
+    code: "23505",
+    message:
+      'duplicate key value violates unique constraint "customers_verified_email_address_unique_idx"',
+  },
+}
+
+test("Given a verified wallet with a stale HMAC When the insert hits the address index Then that wallet is found by its exact normalised address", async () => {
+  const { createCustomerByVerifiedEmail, state } = await loadIdentity()
+  state.insertResult = ADDRESS_INDEX_CONFLICT
+  // The HMAC lookup misses: the holder's HMAC predates a rotation.
+  state.selectResults.push({ data: null, error: null })
+  state.listResults.push({
+    data: [{ ...ROW, id: "customer-stale" }],
+    error: null,
+  })
+
+  const result = await createCustomerByVerifiedEmail(" Guest_100%@Example.com ")
+
+  assert.deepEqual(
+    { id: result.customer.id, status: result.status },
+    { id: "customer-stale", status: "existing" }
+  )
+  const [hmacLookup, addressLookup] = state.queries
+  assert.deepEqual(
+    hmacLookup.filter(([op]) => op === "eq"),
+    [["eq", "email_hmac", "hmac:guest_100%@example.com"]]
+  )
+  // Exact equality on the value lower(btrim(email)) indexes, verified rows
+  // only; never a pattern match, so `_` and `%` are literal.
+  assert.deepEqual(
+    addressLookup.filter(([op]) => op !== "select"),
+    [
+      ["eq", "email", "guest_100%@example.com"],
+      ["not", "email_verified_at", "is", null],
+      ["limit", 2],
+    ]
+  )
+  assert.doesNotMatch(JSON.stringify(state.queries), /like/i)
+  assert.equal(state.afterCalls.length, 0)
+})
+
+test("Given the address index conflicts When no verified wallet matches the exact address Then it is a conflict and nothing is opened", async () => {
+  const { createCustomerByVerifiedEmail, state } = await loadIdentity()
+  for (const rows of [[], [ROW, { ...ROW, id: "customer-2" }]]) {
+    state.insertResult = ADDRESS_INDEX_CONFLICT
+    state.selectResults.push({ data: null, error: null })
+    state.listResults.push({ data: rows, error: null })
+
+    assert.deepEqual(await createCustomerByVerifiedEmail("guest@example.com"), {
+      status: "conflict",
+    })
+  }
   assert.equal(state.afterCalls.length, 0)
 })
 

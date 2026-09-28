@@ -13,15 +13,21 @@ import {
   clearVerifiedEmailHandoff,
   consumeVerifiedEmailHandoff,
   getPendingEmailSignIn,
+  keepEmailSignInForRetry,
   readVerifiedEmailHandoff,
+  reissueVerifiedEmailHandoff,
   setVerifiedEmailHandoff,
   startEmailSignInChallenge,
+  type EmailSignInVerified,
 } from "@/lib/customer/email-sign-in"
+import type { VerifiedEmailHandoffPayload } from "@/lib/customer/email-sign-in-core"
+import { JOIN_EMAIL_DELAYED } from "@/lib/customer/experience/copy"
 import { normalizeOtpInput } from "@/lib/customer/experience/otp-field"
 import {
   createCustomerByVerifiedEmail,
   findCustomerByVerifiedEmail,
   type CurrentCustomer,
+  type VerifiedEmailWallet,
 } from "@/lib/customer/identity"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
@@ -80,12 +86,16 @@ const EMAIL_SIGN_IN_OFF =
   "Email sign-in isn't available just now. Use your phone number instead."
 const EMAIL_WALLET_CREATION_OFF =
   "You can't start a wallet with email just now. Use your phone number instead."
-const EMAIL_DELAYED =
-  "Email codes are delayed. Try again shortly or use your phone."
 const CARD_UNAVAILABLE = "This loyalty card is unavailable just now."
 const HANDOFF_EXPIRED =
   "That email confirmation has expired. Enter your email again."
 const SESSION_FAILED = "We couldn't sign you in just now. Try again shortly."
+const SIGN_IN_RETRY =
+  "We couldn't sign you in just now. Enter the same code again shortly."
+const WALLET_RETRY =
+  "We couldn't start your wallet just now. Try again shortly."
+const EMAIL_HELD_ELSEWHERE =
+  "This email is already used by another Nabaperks wallet. Use your phone number instead, or ask the venue for help."
 
 export async function requestCustomerEmailIdentityAction(
   _state: CustomerEmailIdentityState,
@@ -129,9 +139,16 @@ export async function requestCustomerEmailIdentityAction(
     return { fields, errors: { email: "Enter a valid email address." } }
   }
   if (result.status === "delivery_failed") {
+    // The failed send renewed the cooldown; the code step counts down to it.
     return {
-      fields: isResend ? { ...fields, emailOtpSent: true } : fields,
-      errors: { form: EMAIL_DELAYED },
+      fields: isResend
+        ? {
+            ...fields,
+            emailOtpSent: true,
+            resendAvailableAt: result.resendAvailableAt,
+          }
+        : fields,
+      errors: { form: JOIN_EMAIL_DELAYED },
     }
   }
 
@@ -196,7 +213,15 @@ export async function verifyCustomerEmailOtpAction(
     }
   }
 
-  const customer = await findCustomerByVerifiedEmail(result.email)
+  // The code is spent from here on. If anything below fails, the same code is
+  // restored under a new challenge, so the customer can simply try again.
+  let customer: CurrentCustomer | null
+  try {
+    customer = await findCustomerByVerifiedEmail(result.email)
+  } catch {
+    return retryVerifiedCode(result, codeFields, "find_customer")
+  }
+
   if (!customer) {
     // Proven, but no wallet holds it: nothing is created until the customer
     // chooses on the next screen.
@@ -208,13 +233,7 @@ export async function verifyCustomerEmailOtpAction(
         qrId: qrId || null,
       })
     } catch {
-      logger.error("customer_email_join_handoff_failed", {
-        operation: "set_verified_email_handoff",
-      })
-      return {
-        fields: { merchantSlug, qrId },
-        errors: { form: SESSION_FAILED },
-      }
+      return retryVerifiedCode(result, codeFields, "set_verified_email_handoff")
     }
     await captureJoinFunnelEvent({
       eventName: "join_email_no_wallet",
@@ -236,7 +255,7 @@ export async function verifyCustomerEmailOtpAction(
   })
 
   if (!(await signInWithVerifiedEmail(customer, false))) {
-    return { fields: { merchantSlug, qrId }, errors: { form: SESSION_FAILED } }
+    return retryVerifiedCode(result, codeFields, "establish_session")
   }
   redirect(await destinationAfterSignIn(request, customer.id, false))
 }
@@ -269,33 +288,46 @@ export async function startEmailWalletAction(
     return { errors: { form: HANDOFF_EXPIRED } }
   }
 
-  const resolution = await createCustomerByVerifiedEmail(handoff.email)
-  await clearVerifiedEmailHandoff()
-
-  if (
-    !(await signInWithVerifiedEmail(resolution.customer, resolution.created))
-  ) {
-    return { errors: { form: SESSION_FAILED } }
+  // The handoff is spent from here on. A failure below re-issues it under a
+  // new ID, so a retry works and a copy of the spent one still does not.
+  let wallet: VerifiedEmailWallet
+  try {
+    wallet = await createCustomerByVerifiedEmail(handoff.email)
+  } catch {
+    logger.error("customer_email_join_wallet_failed", {
+      operation: "create_customer",
+    })
+    return retryWalletStart(handoff, WALLET_RETRY)
   }
 
-  if (resolution.created) {
+  if (wallet.status === "conflict") {
+    await clearVerifiedEmailHandoff()
+    logger.warn("customer_email_join_wallet_conflict", {
+      operation: "create_customer",
+    })
+    return { errors: { form: EMAIL_HELD_ELSEWHERE } }
+  }
+
+  const created = wallet.status === "created"
+  if (created) {
     await captureJoinFunnelEvent({
       eventName: "join_new_email_wallet_confirmed",
       merchantId,
-      customerId: resolution.customer.id,
+      customerId: wallet.customer.id,
       entry: entryFor(request),
       step: "email_choice",
       method: "email",
     })
   }
 
-  redirect(
-    await destinationAfterSignIn(
-      request,
-      resolution.customer.id,
-      resolution.created
-    )
-  )
+  // A retry after a failed session finds the wallet made on the first try
+  // (`existing`) and signs in to it as a verified email.
+  if (!(await signInWithVerifiedEmail(wallet.customer, created))) {
+    return retryWalletStart(handoff, SESSION_FAILED)
+  }
+  await clearVerifiedEmailHandoff()
+
+  redirect(await destinationAfterSignIn(request, wallet.customer.id, created))
 }
 
 /**
@@ -353,6 +385,32 @@ async function availableJoinMerchantId(
     })
     return null
   }
+}
+
+/**
+ * After a matched code, a failed lookup, handoff or session restores the same
+ * code under a new challenge and keeps the customer on the code step.
+ */
+async function retryVerifiedCode(
+  verified: EmailSignInVerified,
+  fields: NonNullable<CustomerEmailIdentityState["fields"]>,
+  operation: string
+): Promise<CustomerEmailIdentityState> {
+  logger.error("customer_email_join_sign_in_failed", { operation })
+  await keepEmailSignInForRetry(verified)
+  return { fields, errors: { form: SIGN_IN_RETRY } }
+}
+
+/** A spent handoff whose wallet start failed, re-issued for one more try. */
+async function retryWalletStart(
+  spent: VerifiedEmailHandoffPayload,
+  message: string
+): Promise<CustomerEmailChoiceState> {
+  if (!(await reissueVerifiedEmailHandoff(spent))) {
+    await clearVerifiedEmailHandoff()
+    return { errors: { form: HANDOFF_EXPIRED } }
+  }
+  return { errors: { form: message } }
 }
 
 async function signInWithVerifiedEmail(

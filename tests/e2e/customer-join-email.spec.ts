@@ -72,6 +72,32 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     await expectNoAxeViolations(page, "join email code step")
   })
 
+  test("the email code step after a failed send says the code is delayed, not sent", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(
+      page,
+      "/dev/welcome-offer?surface=email-code-delayed&offer=none"
+    )
+    await expect(page.getByText("Not sent yet to")).toBeVisible()
+    await expect(page.getByText("Sent to", { exact: true })).toHaveCount(0)
+    await expect(
+      page.getByText(
+        "Email codes are delayed. Try again shortly or use your phone."
+      )
+    ).toBeVisible()
+    await expect(
+      page.getByText("It's in the email we just sent you.")
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "Resend code" })
+    ).toBeEnabled()
+    await expect(
+      page.getByRole("link", { name: "Use my phone instead" })
+    ).toHaveAttribute("href", /step=phone/)
+    await expectNoAxeViolations(page, "join email code step, send delayed")
+  })
+
   test("the choice screen offers both answers equally, and only mode full can start a wallet", async ({
     page,
   }) => {

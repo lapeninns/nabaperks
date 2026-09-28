@@ -155,6 +155,30 @@ test("a pending email code shows the code step with the masked address only", ()
   )
 })
 
+test("a pending email code whose send failed is never described as just sent", () => {
+  const experience = join({
+    emailMode: "full",
+    pendingEmail: {
+      maskedEmail: "j***@example.com",
+      resendAvailableAt: 100,
+      deliveryDelayed: true,
+    },
+  })
+  assert.equal(experience.kind, "join_otp")
+  assert.deepEqual(experience.contact, {
+    method: "email",
+    maskedEmail: "j***@example.com",
+    resendAvailableAt: 100,
+    deliveryDelayed: true,
+  })
+  const viewModel = getCustomerExperienceViewModel(experience)
+  assert.equal(
+    viewModel.supportLine,
+    "If the email doesn't arrive, send a new code or use your phone."
+  )
+  assert.doesNotMatch(viewModel.supportLine, /just sent/)
+})
+
 test("a pending phone code keeps the phone contact on the code step", () => {
   const experience = join({
     pendingOtp: true,

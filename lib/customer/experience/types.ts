@@ -51,6 +51,8 @@ export type JoinOtpContact =
       maskedEmail: string
       /** Epoch seconds when a resend is allowed. */
       resendAvailableAt: number
+      /** The provider failed to take the latest code, so none is on its way. */
+      deliveryDelayed?: boolean
     }
 
 /** Contact channels a verified wallet holds, for the marketing-consent line. */

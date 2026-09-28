@@ -644,3 +644,111 @@ test("Given a verified-email handoff When read back Then only this device, venue
     /device is required/
   )
 })
+
+test("Given a matched code When the sign-in after it fails and the code is kept Then the same code works once more and the spent cookie stays refused", async () => {
+  const mod = await loadModule()
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  const original = pendingCookie(mod)
+  const spentCookie = mod.state.cookies.get(mod.pendingEmailSignInCookieName)
+  const code = mod.state.sends[0].code
+
+  const verified = await mod.checkEmailSignInChallenge({
+    code,
+    purpose: "join",
+  })
+  assert.equal(verified.status, "verified")
+  // Spent and cleared unless the caller keeps it.
+  assert.equal(mod.state.cookies.has(mod.pendingEmailSignInCookieName), false)
+
+  await mod.keepEmailSignInForRetry(verified)
+  const kept = pendingCookie(mod)
+  assert.notEqual(kept.challengeId, original.challengeId)
+  assert.equal(kept.expiresAt, original.expiresAt)
+  assert.equal(kept.email, original.email)
+  assert.equal(kept.purpose, "join")
+  // No code is ever stored, only its digest under the new challenge.
+  assert.equal(Object.values(verified.retryChallenge).includes(code), false)
+  assert.equal(
+    emailSignInCodeHmac({
+      secret: SECRET,
+      purpose: "join",
+      challengeId: kept.challengeId,
+      email: kept.email,
+      code,
+    }),
+    kept.codeHmac
+  )
+
+  // A copy of the spent cookie is still refused.
+  const keptCookie = mod.state.cookies.get(mod.pendingEmailSignInCookieName)
+  mod.state.cookies.set(mod.pendingEmailSignInCookieName, spentCookie)
+  assert.deepEqual(
+    await mod.checkEmailSignInChallenge({ code, purpose: "join" }),
+    { status: "expired" }
+  )
+
+  // The kept challenge verifies the same code once, then it is spent too.
+  mod.state.cookies.set(mod.pendingEmailSignInCookieName, keptCookie)
+  const retried = await mod.checkEmailSignInChallenge({ code, purpose: "join" })
+  assert.equal(retried.status, "verified")
+  assert.equal(
+    mod.state.buckets.get(`email-sign-in:consumed:${kept.challengeId}`),
+    1
+  )
+  mod.state.cookies.set(mod.pendingEmailSignInCookieName, keptCookie)
+  assert.deepEqual(
+    await mod.checkEmailSignInChallenge({ code, purpose: "join" }),
+    { status: "expired" }
+  )
+})
+
+test("Given a kept code When its challenge has expired Then nothing is restored", async () => {
+  const mod = await loadModule()
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  const verified = await mod.checkEmailSignInChallenge({
+    code: mod.state.sends[0].code,
+    purpose: "join",
+  })
+  await withClockAhead(11 * 60, async () => {
+    await mod.keepEmailSignInForRetry(verified)
+  })
+  assert.equal(mod.state.cookies.has(mod.pendingEmailSignInCookieName), false)
+})
+
+test("Given a spent handoff When it is re-issued Then only the new ID is usable, with the same binding and expiry", async () => {
+  const mod = await loadModule()
+  const spent = await mod.setVerifiedEmailHandoff({
+    email: "guest@example.com",
+    emailHmac: "a".repeat(64),
+    merchantSlug: "old-crown",
+    qrId: "venue-qr",
+  })
+  assert.equal(await mod.consumeVerifiedEmailHandoff(spent), true)
+
+  const reissued = await mod.reissueVerifiedEmailHandoff(spent)
+  assert.notEqual(reissued.handoffId, spent.handoffId)
+  assert.deepEqual(
+    { ...reissued, handoffId: spent.handoffId },
+    spent,
+    "binding, issue time and expiry are unchanged"
+  )
+  const read = await mod.readVerifiedEmailHandoff({
+    merchantSlug: "old-crown",
+    qrId: "venue-qr",
+  })
+  assert.equal(read.handoffId, reissued.handoffId)
+
+  assert.equal(await mod.consumeVerifiedEmailHandoff(spent), false)
+  assert.equal(await mod.consumeVerifiedEmailHandoff(reissued), true)
+  assert.equal(await mod.consumeVerifiedEmailHandoff(reissued), false)
+
+  await withClockAhead(11 * 60, async () => {
+    assert.equal(await mod.reissueVerifiedEmailHandoff(reissued), null)
+  })
+})

@@ -156,7 +156,11 @@ export type JoinContext =
       /** Email sign-in rollout mode; unset means `off`. */
       emailMode?: JoinEmailMode
       /** A pending join email challenge (the address already masked). */
-      pendingEmail?: { maskedEmail: string; resendAvailableAt: number }
+      pendingEmail?: {
+        maskedEmail: string
+        resendAvailableAt: number
+        deliveryDelayed?: boolean
+      }
       /** A verified email no wallet holds yet, bound to this device and venue. */
       emailHandoff?: { maskedEmail: string }
       /** Contact channels the signed-in wallet holds (terms step copy). */
@@ -606,6 +610,9 @@ function joinOtp(context: AvailableJoinContext): CustomerExperience {
         method: "email",
         maskedEmail: context.pendingEmail.maskedEmail,
         resendAvailableAt: context.pendingEmail.resendAvailableAt,
+        ...(context.pendingEmail.deliveryDelayed
+          ? { deliveryDelayed: true }
+          : {}),
       }
     : {
         method: "phone",

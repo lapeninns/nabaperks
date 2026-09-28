@@ -67,6 +67,10 @@ export const JOIN_PHONE_RETENTION_HINT =
 export const JOIN_EMAIL_WIFI_HINT =
   "Works over the venue's Wi-Fi, even with no mobile signal." as const
 
+/** When the email provider failed to take a join code (plan section 7). */
+export const JOIN_EMAIL_DELAYED =
+  "Email codes are delayed. Try again shortly or use your phone." as const
+
 /** Shown on the email code step once the code has had time to arrive. */
 export const JOIN_EMAIL_SPAM_HINT =
   "Not there yet? Check your spam or junk folder." as const
@@ -165,7 +169,10 @@ export function getCustomerExperienceViewModel(
         ? {
             eyebrow: "Check your email",
             headline: "Enter your code",
-            supportLine: "It's in the email we just sent you.",
+            // A failed send is never described as an email on its way.
+            supportLine: exp.contact.deliveryDelayed
+              ? "If the email doesn't arrive, send a new code or use your phone."
+              : "It's in the email we just sent you.",
           }
         : {
             eyebrow: "Check your messages",

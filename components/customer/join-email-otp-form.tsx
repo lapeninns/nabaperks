@@ -15,7 +15,10 @@ import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { useOtpRetryCountdown } from "@/hooks/use-otp-retry-countdown"
-import { JOIN_EMAIL_SPAM_HINT } from "@/lib/customer/experience/copy"
+import {
+  JOIN_EMAIL_DELAYED,
+  JOIN_EMAIL_SPAM_HINT,
+} from "@/lib/customer/experience/copy"
 
 const emailInitialState: CustomerEmailIdentityState = {}
 
@@ -30,6 +33,8 @@ export type CustomerEmailOtpFormProps = {
   maskedEmail: string
   /** Epoch seconds when a resend is allowed. */
   resendAvailableAt: number
+  /** The latest send failed, so no code is described as on its way. */
+  deliveryDelayed?: boolean
   /** "Use a different email": the email step, where a pending code is ignored. */
   emailStepHref: string
   phoneStepHref: string
@@ -46,6 +51,7 @@ export function CustomerEmailOtpForm({
   referralCode,
   maskedEmail,
   resendAvailableAt,
+  deliveryDelayed = false,
   emailStepHref,
   phoneStepHref,
 }: CustomerEmailOtpFormProps) {
@@ -73,6 +79,11 @@ export function CustomerEmailOtpForm({
     : (requestState.errors?.form ?? requestState.errors?.email)
   const resendMessage =
     requestPending || resendError ? undefined : requestState.message
+  // Delayed until a resend from this screen is sent; a failed one says so
+  // itself in `resendError`.
+  const delayed = deliveryDelayed && !requestState.message
+  const delayedNotice =
+    delayed && !requestPending && !resendError ? JOIN_EMAIL_DELAYED : undefined
 
   return (
     <div className="grid gap-4">
@@ -142,7 +153,9 @@ export function CustomerEmailOtpForm({
         >
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <p className="min-w-0 text-sm">
-              <span className="text-muted-foreground">Sent to </span>
+              <span className="text-muted-foreground">
+                {delayed ? "Not sent yet to " : "Sent to "}
+              </span>
               <span className="font-bold break-all">{maskedEmail}</span>
             </p>
             <SubmitButton
@@ -159,6 +172,11 @@ export function CustomerEmailOtpForm({
           </div>
           {resendError ? (
             <p className="text-sm leading-5 text-destructive">{resendError}</p>
+          ) : null}
+          {delayedNotice ? (
+            <p className="text-sm leading-5 text-destructive">
+              {delayedNotice}
+            </p>
           ) : null}
           {resendMessage ? (
             <p className="text-sm leading-5 font-semibold text-foreground">

@@ -151,15 +151,27 @@ export async function findCustomerByVerifiedEmail(
 
 const UNIQUE_VIOLATION = "23505"
 
+export type VerifiedEmailWallet =
+  | { readonly status: "created"; readonly customer: CurrentCustomer }
+  | { readonly status: "existing"; readonly customer: CurrentCustomer }
+  /** Another wallet holds the address but could not be matched to it. */
+  | { readonly status: "conflict" }
+
 /**
  * Starts a wallet for an email the caller has just proven. The only place an
  * email-only wallet is created, and only after the customer chose to on the
- * join page (D2). A concurrent creation of the same verified email loses to
- * the unique index and returns the wallet that won.
+ * join page (D2).
+ *
+ * The insert can lose to either verified-email index (20261006100000). A
+ * concurrent creation of the same address is found again by its HMAC. A wallet
+ * whose HMAC is missing or stale (a key rotation or repair mismatch) is found
+ * by the normalised address the address index protects, and opened only
+ * because that row's email is verified. Anything else is a `conflict`: the
+ * address is held elsewhere and nothing is created or opened.
  */
 export async function createCustomerByVerifiedEmail(
   email: string
-): Promise<{ customer: CurrentCustomer; created: boolean }> {
+): Promise<VerifiedEmailWallet> {
   const verifiedEmail = normalizeEmail(email)
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
@@ -174,12 +186,15 @@ export async function createCustomerByVerifiedEmail(
     .single()
 
   if (error) {
-    if (error.code === UNIQUE_VIOLATION) {
-      const raced = await findCustomerByVerifiedEmail(verifiedEmail)
-      if (raced) return { customer: raced, created: false }
+    if (error.code !== UNIQUE_VIOLATION) {
+      throw new Error(`Unable to create customer: ${error.message}`)
     }
-
-    throw new Error(`Unable to create customer: ${error.message}`)
+    const holder =
+      (await findCustomerByVerifiedEmail(verifiedEmail)) ??
+      (await findCustomerByVerifiedAddress(verifiedEmail))
+    return holder
+      ? { status: "existing", customer: holder }
+      : { status: "conflict" }
   }
 
   const customer = toCurrentCustomer(data)
@@ -190,7 +205,33 @@ export async function createCustomerByVerifiedEmail(
   // A merchant may have sent this address a reward invite before they joined.
   after(() => attachRewardInvitesForCustomer(customer.id))
 
-  return { customer, created: true }
+  return { status: "created", customer }
+}
+
+/**
+ * The one wallet whose VERIFIED email is exactly this normalised address, or
+ * null. Exact equality, never a pattern, so an address holding `%` or `_`
+ * cannot match another. This app writes verified emails in the normalised
+ * form that `lower(btrim(email))` indexes; an older row stored otherwise is
+ * not matched, and the caller treats the address as held elsewhere.
+ */
+async function findCustomerByVerifiedAddress(
+  email: string
+): Promise<CurrentCustomer | null> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("customers")
+    .select(CUSTOMER_COLUMNS)
+    .eq("email", normalizeEmail(email))
+    .not("email_verified_at", "is", null)
+    .limit(2)
+
+  if (error) {
+    throw new Error(`Unable to load customer: ${error.message}`)
+  }
+
+  const rows = Array.isArray(data) ? data : []
+  return rows.length === 1 ? toCurrentCustomer(rows[0]) : null
 }
 
 export function firstOf<T>(value: T | T[] | null): T | null {

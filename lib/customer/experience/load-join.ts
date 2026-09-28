@@ -189,7 +189,11 @@ export async function loadJoinExperienceContext(
 }
 
 type PendingEmailFacts = {
-  pendingEmail?: { maskedEmail: string; resendAvailableAt: number }
+  pendingEmail?: {
+    maskedEmail: string
+    resendAvailableAt: number
+    deliveryDelayed?: boolean
+  }
   pendingIssuedAt?: number
   emailHandoff?: { maskedEmail: string }
   handoffIssuedAt?: number
@@ -215,9 +219,13 @@ async function pendingEmailFacts(
     facts.handoffIssuedAt = handoff.issuedAt
   }
   if (pending?.purpose === "join") {
+    // A failed send keeps its challenge (the email may still arrive late),
+    // but the code step must say it is delayed, not that it was just sent. A
+    // refused (`held`) send still reads as sent (D8).
     facts.pendingEmail = {
       maskedEmail: maskEmail(pending.email) ?? "",
       resendAvailableAt: pending.resendAvailableAt,
+      ...(pending.delivery === "fail" ? { deliveryDelayed: true } : {}),
     }
     facts.pendingIssuedAt = pending.issuedAt
   }

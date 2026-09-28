@@ -64,6 +64,7 @@ export const WELCOME_JOIN_SURFACES = [
   "contact",
   "email",
   "email-code",
+  "email-code-delayed",
   "email-choice",
   "email-choice-existing",
 ] as const
@@ -95,10 +96,13 @@ export function welcomeJoinExperience(step: string) {
           ? "existing"
           : "full",
       // A past resend time keeps the resend button steady for screenshots.
-      pendingEmail:
-        step === "email-code"
-          ? { maskedEmail: "j***@example.com", resendAvailableAt: 0 }
-          : undefined,
+      pendingEmail: step.startsWith("email-code")
+        ? {
+            maskedEmail: "j***@example.com",
+            resendAvailableAt: 0,
+            deliveryDelayed: step === "email-code-delayed",
+          }
+        : undefined,
       emailHandoff: step.startsWith("email-choice")
         ? { maskedEmail: "j***@example.com" }
         : undefined,

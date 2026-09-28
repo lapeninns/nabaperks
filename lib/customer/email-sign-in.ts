@@ -88,14 +88,23 @@ export type EmailSignInStartResult =
     }
 
 export type EmailSignInCheckResult =
-  | {
-      readonly status: "verified"
-      readonly email: string
-      readonly emailHmac: string
-    }
+  | EmailSignInVerified
   | { readonly status: "invalid_code" }
   | { readonly status: "expired" }
   | { readonly status: "rate_limited" }
+
+/**
+ * A matched code. The challenge it matched is spent and its cookie cleared;
+ * `retryChallenge` is a fresh challenge for the same code under a new ID, which
+ * the caller restores only when the sign-in after verification fails (see
+ * {@link keepEmailSignInForRetry}).
+ */
+export type EmailSignInVerified = {
+  readonly status: "verified"
+  readonly email: string
+  readonly emailHmac: string
+  readonly retryChallenge: PendingEmailSignInPayload
+}
 
 export type EmailSignInOutcome =
   EmailSignInStartResult["status"] | EmailSignInCheckResult["status"]
@@ -253,7 +262,26 @@ export async function checkEmailSignInChallenge({
     status: "verified",
     email: pending.email,
     emailHmac: pending.emailHmac,
+    retryChallenge: rebindChallenge(pending, code, secret),
   }
+}
+
+/**
+ * Restores a verified code as a new challenge after the sign-in that followed
+ * it failed (a lookup, handoff or session error), so the customer can enter
+ * the same code again instead of waiting for another email.
+ *
+ * Replay stays closed: the challenge ID that matched is already spent, so a
+ * copy of the old cookie is refused, and the restored challenge has its own
+ * ID, spent on its next match. It keeps the original expiry, so retries never
+ * extend the code's life, and it is only minted after a correct code, so it
+ * gives nobody extra guesses.
+ */
+export async function keepEmailSignInForRetry(
+  verified: EmailSignInVerified
+): Promise<void> {
+  if (verified.retryChallenge.expiresAt <= nowSeconds()) return
+  await writeChallenge(verified.retryChallenge, requiredCustomerSessionSecret())
 }
 
 /** Read-only, so a page render may call it. */
@@ -367,6 +395,34 @@ export async function consumeVerifiedEmailHandoff(
 }
 
 /**
+ * Re-issues a spent handoff under a new ID after the wallet start that spent
+ * it failed, so the customer can try again without another code. The spent ID
+ * stays spent, so a copy of the old cookie is still refused; the new one keeps
+ * the original binding and expiry. Null once the handoff has expired.
+ */
+export async function reissueVerifiedEmailHandoff(
+  spent: VerifiedEmailHandoffPayload
+): Promise<VerifiedEmailHandoffPayload | null> {
+  const now = nowSeconds()
+  if (spent.expiresAt <= now) return null
+
+  const payload: VerifiedEmailHandoffPayload = {
+    ...spent,
+    handoffId: randomUUID(),
+  }
+  const cookieStore = await cookies()
+  cookieStore.set(
+    verifiedEmailHandoffCookieName,
+    createVerifiedEmailHandoffCookieValue(
+      payload,
+      requiredCustomerSessionSecret()
+    ),
+    persistentCookieOptions(spent.expiresAt - now)
+  )
+  return payload
+}
+
+/**
  * Guess limits: per challenge, per device and per client IP always; per
  * address only for a challenge whose code was sent, since guesses against a
  * refused (`held`) one cannot succeed and must not lock the address out.
@@ -458,6 +514,26 @@ function mintChallenge({
     issuedAt: now,
     expiresAt: now + EMAIL_SIGN_IN_TTL_SECONDS,
     resendAvailableAt: now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS,
+  }
+}
+
+/** The same code under a new challenge ID, for {@link keepEmailSignInForRetry}. */
+function rebindChallenge(
+  pending: PendingEmailSignInPayload,
+  code: string,
+  secret: string
+): PendingEmailSignInPayload {
+  const challengeId = randomUUID()
+  return {
+    ...pending,
+    challengeId,
+    codeHmac: emailSignInCodeHmac({
+      secret,
+      purpose: pending.purpose,
+      challengeId,
+      email: pending.email,
+      code,
+    }),
   }
 }
 
