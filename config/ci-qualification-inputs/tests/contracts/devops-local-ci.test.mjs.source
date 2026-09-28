@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { join } from "node:path"
 import { test } from "node:test"
 
 function read(path) {
@@ -107,6 +108,60 @@ function laneCommands(lane) {
   ]
 }
 
+/** Every regular file under `root`, as repository-relative paths. */
+function filesUnder(root) {
+  return readdirSync(root, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => join(entry.parentPath, entry.name))
+    .sort()
+}
+
+/**
+ * The VM layers the agent can dispatch into.
+ *
+ * `lima` is the dedicated `nabaperks-ci` VM with `mounts: []`. `docker-desktop`
+ * is the operator's Docker Desktop engine, whose VM is shared with other
+ * worktrees' containers. The owner accepted that weaker isolation on
+ * 2026-09-28; the pins below are what the move keeps in exchange.
+ */
+const RUNTIME_KINDS = Object.freeze(["lima", "docker-desktop"])
+const DOCKER_DESKTOP_ADAPTER = "ops/local-ci/agent/runtime-docker-desktop.mjs"
+const DOCKER_DESKTOP_CONTEXT = "desktop-linux"
+
+/**
+ * Which runtime the contract selects.
+ *
+ * A contract without a `runtime` block predates the adapter, and the only VM
+ * layer it can mean is Lima, so it gets every Lima pin. Once the Docker Desktop
+ * adapter exists, that default would let a deleted block silently switch the
+ * pins back, so from then on the choice must be spelled out.
+ */
+function runtimeKind(contract) {
+  if (contract.runtime === undefined) {
+    assert.ok(
+      !existsSync(DOCKER_DESKTOP_ADAPTER),
+      `${CONTRACT_PATH} must declare runtime.kind once ${DOCKER_DESKTOP_ADAPTER} exists`
+    )
+    return "lima"
+  }
+  assert.equal(typeof contract.runtime, "object")
+  assert.notEqual(contract.runtime, null)
+  assert.ok(
+    RUNTIME_KINDS.includes(contract.runtime.kind),
+    `runtime.kind must be one of ${RUNTIME_KINDS.join(", ")} (received ${JSON.stringify(contract.runtime.kind)})`
+  )
+  return contract.runtime.kind
+}
+
+/** Lanes whose commands drive Playwright, in profile order. */
+function browserLanes(profile) {
+  return profile.lanes.filter((lane) =>
+    laneCommands(lane).some((command) =>
+      /playwright|test:e2e|test:a11y/.test(command)
+    )
+  )
+}
+
 test("the local CI contract pins the numbers the whole plane is built around", () => {
   const contract = readJson(CONTRACT_PATH)
 
@@ -137,7 +192,14 @@ test("the local CI contract pins the numbers the whole plane is built around", (
   assert.equal(contract.nightlyProof.maxAgeHours, 36)
 
   assert.equal(contract.container.mountHostDockerSocket, false)
-  assert.equal(contract.container.dockerInDocker, true)
+  // Docker-in-Docker needs a privileged sidecar. Inside the dedicated Lima VM
+  // that privilege reaches nothing of the Mac's; on the shared Docker Desktop
+  // VM it would hand candidate code that VM's kernel, its file shares and
+  // other worktrees' containers, so that runtime has no daemon at all.
+  assert.equal(
+    contract.container.dockerInDocker,
+    runtimeKind(contract) === "lima"
+  )
   assert.ok(
     contract.container.timeoutMinutes < contract.bridge.timeoutMinutes,
     "the container ceiling must sit inside the bridge ceiling so a hang is reported rather than timed out"
@@ -497,9 +559,136 @@ test("no local CI contract or profile file carries a credential-shaped literal",
   assert.equal(contract.githubApp.privateKeyMode, "0600")
 })
 
-test("the build VM is isolated from the Mac by construction", () => {
-  const lima = read("ops/local-ci/host/lima-nabaperks-ci.yaml")
+test("no lane that needs a Docker daemon runs locally without a dedicated VM", () => {
   const contract = readJson(CONTRACT_PATH)
+  const kind = runtimeKind(contract)
+  const expected = { pr: ["db"], main: ["db"], nightly: ["db", "db-stress"] }
+
+  for (const name of PROFILE_NAMES) {
+    const profile = readJson(PROFILE_PATHS[name])
+    const daemonLanes = profile.lanes.filter(
+      (lane) => lane.needsDaemon === true && lane.arch !== "x64-only"
+    )
+    // Positive control: the lanes below are exactly the database lanes, so a
+    // renamed flag cannot make the hosted-only rule pass by matching nothing.
+    assert.deepEqual(
+      daemonLanes.map((lane) => lane.id),
+      expected[name]
+    )
+    if (kind === "lima") continue
+    for (const lane of daemonLanes) {
+      assert.ok(
+        Array.isArray(lane.requires) &&
+          lane.requires.includes("privileged-daemon"),
+        `${name}/${lane.id} must require privileged-daemon so the Docker Desktop runtime reports it hosted-only`
+      )
+    }
+  }
+  if (kind === "lima") return
+
+  // The requirement is routed to hostedOnly by the selector, the same way
+  // x64-only is, so the lane is reported rather than dropped or failed. The
+  // hosted db root stays authoritative for both lanes.
+  assert.deepEqual(contract.runtime.hostedOnlyRequirements, [
+    "privileged-daemon",
+  ])
+  assert.match(read("ops/local-ci/core/profiles.mjs"), /hostedOnlyRequirements/)
+})
+
+test("the runtime the agent dispatches into is isolated from the Mac by construction", () => {
+  const contract = readJson(CONTRACT_PATH)
+  if (runtimeKind(contract) === "lima") assertLimaIsolation(contract)
+  else assertDockerDesktopIsolation(contract)
+})
+
+/**
+ * Docker Desktop: no Mac directory, no privilege and no route to the Mac.
+ *
+ * The VM is shared, so the controls move to what each container is given. The
+ * egress design is the one the 2026-09-28 spike proved: job lanes run on
+ * `--internal` networks from a reserved pool, with no gateway and no
+ * host.docker.internal, after an offline install. Only the trusted helper that
+ * clones and fetches packages has egress, through an unprivileged allowlist
+ * CONNECT proxy, because a plain bridge reaches Mac loopback services through
+ * host.docker.internal. No privileged network guard is needed.
+ */
+function assertDockerDesktopIsolation(contract) {
+  const runtime = contract.runtime
+  assert.equal(runtime.kind, "docker-desktop")
+  assert.equal(runtime.adapter, DOCKER_DESKTOP_ADAPTER)
+  assert.equal(runtime.context, DOCKER_DESKTOP_CONTEXT)
+
+  // The budget is what Docker Desktop is given, less a reserve for its own VM
+  // and a floor for other worktrees' containers on the same daemon.
+  assert.equal(runtime.cpus, 18)
+  assert.equal(runtime.memoryGb, 50)
+  for (const field of [
+    "reserveCpus",
+    "reserveMemoryGb",
+    "externalMemoryFloorGb",
+  ]) {
+    assert.ok(
+      Number.isInteger(runtime[field]) && runtime[field] > 0,
+      `runtime.${field} must be a positive integer`
+    )
+  }
+  assert.ok(contract.container.cpus + runtime.reserveCpus <= runtime.cpus)
+  assert.ok(
+    contract.container.memoryGb +
+      runtime.reserveMemoryGb +
+      runtime.externalMemoryFloorGb <=
+      runtime.memoryGb
+  )
+
+  // No bind mount and no privileged container, stated as data and enforced
+  // where the argv is built.
+  assert.deepEqual(runtime.bindMounts, [])
+  assert.deepEqual(runtime.privilegedContainers, [])
+  assert.deepEqual(runtime.jobNetwork, {
+    internal: true,
+    subnetPool: "10.213.0.0/16",
+  })
+  assert.deepEqual(runtime.cleanup, {
+    namePrefix: "nabaperks-ci-",
+    labelPrefix: "com.nabaperks.local-ci.",
+    prune: false,
+  })
+
+  const adapter = read(runtime.adapter)
+  assert.doesNotMatch(adapter, /limactl/)
+  assert.doesNotMatch(adapter, /--privileged/)
+  assert.doesNotMatch(adapter, /docker\.sock/)
+  assert.doesNotMatch(adapter, /--network[= ]host|"--network",\s*"host"/)
+  // Host commands are an allowlist of its own; Lima's CLI is not in it.
+  assert.match(
+    adapter,
+    /export const PERMITTED_HOST_EXECUTABLES = Object\.freeze\(\[\s*"\/bin\/sh",/
+  )
+  // The negative canary: a Mac 127.0.0.1 listener must be unreachable through
+  // both Desktop routes to the host, and the probe must finish.
+  assert.match(adapter, /host\.docker\.internal/)
+  assert.match(adapter, /192\.168\.65\.254/)
+  assert.match(adapter, /probe=ok/)
+
+  const container = read("ops/local-ci/agent/container.mjs")
+  assert.match(container, /"--context"/)
+  assert.match(container, /"--internal"/)
+  assert.match(container, /"--subnet"/)
+  assert.match(container, /export function assertNoBindMounts\(/)
+  assert.match(container, /assertNoBindMounts\(argv, "job container argv"\)/)
+
+  // Stale volumes are swept too, by label and prefix, never by prune.
+  assert.match(read("ops/local-ci/agent/recovery.mjs"), /volume/)
+
+  // Docker Desktop's credential store and registry login are never used.
+  assert.match(
+    read("ops/local-ci/host/com.nabaperks.local-ci.plist"),
+    /<key>DOCKER_CONFIG<\/key>/
+  )
+}
+
+function assertLimaIsolation(contract) {
+  const lima = read("ops/local-ci/host/lima-nabaperks-ci.yaml")
 
   assert.equal(
     contract.vm.definition,
@@ -531,9 +720,60 @@ test("the build VM is isolated from the Mac by construction", () => {
   assert.match(lima, /\n {2}forwardAgent: false\n/)
   assert.match(lima, /\n {2}loadDotSSHPubKeys: false\n/)
   assert.match(lima, /\nrosetta:\n {2}enabled: false\n/)
+}
+
+test("runtime provisioning closes egress without conflicting firewall managers", () => {
+  const contract = readJson(CONTRACT_PATH)
+  if (runtimeKind(contract) === "lima") assertLimaProvisioning()
+  else assertDockerDesktopProvisioning(contract)
 })
 
-test("VM provisioning avoids conflicting firewall managers and checks privileged readiness", () => {
+/**
+ * The trusted helper is the only container with egress, and it never runs
+ * candidate code while it has it: no lifecycle scripts, no pnpmfile hooks, no
+ * configDependencies, and a copied store so a job cannot write back through a
+ * hard link. Jobs then install offline, where lifecycle scripts do run.
+ */
+function assertDockerDesktopProvisioning(contract) {
+  const runtime = contract.runtime
+  assert.deepEqual(runtime.helper.egress, {
+    mode: "allowlist-proxy",
+    hosts: ["github.com", "codeload.github.com", "registry.npmjs.org"],
+    ports: [443],
+    publicAddressesOnly: true,
+  })
+  const helperFlags = [
+    "--frozen-lockfile",
+    "--ignore-scripts",
+    "--ignore-pnpmfile",
+    "--config.package-import-method=copy",
+  ]
+  for (const flag of helperFlags)
+    assert.ok(
+      runtime.helper.installFlags.includes(flag),
+      `helper needs ${flag}`
+    )
+  assert.equal(runtime.helper.refuseConfigDependencies, true)
+  const jobFlags = ["--offline", "--frozen-lockfile"]
+  for (const flag of jobFlags)
+    assert.ok(runtime.jobInstallFlags.includes(flag), `jobs need ${flag}`)
+
+  // The data above is enforced by agent code, not only declared.
+  const agent = filesUnder("ops/local-ci/agent")
+    .filter((path) => path.endsWith(".mjs"))
+    .map(read)
+    .join("\n")
+  for (const word of [
+    ...helperFlags,
+    ...jobFlags,
+    "configDependencies",
+    ...runtime.helper.egress.hosts,
+  ]) {
+    assert.ok(agent.includes(word), `ops/local-ci/agent must apply ${word}`)
+  }
+}
+
+function assertLimaProvisioning() {
   const lima = read("ops/local-ci/host/lima-nabaperks-ci.yaml")
   const install = lima.match(
     /apt-get install -y -qq --no-install-recommends \\\n([^\n]+)/
@@ -555,7 +795,7 @@ test("VM provisioning avoids conflicting firewall managers and checks privileged
     probe,
     /sudo -n iptables -C DOCKER-USER [^\n]*ctstate NEW -j DROP/
   )
-})
+}
 
 test("the job container never receives the host Docker daemon socket", () => {
   const contract = readJson(CONTRACT_PATH)
@@ -577,6 +817,72 @@ test("the job container never receives the host Docker daemon socket", () => {
   // The image reaches a daemon over TCP on a job-private network instead.
   assert.doesNotMatch(dockerfile, /docker\.sock/)
   assert.match(dockerfile, /\nENV DOCKER_HOST=tcp:\/\//)
+})
+
+test("a job environment carries no host secret and reaches the container only as an env file", () => {
+  const contract = readJson(CONTRACT_PATH)
+  const jobEnv = read("ops/local-ci/core/job-env.mjs")
+  const container = read("ops/local-ci/agent/container.mjs")
+
+  // Every environment the agent builds is checked before it is returned.
+  const build = jobEnv.slice(jobEnv.indexOf("export function buildJobEnv("))
+  assert.match(build, /^export function buildJobEnv\(/)
+  assert.match(build, /\n {2}assertNoHostSecrets\(env, contract, hostEnv\)\n/)
+  // Lane values travel in a file the client reads, not as `--env NAME=VALUE`
+  // arguments visible through `ps`.
+  assert.match(container, /argv\.push\("--env-file", /)
+
+  if (runtimeKind(contract) === "lima") return
+  // On Docker Desktop the file is written on the Mac and read by the docker
+  // client there; nothing is mounted to deliver it.
+  assert.deepEqual(contract.runtime.envFiles, {
+    mode: "0600",
+    passedAs: "--env-file",
+    carriesHostSecrets: false,
+  })
+})
+
+test("the Mac stays awake only while a job runs, through a scoped caffeinate", () => {
+  // The persistent power-management CLI mutates global state that outlives
+  // the agent. It must not appear anywhere under ops/.
+  const opsFiles = filesUnder("ops")
+  assert.ok(opsFiles.length > 0)
+  for (const path of opsFiles)
+    assert.doesNotMatch(read(path), /\bpmset\b/, `${path} must not use pmset`)
+
+  const loop = read("ops/local-ci/agent/loop.mjs")
+  assert.match(
+    loop,
+    /export const CAFFEINATE_PATH = "\/usr\/bin\/caffeinate"\n/
+  )
+  assert.match(
+    loop,
+    /export const CAFFEINATE_FLAGS = Object\.freeze\(\["-i", "-m", "-w"\]\)\n/
+  )
+
+  // The plist starts the agent itself, never wrapped in an assertion.
+  const plist = read("ops/local-ci/host/com.nabaperks.local-ci.plist")
+  const program = plist.match(
+    /<key>ProgramArguments<\/key>\s*<array>([\s\S]*?)<\/array>/
+  )
+  assert.ok(program, "the plist must declare ProgramArguments")
+  assert.match(program[1], /ops\/local-ci\/agent\/main\.mjs/)
+  assert.doesNotMatch(program[1].replace(/<!--[\s\S]*?-->/g, ""), /caffeinate/)
+})
+
+test("the agent removes only its own Docker resources and never prunes", () => {
+  // Other worktrees' stacks share a Docker Desktop daemon. A prune there
+  // deletes their containers, networks or volumes; the sweep instead removes
+  // inspected IDs that carry both the agent's labels and its name prefix.
+  const prune =
+    /\b(?:system|container|volume|network|image|builder)\s+prune\b|["']prune["']/
+  for (const path of filesUnder("ops/local-ci"))
+    assert.doesNotMatch(read(path), prune, `${path} must never prune`)
+
+  const recovery = read("ops/local-ci/agent/recovery.mjs")
+  assert.match(recovery, /com\.nabaperks\.local-ci\./)
+  assert.match(recovery, /nabaperks-ci-/)
+  assert.match(recovery, /head-sha/)
 })
 
 test("both local CI runbooks carry the App permission boundary and the no-PR-code rule", () => {
@@ -640,6 +946,81 @@ test("both local CI runbooks carry the App permission boundary and the no-PR-cod
     /Missing or pending proof is observational, not test success/
   )
   assert.match(runbook, /superseded/)
+
+  if (runtimeKind(contract) === "lima") return
+  // The shared VM is weaker isolation than Lima's. The security boundary
+  // section must say so, and record who accepted it and when.
+  const start = runbook.indexOf("\n## 7. The security boundary\n")
+  assert.notEqual(start, -1, "the runbook must keep section 7")
+  const next = runbook.indexOf("\n## ", start + 1)
+  const boundary = runbook.slice(start, next === -1 ? runbook.length : next)
+  assert.match(boundary, /Docker Desktop/)
+  assert.match(boundary, /owner-accepted on 2026-09-28/)
+})
+
+test("browser lanes keep complete shard coverage, one worker and a private server each", () => {
+  const contract = readJson(CONTRACT_PATH)
+  const ports = contract.playwrightPorts
+  assert.deepEqual(Object.keys(ports.reserved).sort(), ["3000", "3147"])
+  const assigned = Object.fromEntries(
+    Object.entries(ports).filter(
+      ([key]) => !["reserved", "notes"].includes(key)
+    )
+  )
+  const values = Object.values(assigned)
+  assert.deepEqual(values, [...new Set(values)], "ports must be distinct")
+  for (const [lane, port] of Object.entries(assigned)) {
+    assert.ok(Number.isInteger(port) && port > 1024, `${lane} needs a port`)
+    assert.ok(
+      !Object.keys(ports.reserved).includes(String(port)),
+      `${lane} must not take reserved port ${port}`
+    )
+  }
+
+  for (const name of PROFILE_NAMES) {
+    const lanes = browserLanes(readJson(PROFILE_PATHS[name]))
+    assert.deepEqual(
+      lanes.map((lane) => lane.id).sort(),
+      Object.keys(assigned).sort(),
+      `${name}: every browser lane, and only those, owns a Playwright port`
+    )
+    const distDirs = lanes.map((lane) => lane.env.PLAYWRIGHT_NEXT_DIST_DIR)
+    assert.deepEqual(distDirs, [...new Set(distDirs)])
+
+    // Splitting a project across lanes must not drop, repeat or re-size a
+    // shard: each (script, project) covers 1..N of one denominator exactly
+    // once, and end-to-end keeps the /32 that ended the 8-shard OOM kills.
+    const shards = new Map()
+    for (const lane of lanes) {
+      assert.equal(lane.env.PLAYWRIGHT_WORKERS, "1", `${name}/${lane.id}`)
+      assert.equal(
+        lane.env.PLAYWRIGHT_BASE_URL,
+        `http://127.0.0.1:${assigned[lane.id]}`,
+        `${name}/${lane.id} must serve on its own port`
+      )
+      for (const command of laneCommands(lane)) {
+        const match =
+          /\b(test:e2e|test:a11y) --project="([a-z-]+)" .*--shard="(\d+)\/(\d+)"/.exec(
+            command
+          )
+        if (!match) continue
+        const key = `${match[1]} ${match[2]}`
+        const entry = shards.get(key) ?? { total: Number(match[4]), seen: [] }
+        assert.equal(entry.total, Number(match[4]), `${name} ${key}`)
+        entry.seen.push(Number(match[3]))
+        shards.set(key, entry)
+      }
+    }
+    assert.ok(shards.size > 0, `${name} must shard its browser lanes`)
+    for (const [key, { total, seen }] of shards) {
+      if (key.startsWith("test:e2e ")) assert.equal(total, 32, `${name} ${key}`)
+      assert.deepEqual(
+        seen.sort((a, b) => a - b),
+        Array.from({ length: total }, (_, index) => index + 1),
+        `${name} ${key} must run every shard exactly once`
+      )
+    }
+  }
 })
 
 test("non-baseline accessibility journeys stay in both planes' selections", () => {
