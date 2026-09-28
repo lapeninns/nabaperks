@@ -21,7 +21,8 @@ import {
   findCustomerByVerifiedEmail,
 } from "@/lib/customer/identity"
 import { isEmailAddress } from "@/lib/customer/profile-fields"
-import { clearPendingPhoneVerification } from "@/lib/customer/session"
+import { phoneCodeEmailFallbackInSeconds } from "@/lib/customer/phone-code-email-fallback"
+import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
 
@@ -206,9 +207,13 @@ export async function editCustomerLoginEmailAction(
 }
 
 /**
- * Switches the screen to the other method and drops the code pending for the
- * one being left, so only one sign-in is live per browser. While email sign-in
- * is off only the phone is offered.
+ * Switches the screen to the other method. Taking the email fallback keeps
+ * the phone code pending: a late code is the usual reason to come back, so
+ * "Use my phone number instead" returns to that code step while it is still
+ * valid. Only an email code actually requested drops it
+ * (`startEmailSignInChallenge`), so one sign-in stays live per browser.
+ * Leaving email drops its pending code. While email sign-in is off only the
+ * phone is offered.
  */
 export async function switchCustomerLoginMethodAction(
   _state: LoginState,
@@ -217,11 +222,22 @@ export async function switchCustomerLoginMethodAction(
   if (!emailSignInEnabled()) return { fields: { method: "phone" } }
 
   if (value(formData, "method") === "email") {
-    await clearPendingPhoneVerification()
     return { fields: { method: "email" } }
   }
   await clearPendingEmailSignIn()
-  return { fields: { method: "phone" } }
+  const phoneCode = await getPendingPhoneVerification()
+  if (phoneCode?.purpose !== "wallet") return { fields: { method: "phone" } }
+  return {
+    fields: {
+      method: "phone",
+      contact: phoneCode.phone,
+      otpSent: true,
+      emailFallbackInSeconds: phoneCodeEmailFallbackInSeconds(
+        phoneCode.issuedAt,
+        Date.now()
+      ),
+    },
+  }
 }
 
 /**

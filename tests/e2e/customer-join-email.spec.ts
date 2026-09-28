@@ -157,6 +157,14 @@ test.describe("@customer-flow @a11y join by email screens", () => {
         page.getByRole("link", { name: "Claim my first stamp" })
       ).toHaveAttribute("href", /step=phone/)
       await expect(page.getByText(/your email/i)).toHaveCount(0)
+      // Only while email is on, the note tells an email-joined customer
+      // where email is, so they do not verify a phone and start a new wallet.
+      await expect(
+        page.getByText(
+          "Joined by email? The code screen offers email after 30 seconds.",
+          { exact: false }
+        )
+      ).toHaveCount(surface === "welcome-email" ? 1 : 0)
     }
 
     for (const surface of ["contact", "contact-existing", "phone"]) {
@@ -215,26 +223,50 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     expect(hydrationErrors).toEqual([])
   })
 
-  test("a reload once the send is over 30 seconds old shows the email fallback at once", async ({
+  test("a load once the send is over 30 seconds old shows the email fallback at once", async ({
     page,
   }) => {
     await installFallbackClock(page)
     const sentAt = Math.floor(Date.now() / 1_000)
-    const path = `/dev/welcome-offer?surface=code-email-existing&offer=none&sentAt=${sentAt}`
-    await gotoHydratedPage(page, path)
-    await expect(emailFallback(page)).toHaveCount(0)
-
-    await page.clock.fastForward(40_000)
-    await page.reload()
-    // Well inside the 30 seconds a wait from the mount would need.
-    await expect(emailFallback(page)).toBeVisible({ timeout: 5_000 })
-
-    // A send time well in the past on a fresh load behaves the same.
+    // The server works out that no wait is left, whatever the page clock says.
     await gotoHydratedPage(
       page,
-      `/dev/welcome-offer?surface=code-email&offer=none&sentAt=${sentAt - 45}`
+      `/dev/welcome-offer?surface=code-email-existing&offer=none&sentAt=${sentAt - 45}`
     )
     await expect(emailFallback(page)).toBeVisible()
+  })
+
+  test("a device clock running ahead of the server never offers email early", async ({
+    page,
+  }) => {
+    // 45 seconds fast: a deadline read against this clock would be past.
+    await page.clock.install({ time: Date.now() + 45_000 })
+    const sentAt = Math.floor(Date.now() / 1_000)
+    await gotoHydratedPage(
+      page,
+      `/dev/welcome-offer?surface=code-email&offer=none&sentAt=${sentAt}`
+    )
+    await expect(page.getByLabel("Your code")).toBeVisible()
+    const fallback = emailFallback(page)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(20_000)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(11_000)
+    await expect(fallback).toBeVisible()
+  })
+
+  test("with a phone code still pending, the email step's phone link returns to that code", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(
+      page,
+      "/dev/welcome-offer?surface=email-after-code&offer=none"
+    )
+    const phone = page.getByRole("link", {
+      name: "Use my phone number instead",
+    })
+    await expect(phone).toBeVisible()
+    await expect(phone).not.toHaveAttribute("href", /step=/)
   })
 
   test("with email sign-in off the phone code step never offers email", async ({

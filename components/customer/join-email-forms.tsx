@@ -34,7 +34,8 @@ export type CustomerEmailFormProps = {
 }
 
 /**
- * Join by email, the fallback for a text that has not arrived: one field and
+ * Join by email, the fallback for a phone code that has not
+ * arrived: one field and
  * one button. The code goes out by email, so it arrives over the venue's
  * Wi-Fi when there is no mobile signal. The answer is
  * the same whether or not a wallet uses the address; that is only said after

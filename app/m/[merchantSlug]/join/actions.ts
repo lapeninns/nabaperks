@@ -73,6 +73,12 @@ export type CustomerIdentityState = {
     merchantSlug?: string
     qrId?: string
     phoneOtpSent?: boolean
+    /**
+     * No code went out (provider or pending state failure). The phone form
+     * offers email beside the error while email sign-in is on, since this
+     * customer never reaches the code step's fallback.
+     */
+    phoneSendFailed?: boolean
   }
   errors?: {
     contact?: string
@@ -181,7 +187,7 @@ export async function requestCustomerIdentityAction(
     if (verification.status === "unavailable") {
       recordJoinCodeSendFailed(joinContext.merchant.id, "provider_unavailable")
       return {
-        fields: requestFields,
+        fields: { ...requestFields, phoneSendFailed: true },
         errors: {
           form: "We couldn't send a code just now. Try again shortly.",
         },
@@ -205,7 +211,7 @@ export async function requestCustomerIdentityAction(
     recordJoinCodeSendFailed(joinContext.merchant.id, "pending_state_failed")
 
     return {
-      fields: requestFields,
+      fields: { ...requestFields, phoneSendFailed: true },
       errors: {
         form: "Verification code could not be sent. Try again shortly.",
       },

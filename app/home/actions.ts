@@ -15,6 +15,7 @@ import {
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
+import { phoneCodeEmailFallbackInSeconds } from "@/lib/customer/phone-code-email-fallback"
 import {
   checkCustomerPhoneVerification,
   startCustomerPhoneVerification,
@@ -37,10 +38,17 @@ export type CustomerLoginOtpState = {
     /** A code has been sent — show the code entry step. */
     otpSent?: boolean
     /**
-     * Epoch seconds (server clock) when the pending phone code was sent. The
-     * code step offers email 30 seconds after it, when email sign-in is on.
+     * Seconds left, by the server's clock, before the phone code step may
+     * offer email (30 seconds after the pending code was sent). The step
+     * counts it down from when it appears, when email sign-in is on.
      */
-    codeSentAt?: number
+    emailFallbackInSeconds?: number
+    /**
+     * No code went out (provider or pending state failure). The phone form
+     * offers email beside the error while email sign-in is on, since this
+     * customer never reaches the code step's fallback.
+     */
+    phoneSendFailed?: boolean
     /** The code was valid and this number or email has no cards. Offer a scan, not another code. */
     noCards?: boolean
     /** Focus the phone field after the customer asks to correct it. */
@@ -114,7 +122,7 @@ export async function requestCustomerLoginOtpAction(
     if (verification.status === "unavailable") {
       recordLoginCodeSendFailed("provider_unavailable")
       return {
-        fields: { contact },
+        fields: { contact, phoneSendFailed: true },
         errors: {
           form: "We couldn't send a code just now. Try again shortly.",
         },
@@ -123,21 +131,20 @@ export async function requestCustomerLoginOtpAction(
     sentChannel = verification.channel
   }
 
-  let codeSentAt: number
+  let pendingCode: Awaited<ReturnType<typeof setPendingPhoneVerification>>
   try {
-    const pendingCode = await setPendingPhoneVerification({
+    pendingCode = await setPendingPhoneVerification({
       purpose: "wallet",
       phone: contact,
       country: normalized.phone.country,
       channel: sentChannel,
     })
-    codeSentAt = pendingCode.issuedAt
   } catch (error) {
     logVerificationSendFailure("wallet", error)
     recordLoginCodeSendFailed("pending_state_failed")
 
     return {
-      fields: { contact },
+      fields: { contact, phoneSendFailed: true },
       errors: {
         form: "Verification code could not be sent. Try again shortly.",
       },
@@ -150,9 +157,23 @@ export async function requestCustomerLoginOtpAction(
   })
 
   return {
-    fields: { contact, otpSent: true, codeSentAt },
+    fields: loginPhoneCodeFields(pendingCode),
     message:
       "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
+  }
+}
+
+function loginPhoneCodeFields(pending: {
+  readonly phone: string
+  readonly issuedAt: number
+}): NonNullable<CustomerLoginOtpState["fields"]> {
+  return {
+    contact: pending.phone,
+    otpSent: true,
+    emailFallbackInSeconds: phoneCodeEmailFallbackInSeconds(
+      pending.issuedAt,
+      Date.now()
+    ),
   }
 }
 
@@ -187,10 +208,12 @@ export async function verifyCustomerLoginOtpAction(
   }
 
   const contact = pending.phone
+  // Every answer that keeps the code step carries the server's wait.
+  const codeStep = loginPhoneCodeFields(pending)
 
   if (!/^\d{4,8}$/.test(otp)) {
     return {
-      fields: { contact, otpSent: true, codeSentAt: pending.issuedAt },
+      fields: codeStep,
       errors: { otp: "Enter the verification code." },
     }
   }
@@ -203,7 +226,7 @@ export async function verifyCustomerLoginOtpAction(
   } catch (error) {
     if (error instanceof RateLimitError) {
       return {
-        fields: { contact, otpSent: true, codeSentAt: pending.issuedAt },
+        fields: codeStep,
         errors: { form: "Too many code attempts. Request a new code shortly." },
       }
     }
@@ -215,7 +238,7 @@ export async function verifyCustomerLoginOtpAction(
 
   if (verification.status === "unavailable") {
     return {
-      fields: { contact, otpSent: true, codeSentAt: pending.issuedAt },
+      fields: codeStep,
       errors: {
         form: "We couldn't check that code. Try again or request a new one.",
       },
@@ -224,7 +247,7 @@ export async function verifyCustomerLoginOtpAction(
 
   if (verification.status === "rejected") {
     return {
-      fields: { contact, otpSent: true, codeSentAt: pending.issuedAt },
+      fields: codeStep,
       errors: { form: "That code was not accepted." },
     }
   }
@@ -258,7 +281,7 @@ export async function verifyCustomerLoginOtpAction(
     })
   } catch {
     return {
-      fields: { contact, otpSent: true, codeSentAt: pending.issuedAt },
+      fields: codeStep,
       errors: {
         form: "We couldn't confirm account continuity. Try again shortly.",
       },

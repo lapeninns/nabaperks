@@ -5,27 +5,26 @@ import { useEffect, useState } from "react"
 import { phoneCodeEmailFallbackWaitMs } from "@/lib/customer/phone-code-email-fallback"
 
 /**
- * True once a phone code step may offer email instead: at `availableAt`
- * (epoch seconds, from the server's send time). `undefined` never offers it.
+ * True once a phone code step may offer email instead: `inSeconds` (the
+ * server's seconds left) after the step appears. `undefined` never offers it.
  *
- * The server render and hydration both start hidden; the client clock decides
- * after mount. Once shown it stays shown, so a resend that restarts the
- * server's wait does not take the fallback away from someone already reading
- * it.
+ * The server render and hydration both start hidden. The countdown uses the
+ * wait the step appeared with: a later answer on the same step (a wrong code,
+ * a resend) keeps it running rather than restarting it. Once shown it stays
+ * shown.
  */
-export function useEmailFallbackReady(
-  availableAt: number | undefined
-): boolean {
+export function useEmailFallbackReady(inSeconds: number | undefined): boolean {
   const [ready, setReady] = useState(false)
+  const [wait] = useState(inSeconds)
 
   useEffect(() => {
-    if (ready || availableAt === undefined) return
+    if (wait === undefined) return
     const timer = window.setTimeout(
       () => setReady(true),
-      phoneCodeEmailFallbackWaitMs(availableAt, Date.now())
+      phoneCodeEmailFallbackWaitMs(wait)
     )
     return () => window.clearTimeout(timer)
-  }, [availableAt, ready])
+  }, [wait])
 
   return ready
 }

@@ -49,12 +49,20 @@ export const JOIN_WELCOME_HOW_IT_WORKS = [
 export const JOIN_WELCOME_HOW_IT_WORKS_LABEL = "How it works" as const
 
 /**
- * Under the welcome CTA. The copy stays true for a wallet joined by email
- * too: the wallet is found by the contact it was joined with, so the same
- * phone number or email opens the same card.
+ * Under the welcome CTA while email sign-in is off. The wallet is found by the
+ * contact it was joined with, so the same phone number opens the same card.
  */
 export const JOIN_WELCOME_PHONE_REASSURANCE =
   "Already have a card here? Sign in the same way as before." as const
+
+/**
+ * Under the welcome CTA while email sign-in is on. The CTA always opens the
+ * phone step and email appears only on the code step, so a customer who
+ * joined by email is told where to find it rather than verifying a phone,
+ * which would start a second wallet.
+ */
+export const JOIN_WELCOME_EMAIL_REASSURANCE =
+  "Already have a card here? Sign in the same way as before. Joined by email? The code screen offers email after 30 seconds." as const
 
 /** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
 export const JOIN_PHONE_CODE_HINT = "We'll send you a one-time code." as const
@@ -157,7 +165,7 @@ export function getCustomerExperienceViewModel(
     case "join_email":
       // Reached only from a phone code that has not arrived.
       return {
-        eyebrow: "No text yet?",
+        eyebrow: "No code yet?",
         headline: JOIN_EMAIL_FALLBACK_HEADLINE,
         supportLine: `One code by email confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }

@@ -2,6 +2,7 @@ import type { OfferClaimLandingProps } from "@/components/customer/offer-claim-l
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import type { JoinEmailMode } from "@/lib/customer/experience/types"
 import type { CustomerOfferPass } from "@/lib/customer/offer-pass"
+import { phoneCodeEmailFallbackInSeconds } from "@/lib/customer/phone-code-email-fallback"
 
 // Display fixtures only, behind the /dev production gate. No live campaign token.
 export const WELCOME_OFFER: OfferClaimLandingProps = {
@@ -57,7 +58,9 @@ export const WELCOME_PASS: CustomerOfferPass = {
  * picks with no step asked for (always phone). `welcome-email`, `contact`,
  * `code-email` and the `email*` surfaces run in mode `full`; the `-existing`
  * ones in `existing`; the rest with email sign-in off. The `code*` surfaces
- * take `sentAt` (epoch seconds) as the phone code's send time, now by default.
+ * take `sentAt` (epoch seconds) as the phone code's send time, now by default,
+ * and the server works out the wait from it as the join loader does.
+ * `email-after-code` is the email step with that phone code still pending.
  */
 export const WELCOME_JOIN_SURFACES = [
   "welcome",
@@ -70,6 +73,7 @@ export const WELCOME_JOIN_SURFACES = [
   "contact",
   "contact-existing",
   "email",
+  "email-after-code",
   "email-code",
   "email-code-delayed",
   "email-choice",
@@ -110,11 +114,16 @@ export function welcomeJoinExperience(
         step.startsWith("welcome") || step.startsWith("code-email")
           ? "welcome-fixture-qr"
           : undefined,
-      step: step === "email" ? "email" : undefined,
+      step:
+        step === "email" || step === "email-after-code" ? "email" : undefined,
+      phoneCodePending: step === "email-after-code",
       hasSession: step === "terms",
       pendingOtp: codeSurface,
-      pendingPhoneSentAt: codeSurface
-        ? (options.sentAt ?? Math.floor(Date.now() / 1_000))
+      pendingPhoneEmailFallbackInSeconds: codeSurface
+        ? phoneCodeEmailFallbackInSeconds(
+            options.sentAt ?? Math.floor(Date.now() / 1_000),
+            Date.now()
+          )
         : undefined,
       emailMode: joinFixtureEmailMode(step),
       // A past resend time keeps the resend button steady for screenshots.

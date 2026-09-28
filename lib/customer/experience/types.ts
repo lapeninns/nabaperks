@@ -45,11 +45,11 @@ export type JoinOtpContact =
       /** Where the code went, so the step says "by text" or "on WhatsApp". */
       channel: OtpChannel
       /**
-       * Epoch seconds (server clock) when the step may offer email instead,
-       * measured from when the latest code was sent. Absent while email
-       * sign-in is off.
+       * Seconds left, by the server's clock, before the step may offer email
+       * instead, measured from when the latest code was sent. The step counts
+       * it down from when it appears. Absent while email sign-in is off.
        */
-      emailFallbackAt?: number
+      emailFallbackInSeconds?: number
     }
   | {
       method: "email"
@@ -229,6 +229,8 @@ export type CustomerExperience =
       card: JoinCard
       /** The welcome CTA always opens the phone step: email is a fallback. */
       qrId: string
+      /** Email sign-in is on: the note says where email is offered. */
+      emailSignIn: boolean
     }
   | {
       kind: "join_phone"
@@ -237,6 +239,8 @@ export type CustomerExperience =
       qrId?: string
       /** Channel the code will be sent on first. */
       channel: OtpChannel
+      /** Email sign-in is on: a failed send offers email beside the error. */
+      emailSignIn: boolean
     }
   | {
       kind: "join_email"
@@ -248,6 +252,11 @@ export type CustomerExperience =
        * is reached only as a fallback from the phone code step (`step=email`).
        */
       emailMode: Exclude<JoinEmailMode, "off">
+      /**
+       * A phone code is still pending, so "Use my phone number instead"
+       * returns to that code rather than a blank number form.
+       */
+      phoneCodePending: boolean
     }
   | {
       /**

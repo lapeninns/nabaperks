@@ -19,10 +19,16 @@ import {
   WRONG_OTP,
   cleanupCustomerJoinRows,
   disposableUkMobile,
+  openOtpStep,
   readJoinedMembership,
   type DisposablePhone,
 } from "./helpers/customer-join-live-db"
 import { customerReadbackLiveDbSkipReason } from "./helpers/customer-readback-live-db"
+import {
+  emailFallback,
+  installFallbackClock,
+  takeEmailFallback,
+} from "./helpers/email-fallback"
 import { dismissPwaInstall } from "./helpers/harness"
 import {
   cleanupPublicQrRouterFixture,
@@ -289,6 +295,50 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
           page.getByRole("heading", { name: "Collect your first stamp" })
         ).toBeVisible()
         await expect(readEmailWallets(sql, email)).resolves.toEqual([])
+      },
+      phone
+    )
+  })
+
+  test("a text that arrives after the email fallback can still be entered", async ({
+    context,
+    page,
+  }) => {
+    const phone = disposableUkMobile()
+    await withJourney(
+      [],
+      async ({ sql, fixture }) => {
+        await installKnownDevice(context)
+        await installFallbackClock(page)
+        await openOtpStep(page, fixture, phone)
+        await takeEmailFallback(page)
+        await expect(
+          page.getByRole("heading", { name: "Get your code by email instead" })
+        ).toBeVisible()
+
+        // The code turns up now: phone returns to it, not a blank number.
+        await page
+          .getByRole("link", { name: "Use my phone number instead" })
+          .click()
+        await expect(
+          page.getByRole("heading", { name: "Enter your code" })
+        ).toBeVisible()
+        await expect(page.getByLabel("UK phone number")).toHaveCount(0)
+        // Email is still offered on the server's timing if it does not come.
+        await page.clock.fastForward(31_000)
+        await expect(emailFallback(page)).toBeVisible()
+
+        await confirmJoinCode(page)
+        await expect(
+          page.getByRole("heading", { name: "Collect your first stamp" })
+        ).toBeVisible()
+        await page.getByLabel(/Loyalty terms/i).check()
+        await Promise.all([
+          page.waitForURL((url) => url.pathname.startsWith("/card/")),
+          page.getByRole("button", { name: "Get my first stamp" }).click(),
+        ])
+        const joined = await readJoinedMembership(sql, fixture, phone)
+        expect(joined?.stamp_count).toBe(1)
       },
       phone
     )

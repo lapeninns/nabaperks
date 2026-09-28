@@ -15,13 +15,18 @@ export type CustomerLoginStepProps = {
   /** Email step: the phone, directly under the step's own button. */
   readonly alternate?: ReactNode
   /**
-   * Phone code step: email beside "Resend code", for a customer whose text
+   * Phone code step: email beside "Resend code", for a customer whose code
    * has not arrived. Shown only once the send is 30 seconds old; absent
    * while email sign-in is off.
    */
   readonly codeAlternate?: ReactNode
   /** Phone scan step (no cards on the number): email, for an email wallet. */
   readonly scanAlternate?: ReactNode
+  /**
+   * Phone number step, only after no code could be sent: email beside the
+   * error. Absent while email sign-in is off.
+   */
+  readonly sendFailedAlternate?: ReactNode
 }
 
 /**

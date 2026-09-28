@@ -149,9 +149,10 @@ const ONBOARDING_STEPS = 3
 
 /**
  * The contact step: the phone form, always. Email is never a first option; it
- * is the phone code step's fallback once a text has had time to arrive, and
- * that fallback opens the email form here (`step=email`), with the phone one
- * link away.
+ * is the phone code step's fallback once the code has had time to arrive, and
+ * that fallback opens the email form here (`step=email`). Phone stays one link
+ * away: back to the pending code if there is one, since a late code is the
+ * usual reason for coming back, else the number form.
  */
 function ContactStep({
   exp,
@@ -185,7 +186,7 @@ function ContactStep({
             href={buildCustomerJoinHref(exp.merchant.slug, {
               qrId: exp.qrId,
               referralCode,
-              step: "phone",
+              step: exp.phoneCodePending ? undefined : "phone",
             })}
           >
             Use my phone number instead
@@ -238,6 +239,15 @@ function PhoneStep({
         qrId={exp.qrId}
         channel={exp.channel}
         referralCode={referralCode}
+        emailStepHref={
+          exp.emailSignIn
+            ? buildCustomerJoinHref(exp.merchant.slug, {
+                qrId: exp.qrId,
+                referralCode,
+                step: "email",
+              })
+            : undefined
+        }
       />
     </JoinShell>
   )
@@ -366,7 +376,7 @@ function OtpStep({
           contactLast4={exp.contact.last4}
           channel={exp.contact.channel}
           referralCode={referralCode}
-          emailFallbackAt={exp.contact.emailFallbackAt}
+          emailFallbackInSeconds={exp.contact.emailFallbackInSeconds}
           emailStepHref={buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
             referralCode,

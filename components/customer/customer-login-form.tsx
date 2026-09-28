@@ -8,6 +8,7 @@ import { ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerLoginEmailStep } from "@/components/customer/customer-login-email-step"
 import { CustomerLoginMethodSwitch } from "@/components/customer/customer-login-method-switch"
 import { CustomerLoginPhoneStep } from "@/components/customer/customer-login-phone-step"
+import { useForgetLegacyContactMethod } from "@/hooks/use-forget-legacy-contact-method"
 import {
   JOIN_EMAIL_FALLBACK_HEADLINE,
   PHONE_CODE_EMAIL_FALLBACK_LABEL,
@@ -34,10 +35,11 @@ type CustomerLoginFormProps = {
 
 /**
  * /home/login: opens an existing wallet by phone. Phone is always the first
- * and only contact form; once email sign-in is on, the phone code step offers
- * email as a fallback when the text has not arrived 30 seconds after it was
- * sent. Once the customer has picked email, the server's answer names it and
- * the screen stays on it.
+ * contact form. Once email sign-in is on, email is offered only as a
+ * fallback: on the phone code step 30 seconds after the code was sent, beside
+ * a send that failed outright, and on the no-cards step for a wallet joined
+ * by email. Once the customer has picked email, the server's answer names it
+ * and the screen stays on it.
  */
 export function CustomerLoginForm({
   next,
@@ -45,6 +47,7 @@ export function CustomerLoginForm({
   emailMode = "off",
 }: CustomerLoginFormProps) {
   const [state, submitAction, pending] = useActionState(loginAction, {})
+  useForgetLegacyContactMethod()
   const emailEnabled = emailMode !== "off"
   const method: JoinContactMethod = emailEnabled
     ? (state.fields?.method ?? "phone")
@@ -82,11 +85,13 @@ export function CustomerLoginForm({
       ) : (
         <CustomerLoginPhoneStep
           {...step}
-          // A text that never arrives is why email sign-in exists: the code
-          // step offers it once the text has had time to arrive.
+          // A code that never arrives is why email sign-in exists: the code
+          // step offers it once the code has had time to arrive.
           codeAlternate={emailSwitch(PHONE_CODE_EMAIL_FALLBACK_LABEL)}
           // A number with no cards may belong to someone who joined by email.
           scanAlternate={emailSwitch("Use my email instead")}
+          // No code went out at all: the code step is never reached.
+          sendFailedAlternate={emailSwitch("Use my email instead")}
         />
       )}
 

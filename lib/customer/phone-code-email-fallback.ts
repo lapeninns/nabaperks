@@ -1,31 +1,42 @@
 /**
  * Email is a fallback, never a first option (owner decision, 28 September
  * 2026): phone leads on the join page and at /home/login, and a phone code
- * step offers email only once the text has had time to arrive.
+ * step offers email only once the code has had time to arrive, by text or on
+ * WhatsApp.
  *
- * The wait runs from when the server sent the latest code, not from when the
- * screen appeared, so a reload after the wait shows the fallback at once.
+ * The server works out how long is left from its own send time and its own
+ * clock, and the step counts that down from when it appears. The device clock
+ * never takes part, so a clock that is wrong cannot offer email early; a slow
+ * page only offers it later, and a reload after the wait gets 0 and offers it
+ * at once.
  */
 export const PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS = 30
 
-/** Epoch seconds when a code sent at `sentAt` may offer email instead. */
-export function phoneCodeEmailFallbackAt(sentAt: number): number {
-  return sentAt + PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS
+/**
+ * Whole seconds, 0 to 30, before a phone code sent at `sentAt` (epoch
+ * seconds) may offer email, at `nowMs`. Server clock only: `sentAt` is the
+ * pending code cookie's issue time.
+ */
+export function phoneCodeEmailFallbackInSeconds(
+  sentAt: number,
+  nowMs: number
+): number {
+  const remaining = Math.ceil(
+    sentAt + PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS - nowMs / 1_000
+  )
+  return clampToDelay(remaining)
 }
 
 /**
- * Milliseconds to wait from `nowMs` before offering email, for a fallback
- * available at `availableAt` (epoch seconds, server clock). Never longer than
- * the full delay, so a device clock running behind the server's still offers
- * email within the delay of the step appearing; a clock running ahead only
- * offers it sooner.
+ * Milliseconds a code step waits, from when it appears, for the server's
+ * seconds left. Never longer than the full delay; anything unusable waits the
+ * full delay rather than offering email early.
  */
-export function phoneCodeEmailFallbackWaitMs(
-  availableAt: number,
-  nowMs: number
-): number {
-  const remaining = availableAt * 1_000 - nowMs
-  const cap = PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS * 1_000
-  if (!Number.isFinite(remaining)) return cap
-  return Math.min(Math.max(remaining, 0), cap)
+export function phoneCodeEmailFallbackWaitMs(inSeconds: number): number {
+  return clampToDelay(inSeconds) * 1_000
+}
+
+function clampToDelay(seconds: number): number {
+  if (!Number.isFinite(seconds)) return PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS
+  return Math.min(Math.max(seconds, 0), PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS)
 }

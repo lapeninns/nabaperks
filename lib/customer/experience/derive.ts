@@ -20,7 +20,6 @@ import {
   type InternalAccessProblem,
 } from "./types"
 import { FULL_CARD_REWARD_PENDING_COPY } from "@/lib/customer/card-stamp-labels"
-import { phoneCodeEmailFallbackAt } from "@/lib/customer/phone-code-email-fallback"
 import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-recovery"
 
@@ -151,8 +150,16 @@ export type JoinContext =
       pendingOtp: boolean
       pendingPhone?: string
       pendingChannel?: OtpChannel
-      /** Epoch seconds when the server sent the pending phone code. */
-      pendingPhoneSentAt?: number
+      /**
+       * Seconds left, by the server's clock, before the pending phone code's
+       * step may offer email (lib/customer/phone-code-email-fallback.ts).
+       */
+      pendingPhoneEmailFallbackInSeconds?: number
+      /**
+       * A join phone code is still pending while another step shows, so the
+       * email step's phone link returns to that code, not a blank number.
+       */
+      phoneCodePending?: boolean
       /** Channel a first code goes out on (configured primary). */
       primaryChannel?: OtpChannel
       /** Email sign-in rollout mode; unset means `off`. */
@@ -521,6 +528,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
             merchant: context.merchant,
             card: context.card,
             qrId: context.qrId,
+            emailSignIn: joinEmailMode(context) !== "off",
           }
         : joinPhone(context)
     default:
@@ -576,6 +584,7 @@ function joinPhone(context: AvailableJoinContext): CustomerExperience {
     card: context.card,
     channel: context.primaryChannel ?? "whatsapp",
     qrId: context.qrId,
+    emailSignIn: joinEmailMode(context) !== "off",
   }
 }
 
@@ -588,18 +597,17 @@ function joinEmail(context: AvailableJoinContext): CustomerExperience {
     card: context.card,
     qrId: context.qrId,
     emailMode,
+    phoneCodePending: context.phoneCodePending === true,
   }
 }
 
 /** When a phone code step may offer email: never while email sign-in is off. */
 function phoneCodeFallback(context: AvailableJoinContext): {
-  emailFallbackAt?: number
+  emailFallbackInSeconds?: number
 } {
   if (joinEmailMode(context) === "off") return {}
-  if (context.pendingPhoneSentAt === undefined) return {}
-  return {
-    emailFallbackAt: phoneCodeEmailFallbackAt(context.pendingPhoneSentAt),
-  }
+  if (context.pendingPhoneEmailFallbackInSeconds === undefined) return {}
+  return { emailFallbackInSeconds: context.pendingPhoneEmailFallbackInSeconds }
 }
 
 /** The loader passes at most one pending challenge; email wins if both. */

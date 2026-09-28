@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import {
   JOIN_WELCOME_HOW_IT_WORKS,
   JOIN_WELCOME_HOW_IT_WORKS_LABEL,
+  JOIN_WELCOME_EMAIL_REASSURANCE,
   JOIN_WELCOME_PHONE_REASSURANCE,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
@@ -42,7 +43,13 @@ export function WelcomeStep({
     >
       <JoinOfferJourney merchant={exp.merchant} card={exp.card} />
       {vm.primaryAction ? (
-        <JoinActionBar note={JOIN_WELCOME_PHONE_REASSURANCE}>
+        <JoinActionBar
+          note={
+            exp.emailSignIn
+              ? JOIN_WELCOME_EMAIL_REASSURANCE
+              : JOIN_WELCOME_PHONE_REASSURANCE
+          }
+        >
           {/* Always the phone step: email is only the phone code's fallback. */}
           <Button asChild size="lg" className="w-full">
             <Link

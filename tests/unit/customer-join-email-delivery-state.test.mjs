@@ -18,6 +18,7 @@ const REAL = [
   "@/lib/customer/email-sign-in-core",
   "@/lib/customer/pending-cookie-crypto",
   "@/lib/customer/otp-channel-core",
+  "@/lib/customer/phone-code-email-fallback",
   "@/lib/observability/request-id",
 ]
 

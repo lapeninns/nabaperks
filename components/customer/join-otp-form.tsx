@@ -31,10 +31,11 @@ export type CustomerOtpFormProps = {
   /** Channel that carried the code — the row says so and offers the other. */
   channel?: OtpChannel
   /**
-   * Epoch seconds when email may be offered instead, from the server's send
-   * time. Absent while email sign-in is off: no email option at all.
+   * Seconds, by the server's clock, before email may be offered instead,
+   * counted from when this step appears. Absent while email sign-in is off:
+   * no email option at all.
    */
-  emailFallbackAt?: number
+  emailFallbackInSeconds?: number
   /** The email step (`step=email`), keeping the QR and referral params. */
   emailStepHref?: string
 }
@@ -45,7 +46,7 @@ export function CustomerOtpForm({
   referralCode,
   contactLast4,
   channel = "sms",
-  emailFallbackAt,
+  emailFallbackInSeconds,
   emailStepHref,
 }: CustomerOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
@@ -205,9 +206,9 @@ export function CustomerOtpForm({
           ) : null}
 
           {/* No wrapper at all while email sign-in is off. */}
-          {emailStepHref && emailFallbackAt !== undefined ? (
+          {emailStepHref && emailFallbackInSeconds !== undefined ? (
             <EmailFallback
-              availableAt={emailFallbackAt}
+              inSeconds={emailFallbackInSeconds}
               emailStepHref={emailStepHref}
             />
           ) : null}
@@ -218,18 +219,18 @@ export function CustomerOtpForm({
 }
 
 /**
- * Email, offered only once the text has had time to arrive: a secondary
+ * Email, offered only once the code has had time to arrive: a secondary
  * action under the phone's own recovery options, never in place of them. The
  * polite live region announces it when it appears.
  */
 function EmailFallback({
-  availableAt,
+  inSeconds,
   emailStepHref,
 }: {
-  availableAt: number
+  inSeconds: number
   emailStepHref: string
 }) {
-  const ready = useEmailFallbackReady(availableAt)
+  const ready = useEmailFallbackReady(inSeconds)
   return (
     <div aria-live="polite" className="grid">
       {ready ? (

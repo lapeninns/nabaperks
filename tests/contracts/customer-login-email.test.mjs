@@ -119,29 +119,62 @@ test("Given any email mode When /home/login opens Then phone leads and email is 
   )
 
   const phone = read("components", "customer", "customer-login-phone-step.tsx")
+  // Beside the number, email appears only after a send that failed outright.
   const request = phone.slice(phone.indexOf("function PhoneRequestStep("))
-  assert.doesNotMatch(request, /alternate/i)
-  // The code step waits for 30 seconds from the server's send time.
+  assert.doesNotMatch(request, /codeAlternate|scanAlternate|\balternate\b/)
+  assert.match(
+    request,
+    /!editingContact && state\.fields\?\.phoneSendFailed\s*\? sendFailedAlternate\s*: null/
+  )
+  assert.match(
+    form,
+    /sendFailedAlternate=\{emailSwitch\("Use my email instead"\)\}/
+  )
+  // The code step counts down the server's seconds left, not a device-clock
+  // deadline.
   const code = phone.slice(
     phone.indexOf("function PhoneCodeStep("),
     phone.indexOf("function PhoneRequestStep(")
   )
-  assert.match(code, /phoneCodeEmailFallbackAt\(codeSentAt\)/)
+  assert.match(
+    code,
+    /useEmailFallbackReady\(\s*codeAlternate \? state\.fields\?\.emailFallbackInSeconds : undefined\s*\)/
+  )
+  assert.doesNotMatch(code, /Date\.now|codeSentAt/)
   assert.match(code, /\{emailReady \? codeAlternate : null\}/)
   assert.ok(
     code.indexOf("Wrong number? Use a different one") <
       code.indexOf("{emailReady ? codeAlternate : null}")
   )
 
-  // Every phone answer that keeps the code step carries the cookie's send time.
+  // Every phone answer that keeps the code step carries the server's wait,
+  // worked out from the pending code cookie's send time and the server clock.
   const actions = read("app", "home", "actions.ts")
-  assert.match(actions, /codeSentAt = pendingCode\.issuedAt/)
+  assert.match(
+    actions,
+    /emailFallbackInSeconds: phoneCodeEmailFallbackInSeconds\(\s*pending\.issuedAt,\s*Date\.now\(\)\s*\)/
+  )
+  assert.match(actions, /fields: loginPhoneCodeFields\(pendingCode\)/)
   const verify = actions.slice(
     actions.indexOf("export async function verifyCustomerLoginOtpAction(")
   )
-  const codeAnswers = verify.match(/otpSent: true[^}]*\}/g) ?? []
-  assert.ok(codeAnswers.length > 0)
-  for (const answer of codeAnswers) {
-    assert.match(answer, /codeSentAt: pending\.issuedAt/)
-  }
+  assert.match(verify, /const codeStep = loginPhoneCodeFields\(pending\)/)
+  assert.doesNotMatch(verify, /otpSent: true/)
+  assert.equal((verify.match(/fields: codeStep,/g) ?? []).length, 5)
+  // Both send failures say so, so the number form can offer email.
+  assert.equal(
+    (actions.match(/fields: \{ contact, phoneSendFailed: true \}/g) ?? [])
+      .length,
+    2
+  )
+
+  // Taking the fallback keeps the phone code; leaving email returns to it.
+  const emailActions = read("app", "home", "login", "email-actions.ts")
+  const switchAction = emailActions.slice(
+    emailActions.indexOf(
+      "export async function switchCustomerLoginMethodAction("
+    )
+  )
+  assert.doesNotMatch(switchAction, /clearPendingPhoneVerification/)
+  assert.match(switchAction, /getPendingPhoneVerification\(\)/)
 })

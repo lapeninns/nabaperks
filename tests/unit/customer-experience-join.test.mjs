@@ -4,6 +4,7 @@ import { test } from "node:test"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import {
   getCustomerExperienceViewModel,
+  JOIN_WELCOME_EMAIL_REASSURANCE,
   JOIN_WELCOME_PHONE_REASSURANCE,
   joinCompletionHint,
 } from "@/lib/customer/experience/copy"
@@ -111,6 +112,7 @@ test("phone is the contact step in every mode, and the welcome CTA always opens 
     assert.equal(welcome.kind, "join_welcome")
     assert.deepEqual(Object.keys(welcome).sort(), [
       "card",
+      "emailSignIn",
       "kind",
       "merchant",
       "qrId",
@@ -190,7 +192,7 @@ test("a pending phone code keeps the phone contact on the code step", () => {
     pendingOtp: true,
     pendingPhone: "+447700900123",
     pendingChannel: "whatsapp",
-    pendingPhoneSentAt: 1_000,
+    pendingPhoneEmailFallbackInSeconds: 30,
   })
   assert.deepEqual(experience.contact, {
     method: "phone",
@@ -199,12 +201,12 @@ test("a pending phone code keeps the phone contact on the code step", () => {
   })
 })
 
-test("a phone code step offers email 30 seconds after the server sent the code, never while email is off", () => {
+test("a phone code step carries the server's seconds left before email, never while email is off", () => {
   const pendingPhone = {
     pendingOtp: true,
     pendingPhone: "+447700900123",
     pendingChannel: "sms",
-    pendingPhoneSentAt: 1_000,
+    pendingPhoneEmailFallbackInSeconds: 12,
   }
   for (const emailMode of ["existing", "full"]) {
     const experience = join({ ...pendingPhone, emailMode })
@@ -213,18 +215,54 @@ test("a phone code step offers email 30 seconds after the server sent the code, 
       method: "phone",
       last4: "0123",
       channel: "sms",
-      emailFallbackAt: 1_030,
+      emailFallbackInSeconds: 12,
     })
   }
   const off = join({ ...pendingPhone, emailMode: "off" })
-  assert.equal("emailFallbackAt" in off.contact, false)
+  assert.equal("emailFallbackInSeconds" in off.contact, false)
   // No send time known: no fallback rather than a guessed one.
   const unknown = join({
     ...pendingPhone,
-    pendingPhoneSentAt: undefined,
+    pendingPhoneEmailFallbackInSeconds: undefined,
     emailMode: "full",
   })
-  assert.equal("emailFallbackAt" in unknown.contact, false)
+  assert.equal("emailFallbackInSeconds" in unknown.contact, false)
+})
+
+test("the email fallback's phone link knows whether a phone code is still pending", () => {
+  assert.equal(
+    join({ emailMode: "full", step: "email", phoneCodePending: true })
+      .phoneCodePending,
+    true
+  )
+  assert.equal(
+    join({ emailMode: "existing", step: "email" }).phoneCodePending,
+    false
+  )
+})
+
+test("a failed phone send may offer email only while email sign-in is on", () => {
+  assert.equal(join({ emailMode: "off" }).emailSignIn, false)
+  assert.equal(join({}).emailSignIn, false)
+  assert.equal(join({ emailMode: "existing" }).emailSignIn, true)
+  assert.equal(join({ emailMode: "full" }).emailSignIn, true)
+})
+
+test("the welcome note tells an email-joined customer where email is, only while it is on", () => {
+  assert.equal(join({ qrId: "venue-qr" }).emailSignIn, false)
+  assert.equal(join({ qrId: "venue-qr", emailMode: "full" }).emailSignIn, true)
+  assert.match(JOIN_WELCOME_EMAIL_REASSURANCE, /Joined by email\?/)
+  assert.match(JOIN_WELCOME_EMAIL_REASSURANCE, /after 30 seconds\./)
+  assert.doesNotMatch(JOIN_WELCOME_EMAIL_REASSURANCE, /!/)
+  assert.doesNotMatch(JOIN_WELCOME_PHONE_REASSURANCE, /email/i)
+})
+
+test("the email step's eyebrow names no channel, since the code may have gone by WhatsApp", () => {
+  const viewModel = getCustomerExperienceViewModel(
+    join({ emailMode: "full", step: "email" })
+  )
+  assert.equal(viewModel.eyebrow, "No code yet?")
+  assert.doesNotMatch(viewModel.eyebrow, /text|sms|whatsapp/i)
 })
 
 test("a verified email with no wallet shows the choice, and only mode full may create", () => {

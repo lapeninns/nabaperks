@@ -21,6 +21,7 @@ import {
   getMerchantJoinContext,
 } from "@/lib/customer/join"
 import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
+import { phoneCodeEmailFallbackInSeconds } from "@/lib/customer/phone-code-email-fallback"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
 import { logger } from "@/lib/observability/logger"
@@ -176,7 +177,12 @@ export async function loadJoinExperienceContext(
       pendingPhone: phoneCode.phone,
       pendingChannel: phoneCode.channel,
       // A resend re-issues the pending cookie, so this is the latest send.
-      pendingPhoneSentAt: phoneCode.issuedAt,
+      // The server works out the wait, so a wrong device clock cannot offer
+      // email early.
+      pendingPhoneEmailFallbackInSeconds: phoneCodeEmailFallbackInSeconds(
+        phoneCode.issuedAt,
+        Date.now()
+      ),
       membership: null,
     }
   }
@@ -186,6 +192,8 @@ export async function loadJoinExperienceContext(
     hasSession: false,
     pendingOtp: false,
     pendingPhone: undefined,
+    // The email fallback keeps the phone code it came from one tap away.
+    phoneCodePending: phoneCode !== null,
     membership: null,
   }
 }

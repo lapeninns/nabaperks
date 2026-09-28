@@ -108,6 +108,35 @@ test.describe("@customer-flow @a11y wallet sign-in by email", () => {
     expect(errors).toEqual([])
   })
 
+  test("a phone code that could not be sent at all offers email beside the error, only while email is on", async ({
+    page,
+  }) => {
+    for (const mode of ["off", "full"]) {
+      await gotoHydratedPage(
+        page,
+        `/dev/customer-login?mode=${mode}&scenario=send-error`
+      )
+      await page.getByLabel("Phone number", { exact: true }).fill("07700900123")
+      await page.getByRole("button", { name: "Send code" }).click()
+      await expect(page.locator("main").getByRole("alert")).toContainText(
+        "couldn't send a code"
+      )
+      const useEmail = page.getByRole("button", {
+        name: "Use my email instead",
+      })
+      if (mode === "off") {
+        await expect(page.getByRole("button", { name: /email/i })).toHaveCount(
+          0
+        )
+        continue
+      }
+      await expect(useEmail).toBeVisible()
+      await expectNoAxeViolations(page, "login phone send failure with email")
+      await useEmail.click()
+      await expect(page.getByLabel("Email address")).toBeVisible()
+    }
+  })
+
   test("the email code step shows the masked address, rejects a wrong code and says no wallet only after a valid one", async ({
     page,
   }) => {

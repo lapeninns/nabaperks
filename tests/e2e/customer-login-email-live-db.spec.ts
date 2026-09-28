@@ -140,6 +140,38 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
     })
   })
 
+  test("a text that arrives after the email fallback can still be entered", async ({
+    context,
+    page,
+  }) => {
+    await withDb([], async (_sql, phone) => {
+      await installKnownDevice(context)
+      await installFallbackClock(page)
+      await gotoHydratedPage(page, "/home/login")
+      await page.locator("#contact").fill(phone.national)
+      await page.getByRole("button", { name: "Send code" }).click()
+      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await takeEmailFallback(page)
+      await expect(page.getByLabel("Email address")).toBeVisible()
+
+      // Taking the fallback kept the phone code: phone returns to it.
+      await page
+        .getByRole("button", { name: "Use my phone number instead" })
+        .click()
+      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await expect(
+        page.getByLabel("Phone number", { exact: true })
+      ).toHaveCount(0)
+      await page.getByLabel("Phone code").fill(DEV_OTP)
+      await page.getByRole("button", { name: "Open my cards" }).click()
+      // The code was accepted; this number simply holds no cards.
+      await expect(
+        page.getByRole("heading", { name: "No cards on this number" })
+      ).toBeVisible()
+      await expect(hasSessionCookie(page)).resolves.toBe(false)
+    })
+  })
+
   test("an unconfirmed email on a wallet does not open it", async ({
     context,
     page,

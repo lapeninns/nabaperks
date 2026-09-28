@@ -10,13 +10,12 @@ import { Field, FieldGroup } from "@/components/ui/field"
 import { useEmailFallbackReady } from "@/hooks/use-email-fallback-ready"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
-import { phoneCodeEmailFallbackAt } from "@/lib/customer/phone-code-email-fallback"
 
 /**
  * /home/login by phone: the number, then the code from the message. A code
  * only opens a wallet the number already holds; the request answer is the
- * same whether or not one does. Email is never offered beside the number,
- * only as the code step's fallback.
+ * same whether or not one does. Email is offered beside the number only when
+ * no code could be sent at all; otherwise it is the code step's fallback.
  */
 export function CustomerLoginPhoneStep(props: CustomerLoginStepProps) {
   const { state } = props
@@ -73,11 +72,8 @@ function PhoneCodeStep({
   const contact = state.fields?.contact ?? ""
   const verifyError = state.errors?.otp ?? state.errors?.form
   const message = pending ? undefined : state.message
-  const codeSentAt = state.fields?.codeSentAt
   const emailReady = useEmailFallbackReady(
-    codeAlternate && codeSentAt !== undefined
-      ? phoneCodeEmailFallbackAt(codeSentAt)
-      : undefined
+    codeAlternate ? state.fields?.emailFallbackInSeconds : undefined
   )
 
   return (
@@ -186,6 +182,7 @@ function PhoneRequestStep({
   state,
   submitAction,
   pending,
+  sendFailedAlternate,
 }: CustomerLoginStepProps) {
   const editingContact = Boolean(state.fields?.editingContact)
   const contact = state.fields?.contact ?? ""
@@ -249,6 +246,10 @@ function PhoneRequestStep({
           </SubmitButton>
         </FieldGroup>
       </form>
+      {/* No code went out, so the code step's fallback is never reached. */}
+      {!editingContact && state.fields?.phoneSendFailed
+        ? sendFailedAlternate
+        : null}
     </div>
   )
 }
