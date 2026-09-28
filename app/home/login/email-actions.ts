@@ -6,6 +6,10 @@ import type { CustomerLoginOtpState } from "@/app/home/actions"
 import { establishCustomerSessionAfterVerifiedEmail } from "@/lib/customer/access-continuity"
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
 import { emailSignInEnabled } from "@/lib/customer/email-auth-mode"
+import {
+  openEmailFallback,
+  walletEmailFallbackGate,
+} from "@/lib/customer/email-fallback"
 import { normalizeEmail } from "@/lib/customer/email-pii-core"
 import {
   checkEmailSignInChallenge,
@@ -21,7 +25,7 @@ import {
   findCustomerByVerifiedEmail,
 } from "@/lib/customer/identity"
 import { isEmailAddress } from "@/lib/customer/profile-fields"
-import { phoneCodeEmailFallbackInSeconds } from "@/lib/customer/phone-code-email-fallback"
+import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
@@ -62,6 +66,9 @@ export async function requestCustomerLoginEmailAction(
   formData: FormData
 ): Promise<LoginState> {
   if (!emailSignInEnabled()) return emailSignInOff()
+  const gate = await walletEmailFallbackGate()
+  if (!gate.open) return phoneStep(gate.phoneCode)
+  await openEmailFallback("wallet", "opened")
 
   // A resend goes to the address already in the pending challenge, never to
   // one the form posts.
@@ -195,6 +202,10 @@ export async function editCustomerLoginEmailAction(
   formData: FormData
 ): Promise<LoginState> {
   if (!emailSignInEnabled()) return emailSignInOff()
+  const gate = await walletEmailFallbackGate()
+  if (!gate.open) return phoneStep(gate.phoneCode)
+  // Email stays open for the next address once this code is dropped.
+  await openEmailFallback("wallet", "opened")
 
   await clearPendingEmailSignIn()
   return {
@@ -207,11 +218,14 @@ export async function editCustomerLoginEmailAction(
 }
 
 /**
- * Switches the screen to the other method. Taking the email fallback keeps
- * the phone code pending: a late code is the usual reason to come back, so
- * "Use my phone number instead" returns to that code step while it is still
- * valid. Only an email code actually requested drops it
- * (`startEmailSignInChallenge`), so one sign-in stays live per browser.
+ * Switches the screen to the other method. Email opens only as the phone's
+ * fallback, which the server checks (lib/customer/email-fallback.ts): 30
+ * seconds after the latest phone code, after a send that failed, or from the
+ * no-cards step; asked for early, the answer is the phone step. Taking the
+ * email fallback keeps the phone code pending: a late code is the usual
+ * reason to come back, so "Use my phone number instead" returns to that code
+ * step while it is still valid. Only an email code actually on its way drops
+ * it (`startEmailSignInChallenge`), so one sign-in stays live per browser.
  * Leaving email drops its pending code. While email sign-in is off only the
  * phone is offered.
  */
@@ -222,20 +236,31 @@ export async function switchCustomerLoginMethodAction(
   if (!emailSignInEnabled()) return { fields: { method: "phone" } }
 
   if (value(formData, "method") === "email") {
+    const gate = await walletEmailFallbackGate()
+    if (!gate.open) return phoneStep(gate.phoneCode)
+    await openEmailFallback("wallet", "opened")
     return { fields: { method: "email" } }
   }
   await clearPendingEmailSignIn()
   const phoneCode = await getPendingPhoneVerification()
-  if (phoneCode?.purpose !== "wallet") return { fields: { method: "phone" } }
+  return phoneStep(phoneCode?.purpose === "wallet" ? phoneCode : null)
+}
+
+/**
+ * The phone step: the code step, with the server's wait, while a wallet phone
+ * code is pending, else the number form. The same answer whatever address a
+ * refused email request named.
+ */
+function phoneStep(
+  phoneCode: { readonly phone: string; readonly issuedAt: number } | null
+): LoginState {
+  if (!phoneCode) return { fields: { method: "phone" } }
   return {
     fields: {
       method: "phone",
       contact: phoneCode.phone,
       otpSent: true,
-      emailFallbackInSeconds: phoneCodeEmailFallbackInSeconds(
-        phoneCode.issuedAt,
-        Date.now()
-      ),
+      ...phoneCodeStepTiming(phoneCode.issuedAt, Date.now()),
     },
   }
 }

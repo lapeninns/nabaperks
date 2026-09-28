@@ -363,10 +363,11 @@ function OtpStep({
             referralCode,
             step: "email",
           })}
+          // Back to a phone code still pending, else the number form.
           phoneStepHref={buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
             referralCode,
-            step: "phone",
+            step: exp.contact.phoneCodePending ? undefined : "phone",
           })}
         />
       ) : (
@@ -377,6 +378,7 @@ function OtpStep({
           channel={exp.contact.channel}
           referralCode={referralCode}
           emailFallbackInSeconds={exp.contact.emailFallbackInSeconds}
+          phoneCodeSentAt={exp.contact.phoneCodeSentAt}
           emailStepHref={buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
             referralCode,

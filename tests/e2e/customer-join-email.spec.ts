@@ -269,6 +269,19 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     await expect(phone).not.toHaveAttribute("href", /step=/)
   })
 
+  test("with a phone code still pending, the email code step's phone link returns to that code", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(
+      page,
+      "/dev/welcome-offer?surface=email-code-after-code&offer=none"
+    )
+    await expect(page.getByText("Not sent yet to")).toBeVisible()
+    const phone = page.getByRole("link", { name: "Use my phone instead" })
+    await expect(phone).toBeVisible()
+    await expect(phone).not.toHaveAttribute("href", /step=/)
+  })
+
   test("with email sign-in off the phone code step never offers email", async ({
     page,
   }) => {

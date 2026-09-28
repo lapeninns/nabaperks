@@ -125,19 +125,52 @@ test("phone is the contact step in every mode, and the welcome CTA always opens 
 
 test("the email step exists only as the fallback address, and never while email is off", () => {
   for (const emailMode of ["existing", "full"]) {
-    const email = join({ emailMode, step: "email" })
+    const email = join({ emailMode, step: "email", emailFallbackOpen: true })
     assert.equal(email.kind, "join_email")
     assert.equal(email.emailMode, emailMode)
     const viewModel = getCustomerExperienceViewModel(email)
     assert.equal(viewModel.headline, "Get your code by email instead")
     assert.doesNotMatch(viewModel.headline, /!/)
   }
-  assert.equal(join({ emailMode: "off", step: "email" }).kind, "join_phone")
+  assert.equal(
+    join({ emailMode: "off", step: "email", emailFallbackOpen: true }).kind,
+    "join_phone"
+  )
+})
+
+test("a step=email the server has not opened is the phone step, not the email form", () => {
+  for (const emailMode of ["existing", "full"]) {
+    assert.equal(join({ emailMode, step: "email" }).kind, "join_phone")
+    assert.equal(
+      join({ emailMode, step: "email", emailFallbackOpen: false }).kind,
+      "join_phone"
+    )
+    // Still an explicit contact step: never the QR welcome instead.
+    assert.equal(
+      join({ emailMode, qrId: "venue-qr", step: "email" }).kind,
+      "join_phone"
+    )
+    // A phone code still pending outranks it: its code step.
+    const code = join({
+      emailMode,
+      step: "email",
+      pendingOtp: true,
+      pendingPhone: "+447700900123",
+      pendingPhoneEmailFallbackInSeconds: 20,
+    })
+    assert.equal(code.kind, "join_otp")
+    assert.equal(code.contact.method, "phone")
+  }
 })
 
 test("an explicit contact step skips the QR welcome", () => {
   assert.equal(
-    join({ emailMode: "full", qrId: "venue-qr", step: "email" }).kind,
+    join({
+      emailMode: "full",
+      qrId: "venue-qr",
+      step: "email",
+      emailFallbackOpen: true,
+    }).kind,
     "join_email"
   )
   assert.equal(
@@ -156,6 +189,7 @@ test("a pending email code shows the code step with the masked address only", ()
     method: "email",
     maskedEmail: "j***@example.com",
     resendAvailableAt: 100,
+    phoneCodePending: false,
   })
   assert.equal(
     getCustomerExperienceViewModel(experience).eyebrow,
@@ -178,6 +212,7 @@ test("a pending email code whose send failed is never described as just sent", (
     maskedEmail: "j***@example.com",
     resendAvailableAt: 100,
     deliveryDelayed: true,
+    phoneCodePending: false,
   })
   const viewModel = getCustomerExperienceViewModel(experience)
   assert.equal(
@@ -207,6 +242,7 @@ test("a phone code step carries the server's seconds left before email, never wh
     pendingPhone: "+447700900123",
     pendingChannel: "sms",
     pendingPhoneEmailFallbackInSeconds: 12,
+    pendingPhoneSentAt: 1_800_000_000,
   }
   for (const emailMode of ["existing", "full"]) {
     const experience = join({ ...pendingPhone, emailMode })
@@ -216,10 +252,13 @@ test("a phone code step carries the server's seconds left before email, never wh
       last4: "0123",
       channel: "sms",
       emailFallbackInSeconds: 12,
+      // A resend changes it, and the step restarts its wait.
+      phoneCodeSentAt: 1_800_000_000,
     })
   }
   const off = join({ ...pendingPhone, emailMode: "off" })
   assert.equal("emailFallbackInSeconds" in off.contact, false)
+  assert.equal("phoneCodeSentAt" in off.contact, false)
   // No send time known: no fallback rather than a guessed one.
   const unknown = join({
     ...pendingPhone,
@@ -230,13 +269,28 @@ test("a phone code step carries the server's seconds left before email, never wh
 })
 
 test("the email fallback's phone link knows whether a phone code is still pending", () => {
+  const open = { step: "email", emailFallbackOpen: true }
   assert.equal(
-    join({ emailMode: "full", step: "email", phoneCodePending: true })
+    join({ emailMode: "full", ...open, phoneCodePending: true })
+      .phoneCodePending,
+    true
+  )
+  assert.equal(join({ emailMode: "existing", ...open }).phoneCodePending, false)
+})
+
+test("the email code step's phone link knows whether a phone code is still pending", () => {
+  const pendingEmail = {
+    maskedEmail: "j***@example.com",
+    resendAvailableAt: 100,
+    deliveryDelayed: true,
+  }
+  assert.equal(
+    join({ emailMode: "full", pendingEmail, phoneCodePending: true }).contact
       .phoneCodePending,
     true
   )
   assert.equal(
-    join({ emailMode: "existing", step: "email" }).phoneCodePending,
+    join({ emailMode: "full", pendingEmail }).contact.phoneCodePending,
     false
   )
 })
@@ -259,7 +313,7 @@ test("the welcome note tells an email-joined customer where email is, only while
 
 test("the email step's eyebrow names no channel, since the code may have gone by WhatsApp", () => {
   const viewModel = getCustomerExperienceViewModel(
-    join({ emailMode: "full", step: "email" })
+    join({ emailMode: "full", step: "email", emailFallbackOpen: true })
   )
   assert.equal(viewModel.eyebrow, "No code yet?")
   assert.doesNotMatch(viewModel.eyebrow, /text|sms|whatsapp/i)

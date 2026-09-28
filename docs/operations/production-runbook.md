@@ -689,9 +689,14 @@ at `/home/login` (owner decision, 28 September 2026). Above `off`, email is
 offered only as a fallback: on the phone code step 30 seconds after the server
 sent the code (by text or WhatsApp), timed by the server's clock; beside the
 phone form when no code could be sent at all; and, at `/home/login` only, on
-the "No cards on this number" step, for a wallet joined by email. Taking the
-fallback keeps the phone code pending until an email code is requested, so
-"Use my phone number instead" returns to it. A customer who joined by email
+the "No cards on this number" step, for a wallet joined by email. The server
+enforces the same rule: `step=email` and the email actions answer with the
+phone step until one of those applies, recorded in the browser's encrypted
+`nabaperks_email_fallback` cookie or read from the pending code's send time.
+A resend restarts the 30 seconds, and a reload of `/home/login` returns to a
+pending phone code. Taking the fallback keeps the phone code pending until an
+email code is on its way (a failed email send keeps it), so "Use my phone
+number instead" returns to it. A customer who joined by email
 and then verifies a phone on the join page gets a separate phone wallet; the
 welcome note tells them the code screen offers email after 30 seconds.
 

@@ -7,6 +7,7 @@ import {
   emailSignInEnabled,
   emailWalletCreationEnabled,
 } from "@/lib/customer/email-auth-mode"
+import { joinEmailFallbackGate } from "@/lib/customer/email-fallback"
 import { normalizeEmail } from "@/lib/customer/email-pii-core"
 import {
   checkEmailSignInChallenge,
@@ -109,6 +110,13 @@ export async function requestCustomerEmailIdentityAction(
       errors: { form: EMAIL_SIGN_IN_OFF },
     }
   }
+
+  // Phone first: email is only the phone code's fallback. A request made
+  // before the server opens it goes back to the phone step (the code still
+  // pending, if there is one), whatever address it names.
+  const gate = await joinEmailFallbackGate({ merchantSlug, qrId })
+  if (!gate.open)
+    redirect(joinHref(request, gate.phoneCode ? undefined : "phone"))
 
   // A resend goes to the address already in the pending challenge, never to
   // one the form posts.
@@ -359,7 +367,7 @@ function entryFor({ qrId, ref }: JoinRequest) {
 
 function joinHref(
   { merchantSlug, qrId, ref }: JoinRequest,
-  step: CustomerJoinStep
+  step: CustomerJoinStep | undefined
 ): string {
   return buildCustomerJoinHref(merchantSlug, {
     qrId: qrId || undefined,

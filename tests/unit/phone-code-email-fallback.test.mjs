@@ -3,8 +3,10 @@ import { test } from "node:test"
 
 import {
   PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS,
+  emailFallbackOpen,
   phoneCodeEmailFallbackInSeconds,
   phoneCodeEmailFallbackWaitMs,
+  phoneCodeStepTiming,
 } from "@/lib/customer/phone-code-email-fallback"
 
 const SENT_AT = 1_800_000_000
@@ -43,4 +45,46 @@ test("the step counts the server's seconds down from when it appears, never from
   assert.equal(phoneCodeEmailFallbackWaitMs(900), 30_000)
   assert.equal(phoneCodeEmailFallbackWaitMs(Number.NaN), 30_000)
   assert.equal(phoneCodeEmailFallbackWaitMs(Number.POSITIVE_INFINITY), 30_000)
+})
+
+test("the server opens email only 30 seconds after the latest phone code, a failed send or no cards, or an email already under way", () => {
+  const at = (seconds) => (SENT_AT + seconds) * 1_000
+  // No phone code and nothing opened: a bookmarked `step=email` gets phone.
+  assert.equal(emailFallbackOpen({}, at(0)), false)
+  assert.equal(emailFallbackOpen({ phoneCodeSentAt: null }, at(60)), false)
+  // The latest code's wait, by the server's clock.
+  assert.equal(emailFallbackOpen({ phoneCodeSentAt: SENT_AT }, at(0)), false)
+  assert.equal(emailFallbackOpen({ phoneCodeSentAt: SENT_AT }, at(29)), false)
+  assert.equal(emailFallbackOpen({ phoneCodeSentAt: SENT_AT }, at(30)), true)
+  // A resend at +20 moves the wait to +50.
+  assert.equal(
+    emailFallbackOpen({ phoneCodeSentAt: SENT_AT + 20 }, at(35)),
+    false
+  )
+  assert.equal(
+    emailFallbackOpen({ phoneCodeSentAt: SENT_AT + 20 }, at(50)),
+    true
+  )
+  assert.equal(
+    emailFallbackOpen({ phoneCodeSentAt: Number.NaN }, at(60)),
+    false
+  )
+  // A failed send or no cards opened it; an email sign-in keeps it open.
+  assert.equal(emailFallbackOpen({ opened: true }, at(0)), true)
+  assert.equal(
+    emailFallbackOpen({ phoneCodeSentAt: SENT_AT, opened: true }, at(1)),
+    true
+  )
+  assert.equal(emailFallbackOpen({ emailInProgress: true }, at(0)), true)
+})
+
+test("a code step's timing carries the send time, so a resend restarts the wait", () => {
+  assert.deepEqual(phoneCodeStepTiming(SENT_AT, (SENT_AT + 12) * 1_000), {
+    phoneCodeSentAt: SENT_AT,
+    emailFallbackInSeconds: 18,
+  })
+  assert.deepEqual(phoneCodeStepTiming(SENT_AT + 12, (SENT_AT + 12) * 1_000), {
+    phoneCodeSentAt: SENT_AT + 12,
+    emailFallbackInSeconds: 30,
+  })
 })

@@ -108,6 +108,72 @@ test.describe("@customer-flow @a11y wallet sign-in by email", () => {
     expect(errors).toEqual([])
   })
 
+  test("a resend restarts the 30 seconds from the new code, even once email was showing", async ({
+    page,
+  }) => {
+    await installFallbackClock(page)
+    await gotoHydratedPage(page, "/dev/customer-login?mode=full")
+    await page.getByLabel("Phone number", { exact: true }).fill("07700900123")
+    await page.getByRole("button", { name: "Send code" }).click()
+    await expect(page.getByLabel("Phone code")).toBeVisible()
+    const fallback = emailFallback(page)
+
+    // Resent 20 seconds in: email waits 30 seconds from the new code.
+    await page.clock.fastForward(20_000)
+    await resendAndSettle(page)
+    await page.clock.fastForward(11_000)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(20_000)
+    await expect(fallback).toBeVisible()
+
+    // Resent while email shows: hidden again until the new code's wait ends.
+    await resendAndSettle(page)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(29_000)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(2_000)
+    await expect(fallback).toBeVisible()
+  })
+
+  test("a reload with a phone code pending opens its code step, with the server's wait left", async ({
+    page,
+  }) => {
+    await installFallbackClock(page)
+    const now = Math.floor(Date.now() / 1_000)
+    // Sent 10 seconds ago: about 20 seconds left.
+    await gotoHydratedPage(
+      page,
+      `/dev/customer-login?mode=full&sentAt=${now - 10}`
+    )
+    await expect(page.getByLabel("Phone code")).toBeVisible()
+    await expect(page.getByLabel("Phone number", { exact: true })).toHaveCount(
+      0
+    )
+    await expect(page.getByText("Phone ending")).toContainText("0123")
+    const fallback = emailFallback(page)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(15_000)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(7_000)
+    await expect(fallback).toBeVisible()
+
+    // Sent over 30 seconds ago: email at once.
+    await gotoHydratedPage(
+      page,
+      `/dev/customer-login?mode=full&sentAt=${now - 45}`
+    )
+    await expect(page.getByLabel("Phone code")).toBeVisible()
+    await expect(fallback).toBeVisible()
+
+    // Email off: the code step, never email.
+    await gotoHydratedPage(
+      page,
+      `/dev/customer-login?mode=off&sentAt=${now - 45}`
+    )
+    await expect(page.getByLabel("Phone code")).toBeVisible()
+    await expect(fallback).toHaveCount(0)
+  })
+
   test("a phone code that could not be sent at all offers email beside the error, only while email is on", async ({
     page,
   }) => {
@@ -298,4 +364,14 @@ function collectHydrationErrors(page: Page): string[] {
     }
   })
   return errors
+}
+
+/** Resend the phone code and wait until its answer is on the page. */
+async function resendAndSettle(page: Page): Promise<void> {
+  const resend = page.getByRole("button", { name: "Resend code" })
+  await Promise.all([
+    page.waitForResponse((response) => response.request().method() === "POST"),
+    resend.click(),
+  ])
+  await expect(resend).toBeEnabled()
 }

@@ -136,23 +136,26 @@ test("Given any email mode When /home/login opens Then phone leads and email is 
     phone.indexOf("function PhoneCodeStep("),
     phone.indexOf("function PhoneRequestStep(")
   )
+  // A new send time (a resend) remounts the countdown with the new wait.
   assert.match(
     code,
-    /useEmailFallbackReady\(\s*codeAlternate \? state\.fields\?\.emailFallbackInSeconds : undefined\s*\)/
+    /<CodeEmailFallback\s+key=\{state\.fields\?\.phoneCodeSentAt \?\? "code"\}\s+inSeconds=\{state\.fields\?\.emailFallbackInSeconds\}\s*>/
   )
-  assert.doesNotMatch(code, /Date\.now|codeSentAt/)
-  assert.match(code, /\{emailReady \? codeAlternate : null\}/)
+  assert.doesNotMatch(code, /Date\.now/)
   assert.ok(
     code.indexOf("Wrong number? Use a different one") <
-      code.indexOf("{emailReady ? codeAlternate : null}")
+      code.indexOf("<CodeEmailFallback")
   )
+  const countdown = phone.slice(phone.indexOf("function CodeEmailFallback("))
+  assert.match(countdown, /useEmailFallbackReady\(inSeconds\)/)
+  assert.match(countdown, /\{ready \? children : null\}/)
 
   // Every phone answer that keeps the code step carries the server's wait,
   // worked out from the pending code cookie's send time and the server clock.
   const actions = read("app", "home", "actions.ts")
   assert.match(
     actions,
-    /emailFallbackInSeconds: phoneCodeEmailFallbackInSeconds\(\s*pending\.issuedAt,\s*Date\.now\(\)\s*\)/
+    /\.\.\.phoneCodeStepTiming\(pending\.issuedAt, Date\.now\(\)\)/
   )
   assert.match(actions, /fields: loginPhoneCodeFields\(pendingCode\)/)
   const verify = actions.slice(
@@ -177,4 +180,32 @@ test("Given any email mode When /home/login opens Then phone leads and email is 
   )
   assert.doesNotMatch(switchAction, /clearPendingPhoneVerification/)
   assert.match(switchAction, /getPendingPhoneVerification\(\)/)
+})
+
+test("Given a wallet phone code is pending When /home/login is reloaded Then the page opens on its code step with the server's wait", () => {
+  const page = read("app", "home", "login", "page.tsx")
+  assert.match(page, /initialState=\{await pendingPhoneCodeStep\(\)\}/)
+  const pending = page.slice(
+    page.indexOf("async function pendingPhoneCodeStep(")
+  )
+  assert.match(pending, /await getPendingPhoneVerification\(\)/)
+  assert.match(pending, /pending\?\.purpose !== "wallet"\) return \{\}/)
+  assert.match(pending, /otpSent: true/)
+  assert.match(
+    pending,
+    /\.\.\.phoneCodeStepTiming\(pending\.issuedAt, Date\.now\(\)\)/
+  )
+  const form = read("components", "customer", "customer-login-form.tsx")
+  assert.match(form, /useActionState\(\s*loginAction,\s*initialState\s*\)/)
+})
+
+test("Given the email fallback record When the cookie notice is read Then it names the cookie and says what it holds", () => {
+  const core = read("lib", "customer", "email-fallback-core.ts")
+  assert.match(core, /EMAIL_FALLBACK_COOKIE_NAME = "nabaperks_email_fallback"/)
+  assert.match(core, /EMAIL_FALLBACK_TTL_SECONDS = 10 \* 60/)
+  const legal = read("lib", "legal", "content.ts")
+  assert.match(
+    legal,
+    /nabaperks_email_fallback cookie lasts up to 10 minutes[^"]*not the number or the address/
+  )
 })

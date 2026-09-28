@@ -50,6 +50,11 @@ export type JoinOtpContact =
        * it down from when it appears. Absent while email sign-in is off.
        */
       emailFallbackInSeconds?: number
+      /**
+       * When the server sent that code (epoch seconds). A resend changes it,
+       * so the step restarts its wait from the latest code.
+       */
+      phoneCodeSentAt?: number
     }
   | {
       method: "email"
@@ -59,6 +64,11 @@ export type JoinOtpContact =
       resendAvailableAt: number
       /** The provider failed to take the latest code, so none is on its way. */
       deliveryDelayed?: boolean
+      /**
+       * A phone code is still pending, so "Use my phone instead" returns to
+       * that code rather than a blank number form.
+       */
+      phoneCodePending: boolean
     }
 
 /** Contact channels a verified wallet holds, for the marketing-consent line. */

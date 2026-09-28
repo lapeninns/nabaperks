@@ -39,7 +39,12 @@ const STUBS = {
     returning: null,
     spent: new Set(),
     reissued: 0,
+    gate: { open: true, phoneCode: null },
+    gates: [],
   };`,
+  // The fallback gate itself is proved in email-fallback-gate.test.mjs.
+  "@/lib/customer/email-fallback": `import { state } from "fixture-state";
+    export async function joinEmailFallbackGate(input) { state.gates.push(input); return state.gate }`,
   "server-only": "",
   "next/navigation": `export function redirect(destination) {
     const error = new Error("NEXT_REDIRECT"); error.destination = destination; throw error
@@ -229,6 +234,50 @@ test("Given mode existing When an email code is requested Then the join challeng
       method: "email",
     },
   ])
+})
+
+test("Given the server has not opened email When a code is requested Then it goes back to the phone step and nothing is sent", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { requestCustomerEmailIdentityAction, state } = await loadActions()
+  // A phone code still inside its 30 seconds: back to that code step.
+  state.gate = { open: false, phoneCode: { issuedAt: 1_000 } }
+
+  const pending = await redirectOf(
+    requestCustomerEmailIdentityAction(
+      {},
+      form({ email: "guest@example.com", qrId: "venue-qr", ref: "friend" })
+    )
+  )
+  assert.equal(pending, "/m/old-crown/join?qr=venue-qr&ref=friend")
+  // The same answer for any address, so it reveals nothing about one.
+  assert.equal(
+    await redirectOf(
+      requestCustomerEmailIdentityAction(
+        {},
+        form({ email: "other@example.com", qrId: "venue-qr", ref: "friend" })
+      )
+    ),
+    pending
+  )
+
+  // No phone code at all: the number form.
+  state.gate = { open: false, phoneCode: null }
+  assert.equal(
+    await redirectOf(
+      requestCustomerEmailIdentityAction(
+        {},
+        form({ email: "guest@example.com", qrId: "venue-qr" })
+      )
+    ),
+    "/m/old-crown/join?qr=venue-qr&step=phone"
+  )
+  assert.deepEqual(state.calls, [])
+  assert.deepEqual(state.events, [])
+  // The gate is asked about this venue and QR (a handoff is bound to them).
+  assert.deepEqual(state.gates.at(-1), {
+    merchantSlug: "old-crown",
+    qrId: "venue-qr",
+  })
 })
 
 test("Given an invalid address or unavailable card When a code is requested Then nothing is sent", async () => {

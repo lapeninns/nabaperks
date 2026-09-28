@@ -3,6 +3,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test"
 import { connectLocalDb, type Sql } from "./helpers/admin-live-db"
 import {
   EMAIL_HANDOFF_COOKIE,
+  agePendingPhoneCode,
   cleanupEmailJoinRows,
   confirmJoinCode,
   countDeviceSessions,
@@ -311,6 +312,7 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         await installKnownDevice(context)
         await installFallbackClock(page)
         await openOtpStep(page, fixture, phone)
+        await agePendingPhoneCode(page)
         await takeEmailFallback(page)
         await expect(
           page.getByRole("heading", { name: "Get your code by email instead" })
@@ -339,6 +341,76 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         ])
         const joined = await readJoinedMembership(sql, fixture, phone)
         expect(joined?.stamp_count).toBe(1)
+      },
+      phone
+    )
+  })
+
+  test("the server keeps phone first: step=email opens only 30 seconds after the latest code", async ({
+    context,
+    page,
+  }) => {
+    const phone = disposableUkMobile()
+    await withJourney(
+      [],
+      async ({ fixture }) => {
+        await installKnownDevice(context)
+        const emailStep = `/m/${fixture.merchantSlug}/join?qr=${fixture.activeQrId}&step=email`
+        const emailHeading = page.getByRole("heading", {
+          name: "Get your code by email instead",
+        })
+
+        // A bookmarked email step with no phone code: the number form.
+        await page.goto(emailStep)
+        await expect(page.getByLabel("UK phone number")).toBeVisible()
+        await expect(page.getByLabel("Email address")).toHaveCount(0)
+        await expect(emailHeading).toHaveCount(0)
+
+        // Seconds after a text: that code's step, not the email form.
+        await openOtpStep(page, fixture, phone)
+        await page.goto(emailStep)
+        await expect(
+          page.getByRole("heading", { name: "Enter your code" })
+        ).toBeVisible()
+        await expect(page.getByLabel("Your code")).toBeVisible()
+        await expect(page.getByLabel("Email address")).toHaveCount(0)
+
+        // 30 seconds after the send, by the server's clock: email opens.
+        await agePendingPhoneCode(page)
+        await page.goto(emailStep)
+        await expect(emailHeading).toBeVisible()
+        await expect(page.getByLabel("Email address")).toBeVisible()
+      },
+      phone
+    )
+  })
+
+  test("a resend restarts the 30 seconds from the new code", async ({
+    context,
+    page,
+  }) => {
+    const phone = disposableUkMobile()
+    await withJourney(
+      [],
+      async ({ fixture }) => {
+        await installKnownDevice(context)
+        await installFallbackClock(page)
+        await openOtpStep(page, fixture, phone)
+        const fallback = emailFallback(page)
+
+        await page.clock.fastForward(20_000)
+        // A later whole second, so the server's new send time differs.
+        await new Promise((resolve) => setTimeout(resolve, 1_100))
+        await page.getByRole("button", { name: "Resend code" }).click()
+        await expect(
+          page.getByText("If a new code arrives, enter it here.")
+        ).toBeVisible()
+
+        // 31 seconds after the first code, 11 after the resend: not yet.
+        await page.clock.fastForward(11_000)
+        await expect(fallback).toHaveCount(0)
+        await page.clock.fastForward(20_000)
+        await expect(fallback).toBeVisible()
       },
       phone
     )

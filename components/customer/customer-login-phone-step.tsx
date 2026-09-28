@@ -1,5 +1,7 @@
 "use client"
 
+import type { ReactNode } from "react"
+
 import type { CustomerLoginStepProps } from "@/components/customer/customer-login-method-switch"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { CustomerLoginScanStep } from "@/components/customer/customer-login-scan-step"
@@ -72,9 +74,6 @@ function PhoneCodeStep({
   const contact = state.fields?.contact ?? ""
   const verifyError = state.errors?.otp ?? state.errors?.form
   const message = pending ? undefined : state.message
-  const emailReady = useEmailFallbackReady(
-    codeAlternate ? state.fields?.emailFallbackInSeconds : undefined
-  )
 
   return (
     <div className="grid gap-4">
@@ -159,12 +158,16 @@ function PhoneCodeStep({
             Wrong number? Use a different one
           </SubmitButton>
         </form>
-        {/* Announced when it appears, 30 seconds after the send; no wrapper
-            at all while email sign-in is off. */}
+        {/* Announced when it appears, 30 seconds after the latest send (a
+            resend's new send time restarts it); no wrapper at all while
+            email sign-in is off. */}
         {codeAlternate ? (
-          <div aria-live="polite" className="grid">
-            {emailReady ? codeAlternate : null}
-          </div>
+          <CodeEmailFallback
+            key={state.fields?.phoneCodeSentAt ?? "code"}
+            inSeconds={state.fields?.emailFallbackInSeconds}
+          >
+            {codeAlternate}
+          </CodeEmailFallback>
         ) : null}
         <p
           role="status"
@@ -174,6 +177,22 @@ function PhoneCodeStep({
           {message}
         </p>
       </div>
+    </div>
+  )
+}
+
+/** The code step's email switch, shown once the server's wait has run. */
+function CodeEmailFallback({
+  inSeconds,
+  children,
+}: {
+  inSeconds: number | undefined
+  children: ReactNode
+}) {
+  const ready = useEmailFallbackReady(inSeconds)
+  return (
+    <div aria-live="polite" className="grid">
+      {ready ? children : null}
     </div>
   )
 }

@@ -304,8 +304,14 @@ test("Given any email mode When the contact step renders Then it is the phone fo
   for (const reason of ["provider_unavailable", "pending_state_failed"]) {
     const failure = actions.slice(actions.indexOf(`"${reason}")`))
     assert.match(
-      failure.slice(0, 200),
+      failure.slice(0, 300),
       /fields: \{ \.\.\.requestFields, phoneSendFailed: true \}/,
+      reason
+    )
+    // The server records the failure too, so the email link it offers opens.
+    assert.match(
+      failure.slice(0, 300),
+      /await openEmailFallback\("join", "phone_send_failed"\)/,
       reason
     )
   }

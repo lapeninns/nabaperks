@@ -36,6 +36,11 @@ export type CustomerOtpFormProps = {
    * no email option at all.
    */
   emailFallbackInSeconds?: number
+  /**
+   * When the server sent the code this step appeared with (epoch seconds).
+   * A resend answers with its own, and the wait restarts from that one.
+   */
+  phoneCodeSentAt?: number
   /** The email step (`step=email`), keeping the QR and referral params. */
   emailStepHref?: string
 }
@@ -47,6 +52,7 @@ export function CustomerOtpForm({
   contactLast4,
   channel = "sms",
   emailFallbackInSeconds,
+  phoneCodeSentAt,
   emailStepHref,
 }: CustomerOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
@@ -79,6 +85,12 @@ export function CustomerOtpForm({
   // A text is offered only when the code went out on WhatsApp; if it already
   // went by text, that is because WhatsApp refused the number.
   const offersText = channel === "whatsapp"
+  // Email waits 30 seconds from the latest code: a resend answers with the
+  // server's new wait, and one that could not be sent offers email at once.
+  const fallback = emailFallbackAfterResend(requestState, {
+    inSeconds: emailFallbackInSeconds,
+    sentAt: phoneCodeSentAt,
+  })
 
   return (
     <div className="grid gap-4">
@@ -208,7 +220,9 @@ export function CustomerOtpForm({
           {/* No wrapper at all while email sign-in is off. */}
           {emailStepHref && emailFallbackInSeconds !== undefined ? (
             <EmailFallback
-              inSeconds={emailFallbackInSeconds}
+              // A new key restarts the wait for the latest code.
+              key={fallback.key}
+              inSeconds={fallback.inSeconds}
               emailStepHref={emailStepHref}
             />
           ) : null}
@@ -216,6 +230,27 @@ export function CustomerOtpForm({
       )}
     </div>
   )
+}
+
+/**
+ * The wait before email is offered, and what restarts it: the step's own code,
+ * then each resend's answer. Only a resend that reached the server changes it.
+ */
+function emailFallbackAfterResend(
+  requestState: CustomerIdentityState,
+  initial: { inSeconds?: number; sentAt?: number }
+): { key: string; inSeconds: number | undefined } {
+  const fields = requestState.fields
+  if (fields?.phoneSendFailed) {
+    return { key: `failed-${fields.phoneCodeSentAt ?? ""}`, inSeconds: 0 }
+  }
+  if (fields?.phoneOtpSent && fields.phoneCodeSentAt !== undefined) {
+    return {
+      key: `sent-${fields.phoneCodeSentAt}`,
+      inSeconds: fields.emailFallbackInSeconds,
+    }
+  }
+  return { key: `sent-${initial.sentAt ?? ""}`, inSeconds: initial.inSeconds }
 }
 
 /**
@@ -227,7 +262,7 @@ function EmailFallback({
   inSeconds,
   emailStepHref,
 }: {
-  inSeconds: number
+  inSeconds: number | undefined
   emailStepHref: string
 }) {
   const ready = useEmailFallbackReady(inSeconds)

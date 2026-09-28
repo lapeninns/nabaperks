@@ -9,9 +9,11 @@ import { phoneCodeEmailFallbackWaitMs } from "@/lib/customer/phone-code-email-fa
  * server's seconds left) after the step appears. `undefined` never offers it.
  *
  * The server render and hydration both start hidden. The countdown uses the
- * wait the step appeared with: a later answer on the same step (a wrong code,
- * a resend) keeps it running rather than restarting it. Once shown it stays
- * shown.
+ * wait the step appeared with: a later answer about the same code (a wrong
+ * code) keeps it running rather than restarting it. A new code restarts it:
+ * callers key the component that uses this hook on the code's send time, so
+ * a resend remounts it with the server's new wait. Once shown it stays shown
+ * until then.
  */
 export function useEmailFallbackReady(inSeconds: number | undefined): boolean {
   const [ready, setReady] = useState(false)

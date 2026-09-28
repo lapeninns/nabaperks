@@ -9,10 +9,16 @@ import {
  * One key and one authenticated context per cookie, so a value minted for one
  * cookie can never be read as another. `email-sign-in` is the signed-out email
  * code challenge; `email-handoff` is the short-lived proof that an email was
- * verified when no wallet holds it yet.
+ * verified when no wallet holds it yet; `email-fallback` records that a
+ * signed-out phone attempt has opened the email fallback.
  */
 export type PendingCookieContext =
-  "access-recovery" | "email" | "email-handoff" | "email-sign-in" | "phone"
+  | "access-recovery"
+  | "email"
+  | "email-fallback"
+  | "email-handoff"
+  | "email-sign-in"
+  | "phone"
 
 type ExpiringPayload = {
   readonly expiresAt: number

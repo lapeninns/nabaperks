@@ -6,6 +6,7 @@ import { customerEmailHmac } from "@/lib/customer/email-pii-core"
 
 import type { Sql } from "./helpers/admin-live-db"
 import {
+  agePendingPhoneCode,
   cleanupEmailJoinRows,
   countDeviceSessions,
   customerJoinEmailSkipReason,
@@ -26,10 +27,15 @@ import {
 } from "./helpers/customer-readback-live-db"
 import { pickSeedCustomerSetup } from "./helpers/customer-readback-seed"
 import {
+  emailFallback,
   installFallbackClock,
   takeEmailFallback,
 } from "./helpers/email-fallback"
-import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
+import {
+  dismissPwaInstall,
+  gotoHydratedPage,
+  waitForHydratedPage,
+} from "./helpers/harness"
 
 /**
  * Email at /home/login against the real server actions and local Supabase,
@@ -151,6 +157,7 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
       await page.locator("#contact").fill(phone.national)
       await page.getByRole("button", { name: "Send code" }).click()
       await expect(page.getByLabel("Phone code")).toBeVisible()
+      await agePendingPhoneCode(page)
       await takeEmailFallback(page)
       await expect(page.getByLabel("Email address")).toBeVisible()
 
@@ -169,6 +176,58 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
         page.getByRole("heading", { name: "No cards on this number" })
       ).toBeVisible()
       await expect(hasSessionCookie(page)).resolves.toBe(false)
+    })
+  })
+
+  test("the server refuses email before the code's 30 seconds, and a reload keeps the code step", async ({
+    context,
+    page,
+  }) => {
+    await withDb([], async (_sql, phone) => {
+      await installKnownDevice(context)
+      await installFallbackClock(page)
+      await gotoHydratedPage(page, "/home/login")
+      await page.locator("#contact").fill(phone.national)
+      await page.getByRole("button", { name: "Send code" }).click()
+      await expect(page.getByLabel("Phone code")).toBeVisible()
+
+      // The page clock says 31 seconds; the server's says a few. The switch
+      // answers with the code step, not the email form.
+      await page.clock.fastForward(31_000)
+      await Promise.all([
+        page.waitForResponse(
+          (response) => response.request().method() === "POST"
+        ),
+        emailFallback(page).click(),
+      ])
+      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await expect(page.getByLabel("Email address")).toHaveCount(0)
+
+      // A reload opens on the pending code, not a blank number, and counts
+      // the server's wait again.
+      await page.reload()
+      await waitForHydratedPage(page)
+      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await expect(page.locator("#contact")).toHaveCount(0)
+      await expect(page.getByText("Phone ending")).toContainText(
+        phone.national.slice(-4)
+      )
+      await expect(emailFallback(page)).toHaveCount(0)
+
+      // Once 30 seconds have passed for the server, a reload offers email at
+      // once and the switch opens it.
+      await agePendingPhoneCode(page)
+      await page.reload()
+      await waitForHydratedPage(page)
+      await expect(emailFallback(page)).toBeVisible()
+      await emailFallback(page).click()
+      await expect(page.getByLabel("Email address")).toBeVisible()
+
+      // And back: the same code step, still pending.
+      await page
+        .getByRole("button", { name: "Use my phone number instead" })
+        .click()
+      await expect(page.getByLabel("Phone code")).toBeVisible()
     })
   })
 
@@ -215,6 +274,7 @@ async function requestLoginEmailCode(
   await page.locator("#contact").fill(phone.national)
   await page.getByRole("button", { name: "Send code" }).click()
   await expect(page.getByLabel("Phone code")).toBeVisible()
+  await agePendingPhoneCode(page)
   await takeEmailFallback(page)
   await expect(
     page.getByRole("heading", { name: "Get your code by email instead" })

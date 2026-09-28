@@ -4,6 +4,11 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
+import {
+  closeEmailFallback,
+  openEmailFallback,
+} from "@/lib/customer/email-fallback"
+import { clearPendingEmailSignIn } from "@/lib/customer/email-sign-in"
 import { findCustomerByVerifiedPhone } from "@/lib/customer/identity"
 import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
@@ -15,7 +20,7 @@ import {
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
-import { phoneCodeEmailFallbackInSeconds } from "@/lib/customer/phone-code-email-fallback"
+import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
 import {
   checkCustomerPhoneVerification,
   startCustomerPhoneVerification,
@@ -43,6 +48,11 @@ export type CustomerLoginOtpState = {
      * counts it down from when it appears, when email sign-in is on.
      */
     emailFallbackInSeconds?: number
+    /**
+     * When the server sent the pending phone code (epoch seconds). A resend
+     * changes it, and the code step restarts its wait from the latest code.
+     */
+    phoneCodeSentAt?: number
     /**
      * No code went out (provider or pending state failure). The phone form
      * offers email beside the error while email sign-in is on, since this
@@ -121,6 +131,8 @@ export async function requestCustomerLoginOtpAction(
     )
     if (verification.status === "unavailable") {
       recordLoginCodeSendFailed("provider_unavailable")
+      // No code went out, so email is offered at once, on the server too.
+      await openEmailFallback("wallet", "phone_send_failed")
       return {
         fields: { contact, phoneSendFailed: true },
         errors: {
@@ -142,6 +154,7 @@ export async function requestCustomerLoginOtpAction(
   } catch (error) {
     logVerificationSendFailure("wallet", error)
     recordLoginCodeSendFailed("pending_state_failed")
+    await openEmailFallback("wallet", "phone_send_failed")
 
     return {
       fields: { contact, phoneSendFailed: true },
@@ -150,6 +163,10 @@ export async function requestCustomerLoginOtpAction(
       },
     }
   }
+
+  // One sign-in per browser, and email now waits 30 seconds from this code.
+  await clearPendingEmailSignIn()
+  await closeEmailFallback()
 
   recordCustomerContactEvent({
     eventName: "customer_login_code_requested",
@@ -170,10 +187,7 @@ function loginPhoneCodeFields(pending: {
   return {
     contact: pending.phone,
     otpSent: true,
-    emailFallbackInSeconds: phoneCodeEmailFallbackInSeconds(
-      pending.issuedAt,
-      Date.now()
-    ),
+    ...phoneCodeStepTiming(pending.issuedAt, Date.now()),
   }
 }
 
@@ -260,6 +274,8 @@ export async function verifyCustomerLoginOtpAction(
 
   if (!customer) {
     await clearPendingPhoneVerification()
+    // A wallet joined by email may be why: the scan step offers email.
+    await openEmailFallback("wallet", "no_cards")
     recordCustomerContactEvent({
       eventName: "customer_login_no_wallet",
       metadata: { method: "phone", surface: "home_login" },

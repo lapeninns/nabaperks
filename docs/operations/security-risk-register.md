@@ -57,7 +57,9 @@ Email is a fallback sign-in method. It ships behind
 always leads on the join page and `/home/login`; email is offered on the phone
 code step 30 seconds after the server sent the code, at once when the phone
 code cannot be sent, and on the `/home/login` no-cards step (owner decision,
-28 September 2026, replacing the earlier email-first plan).
+28 September 2026, replacing the earlier email-first plan). The server enforces
+the delay from the pending code's own send time and each browser's own
+cookies, never from an address, so a refused request reveals nothing.
 
 - It narrows the reopened exposure only for customers who sign in by email: a
   customer who never uses their phone number is not reachable through a

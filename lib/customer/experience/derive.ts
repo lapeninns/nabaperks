@@ -156,10 +156,21 @@ export type JoinContext =
        */
       pendingPhoneEmailFallbackInSeconds?: number
       /**
+       * When the server sent the pending phone code (epoch seconds). A resend
+       * changes it, which restarts the step's wait for the email fallback.
+       */
+      pendingPhoneSentAt?: number
+      /**
        * A join phone code is still pending while another step shows, so the
        * email step's phone link returns to that code, not a blank number.
        */
       phoneCodePending?: boolean
+      /**
+       * The server opened the email fallback for `step=email` (see
+       * lib/customer/phone-code-email-fallback.ts). Without it `step=email`
+       * shows the phone step.
+       */
+      emailFallbackOpen?: boolean
       /** Channel a first code goes out on (configured primary). */
       primaryChannel?: OtpChannel
       /** Email sign-in rollout mode; unset means `off`. */
@@ -567,12 +578,15 @@ function joinEmailMode(context: AvailableJoinContext): JoinEmailMode {
 
 /**
  * Phone is always the contact step. Email is a fallback the phone code step
- * offers (`step=email`), and does not exist while email sign-in is off.
+ * offers (`step=email`): it does not exist while email sign-in is off, and
+ * only once the server has opened it.
  */
 function joinContactKind(
   context: AvailableJoinContext
 ): "join_email" | "join_phone" {
-  return context.step === "email" && joinEmailMode(context) !== "off"
+  return context.step === "email" &&
+    joinEmailMode(context) !== "off" &&
+    context.emailFallbackOpen === true
     ? "join_email"
     : "join_phone"
 }
@@ -604,10 +618,16 @@ function joinEmail(context: AvailableJoinContext): CustomerExperience {
 /** When a phone code step may offer email: never while email sign-in is off. */
 function phoneCodeFallback(context: AvailableJoinContext): {
   emailFallbackInSeconds?: number
+  phoneCodeSentAt?: number
 } {
   if (joinEmailMode(context) === "off") return {}
   if (context.pendingPhoneEmailFallbackInSeconds === undefined) return {}
-  return { emailFallbackInSeconds: context.pendingPhoneEmailFallbackInSeconds }
+  return {
+    emailFallbackInSeconds: context.pendingPhoneEmailFallbackInSeconds,
+    ...(context.pendingPhoneSentAt === undefined
+      ? {}
+      : { phoneCodeSentAt: context.pendingPhoneSentAt }),
+  }
 }
 
 /** The loader passes at most one pending challenge; email wins if both. */
@@ -620,6 +640,7 @@ function joinOtp(context: AvailableJoinContext): CustomerExperience {
         ...(context.pendingEmail.deliveryDelayed
           ? { deliveryDelayed: true }
           : {}),
+        phoneCodePending: context.phoneCodePending === true,
       }
     : {
         method: "phone",

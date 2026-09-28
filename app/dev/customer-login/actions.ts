@@ -80,6 +80,12 @@ async function requestLoginFixture(
       contact,
       otpSent: true,
       emailFallbackInSeconds: PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS,
+      // Each send is newer than the last, as the pending cookie's issue time
+      // is, so a resend restarts the email fallback's wait.
+      phoneCodeSentAt: Math.max(
+        Math.floor(Date.now() / 1_000),
+        (state.fields?.phoneCodeSentAt ?? 0) + 1
+      ),
     },
     message:
       "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
@@ -94,13 +100,16 @@ async function verifyLoginFixture(
   if (process.env.NODE_ENV === "production") notFound()
   const contact = String(data.get("contact") ?? "")
   // The real action works the wait out again from the pending code cookie;
-  // the code step keeps counting down the wait it appeared with either way.
-  const emailFallbackInSeconds = state.fields?.emailFallbackInSeconds
+  // the same code keeps its send time, so the step keeps counting down.
+  const codeTiming = {
+    emailFallbackInSeconds: state.fields?.emailFallbackInSeconds,
+    phoneCodeSentAt: state.fields?.phoneCodeSentAt,
+  }
   if (scenario === "expired")
     return { errors: { contact: "Request a new phone code." } }
   if (scenario === "verify-error") {
     return {
-      fields: { contact, otpSent: true, emailFallbackInSeconds },
+      fields: { contact, otpSent: true, ...codeTiming },
       errors: {
         form: "We couldn't check that code. Try again or request a new one.",
       },
@@ -108,7 +117,7 @@ async function verifyLoginFixture(
   }
   if (data.get("otp") !== DISPLAY_OTP) {
     return {
-      fields: { contact, otpSent: true, emailFallbackInSeconds },
+      fields: { contact, otpSent: true, ...codeTiming },
       errors: { otp: "That code was not accepted." },
     }
   }

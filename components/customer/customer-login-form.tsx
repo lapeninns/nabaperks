@@ -23,6 +23,8 @@ type LoginAction = (
   data: FormData
 ) => Promise<CustomerLoginOtpState>
 
+const EMPTY_STATE: CustomerLoginOtpState = {}
+
 type CustomerLoginFormProps = {
   readonly next: string
   readonly loginAction?: LoginAction
@@ -31,6 +33,11 @@ type CustomerLoginFormProps = {
    * alone, as before email sign-in.
    */
   readonly emailMode?: JoinEmailMode
+  /**
+   * Where the page opens: a wallet phone code still pending opens on its code
+   * step (read by the page from the pending cookie), else the number form.
+   */
+  readonly initialState?: CustomerLoginOtpState
 }
 
 /**
@@ -45,8 +52,12 @@ export function CustomerLoginForm({
   next,
   loginAction = submitCustomerLoginOtpAction,
   emailMode = "off",
+  initialState = EMPTY_STATE,
 }: CustomerLoginFormProps) {
-  const [state, submitAction, pending] = useActionState(loginAction, {})
+  const [state, submitAction, pending] = useActionState(
+    loginAction,
+    initialState
+  )
   useForgetLegacyContactMethod()
   const emailEnabled = emailMode !== "off"
   const method: JoinContactMethod = emailEnabled
