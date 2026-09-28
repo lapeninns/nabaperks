@@ -72,7 +72,7 @@ test("Given a verified phone When it is attached Then it never overwrites a phon
   )
   assert.match(attach, /findCustomerByVerifiedPhone\(phone\)/)
   assert.match(attach, /status: "contact_conflict"/)
-  assert.match(attach, /\.is\("phone_hmac", null\)/)
+  assert.match(attach, /\.is\("phone_verified_at", null\)/)
   assert.match(attach, /error\.code === UNIQUE_VIOLATION/)
   assert.match(attach, /customerPhonePii\(phone\.e164\)/)
   assert.match(

@@ -21,7 +21,11 @@ async function loadProfile() {
           build.onResolve(
             { filter: /^(fixture-state|server-only|next\/|@\/lib\/)/ },
             ({ path }) => {
-              if (path === "@/lib/customer/profile") return null
+              if (
+                path === "@/lib/customer/profile" ||
+                path === "@/lib/customer/phone-verification-state"
+              )
+                return null
               return { path, namespace: "fixture" }
             }
           )

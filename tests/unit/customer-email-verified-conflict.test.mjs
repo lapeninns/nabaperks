@@ -39,6 +39,8 @@ async function loadProfile() {
       afterCalls: 0,
     };`,
     "server-only": "",
+    "@/lib/customer/phone-verification-state":
+      "export async function customerHasVerifiedPhone() { return false }",
     "next/server":
       'import { state } from "fixture-state"; export function after() { state.afterCalls += 1 }',
     "@/lib/customer/identity":

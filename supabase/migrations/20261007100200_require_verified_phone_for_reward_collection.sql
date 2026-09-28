@@ -1,3 +1,13 @@
+create or replace function private.reward_phone_verification_required()
+returns boolean
+language sql
+stable
+set search_path = pg_catalog
+as $$ select false $$;
+
+revoke all on function private.reward_phone_verification_required()
+  from public, anon, authenticated, service_role;
+
 create or replace function private.reward_collection_state(
   p_reward_id uuid,
   p_at timestamptz default now()
@@ -148,7 +158,8 @@ begin
   if nullif(btrim(v_reward.email), '') is null or v_reward.email_verified_at is null then
     state := 'blocked'; reason := 'Verified email required for reward collection'; return next; return;
   end if;
-  if v_reward.phone_hmac is null or v_reward.phone_verified_at is null then
+  if private.reward_phone_verification_required()
+     and (v_reward.phone_hmac is null or v_reward.phone_verified_at is null) then
     state := 'blocked'; reason := 'Complete your profile before redeeming'; return next; return;
   end if;
   if nullif(btrim(v_reward.full_name), '') is null
@@ -180,7 +191,7 @@ security definer
 set search_path = public, auth, extensions, pg_temp
 as $function$
 begin
-  if not exists (
+  if private.reward_phone_verification_required() and not exists (
     select 1 from public.customers
     where id = new.customer_id
       and phone_hmac is not null

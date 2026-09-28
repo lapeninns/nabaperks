@@ -2,6 +2,7 @@ import "server-only"
 
 import { after } from "next/server"
 import { cache } from "react"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentCustomer } from "@/lib/customer/identity"
@@ -63,17 +64,7 @@ export async function getCustomerProfileCompletion(): Promise<CustomerProfileCom
   })
 }
 
-const customerPhoneVerified = cache(
-  async (customerId: string): Promise<boolean> => {
-    const { data, error } = await createSupabaseServiceRoleClient()
-      .from("customers")
-      .select("phone_hmac, phone_verified_at")
-      .eq("id", customerId)
-      .maybeSingle()
-    if (error) throw error
-    return Boolean(data?.phone_hmac && data.phone_verified_at)
-  }
-)
+const customerPhoneVerified = cache(customerHasVerifiedPhone)
 
 export type UpdateCustomerProfileInput = {
   fullName: string

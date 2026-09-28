@@ -39,7 +39,7 @@ export default async function HomeProfilePage() {
     !profile.phoneVerified
   // An email-only wallet: no phone, so no phone messages or phone marketing
   // until one is added from the contact details section.
-  const hasPhone = Boolean(profile.phone)
+  const hasPhone = profile.phoneVerified
   const venueLabel = `${profile.membershipCount} ${
     profile.membershipCount === 1 ? "venue" : "venues"
   }`
@@ -62,7 +62,7 @@ export default async function HomeProfilePage() {
 
       <CustomerProfileAboutYou
         profile={{
-          phone: profile.phone,
+          phone: profile.phoneVerified ? profile.phone : null,
           fullName: profile.fullName,
           dateOfBirth: profile.dateOfBirth,
           email: profile.email,

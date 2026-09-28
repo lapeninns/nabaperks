@@ -10,6 +10,7 @@ import {
 } from "@/app/reward/[rewardId]/actions"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { CustomerProfileAddPhone } from "@/components/customer/profile-add-phone"
+import { rewardPhoneAction } from "@/app/home/(authed)/profile/phone-actions"
 import { profileInputClass } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -27,7 +28,7 @@ export function CustomerProfileGateForm({
   gate: ProfileGate
 }) {
   if (collectionSetup(gate).stage === "phone") {
-    return <CustomerProfileAddPhone />
+    return <CustomerProfileAddPhone action={rewardPhoneAction} />
   }
   if (collectionSetup(gate).stage === "email") {
     return <ProfileEmailStep rewardId={rewardId} email={gate.email} />

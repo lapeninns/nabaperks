@@ -315,6 +315,15 @@ test(
         previous.sections.find((section) => section.id === "joining"),
         joining
       )
+      const revised = await joinAs("2026-09-28.1")
+      assert.match(
+        revised.sections.find((section) => section.id === "redemption").body,
+        /A verified email address and verified mobile phone number are required before reward collection/
+      )
+      assert.deepEqual(
+        revised.sections.filter((section) => section.id !== "redemption"),
+        current.sections.filter((section) => section.id !== "redemption")
+      )
     })
   }
 )
@@ -363,12 +372,35 @@ test(
             where customer_id = ${customer.id}::uuid) as memberships,
           (select count(*)::int from public.customer_loyalty_terms_acceptances
             where customer_id = ${customer.id}::uuid) as acceptances`
+      await assert.rejects(
+        () =>
+          tx.savepoint(
+            (sp) => sp`
+        select * from public.join_customer_membership(
+          ${customer.id}::uuid, ${fixture.business_slug}, ${fixture.qr_id},
+          false, '2026-09-28.99'
+        )`
+          ),
+        (error) => error.code === "55000"
+      )
+      const [afterUnknownRevision] = await tx`
+        select
+          (select count(*)::int from public.customer_memberships
+            where customer_id = ${customer.id}::uuid) as memberships,
+          (select count(*)::int from public.customer_loyalty_terms_acceptances
+            where customer_id = ${customer.id}::uuid) as acceptances`
       assert.equal(memberships, 0)
       assert.equal(acceptances, 0)
+      assert.deepEqual(afterUnknownRevision, { memberships: 0, acceptances: 0 })
 
       // Versions with a snapshot trigger and versions before 2026-09-26 are
       // unaffected.
-      for (const version of ["2026-09-28", "2026-09-26", "2026-06-06"]) {
+      for (const version of [
+        "2026-09-28.1",
+        "2026-09-28",
+        "2026-09-26",
+        "2026-06-06",
+      ]) {
         const [other] = await tx`
           insert into public.customers (email, email_verified_at, created_at, updated_at)
           values (${`terms-known-${randomUUID()}@test.local`}, now(), now(), now())

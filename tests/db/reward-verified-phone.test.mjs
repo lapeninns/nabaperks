@@ -15,10 +15,38 @@ const skip = (await isLiveDbReady()) ? false : "local Supabase is not available"
 const PHONE_REASON = "Complete your profile before redeeming"
 
 test(
+  "Given the compatibility migration When the older app collects for an email-only wallet Then the database still permits collection",
+  { skip },
+  async () => {
+    await inVerificationTxn(async (tx) => {
+      const [activation] =
+        await tx`select private.reward_phone_verification_required() as enabled`
+      assert.equal(activation.enabled, false)
+      const f = await createIdCheckFixture(tx, "stamp_cycle", "v2")
+      await setPhoneState(tx, f, "missing")
+      await tx`update public.reward_events set reward_policy_snapshot = reward_policy_snapshot || jsonb_build_object('age_check', false) where id = ${f.rewardEventId}::uuid`
+      const [state] =
+        await tx`select state from private.reward_collection_state(${f.rewardEventId}::uuid)`
+      assert.equal(state.state, "ready")
+      await asPostgrestRole(tx, "service_role", {}, async () => {
+        await tx`select * from public.create_reward_scan_token(${f.rewardEventId}::uuid, ${f.customerId}::uuid)`
+      })
+    })
+  }
+)
+
+async function activatePhoneRequirement(tx) {
+  await tx.unsafe(`create or replace function private.reward_phone_verification_required()
+    returns boolean language sql stable set search_path = pg_catalog
+    as $$ select true $$`)
+}
+
+test(
   "Given an email-only wallet with an earned reward When its phone is verified Then collection can proceed",
   { skip },
   async () => {
     await inVerificationTxn(async (tx) => {
+      await activatePhoneRequirement(tx)
       const f = await createIdCheckFixture(tx, "stamp_cycle", "v2")
       await setPhoneState(tx, f, "missing")
       await tx`update public.reward_events
@@ -179,6 +207,7 @@ for (const policyVersion of ["legacy_v1", "v2"]) {
           { skip },
           async () => {
             await inVerificationTxn(async (tx) => {
+              await activatePhoneRequirement(tx)
               const f = await createIdCheckFixture(
                 tx,
                 "stamp_cycle",
