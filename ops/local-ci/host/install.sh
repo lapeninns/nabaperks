@@ -53,8 +53,11 @@
 #                               `ps` and is recorded in shell history.
 #   --skip-vm-check             Skip the runtime assertions (use only when
 #                               provisioning the agent before its runtime).
-#                               --job-image then has to be given by hand, and
-#                               on Docker Desktop no image is built.
+#                               --job-image then has to be given by hand.
+#                               Lima only: on Docker Desktop the image build
+#                               and the agent's DOCKER_CONFIG need the live
+#                               engine, so the flag is refused before anything
+#                               is written.
 #   -h, --help                  Show this help.
 
 set -euo pipefail
@@ -314,6 +317,10 @@ case "${runtime_kind}" in
 esac
 note "revision ${release_sha} selects the ${runtime_kind} runtime"
 
+if [ "${runtime_kind}" = "docker-desktop" ] && [ "${skip_vm_check}" = "yes" ]; then
+  die "--skip-vm-check applies only to the lima runtime. On docker-desktop this script builds the job image and writes the agent's DOCKER_CONFIG against the running engine, so start Docker Desktop and run it without the flag. Nothing has been written."
+fi
+
 if [ "${runtime_kind}" = "docker-desktop" ]; then
   docker_cli="$(contract_field runtime.dockerCli)"
   docker_context="$(contract_field runtime.context)"
@@ -411,17 +418,52 @@ else
   # succeed into a plane that will refuse every job.
   [ -f "${DOCKER_DESKTOP_SETTINGS}" ] \
     || die "cannot read Docker Desktop's settings at ${DOCKER_DESKTOP_SETTINGS}; is Docker Desktop installed?"
+  # Paths are compared as written, without the /System/Volumes/Data firmlink,
+  # and where they physically live, so a share of "/Volumes/Macintosh HD/Users"
+  # or of a symlink to the credential directory is caught - the same rule as
+  # the agent's fileSharingViolations.
   node -e '
     const fs = require("node:fs")
+    const path = require("node:path")
     const [settingsPath, home, secret] = process.argv.slice(1)
     const fold = (p) => String(p).replace(/\/+$/, "").toLowerCase() || "/"
     const covers = (a, p) => fold(a) === "/" || fold(p) === fold(a) || fold(p).startsWith(`${fold(a)}/`)
+    const DATA = "/System/Volumes/Data"
+    const firmlink = (p) => {
+      const text = String(p)
+      const folded = fold(text)
+      if (folded === fold(DATA)) return "/"
+      return folded.startsWith(`${fold(DATA)}/`) ? text.slice(DATA.length) : text
+    }
+    const physical = (p) => {
+      const rest = []
+      let current = String(p)
+      for (;;) {
+        try {
+          return firmlink(path.join(fs.realpathSync(current), ...rest))
+        } catch (error) {
+          if (error.code !== "ENOENT" && error.code !== "ENOTDIR") throw error
+          const parent = path.dirname(current)
+          if (parent === current) throw error
+          rest.unshift(path.basename(current))
+          current = parent
+        }
+      }
+    }
+    const forms = (p) => [...new Set([String(p), firmlink(p), physical(p)])]
+    const reaches = (a, p) => forms(a).some((x) => forms(p).some((y) => covers(x, y)))
     const shared = JSON.parse(fs.readFileSync(settingsPath, "utf8")).FilesharingDirectories
     if (!Array.isArray(shared)) {
       console.error("Docker Desktop uses its default file sharing, which includes /Users. In Docker Desktop > Settings > Resources > File sharing, replace it with an explicit list that excludes " + secret)
       process.exit(1)
     }
-    const bad = shared.filter((entry) => covers(entry, home) || covers(entry, secret) || covers(secret, entry))
+    let bad
+    try {
+      bad = shared.filter((entry) => typeof entry !== "string" || entry.trim() === "" || reaches(entry, home) || reaches(entry, secret) || reaches(secret, entry))
+    } catch (error) {
+      console.error(`could not resolve a file-sharing path (${error.code ?? error.message}), so it cannot be shown to exclude ${secret}`)
+      process.exit(1)
+    }
     if (bad.length) {
       console.error("Docker Desktop shares " + bad.join(", ") + ", which reaches " + secret + " or the whole home directory")
       process.exit(1)
@@ -678,11 +720,6 @@ NODE
   note "pinned verified Supabase image archive ${image_cache_sha}"
 fi
 
-printf '%s\n' "${job_image}" | sudo tee "${JOB_IMAGE_FILE}" >/dev/null
-sudo chown root:wheel "${JOB_IMAGE_FILE}"
-sudo chmod 0644 "${JOB_IMAGE_FILE}"
-note "pinned ${JOB_IMAGE_FILE} -> ${job_image}"
-
 if [ "${runtime_kind}" = "docker-desktop" ]; then
   # The agent's own DOCKER_CONFIG: the one context it may use, pointing at
   # this operator's Docker Desktop socket, and an empty config.json - no
@@ -702,6 +739,13 @@ if [ "${runtime_kind}" = "docker-desktop" ]; then
     || die "the agent's DOCKER_CONFIG at ${DOCKER_CONFIG_DIR} does not reach Docker Desktop"
   note "DOCKER_CONFIG ${DOCKER_CONFIG_DIR} reaches Docker Desktop through ${docker_context}, with no credential store"
 fi
+
+# Written only after every runtime-specific step has succeeded: an install
+# that dies above leaves the pin an already-installed release started with.
+printf '%s\n' "${job_image}" | sudo tee "${JOB_IMAGE_FILE}" >/dev/null
+sudo chown root:wheel "${JOB_IMAGE_FILE}"
+sudo chmod 0644 "${JOB_IMAGE_FILE}"
+note "pinned ${JOB_IMAGE_FILE} -> ${job_image}"
 
 # --------------------------------------------------------- 7. install release
 step "Installing revision ${release_sha} under ${INSTALL_ROOT}"

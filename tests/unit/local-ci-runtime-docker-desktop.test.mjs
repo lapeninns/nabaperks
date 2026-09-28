@@ -18,6 +18,8 @@ import { test } from "node:test"
 import {
   CANARY_HOST_ROUTES,
   CANARY_PROBE_SCRIPT,
+  CANARY_STALE_MS,
+  CREATED_AT_LABEL,
   DOCKER_CLI,
   EGRESS_HOSTS,
   HELPER_INSTALL_FLAGS,
@@ -44,8 +46,10 @@ import {
   openLoopbackListener,
   parseDockerSize,
   parseProbeReport,
+  physicalPath,
   storeSubpath,
   subnetInPool,
+  withoutFirmlink,
 } from "../../ops/local-ci/agent/runtime-docker-desktop.mjs"
 import { committedContract } from "../support/local-ci-contracts.mjs"
 
@@ -162,6 +166,78 @@ test("file sharing must be explicit and reach neither the key directory nor the 
     assert.equal(verdict(shared).length, 1, JSON.stringify(shared))
   }
   assert.equal(verdict(["/Users", `${HOME}/.nabaperks-local-ci`]).length, 2)
+})
+
+/** A realpath over a table of symlinks; everything else resolves to itself. */
+function fakeRealpath(links, missing = []) {
+  return (path) => {
+    for (const prefix of missing) {
+      if (path === prefix || path.startsWith(`${prefix}/`)) {
+        const error = new Error(`ENOENT: ${path}`)
+        error.code = "ENOENT"
+        throw error
+      }
+    }
+    for (const [link, target] of Object.entries(links)) {
+      if (path === link || path.startsWith(`${link}/`))
+        return join(target, path.slice(link.length))
+    }
+    return path
+  }
+}
+
+test("file sharing is judged where each path physically lives, not as it is spelt", () => {
+  const realpath = fakeRealpath({
+    "/Volumes/Macintosh HD": "/",
+    [`${HOME}/.nabaperks-local-ci`]: `${HOME}/secure/ci`,
+  })
+  const resolve = (path) => physicalPath(path, realpath)
+  const protectedPaths = ["~/.nabaperks-local-ci"]
+  const verdict = (shared, withResolve = true) =>
+    fileSharingViolations(
+      { FilesharingDirectories: shared },
+      { home: HOME, protectedPaths, ...(withResolve ? { resolve } : {}) }
+    )
+
+  // A symlink to / spells /Users without saying it: text alone passes it.
+  assert.deepEqual(verdict(["/Volumes/Macintosh HD/Users"], false), [])
+  assert.match(
+    verdict(["/Volumes/Macintosh HD/Users"])[0],
+    /covers the whole home directory/
+  )
+  // The data volume's firmlinks are the same directories, with or without a
+  // resolver, because realpath leaves a firmlink as it is.
+  for (const entry of [
+    "/System/Volumes/Data/Users",
+    "/system/volumes/data/Users/operator/",
+    "/System/Volumes/Data",
+  ]) {
+    assert.equal(verdict([entry], false).length, 1, entry)
+    assert.equal(verdict([entry]).length, 1, entry)
+  }
+  // A symlinked credential directory is protected where it really is.
+  assert.deepEqual(verdict([`${HOME}/secure`], false), [])
+  assert.match(
+    verdict([`${HOME}/secure`])[0],
+    /reaches the protected path ".*\/\.nabaperks-local-ci"/
+  )
+  assert.equal(verdict([`${HOME}/secure/ci/runs`]).length, 1)
+  assert.deepEqual(verdict([`${HOME}/LapenInns Project`, "/private/tmp"]), [])
+
+  assert.equal(withoutFirmlink("/System/Volumes/Data/Users/x"), "/Users/x")
+  assert.equal(
+    withoutFirmlink("/System/Volumes/DataX"),
+    "/System/Volumes/DataX"
+  )
+  // A path that does not exist yet lives where its nearest ancestor does.
+  const partial = fakeRealpath({ "/a": "/x" }, ["/a/b"])
+  assert.equal(physicalPath("/a/b/c", partial), "/x/b/c")
+  const denied = () => {
+    const error = new Error("EACCES")
+    error.code = "EACCES"
+    throw error
+  }
+  assert.throws(() => physicalPath("/a", denied), { code: "EACCES" })
 })
 
 test("the agent's DOCKER_CONFIG may carry no credential", () => {
@@ -566,7 +642,12 @@ function scriptedExec(respond) {
   return { exec, calls }
 }
 
-function harness({ settings, config = null, respond = () => undefined } = {}) {
+function harness({
+  settings,
+  config = null,
+  respond = () => undefined,
+  options = {},
+} = {}) {
   const root = mkdtempSync(join(tmpdir(), "local-ci-dd-"))
   const files = {
     [join(HOME, runtimeBlock.fileSharing.settingsFile)]: JSON.stringify(
@@ -607,6 +688,7 @@ function harness({ settings, config = null, respond = () => undefined } = {}) {
     dockerConfig: "/cfg",
     readFile,
     randomHex: () => "0123456789ab",
+    ...options,
   })
   return { runtime, calls: scripted.calls, root }
 }
@@ -737,6 +819,197 @@ test("every part of the verdict fails closed with the reason an operator can act
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
+  }
+})
+
+test("the runtime compares file sharing through symlinks and refuses a path it cannot resolve", async () => {
+  const symlinked = harness({
+    settings: { FilesharingDirectories: [`${HOME}/secure`] },
+    options: {
+      realpath: fakeRealpath({
+        [`${HOME}/.nabaperks-local-ci`]: `${HOME}/secure/ci`,
+      }),
+    },
+  })
+  const denied = harness({
+    options: {
+      realpath: (path) => {
+        if (!path.startsWith(HOME)) return path
+        const error = new Error(`EACCES: ${path}`)
+        error.code = "EACCES"
+        throw error
+      },
+    },
+  })
+  try {
+    await assert.rejects(symlinked.runtime.assertIsolationLive(), (error) => {
+      assert.equal(error.code, "VM_ISOLATION_VIOLATION")
+      assert.match(error.message, /reaches the protected path/)
+      return true
+    })
+    await assert.rejects(denied.runtime.assertIsolationLive(), (error) => {
+      assert.equal(error.code, "VM_UNVERIFIABLE")
+      assert.match(error.message, /could not resolve .*EACCES/)
+      return true
+    })
+  } finally {
+    rmSync(symlinked.root, { recursive: true, force: true })
+    rmSync(denied.root, { recursive: true, force: true })
+  }
+})
+
+/**
+ * A daemon that keeps canary containers and networks as state: a network on
+ * a subnet already in use is refused, as the pool overlap is, and a canary
+ * whose container is removed while its probe runs fails, as `docker run`
+ * does.
+ */
+function canaryDaemon(seed = { containers: [], networks: [] }) {
+  const containers = new Map(
+    seed.containers.map(({ name, ...rest }) => [name, rest])
+  )
+  const networks = new Map(
+    seed.networks.map(({ name, ...rest }) => [name, rest])
+  )
+  let sequence = 0
+  const createdAt = (args) =>
+    args
+      .find((word) => word.startsWith(`${CREATED_AT_LABEL}=`))
+      ?.slice(CREATED_AT_LABEL.length + 1) ?? ""
+  const remove = (map, target) => {
+    for (const [name, entry] of map)
+      if (entry.id === target || name === target) map.delete(name)
+    return ""
+  }
+  const respond = (args) => {
+    if (
+      args[0] === "ps" &&
+      args.includes(`label=com.nabaperks.local-ci.role=canary`)
+    )
+      return [...containers]
+        .map(([name, entry]) => `${entry.id} ${name} ${entry.createdAt}`)
+        .join("\n")
+    if (args[0] === "network" && args[1] === "ls")
+      return [...networks]
+        .map(([name, entry]) => `${entry.id} ${name} ${entry.createdAt}`)
+        .join("\n")
+    if (args[0] === "network" && args[1] === "create") {
+      const subnet = args[args.indexOf("--subnet") + 1]
+      if ([...networks.values()].some((entry) => entry.subnet === subnet))
+        return new Error("Pool overlaps with other one on this address space")
+      sequence += 1
+      networks.set(args.at(-1), {
+        id: `n${sequence}`,
+        subnet,
+        createdAt: createdAt(args),
+      })
+      return ""
+    }
+    if (args[0] === "network" && args[1] === "rm")
+      return remove(networks, args[2])
+    if (args[0] === "rm") return remove(containers, args[2])
+    if (args[0] === "run" && args.includes("/bin/bash")) {
+      const name = args[args.indexOf("--name") + 1]
+      sequence += 1
+      const id = `c${sequence}`
+      containers.set(name, { id, createdAt: createdAt(args) })
+      return new Promise((resolve) => setTimeout(resolve, 30)).then(() => {
+        if (containers.get(name)?.id !== id)
+          return new Error(`container ${name} was removed while it ran`)
+        containers.delete(name)
+        return cleanReport(args.at(-1))
+      })
+    }
+    return undefined
+  }
+  return { respond, containers, networks }
+}
+
+const counterHex = () => {
+  let next = 0
+  return () => {
+    next += 1
+    return next.toString(16).padStart(12, "0")
+  }
+}
+
+test("isolation checks in one process run one at a time, so neither fails the other", async () => {
+  // The poll loop's health check and a dispatch's own verdict can arrive
+  // together; each must see its own canary through to the end.
+  const daemon = canaryDaemon()
+  const { runtime, root } = harness({
+    respond: daemon.respond,
+    options: { randomHex: counterHex() },
+  })
+  try {
+    const verdicts = await Promise.all([
+      runtime.assertIsolationLive(),
+      runtime.assertIsolationLive(),
+      runtime.checks.canary(),
+    ])
+    assert.equal(verdicts[0].canary.probe, "ok")
+    assert.equal(verdicts[1].canary.probe, "ok")
+    assert.equal(verdicts[2].probe, "ok")
+    assert.equal(daemon.containers.size, 0)
+    assert.equal(daemon.networks.size, 0)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("the canary sweep removes stale leftovers and leaves another process's canary alone", async () => {
+  const NOW = 1_800_000_000_000
+  const young = String(NOW - 1000)
+  const stale = String(NOW - CANARY_STALE_MS - 1)
+  const daemon = canaryDaemon({
+    containers: [
+      {
+        name: "nabaperks-ci-canary-aaaaaaaaaaaa",
+        id: "c-old",
+        createdAt: stale,
+      },
+      { name: "nabaperks-ci-canary-bbbbbbbbbbbb", id: "c-bare", createdAt: "" },
+      {
+        name: "nabaperks-ci-canary-cccccccccccc",
+        id: "c-young",
+        createdAt: young,
+      },
+    ],
+    networks: [
+      {
+        name: "nabaperks-ci-canary-aaaaaaaaaaaa",
+        id: "n-old",
+        subnet: "10.213.1.0/24",
+        createdAt: stale,
+      },
+      {
+        name: "nabaperks-ci-canary-cccccccccccc",
+        id: "n-young",
+        subnet: "10.213.9.0/24",
+        createdAt: young,
+      },
+    ],
+  })
+  const { runtime, calls, root } = harness({
+    respond: daemon.respond,
+    options: { randomHex: counterHex(), now: () => NOW },
+  })
+  try {
+    await runtime.assertIsolationLive()
+    assert.deepEqual(
+      [...daemon.containers.keys()],
+      ["nabaperks-ci-canary-cccccccccccc"]
+    )
+    assert.deepEqual(
+      [...daemon.networks.keys()],
+      ["nabaperks-ci-canary-cccccccccccc"]
+    )
+    const created = calls.find(
+      ({ argv }) => argv[3] === "network" && argv[4] === "create"
+    )
+    assert.ok(created.argv.includes(`${CREATED_AT_LABEL}=${NOW}`))
+  } finally {
+    rmSync(root, { recursive: true, force: true })
   }
 })
 

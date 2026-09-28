@@ -29,23 +29,40 @@
  *      containers are refused by the argv builders, and each job container is
  *      inspected after it is created and before it starts.
  *
- * Only the trusted helper has egress, and never while candidate code can run:
- * it clones and installs with lifecycle scripts, pnpmfile hooks and
- * configDependencies all refused, through an allowlist CONNECT proxy that
- * reaches github.com, codeload.github.com and registry.npmjs.org on 443 at
- * public addresses only. A plain bridge would reach Mac loopback services
- * through host.docker.internal, which the 2026-09-28 spike showed. The job
- * then installs offline, where lifecycle scripts do run - with no network.
+ * Candidate code runs only in job containers, each on its own `--internal`
+ * lane network with no route to the prep network, the proxy or any gateway.
+ * The trusted helper that has egress never runs candidate code: it clones and
+ * installs with lifecycle scripts, pnpmfile hooks and configDependencies all
+ * refused, through an allowlist CONNECT proxy that reaches github.com,
+ * codeload.github.com and registry.npmjs.org on 443 at public addresses only.
+ * Lanes are admitted concurrently, so one lane's helper may be installing
+ * through the proxy while other lanes' jobs already run candidate code; what
+ * separates them is the network, not the timing. A plain bridge would reach
+ * Mac loopback services through host.docker.internal, which the 2026-09-28
+ * spike showed. The job then installs offline, where lifecycle scripts do run
+ * - with no network.
+ *
+ * The VM itself is not behind any of this. Its own network reaches the
+ * internet and the Mac's loopback services, and Docker Desktop forwards the
+ * Mac's SSH agent into it at /run/host-services/ssh-auth.sock; a kernel
+ * escape from a job container gets both. docs/operations/local-ci.md section
+ * 7.6 records that this was not part of the 2026-09-28 acceptance.
  *
  * A Broken or stopped engine is never repaired here. Every check refuses, and
  * the poll loop publishes nothing new until the engine is healthy again.
  */
 
 import { randomBytes } from "node:crypto"
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { connect, createServer } from "node:net"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { basename, dirname, join } from "node:path"
 
 import { LocalCiError, describeValue } from "../core/contract.mjs"
 import { laneResources } from "../core/lane-scheduler.mjs"
@@ -134,6 +151,15 @@ export const CANARY_EGRESS_TARGET = Object.freeze({
 export const LABEL_PREFIX = "com.nabaperks.local-ci."
 export const ROLE_LABEL = `${LABEL_PREFIX}role`
 export const HEAD_SHA_LABEL = `${LABEL_PREFIX}head-sha`
+/** When a canary was created, in epoch milliseconds, so a sweep can age it. */
+export const CREATED_AT_LABEL = `${LABEL_PREFIX}created-at`
+
+/**
+ * A canary older than this is a leftover. One runs for at most its 120-second
+ * probe plus the network create and removal around it, so anything younger
+ * may be another agent process's check still in flight.
+ */
+export const CANARY_STALE_MS = 10 * 60_000
 
 /** Fixed /24 slots of the job pool; lane networks take the rest. */
 export const SUBNET_SLOTS = Object.freeze({ canary: 1, prep: 2, egress: 3 })
@@ -223,20 +249,71 @@ const covers = (ancestor, path) => {
 }
 
 /**
- * Why Docker Desktop's file sharing is too wide, or nothing. **Pure.**
+ * The APFS data volume's own mount point. Every writable top-level directory
+ * of the boot volume - /Users among them - is firmlinked to the same path
+ * under it, and a firmlink is not a symlink, so realpath leaves it as it is.
+ */
+export const DATA_VOLUME_ROOT = "/System/Volumes/Data"
+
+/** The same place, spelt through the root rather than the data volume. Pure. */
+export function withoutFirmlink(path) {
+  const text = String(path)
+  const folded = text.toLowerCase()
+  const root = DATA_VOLUME_ROOT.toLowerCase()
+  if (folded === root || folded === `${root}/`) return "/"
+  return folded.startsWith(`${root}/`)
+    ? text.slice(DATA_VOLUME_ROOT.length)
+    : text
+}
+
+/**
+ * Where `path` physically lives: `realpath` of the path, or, for a path that
+ * does not exist yet, of its nearest existing ancestor with the rest appended,
+ * because that ancestor decides where the path will be created. Any answer
+ * other than "does not exist" is thrown, so the caller can refuse.
+ */
+export function physicalPath(path, realpath = realpathSync) {
+  const rest = []
+  let current = String(path)
+  for (;;) {
+    try {
+      return withoutFirmlink(join(realpath(current), ...rest))
+    } catch (error) {
+      if (error?.code !== "ENOENT" && error?.code !== "ENOTDIR") throw error
+      const parent = dirname(current)
+      if (parent === current) throw error
+      rest.unshift(basename(current))
+      current = parent
+    }
+  }
+}
+
+/**
+ * Why Docker Desktop's file sharing is too wide, or nothing. **Pure** apart
+ * from `resolve`, which the caller supplies.
  *
  * The defaults - a missing or null FilesharingDirectories - share /Users, so
  * the App key directory would sit one kernel escape away. An explicit list is
  * required, and no entry may cover the whole home directory or a protected
- * path, nor sit inside a protected path.
+ * path, nor sit inside a protected path. Every path is compared as written,
+ * without the data-volume firmlink, and as `resolve` says it physically lives,
+ * so neither `/Volumes/Macintosh HD/Users` (a symlink to /) nor
+ * `/System/Volumes/Data/Users` nor a symlinked credential directory slips past
+ * a textual comparison.
  */
-export function fileSharingViolations(settings, { home, protectedPaths }) {
+export function fileSharingViolations(
+  settings,
+  { home, protectedPaths, resolve = (path) => path }
+) {
   const shared = settings?.FilesharingDirectories
   if (!Array.isArray(shared)) {
     return [
       "Docker Desktop uses its default file sharing, which includes /Users and so the credential directory; set an explicit list that excludes it",
     ]
   }
+  const forms = (path) => [
+    ...new Set([String(path), withoutFirmlink(path), resolve(path)]),
+  ]
   const expanded = protectedPaths.map((path) =>
     path === "~"
       ? home
@@ -244,6 +321,8 @@ export function fileSharingViolations(settings, { home, protectedPaths }) {
         ? join(home, path.slice(2))
         : path
   )
+  const homeForms = forms(home)
+  const protectedForms = expanded.map((path) => [path, forms(path)])
   const violations = []
   for (const entry of shared) {
     if (typeof entry !== "string" || entry.trim() === "") {
@@ -252,14 +331,20 @@ export function fileSharingViolations(settings, { home, protectedPaths }) {
       )
       continue
     }
-    if (covers(entry, home)) {
+    const entryForms = forms(entry)
+    const any = (targets, test) =>
+      entryForms.some((form) => targets.some((target) => test(form, target)))
+    if (any(homeForms, covers)) {
       violations.push(
         `file sharing lists ${JSON.stringify(entry)}, which covers the whole home directory`
       )
       continue
     }
-    for (const path of expanded) {
-      if (covers(entry, path) || covers(path, entry)) {
+    for (const [path, targets] of protectedForms) {
+      if (
+        any(targets, covers) ||
+        any(targets, (form, target) => covers(target, form))
+      ) {
         violations.push(
           `file sharing lists ${JSON.stringify(entry)}, which reaches the protected path ${JSON.stringify(path)}`
         )
@@ -741,6 +826,8 @@ export function createDockerDesktopRuntime({
   readFile = (path) => readFileSync(path, "utf8"),
   listen = openLoopbackListener,
   randomHex = (bytes) => randomBytes(bytes).toString("hex"),
+  realpath = realpathSync,
+  now = Date.now,
 }) {
   const runtime = assertAdapterMatchesContract(contract)
   if (typeof execHost !== "function") {
@@ -865,9 +952,30 @@ export function createDockerDesktopRuntime({
         `could not read Docker Desktop's settings at ${path} (${error.code ?? error.message}); file sharing cannot be shown to exclude the credential directory`
       )
     }
+    // Compared where each path physically lives, not only as written: a share
+    // of a symlink to / or of the data-volume firmlink of /Users, or a
+    // credential directory that is itself a symlink, is still a share of it.
+    const resolve = (target) => {
+      try {
+        return physicalPath(target, realpath)
+      } catch (error) {
+        fail(
+          "VM_UNVERIFIABLE",
+          `could not resolve ${target} (${error.code ?? error.message}); file sharing cannot be shown to exclude the credential directory`
+        )
+      }
+      return null
+    }
     const violations = fileSharingViolations(settings, {
       home,
-      protectedPaths: [...runtime.fileSharing.protectedPaths, stateRoot],
+      protectedPaths: [
+        ...runtime.fileSharing.protectedPaths,
+        stateRoot,
+        ...(typeof config.privateKeyPath === "string"
+          ? [config.privateKeyPath]
+          : []),
+      ],
+      resolve,
     })
     if (violations.length > 0) {
       fail(
@@ -950,6 +1058,12 @@ export function createDockerDesktopRuntime({
     }
   }
 
+  /**
+   * Remove canaries an earlier check left behind, and only those. This
+   * process never runs two checks at once (`exclusive` below), so none of its
+   * own is in flight here; a canary younger than CANARY_STALE_MS may belong to
+   * another agent process on the same engine, and is left alone.
+   */
   async function sweepCanaryLeftovers() {
     const filters = [
       "--filter",
@@ -959,29 +1073,30 @@ export function createDockerDesktopRuntime({
         `label=${key}=${value}`,
       ]),
     ]
-    const containers = (
-      await docker(
-        ["ps", "--all", ...filters, "--format", "{{.ID}} {{.Names}}"],
-        {
-          timeoutMs: 30_000,
-        }
-      )
+    const format = (name) =>
+      `{{.ID}} {{.${name}}} {{.Label "${CREATED_AT_LABEL}"}}`
+    const stale = (text) =>
+      text
+        .split("\n")
+        .map((line) => line.trim().split(" "))
+        .filter(([id, name, createdAt]) => {
+          if (!id || !name?.startsWith("nabaperks-ci-canary-")) return false
+          const created = /^\d+$/.test(createdAt ?? "")
+            ? Number(createdAt)
+            : Number.NaN
+          return !(now() - created < CANARY_STALE_MS)
+        })
+    const containers = stale(
+      await docker(["ps", "--all", ...filters, "--format", format("Names")], {
+        timeoutMs: 30_000,
+      })
     )
-      .split("\n")
-      .map((line) => line.trim().split(" "))
-      .filter(([id, name]) => id && name?.startsWith("nabaperks-ci-canary-"))
     for (const [id] of containers) await removeQuietly(["rm", "--force", id])
-    const networks = (
-      await docker(
-        ["network", "ls", ...filters, "--format", "{{.ID}} {{.Name}}"],
-        {
-          timeoutMs: 30_000,
-        }
-      )
+    const networks = stale(
+      await docker(["network", "ls", ...filters, "--format", format("Name")], {
+        timeoutMs: 30_000,
+      })
     )
-      .split("\n")
-      .map((line) => line.trim().split(" "))
-      .filter(([id, name]) => id && name?.startsWith("nabaperks-ci-canary-"))
     for (const [id] of networks) await removeQuietly(["network", "rm", id])
   }
 
@@ -996,6 +1111,10 @@ export function createDockerDesktopRuntime({
     }
     const listener = await listen()
     const name = `nabaperks-ci-canary-${randomHex(6)}`
+    const canaryLabels = {
+      ...agentLabels("canary"),
+      [CREATED_AT_LABEL]: String(now()),
+    }
     try {
       // The positive control: the listener answers from the Mac itself, so
       // "unreachable" below cannot be the result of a listener that is dead.
@@ -1015,7 +1134,7 @@ export function createDockerDesktopRuntime({
           "--internal",
           "--subnet",
           subnet,
-          ...labelArgs(agentLabels("canary")),
+          ...labelArgs(canaryLabels),
           name,
         ],
         { timeoutMs: 30_000 }
@@ -1041,7 +1160,7 @@ export function createDockerDesktopRuntime({
         "256m",
         "--memory-swap",
         "256m",
-        ...labelArgs(agentLabels("canary")),
+        ...labelArgs(canaryLabels),
         "--entrypoint",
         "/bin/bash",
         image,
@@ -1089,7 +1208,26 @@ export function createDockerDesktopRuntime({
     }
   }
 
-  async function assertIsolationLive() {
+  /**
+   * One isolation check or sweep at a time in this process. The poll loop's
+   * health check, the nightly schedule's and a dispatch's own verdict and
+   * reconcile run independently of the dispatch gate; unserialised, one
+   * check's canary sweep would remove another's canary mid-probe, two canary
+   * networks would claim the same subnet, and a dispatch's reconcile would
+   * find a health check's canary and refuse - failing a check it had already
+   * opened.
+   */
+  let exclusiveTail = Promise.resolve()
+  const exclusive = (task) => {
+    const result = exclusiveTail.then(() => task())
+    exclusiveTail = result.then(
+      () => {},
+      () => {}
+    )
+    return result
+  }
+
+  async function isolationVerdict() {
     assertDockerConfig()
     const engineVerdict = await engine()
     const sharing = fileSharing()
@@ -1346,29 +1484,31 @@ export function createDockerDesktopRuntime({
       dockerConfig: assertDockerConfig,
       engine,
       fileSharing,
-      stateVolume: stateVolumeReady,
-      canary,
+      stateVolume: () => exclusive(stateVolumeReady),
+      canary: () => exclusive(canary),
     }),
-    assertIsolationLive,
+    assertIsolationLive: () => exclusive(isolationVerdict),
     reconcile: ({ profiles }) =>
-      reconcileAgentResources({
-        docker: prefix,
-        stateRoot,
-        profiles,
-        exec: (argv, options) =>
-          execHost(argv, {
-            ...options,
-            permitted: PERMITTED_HOST_EXECUTABLES,
-            env: dockerEnv,
-          }),
-        labelFilters: Object.entries(extraLabels).map(
-          ([key, value]) => `${key}=${value}`
-        ),
-        protectedVolumes: [stateVolume],
-      }),
+      exclusive(() =>
+        reconcileAgentResources({
+          docker: prefix,
+          stateRoot,
+          profiles,
+          exec: (argv, options) =>
+            execHost(argv, {
+              ...options,
+              permitted: PERMITTED_HOST_EXECUTABLES,
+              env: dockerEnv,
+            }),
+          labelFilters: Object.entries(extraLabels).map(
+            ([key, value]) => `${key}=${value}`
+          ),
+          protectedVolumes: [stateVolume],
+        })
+      ),
     async prepareWorkspace({ headSha, signal }) {
       requireSha(headSha)
-      await stateVolumeReady()
+      await exclusive(stateVolumeReady)
       await startEgress(headSha, signal)
       log("info", `preparing ${root}/runs/${headSha} in volume ${stateVolume}`)
       await helper({

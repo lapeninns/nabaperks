@@ -1,6 +1,13 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
@@ -78,6 +85,80 @@ test("the installer refuses Docker Desktop's default file sharing and any share 
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
+})
+
+test("the installer judges file sharing where paths physically live", () => {
+  const root = mkdtempSync(join(tmpdir(), "local-ci-install-links-"))
+  try {
+    // A home with a symlinked credential directory, and an alias of the
+    // whole tree, as "/Volumes/Macintosh HD" is an alias of /.
+    const home = join(root, "home", "operator")
+    mkdirSync(join(home, "secure", "ci"), { recursive: true })
+    mkdirSync(join(home, "project"))
+    const secret = join(home, ".nabaperks-local-ci")
+    symlinkSync(join(home, "secure", "ci"), secret)
+    symlinkSync(root, join(root, "alias"))
+    const check = (shared, { homeArg = home, secretArg = secret } = {}) => {
+      const path = join(root, "settings-store.json")
+      writeFileSync(path, JSON.stringify({ FilesharingDirectories: shared }))
+      return spawnSync(
+        process.execPath,
+        ["-e", fileSharingProgram, path, homeArg, secretArg],
+        { encoding: "utf8" }
+      )
+    }
+    for (const shared of [
+      [join(home, "secure")],
+      [join(home, "secure", "ci", "runs")],
+      [join(root, "alias", "home")],
+      [join(root, "alias", "home", "operator", ".nabaperks-local-ci")],
+    ]) {
+      const refused = check(shared)
+      assert.equal(refused.status, 1, JSON.stringify(shared))
+      assert.match(refused.stderr, /Docker Desktop shares/)
+    }
+    // The data volume's firmlinks, for a home that need not exist here.
+    for (const entry of [
+      "/System/Volumes/Data/Users",
+      "/System/Volumes/Data",
+      "/system/volumes/data/Users/operator",
+    ]) {
+      const refused = check([entry], {
+        homeArg: "/Users/operator",
+        secretArg: "/Users/operator/.nabaperks-local-ci",
+      })
+      assert.equal(refused.status, 1, entry)
+    }
+    const restricted = check([join(home, "project")])
+    assert.equal(restricted.status, 0, restricted.stderr)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("--skip-vm-check is refused on docker-desktop before anything is written, and the pin is written last", () => {
+  const refusal = INSTALLER.indexOf(
+    '"${runtime_kind}" = "docker-desktop" ] && [ "${skip_vm_check}" = "yes" ]'
+  )
+  assert.ok(
+    refusal > -1,
+    "install.sh must refuse --skip-vm-check on docker-desktop"
+  )
+  assert.ok(refusal < INSTALLER.indexOf('mkdir -p "${secret_dir_real}"'))
+  assert.ok(refusal < INSTALLER.indexOf("sudo -v"))
+  const pin = INSTALLER.indexOf(
+    'printf \'%s\\n\' "${job_image}" | sudo tee "${JOB_IMAGE_FILE}"'
+  )
+  assert.ok(pin > -1)
+  const configVerified = INSTALLER.indexOf('does not reach Docker Desktop"\n')
+  assert.ok(configVerified > -1)
+  assert.ok(pin > configVerified, "the job-image pin follows the runtime steps")
+  assert.ok(
+    pin <
+      INSTALLER.indexOf(
+        "# --------------------------------------------------------- 7. install release"
+      )
+  )
 })
 
 test("the installer holds the desktop-linux engine to the contract's runtime block", () => {
