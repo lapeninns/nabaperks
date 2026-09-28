@@ -176,6 +176,23 @@ test("Given a concurrent confirmation wins the unique index When the update rais
   assert.equal(profile.state.afterCalls, 0)
 })
 
+test("Given the address is verified elsewhere under a different HMAC When the address index raises 23505 Then the result is conflict", async () => {
+  const profile = await loadProfile()
+  // The HMAC pre-check finds nothing; only the address index catches it.
+  profile.state.updateError = {
+    code: "23505",
+    message:
+      'duplicate key value violates unique constraint "customers_verified_email_address_unique_idx"',
+  }
+
+  const result = await profile.markCustomerEmailVerified("guest@example.test")
+
+  assert.deepEqual(result, { status: "conflict" })
+  assert.equal(profile.state.queries.length, 1)
+  assert.deepEqual(profile.state.audits, [])
+  assert.equal(profile.state.afterCalls, 0)
+})
+
 test("Given any other database failure When the code is confirmed Then it still throws", async () => {
   const profile = await loadProfile()
   profile.state.updateError = { code: "57014", message: "statement timeout" }

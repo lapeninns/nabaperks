@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
@@ -17,6 +17,26 @@ test("the per-phone dispatch ceiling is 10 codes in 15 minutes", () => {
     "migrations",
     "20261005100700_raise_customer_otp_phone_dispatch_limit.sql"
   )
+
+  assert.match(migration, /enforce_rate_limit\(p_phone_bucket, 10, 900000\)/)
+  assert.doesNotMatch(
+    migration,
+    /enforce_rate_limit\(p_phone_bucket, 5, 900000\)/
+  )
+})
+
+test("the latest dispatch admission body keeps the 10-code per-phone ceiling", () => {
+  const latest = readdirSync(path.join(projectRoot, "supabase", "migrations"))
+    .filter((file) => file.endsWith(".sql"))
+    .sort()
+    .filter((file) =>
+      /create or replace function public\.admit_customer_otp_dispatch\(/.test(
+        read("supabase", "migrations", file)
+      )
+    )
+    .at(-1)
+  assert.ok(latest, "a migration defines admit_customer_otp_dispatch")
+  const migration = read("supabase", "migrations", latest)
 
   assert.match(migration, /enforce_rate_limit\(p_phone_bucket, 10, 900000\)/)
   assert.doesNotMatch(
