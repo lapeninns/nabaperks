@@ -31,6 +31,42 @@ export const HOST_ARCHITECTURES = Object.freeze(["arm64", "x64"])
 /** The lane `arch` value that pins a lane to x86-64 hardware. */
 export const X64_ONLY = "x64-only"
 
+/**
+ * Capabilities a lane may `require` of the runtime. A runtime that lists one
+ * in `contract.runtime.hostedOnlyRequirements` cannot provide it, and every
+ * lane requiring it is routed to the hosted plane.
+ */
+export const LANE_REQUIREMENTS = Object.freeze(["privileged-daemon"])
+
+/**
+ * The halves an e2e project is split into. Each half runs the interleaved
+ * shards of one denominator - odd numerators or even ones - so both halves
+ * together run every shard exactly once and each shard keeps its own fresh
+ * dev server and single worker.
+ */
+export const SPLIT_HALVES = Object.freeze(["odd", "even"])
+
+/** A browser workload invocation's suite, project and shard. Pure. */
+export function browserShardOf(command) {
+  const match =
+    /\b(test:e2e|test:a11y) --project="?([a-z0-9-]+)"?\s.*--shard="?(\d+)\/(\d+)"?/.exec(
+      String(command)
+    )
+  if (!match) return null
+  return {
+    suite: match[1],
+    project: match[2],
+    index: Number(match[3]),
+    total: Number(match[4]),
+  }
+}
+
+/** The half a split lane id names, or null for an unsplit lane. Pure. */
+export function splitHalfOf(laneId) {
+  const match = /-(odd|even)$/.exec(String(laneId))
+  return match ? match[1] : null
+}
+
 export class ProfileError extends LocalCiError {}
 
 /** One-based validation boundary; an older unmarked lane proves no execution. */
@@ -166,6 +202,106 @@ function validateBackgroundService(service, path) {
   }
 }
 
+function validateRequirements(lane, path) {
+  const requires =
+    lane.requires === undefined
+      ? []
+      : requireArray(lane.requires, `${path}.requires`)
+  for (const [index, requirement] of requires.entries()) {
+    requireNonEmptyString(requirement, `${path}.requires[${index}]`)
+    if (!LANE_REQUIREMENTS.includes(requirement)) {
+      fail(
+        "UNKNOWN_LANE_REQUIREMENT",
+        `${path}.requires[${index}] names ${JSON.stringify(requirement)}, which is not a runtime capability this plane knows (known: ${LANE_REQUIREMENTS.join(", ")})`
+      )
+    }
+  }
+  // A lane that needs a Docker daemon needs the privileged sidecar that
+  // provides one. Declaring the first without the second would let a runtime
+  // without that privilege schedule the lane and fail it in seconds.
+  if (lane.needsDaemon === true && !requires.includes("privileged-daemon")) {
+    fail(
+      "UNDECLARED_REQUIREMENT",
+      `${path} (${lane.id}) needs a Docker daemon but does not require privileged-daemon`
+    )
+  }
+}
+
+/**
+ * A lane that runs half of a project's shards must say which project, and
+ * every browser command in it must run that project's shards of that half.
+ * A copy-paste slip that pointed the even half of chromium at mobile-safari
+ * would otherwise run mobile-safari twice and chromium's even shards never.
+ */
+function validateSplitLane(lane, path) {
+  const half = splitHalfOf(lane.id)
+  if (half === null && lane.project === undefined) return
+  if (half === null) {
+    fail(
+      "SPLIT_LANE_SHAPE",
+      `${path} (${lane.id}) declares project ${describeValue(lane.project)} but its id does not end in -odd or -even`
+    )
+  }
+  const project = requireNonEmptyString(lane.project, `${path}.project`)
+  const shards = lane.commands.map(browserShardOf).filter(Boolean)
+  if (shards.length === 0) {
+    fail(
+      "SPLIT_LANE_SHAPE",
+      `${path} (${lane.id}) is a split lane that runs no sharded browser workload`
+    )
+  }
+  for (const shard of shards) {
+    if (shard.project !== project) {
+      fail(
+        "SPLIT_LANE_PROJECT",
+        `${path} (${lane.id}) declares project ${JSON.stringify(project)} but runs ${JSON.stringify(shard.project)} shard ${shard.index}/${shard.total}`
+      )
+    }
+    if ((shard.index % 2 === 1 ? "odd" : "even") !== half) {
+      fail(
+        "SPLIT_LANE_SHARD",
+        `${path} (${lane.id}) is the ${half} half but runs shard ${shard.index}/${shard.total}`
+      )
+    }
+  }
+}
+
+/**
+ * Every (suite, project) the profile shards must cover 1..N of one
+ * denominator exactly once across all of its lanes. This is the parity
+ * guarantee that lets a project run as two lanes: splitting may move a shard,
+ * never drop, repeat or re-size one.
+ */
+function validateShardCoverage(lanes, name) {
+  const coverage = new Map()
+  for (const lane of lanes) {
+    for (const shard of lane.commands.map(browserShardOf).filter(Boolean)) {
+      const key = `${shard.suite} ${shard.project}`
+      const entry = coverage.get(key) ?? { total: shard.total, seen: [] }
+      if (entry.total !== shard.total) {
+        fail(
+          "SHARD_COVERAGE",
+          `profile ${JSON.stringify(name)} runs ${key} with two denominators (${entry.total} and ${shard.total})`
+        )
+      }
+      entry.seen.push(shard.index)
+      coverage.set(key, entry)
+    }
+  }
+  for (const [key, { total, seen }] of coverage) {
+    const sorted = [...seen].sort((a, b) => a - b)
+    const complete =
+      sorted.length === total &&
+      sorted.every((value, position) => value === position + 1)
+    if (!complete) {
+      fail(
+        "SHARD_COVERAGE",
+        `profile ${JSON.stringify(name)} must run every shard of ${key} exactly once (1..${total}); it runs ${sorted.join(", ")}`
+      )
+    }
+  }
+}
+
 function validateLane(lane, index, contract, seenIds, knownSourceIds) {
   const path = `lanes[${index}]`
   requireObject(lane, path)
@@ -219,6 +355,8 @@ function validateLane(lane, index, contract, seenIds, knownSourceIds) {
 
   validateRuntimeEnvIds(lane.runtimeEnv, `${path}.runtimeEnv`, knownSourceIds)
   requireStringMap(lane.env, `${path}.env`)
+  validateRequirements(lane, path)
+  validateSplitLane(lane, path)
   assertBrowserMemoryBudget(lane, contract)
   if (lane.resources !== undefined) {
     requireObject(lane.resources, `${path}.resources`)
@@ -335,6 +473,7 @@ export function validateProfile(profile, contract, expectedName = null) {
   for (const [index, lane] of lanes.entries()) {
     validateLane(lane, index, contract, seenIds, knownSourceIds)
   }
+  validateShardCoverage(lanes, name)
 
   return deepFreeze(deepClone(profile))
 }
@@ -402,9 +541,17 @@ export function laneById(profile, laneId) {
  * `hostedOnly` with the reason, never dropped: the two lists always partition
  * the profile exactly, and that invariant is asserted before returning.
  *
+ * `hostedOnlyRequirements` is the active runtime's
+ * `contract.runtime.hostedOnlyRequirements`: capabilities it cannot provide.
+ * A lane that `requires` one of them is routed to `hostedOnly` the same way
+ * an x64-only lane is - reported with its reason, never dropped or failed.
+ *
  * Returns `{ arch, local, hostedOnly, reasons }`.
  */
-export function selectLanes(profile, { arch } = {}) {
+export function selectLanes(
+  profile,
+  { arch, hostedOnlyRequirements = [] } = {}
+) {
   requireObject(profile, "profile")
   const lanes = requireArray(profile.lanes, "profile.lanes")
   if (!HOST_ARCHITECTURES.includes(arch)) {
@@ -413,6 +560,7 @@ export function selectLanes(profile, { arch } = {}) {
       `selectLanes needs a host architecture from ${HOST_ARCHITECTURES.join(", ")} (received ${describeValue(arch)})`
     )
   }
+  requireArray(hostedOnlyRequirements, "hostedOnlyRequirements")
 
   const local = []
   const hostedOnly = []
@@ -423,6 +571,15 @@ export function selectLanes(profile, { arch } = {}) {
       hostedOnly.push(lane)
       reasons[lane.id] =
         `lane declares arch ${JSON.stringify(X64_ONLY)} and this host is ${JSON.stringify(arch)}; it stays on the GitHub-hosted x86-64 plane`
+      continue
+    }
+    const missing = (lane.requires ?? []).filter((requirement) =>
+      hostedOnlyRequirements.includes(requirement)
+    )
+    if (missing.length > 0) {
+      hostedOnly.push(lane)
+      reasons[lane.id] =
+        `lane requires ${missing.map((entry) => JSON.stringify(entry)).join(", ")}, which this runtime does not provide on a shared Docker daemon; it stays on the GitHub-hosted plane, which remains authoritative for it`
       continue
     }
     local.push(lane)

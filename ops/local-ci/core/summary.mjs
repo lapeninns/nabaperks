@@ -29,6 +29,7 @@ import { LocalCiError, describeValue } from "./contract.mjs"
 import { formatDigestLine, isDigestShaped } from "./digest.mjs"
 import { credentialShapeOf, redactCredentials } from "./job-env.mjs"
 import { computeRootCoverage, rootForLane } from "./root-coverage.mjs"
+import { splitCoverage } from "./split-lanes.mjs"
 
 /** Maximum failure entries rendered before the "N more" line takes over. */
 export const FAILURE_LIST_CAP = 20
@@ -90,15 +91,19 @@ const coverageLanesOf = (lanes, contract, profile) => {
           )
       )
     : []
+  // A project the local plane runs as two interleaved lanes is present when
+  // both halves are; one half alone leaves the other half missing.
+  const split = splitCoverage(
+    lanes.map((lane) => lane.laneId),
+    expected
+  )
   return [
     ...recorded,
-    ...expected
-      .filter((id) => !lanes.some((lane) => lane.laneId === id))
-      .map((laneId) => ({
-        laneId,
-        status: "missing",
-        executionStarted: false,
-      })),
+    ...split.missing.map((laneId) => ({
+      laneId,
+      status: "missing",
+      executionStarted: false,
+    })),
   ]
 }
 

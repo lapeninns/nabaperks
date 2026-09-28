@@ -271,3 +271,146 @@ test("validateProfile does not mutate the document it was handed", () => {
   assert.equal(Object.isFrozen(raw), false)
   assert.notEqual(validated, raw)
 })
+
+/* -------------------------------------- requirements and split browser lanes */
+
+const mutableProfile = (name) =>
+  JSON.parse(readRepoFile(`ops/local-ci/profiles/${name}.json`))
+
+test("profile selection: on Docker Desktop the daemon lanes are hosted-only, with a reason", () => {
+  const requirements = contract.runtime.hostedOnlyRequirements
+  assert.deepEqual(requirements, ["privileged-daemon"])
+  for (const [name, expected] of [
+    ["pr", ["db"]],
+    ["main", ["db"]],
+    ["nightly", ["db", "db-stress", "zap-full"]],
+  ]) {
+    const profile = profiles.get(name)
+    const routed = selectLanes(profile, {
+      arch: "arm64",
+      hostedOnlyRequirements: requirements,
+    })
+    assert.deepEqual(
+      routed.hostedOnly.map((lane) => lane.id),
+      expected,
+      name
+    )
+    for (const id of expected.filter((lane) => lane !== "zap-full"))
+      assert.match(routed.reasons[id], /privileged-daemon.*GitHub-hosted plane/)
+    assert.equal(
+      routed.local.length + routed.hostedOnly.length,
+      profile.lanes.length
+    )
+    // Lima provides the capability: the same lanes stay local there.
+    assert.equal(
+      selectLanes(profile, { arch: "arm64" }).hostedOnly.some(
+        (lane) => lane.id === "db"
+      ),
+      false
+    )
+  }
+  assert.throws(
+    () =>
+      selectLanes(profiles.get("pr"), {
+        arch: "arm64",
+        hostedOnlyRequirements: "privileged-daemon",
+      }),
+    { code: "PROFILE_SHAPE" }
+  )
+})
+
+test("a lane that needs a daemon must declare it, and only known requirements exist", () => {
+  const undeclared = mutableProfile("pr")
+  delete undeclared.lanes.find((lane) => lane.id === "db").requires
+  assert.throws(() => validateProfile(undeclared, contract, "pr"), {
+    code: "UNDECLARED_REQUIREMENT",
+  })
+  const unknown = mutableProfile("pr")
+  unknown.lanes[0].requires = ["gpu"]
+  assert.throws(() => validateProfile(unknown, contract, "pr"), {
+    code: "UNKNOWN_LANE_REQUIREMENT",
+  })
+})
+
+test("each e2e project runs as an odd and an even lane that together cover all 32 shards", () => {
+  for (const name of PROFILE_NAMES) {
+    const lanes = profiles.get(name).lanes
+    for (const project of [
+      "chromium",
+      "mobile-safari",
+      "desktop-firefox",
+      "desktop-safari",
+    ]) {
+      const halves = ["odd", "even"].map((half) =>
+        lanes.find((lane) => lane.id === `e2e-${project}-${half}`)
+      )
+      assert.ok(halves.every(Boolean), `${name} ${project}`)
+      const shards = halves.map((lane) =>
+        lane.commands
+          .map((command) => /--shard="(\d+)\/32"/.exec(command)?.[1])
+          .filter(Boolean)
+          .map(Number)
+      )
+      assert.deepEqual(
+        shards[0],
+        Array.from({ length: 16 }, (_, i) => i * 2 + 1)
+      )
+      assert.deepEqual(
+        shards[1],
+        Array.from({ length: 16 }, (_, i) => i * 2 + 2)
+      )
+      for (const lane of halves) {
+        assert.equal(lane.project, project)
+        assert.equal(lane.env.PLAYWRIGHT_WORKERS, "1")
+        assert.equal(lane.env.PLAYWRIGHT_NEXT_DIST_DIR, `.next-e2e-${lane.id}`)
+      }
+    }
+  }
+})
+
+test("a split lane that runs the wrong project, the wrong half or drops a shard is refused", () => {
+  const wrongProject = mutableProfile("pr")
+  const even = wrongProject.lanes.find(
+    (lane) => lane.id === "e2e-chromium-even"
+  )
+  even.commands[1] = even.commands[1].replace('"chromium"', '"mobile-safari"')
+  assert.throws(() => validateProfile(wrongProject, contract, "pr"), {
+    code: "SPLIT_LANE_PROJECT",
+  })
+
+  const wrongHalf = mutableProfile("pr")
+  const odd = wrongHalf.lanes.find((lane) => lane.id === "e2e-chromium-odd")
+  odd.commands[1] = odd.commands[1].replace('"1/32"', '"2/32"')
+  assert.throws(() => validateProfile(wrongHalf, contract, "pr"), {
+    code: "SPLIT_LANE_SHARD",
+  })
+
+  const dropped = mutableProfile("pr")
+  dropped.lanes
+    .find((lane) => lane.id === "e2e-desktop-safari-even")
+    .commands.pop()
+  assert.throws(() => validateProfile(dropped, contract, "pr"), {
+    code: "SHARD_COVERAGE",
+  })
+
+  const resized = mutableProfile("pr")
+  const firefox = resized.lanes.find(
+    (lane) => lane.id === "e2e-desktop-firefox-odd"
+  )
+  firefox.commands[1] = firefox.commands[1].replace('"1/32"', '"1/16"')
+  assert.throws(() => validateProfile(resized, contract, "pr"), {
+    code: "SHARD_COVERAGE",
+  })
+
+  const unnamed = mutableProfile("pr")
+  delete unnamed.lanes.find((lane) => lane.id === "e2e-chromium-odd").project
+  assert.throws(() => validateProfile(unnamed, contract, "pr"), {
+    code: "PROFILE_SHAPE",
+  })
+
+  const stray = mutableProfile("pr")
+  stray.lanes.find((lane) => lane.id === "fast").project = "chromium"
+  assert.throws(() => validateProfile(stray, contract, "pr"), {
+    code: "SPLIT_LANE_SHAPE",
+  })
+})

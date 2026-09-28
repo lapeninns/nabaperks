@@ -370,7 +370,7 @@ test("a run that stops at its first failure publishes only the roots that ran", 
   // not five, and the title has to say two.
   assert.equal(
     rendered.title,
-    "failure — 1/10 lanes, 13/14 tests, 2/9 required roots local"
+    `failure — 1/${laneIds.length} lanes, 13/14 tests, 2/9 required roots local`
   )
   assert.match(rendered.summary, /Required roots:\s*2 of 9/)
 
@@ -393,7 +393,7 @@ test("a run that stops at its first failure publishes only the roots that ran", 
   // The skipped lanes do not vanish from the prose either.
   assert.ok(
     rendered.text.includes(
-      "- No execution proof: local lane `e2e-chromium` was recorded `skipped` without verified validation-start evidence, so the `e2e` root is not counted as covered here"
+      "- No execution proof: local lane `e2e-chromium-odd` was recorded `skipped` without verified validation-start evidence, so the `e2e` root is not counted as covered here"
     ),
     `the skipped lanes must stay visible (was ${JSON.stringify(rendered.text)})`
   )
@@ -410,7 +410,7 @@ test("one executed browser lane cannot cover a partly skipped matrix root", () =
     executionStarted: false,
   }))
   Object.assign(
-    lanes.find((lane) => lane.laneId === "e2e-chromium"),
+    lanes.find((lane) => lane.laneId === "e2e-chromium-odd"),
     { status: "failure", executionVerified: true, executionStarted: true }
   )
   const coverage = computeRootCoverage(lanes)
@@ -510,4 +510,50 @@ test("a bare member blocks a root even beside a verified sibling", () => {
   assert.deepEqual(coverage.unverifiedLanes, [
     { laneId: "e2e-mobile-safari", root: "e2e", status: null },
   ])
+})
+
+test("a project's two halves stand for it, and a missing half is named rather than hidden", () => {
+  const laneIds = laneIdsOf("pr")
+  const render = (ids) =>
+    extractLaneSummary(
+      renderCheckSummary(
+        {
+          profile: "pr",
+          headSha: "e".repeat(40),
+          conclusion: "success",
+          logDigest: logDigest("lane output"),
+          lanes: ids.map((laneId) => ({
+            laneId,
+            status: "success",
+            executionVerified: true,
+            executionStarted: true,
+            testsRun: 1,
+            testsPassed: 1,
+            testsFailed: 0,
+            testsSkipped: 0,
+          })),
+        },
+        contract
+      ).text
+    ).rootCoverage
+  const complete = render(laneIds)
+  assert.ok(complete.coveredRoots.includes("e2e"))
+  assert.deepEqual(complete.notRunLanes, [])
+
+  const halfMissing = render(
+    laneIds.filter((laneId) => laneId !== "e2e-chromium-even")
+  )
+  assert.equal(halfMissing.coveredRoots.includes("e2e"), false)
+  assert.deepEqual(
+    halfMissing.notRunLanes.map((entry) => entry.laneId),
+    ["e2e-chromium-even"]
+  )
+
+  const projectMissing = render(
+    laneIds.filter((laneId) => !laneId.startsWith("e2e-chromium-"))
+  )
+  assert.deepEqual(
+    projectMissing.notRunLanes.map((entry) => entry.laneId),
+    ["e2e-chromium"]
+  )
 })

@@ -287,7 +287,7 @@ test("the lane's own env wins over everything the profile declared", () => {
   const env = build()
   assert.equal(env.PLAYWRIGHT_WORKERS, undefined)
 
-  const chromium = laneById(pr, "e2e-chromium")
+  const chromium = laneById(pr, "e2e-chromium-odd")
   const laneEnv = buildJobEnv({
     profile: pr,
     lane: chromium,
@@ -298,7 +298,7 @@ test("the lane's own env wins over everything the profile declared", () => {
     contract,
   })
   assert.equal(laneEnv.PLAYWRIGHT_BASE_URL, "http://127.0.0.1:3146")
-  assert.equal(laneEnv.PLAYWRIGHT_NEXT_DIST_DIR, ".next-e2e-e2e-chromium")
+  assert.equal(laneEnv.PLAYWRIGHT_NEXT_DIST_DIR, ".next-e2e-e2e-chromium-odd")
   assert.equal(laneEnv.CI, "1")
   // The image installs the browsers under /opt/ms-playwright and pins the
   // variable to it. The agent's macOS cache directory has no Linux browsers

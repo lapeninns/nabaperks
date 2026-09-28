@@ -1,5 +1,6 @@
 import { requireHostedIdentity } from "./hosted-identity.mjs"
 import { requireSameCheckoutTree } from "./checkout-proof.mjs"
+import { splitLaneBase, splitLaneIds } from "./split-lanes.mjs"
 /** Read-only same-SHA evidence comparison. This module never changes a gate. */
 import {
   COUNT_FIELDS,
@@ -56,6 +57,14 @@ function validateLimits(contract, profile) {
   )
   const lanes = Object.entries(limits.lanes ?? {})
   requireCondition(lanes.length > 0, "No expected comparison lanes")
+  requireCondition(
+    limits.pinnedHostedLanes === undefined ||
+      (Array.isArray(limits.pinnedHostedLanes) &&
+        limits.pinnedHostedLanes.every((id) =>
+          Object.hasOwn(limits.lanes, id)
+        )),
+    "pinnedHostedLanes must name compared lanes"
+  )
   for (const [id, limit] of lanes) {
     requireCondition(
       isCount(limit?.minimumTests) && isCount(limit?.maximumSkipped),
@@ -70,6 +79,136 @@ function validateLimits(contract, profile) {
     )
   }
   return limits
+}
+
+const sumCounts = (values) =>
+  values.every((value) => isCount(value))
+    ? values.reduce((total, value) => total + value, 0)
+    : null
+
+const allTrue = (values) =>
+  values.every((value) => value === true)
+    ? true
+    : values.some((value) => value === false)
+      ? false
+      : null
+
+function combineStatus(halves) {
+  const statuses = halves.map((lane) => lane.status)
+  for (const status of ["cancelled", "timed_out", "failure", "skipped"])
+    if (statuses.includes(status)) return status
+  return statuses.every((status) => status === "success")
+    ? "success"
+    : statuses[0]
+}
+
+/**
+ * One project's two interleaved lanes, as the one lane its floors and the
+ * hosted plane describe. Pure.
+ *
+ * Counts are summed, and stay null when either half has none, so half a
+ * tally never reads as the project's. The status is the worst of the two,
+ * execution is proven only when both halves prove it, and a half that was
+ * skipped keeps its blocker, so a project that half ran is compared as one
+ * that did not finish.
+ */
+export function combineSplitLanes(projectId, halves, rename = (id) => id) {
+  const [first] = halves
+  const skipped = halves.find((lane) => lane.status === "skipped")
+  const executionVerified = allTrue(
+    halves.map((lane) => lane.executionVerified)
+  )
+  const combined = {
+    ...Object.fromEntries(
+      ["schema", "plane", "profile", "headSha"]
+        .filter((field) => first[field] !== undefined)
+        .map((field) => [field, first[field]])
+    ),
+    laneId: projectId,
+    status: combineStatus(halves),
+    durationSeconds: Math.max(
+      ...halves.map((lane) =>
+        typeof lane.durationSeconds === "number" ? lane.durationSeconds : 0
+      )
+    ),
+    testsRun: sumCounts(halves.map((lane) => lane.testsRun)),
+    testsPassed: sumCounts(halves.map((lane) => lane.testsPassed)),
+    testsFailed: sumCounts(halves.map((lane) => lane.testsFailed)),
+    testsSkipped: sumCounts(halves.map((lane) => lane.testsSkipped)),
+    flaky: sumCounts(halves.map((lane) => lane.flaky ?? 0)),
+    executionStarted: allTrue(halves.map((lane) => lane.executionStarted)),
+    ...(executionVerified === true ? { executionVerified: true } : {}),
+  }
+  const parsed = allTrue(halves.map((lane) => lane.countsParsed))
+  if (parsed !== null) combined.countsParsed = parsed
+  if (halves.some((lane) => lane.countsExpected === true))
+    combined.countsExpected = true
+  if (skipped && typeof skipped.blockedByLaneId === "string")
+    combined.blockedByLaneId = rename(skipped.blockedByLaneId)
+  return combined
+}
+
+/**
+ * Local evidence with each split project folded back into one lane, for the
+ * project ids the policy expects. Pure. A lane whose pair is incomplete, or
+ * whose project id already appears on its own, is left as it is and is then
+ * refused as unexpected - never quietly counted as the project.
+ */
+export function aggregateSplitEvidence(evidence, expectedIds) {
+  if (!Array.isArray(evidence?.lanes)) return evidence
+  const byId = new Map(evidence.lanes.map((lane) => [lane?.laneId, lane]))
+  const folded = new Set()
+  for (const id of expectedIds) {
+    if (byId.has(id)) continue
+    if (splitLaneIds(id).every((half) => byId.has(half))) folded.add(id)
+  }
+  const rename = (id) => {
+    const base = splitLaneBase(id)
+    return base !== null && folded.has(base) ? base : id
+  }
+  const lanes = []
+  for (const lane of evidence.lanes) {
+    const base = splitLaneBase(lane?.laneId)
+    if (base === null || !folded.has(base)) {
+      lanes.push(
+        typeof lane?.blockedByLaneId === "string"
+          ? { ...lane, blockedByLaneId: rename(lane.blockedByLaneId) }
+          : lane
+      )
+      continue
+    }
+    if (lane.laneId !== splitLaneIds(base)[0]) continue
+    lanes.push(
+      combineSplitLanes(
+        base,
+        splitLaneIds(base).map((half) => byId.get(half)),
+        rename
+      )
+    )
+  }
+  return { ...evidence, lanes }
+}
+
+/**
+ * Policy lanes the local run left to the hosted plane on purpose. A lane
+ * qualifies only when the policy lists it as pinnable, the local summary
+ * itself reports it hosted-only, and no local result for it exists; it is
+ * then recorded as pinned-hosted, never as equivalent or passed.
+ */
+function pinnedHostedLanes(limits, local) {
+  const pinnable = Array.isArray(limits.pinnedHostedLanes)
+    ? limits.pinnedHostedLanes
+    : []
+  const reported = Array.isArray(local?.hostedOnlyLanes)
+    ? local.hostedOnlyLanes.map((entry) =>
+        typeof entry === "string" ? entry : entry?.laneId
+      )
+    : []
+  const ran = new Set((local?.lanes ?? []).map((lane) => lane?.laneId))
+  return pinnable.filter(
+    (id) =>
+      Object.hasOwn(limits.lanes, id) && reported.includes(id) && !ran.has(id)
+  )
 }
 
 function compareLane(id, limit, local, hosted) {
@@ -157,7 +296,15 @@ export function compareShadowEvidence({
     requireSameCheckoutTree(hosted, headSha)
     const limits = validateLimits(contract, profile)
     const ids = Object.keys(limits.lanes)
-    const localLanes = indexEvidence(local, "local", headSha, profile, ids)
+    const pinned = pinnedHostedLanes(limits, local)
+    const localIds = ids.filter((id) => !pinned.includes(id))
+    const localLanes = indexEvidence(
+      aggregateSplitEvidence(local, localIds),
+      "local",
+      headSha,
+      profile,
+      localIds
+    )
     // Skipped lanes are already non-qualifying; retain their blocker diagnostics.
     const unverified = [...localLanes.values()].filter(
       (lane) =>
@@ -175,7 +322,30 @@ export function compareShadowEvidence({
       "Missing or invalid published local check duration"
     )
     const lanes = ids.map((id) =>
-      compareLane(id, limits.lanes[id], localLanes.get(id), hostedLanes.get(id))
+      pinned.includes(id)
+        ? {
+            laneId: id,
+            minimumTests: limits.lanes[id].minimumTests,
+            maximumSkipped: limits.lanes[id].maximumSkipped,
+            local: null,
+            hosted: Object.fromEntries(
+              ["status", ...COUNT_FIELDS, "flaky"]
+                .filter((field) => hostedLanes.get(id)[field] !== undefined)
+                .map((field) => [field, hostedLanes.get(id)[field]])
+            ),
+            verdict: "pinned-hosted",
+            equivalent: false,
+            blockedSkip: false,
+            reasons: [
+              "the local runtime leaves this lane to the hosted plane; it is recorded as pinned-hosted, not as passed",
+            ],
+          }
+        : compareLane(
+            id,
+            limits.lanes[id],
+            localLanes.get(id),
+            hostedLanes.get(id)
+          )
     )
     const incomplete = lanes.filter((lane) => lane.verdict === "incomplete")
     const divergent = lanes.some((lane) => lane.verdict === "divergent")
@@ -206,10 +376,13 @@ export function compareShadowEvidence({
         maximumSeconds: limits.maxProfileDurationSeconds,
         satisfied: budgetSatisfied,
       },
+      pinnedHosted: pinned,
       lanes,
-      reasons: lanes.flatMap((lane) =>
-        lane.reasons.map((reason) => `${lane.laneId}: ${reason}`)
-      ),
+      reasons: lanes
+        .filter((lane) => lane.verdict !== "pinned-hosted")
+        .flatMap((lane) =>
+          lane.reasons.map((reason) => `${lane.laneId}: ${reason}`)
+        ),
     }
   } catch (error) {
     return { ...base, reasons: [error.message], lanes: [] }

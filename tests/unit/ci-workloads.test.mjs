@@ -44,6 +44,11 @@ test("every local browser command resolves to all original shards with snapshot 
       )
     )
     let count = 0
+    // Shard indices seen per suite and project, across every lane. A project
+    // may run as one lane or as the interleaved pair `<lane>-odd` and
+    // `<lane>-even`; either way its lanes together must carry each of its
+    // shards exactly once, so a lost, doubled or misplaced shard fails here.
+    const covered = new Map()
     for (const lane of profile.lanes.filter((lane) =>
       /^(e2e|a11y)-/.test(lane.id)
     )) {
@@ -56,18 +61,47 @@ test("every local browser command resolves to all original shards with snapshot 
       const suite = /browser-workload\.mjs local (\S+) /.exec(commands[0])?.[1]
       const shards = workloads.browsers[suite]?.localShards
       assert.ok(shards, `lane ${lane.id} names a known browser suite`)
+      const half = /-(odd|even)$/.exec(lane.id)?.[1] ?? null
+      const expected = Array.from({ length: shards }, (_, i) => i + 1).filter(
+        (index) =>
+          half === null || (half === "odd" ? index % 2 === 1 : index % 2 === 0)
+      )
       assert.equal(
         commands.length,
-        shards,
-        `lane ${lane.id} must carry every one of its ${shards} shards`
+        expected.length,
+        `lane ${lane.id} must carry every one of its ${expected.length} shards of ${shards}`
       )
-      for (const [index, command] of commands.entries()) {
+      for (const [position, command] of commands.entries()) {
         const args = command.replaceAll('"', "").split(" ").slice(2)
         const generated = parseBrowserRequest(args)
         assert.ok(generated.includes("--ignore-snapshots"))
         assert.ok(generated.includes("--grep-invert"))
-        assert.ok(generated.includes(`--shard=${index + 1}/${shards}`))
+        assert.ok(
+          generated.includes(`--shard=${expected[position]}/${shards}`),
+          `lane ${lane.id} command ${position + 1} is shard ${expected[position]}/${shards}`
+        )
+        const project = args
+          .find((arg) => arg.startsWith("--project="))
+          ?.slice("--project=".length)
+        assert.equal(
+          lane.id,
+          `${suite.slice("test:".length)}-${project}${half ? `-${half}` : ""}`,
+          `lane ${lane.id} runs only its own project's shards`
+        )
+        const key = `${suite} ${project}`
+        covered.set(key, [...(covered.get(key) ?? []), expected[position]])
         count++
+      }
+    }
+    for (const [suite, definition] of Object.entries(workloads.browsers)) {
+      if (!definition.localShards) continue
+      for (const project of definition.projects) {
+        const indices = covered.get(`${suite} ${project}`) ?? []
+        assert.deepEqual(
+          [...indices].sort((a, b) => a - b),
+          Array.from({ length: definition.localShards }, (_, i) => i + 1),
+          `${name}: ${suite} ${project} must run each of its ${definition.localShards} shards exactly once`
+        )
       }
     }
     // Four e2e projects at /32 and two a11y projects at /8, per profile.

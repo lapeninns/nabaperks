@@ -686,3 +686,140 @@ test("saved comparison reports without verified execution cannot replay into a s
     assert.equal(shadowEquivalenceStreak(reports, 3).satisfied, false)
   }
 })
+
+/* ------------------------------- split e2e lanes and pinned-hosted lanes */
+
+/** The local evidence as the split profile produces it: odd and even halves. */
+function splitLocal(input, split = (lane) => lane.laneId.startsWith("e2e-")) {
+  input.local.lanes = input.local.lanes.flatMap((lane) => {
+    if (!split(lane)) return [lane]
+    const oddRun = Math.ceil(lane.testsRun / 2)
+    const oddSkipped = Math.ceil(lane.testsSkipped / 2)
+    const odd = {
+      ...lane,
+      laneId: `${lane.laneId}-odd`,
+      testsRun: oddRun,
+      testsSkipped: oddSkipped,
+      testsPassed: oddRun - oddSkipped,
+    }
+    const even = {
+      ...lane,
+      laneId: `${lane.laneId}-even`,
+      testsRun: lane.testsRun - oddRun,
+      testsSkipped: lane.testsSkipped - oddSkipped,
+      testsPassed: lane.testsRun - oddRun - (lane.testsSkipped - oddSkipped),
+    }
+    return [odd, even]
+  })
+  return input
+}
+
+test("two halves of a project are compared as the project, against its own floor", () => {
+  const input = splitLocal(fixture())
+  assert.equal(input.local.lanes.length, 14)
+  const result = compareShadowEvidence(input)
+  assert.equal(result.verdict, "equivalent", result.reasons.join("; "))
+  assert.equal(result.eligibleForStreak, true)
+  const chromium = result.lanes.find((lane) => lane.laneId === "e2e-chromium")
+  assert.equal(
+    chromium.local.testsRun,
+    CONTRACT.shadowMode.qualification.lanes["e2e-chromium"].minimumTests
+  )
+})
+
+test("half a project is never read as the project", () => {
+  const input = splitLocal(fixture())
+  input.local.lanes = input.local.lanes.filter(
+    (lane) => lane.laneId !== "e2e-desktop-safari-even"
+  )
+  const result = compareShadowEvidence(input)
+  assert.equal(result.verdict, "incomplete")
+  assert.equal(result.eligibleForStreak, false)
+})
+
+test("a failed half fails the project, and a lost test in either half is caught", () => {
+  const failed = splitLocal(fixture())
+  const half = failed.local.lanes.find(
+    (lane) => lane.laneId === "e2e-chromium-even"
+  )
+  half.status = "failure"
+  half.testsFailed = 1
+  half.testsPassed -= 1
+  failed.local.conclusion = "failure"
+  const failedResult = compareShadowEvidence(failed)
+  assert.equal(failedResult.verdict, "divergent")
+  assert.match(failedResult.reasons.join(" "), /e2e-chromium: status mismatch/)
+
+  const lost = splitLocal(fixture())
+  const odd = lost.local.lanes.find(
+    (lane) => lane.laneId === "e2e-mobile-safari-odd"
+  )
+  odd.testsRun -= 1
+  odd.testsPassed -= 1
+  const lostResult = compareShadowEvidence(lost)
+  assert.equal(lostResult.verdict, "divergent")
+  assert.match(
+    lostResult.reasons.join(" "),
+    /e2e-mobile-safari: testsRun mismatch/
+  )
+})
+
+test("a lane the runtime left to the hosted plane is pinned-hosted, never passed", () => {
+  const input = splitLocal(fixture())
+  input.local.lanes = input.local.lanes.filter((lane) => lane.laneId !== "db")
+  input.local.hostedOnlyLanes = ["db"]
+  const result = compareShadowEvidence(input)
+  assert.equal(result.verdict, "equivalent", result.reasons.join("; "))
+  assert.deepEqual(result.pinnedHosted, ["db"])
+  const db = result.lanes.find((lane) => lane.laneId === "db")
+  assert.equal(db.verdict, "pinned-hosted")
+  assert.equal(db.equivalent, false)
+  assert.equal(db.local, null)
+
+  // Absent without the summary saying so is still a missing lane.
+  const silent = splitLocal(fixture())
+  silent.local.lanes = silent.local.lanes.filter((lane) => lane.laneId !== "db")
+  assert.equal(compareShadowEvidence(silent).verdict, "incomplete")
+
+  // Only the lanes the policy lets a runtime pin can be pinned.
+  const unpinnable = fixture()
+  unpinnable.local.lanes = unpinnable.local.lanes.filter(
+    (lane) => lane.laneId !== "fast"
+  )
+  unpinnable.local.hostedOnlyLanes = ["fast"]
+  assert.equal(compareShadowEvidence(unpinnable).verdict, "incomplete")
+
+  const invalid = fixture()
+  invalid.contract.shadowMode.qualification.pinnedHostedLanes = ["nope"]
+  assert.equal(compareShadowEvidence(invalid).verdict, "incomplete")
+})
+
+test("a lane blocked by a failure that started later in profile order is still a valid block", () => {
+  // Longest-first admission can start an e2e half before fast; if the half
+  // fails first, fast is skipped behind a lane that follows it in the profile.
+  const input = splitLocal(fixture())
+  const failing = input.local.lanes.find(
+    (lane) => lane.laneId === "e2e-chromium-odd"
+  )
+  failing.status = "failure"
+  failing.testsFailed = 1
+  failing.testsPassed -= 1
+  const fast = input.local.lanes.find((lane) => lane.laneId === "fast")
+  Object.assign(fast, {
+    status: "skipped",
+    blockedByLaneId: "e2e-chromium-odd",
+    executionStarted: false,
+    executionVerified: undefined,
+    testsRun: 0,
+    testsPassed: 0,
+    testsFailed: 0,
+    testsSkipped: 0,
+  })
+  input.local.conclusion = "failure"
+  const result = compareShadowEvidence(input)
+  const fastResult = result.lanes.find((lane) => lane.laneId === "fast")
+  assert.equal(fastResult.verdict, "incomplete")
+  assert.equal(fastResult.local.blockedByLaneId, "e2e-chromium")
+  assert.equal(fastResult.blockedSkip, true)
+  assert.doesNotMatch(result.reasons.join(" "), /invalid blocking lane/)
+})

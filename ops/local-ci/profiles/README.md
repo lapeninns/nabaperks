@@ -6,13 +6,20 @@ and validate them, and the contract tests assert their shape and content.
 
 | Profile   | File           | When it runs                          | Lanes |
 | --------- | -------------- | ------------------------------------- | ----- |
-| `pr`      | `pr.json`      | pull request from the same repository | 10    |
-| `main`    | `main.json`    | push to the default branch            | 10    |
-| `nightly` | `nightly.json` | scheduled hardening run               | 14    |
+| `pr`      | `pr.json`      | pull request from the same repository | 14    |
+| `main`    | `main.json`    | push to the default branch            | 14    |
+| `nightly` | `nightly.json` | scheduled hardening run               | 18    |
 
 `main.lanes` is deep-equal to `pr.lanes`, so a merge is never proved by a weaker
 suite than the pull request that produced it. `nightly.lanes` begins with those
-same ten lanes and appends four: `mutation`, `load`, `db-stress`, `zap-full`.
+same fourteen lanes and appends four: `mutation`, `load`, `db-stress`,
+`zap-full`.
+
+Each functional e2e project runs as two lanes, `e2e-<project>-odd` and
+`e2e-<project>-even`, that split its 32 shards by parity (see
+[the split below](#split-e2e-lanes)). The database lanes require a privileged
+Docker daemon, which the Docker Desktop runtime never provides, so on that
+runtime they are reported hosted-only (see [`requires`](#requires)).
 
 ## Schema
 
@@ -29,6 +36,8 @@ same ten lanes and appends four: `mutation`, `load`, `db-stress`, `zap-full`.
       "id": "fast",
       "title": "Fast lane (lint, typecheck, unit)",
       "arch": "any" | "x64-only",
+      "project": "chromium",              // split e2e lanes only
+      "requires": ["privileged-daemon"],  // capabilities the runtime must have
       "concurrencyGroup": null | "<group>",
       "commands": ["pnpm lint", "..."],
       "teardownCommands": ["..."],       // run whether the lane passed or failed
@@ -54,6 +63,24 @@ published for `linux/amd64` only. On the ARM64 plane the agent skips every
 qemu-emulated timing would produce findings that are neither reproducible nor
 comparable against the hosted result.
 
+### `requires`
+
+Runtime capabilities the lane cannot run without. The one capability today is
+`privileged-daemon`: the Docker-in-Docker sidecar that gives `db`, `db-stress`
+and `zap-full` a Docker daemon is a privileged container. A lane with
+`needsDaemon: true` must declare it; `core/profiles.mjs` refuses a profile
+where one does not.
+
+`selectLanes` routes a lane to `hostedOnly`, with its reason, when the active
+runtime lists one of its requirements in
+`contract.runtime.hostedOnlyRequirements`, the same way an `x64-only` lane is
+routed on ARM64. The Docker Desktop runtime lists `privileged-daemon`: its VM
+is shared with other worktrees' containers and holds the Mac's file shares, and
+a privileged sidecar there would hand candidate code all of it. The hosted `db`
+root stays authoritative; the shadow comparison records `db` as pinned-hosted,
+never as passed. The Lima runtime, whose VM holds nothing of the Mac's,
+provides the capability and still runs these lanes.
+
 ### `env`, `baselineEnv` and `runtimeEnv`
 
 Precedence, lowest first: `baselineEnv` → `baselineRuntimeEnv` →
@@ -61,10 +88,11 @@ lane `runtimeEnv` → lane `env`.
 
 `baselineEnv` is `.github/workflows/ci.yml`'s workflow-level `env:` block
 verbatim, plus `CI=1` so `forbidOnly`, `failOnFlakyTests` and `retries: 1`
-behave exactly as they do hosted. Browser lanes explicitly request a 12288 MiB
-heap through `PLAYWRIGHT_NODE_HEAP_MB`, versus the hosted 8192 MiB default.
-This expected resource difference stays within the 32 GiB local container; it
-does not change which test outcomes count as equivalent.
+behave exactly as they do hosted. Browser lanes explicitly set a 4096 MiB V8
+old space through `PLAYWRIGHT_NODE_HEAP_MB`, versus the hosted 8192 MiB
+default, inside each browser lane's 8 GiB cgroup (`contract.browserMemory`).
+This expected resource difference does not change which test outcomes count as
+equivalent.
 
 Three of ci.yml's values are deliberately **absent** from `baselineEnv`:
 `CUSTOMER_SESSION_SECRET`, `CUSTOMER_PHONE_HMAC_SECRET` and
@@ -195,21 +223,31 @@ sequentially" therefore has to mean two things at once: each project is its own
 invocation, **and** each project is sharded so every shard gets a fresh dev
 server.
 
-**Shard count: 8 per project.** The reasoning:
+**Shard count: 32 per e2e project, 8 per accessibility project.** The e2e
+denominator is the hosted one. Local runs at 8 shards per project were
+OOM-killed at about 6 GiB of dev-server heap on 2026-09-10, so each e2e shard
+now covers about a thirty-second of its project on a fresh dev server, exactly
+as a hosted shard does (see docs/operations/ci-remediation-2026-09-10.md).
+Accessibility keeps 8. Sharding here buys memory, not speed, and a
+denominator may be lowered only with evidence, never for comfort.
 
-- 1 (unsharded) is the configuration the repository has already recorded as
-  fatal. It is not available.
-- 1/8 of a functional project is roughly 28 tests per dev server — about five
-  times inside the ~154-test point where the heap actually died — and 8 is the
-  denominator the hosted accessibility tier already runs green.
-- The hosted e2e denominator of 32 is **not** copied, because hosted sharding
-  buys 32-way runner parallelism as well as memory isolation. This plane has
-  neither: `PLAYWRIGHT_WORKERS=1` inside a lane, and at most four lanes on one
-  machine. 32 × 4 projects would be 128 sequential dev-server boots and would
-  spend the whole 75-minute local budget on process startup.
+### Split e2e lanes
 
-Sharding here buys memory, not speed. That is the entire justification, and it
-is why the number may be lowered only with evidence, never raised for comfort.
+32 sequential shards made each e2e project the longest lane of the run. So each
+project runs as two lanes that interleave its shards: `e2e-<project>-odd` runs
+1, 3, ..., 31 and `e2e-<project>-even` runs 2, 4, ..., 32, each with its own
+fresh dev server per shard, one Playwright worker, its own port and dist
+directory, and `--grep-invert @visual --ignore-snapshots`. Interleaving rather
+than contiguous packs spreads the heavier shards over both halves.
+
+Parity is enforced, not assumed. A split lane declares its `project`;
+`core/profiles.mjs` refuses one whose commands run another project or the other
+half's shards, and refuses a profile in which any (suite, project) does not run
+every shard of its denominator exactly once. The contract test asserts the
+same. The published check and the shadow comparison add the two halves back
+into one per-project result, so the floors in
+`contract.shadowMode.qualification.lanes` stay per project. Renaming the lanes
+restarts the three-consecutive-equivalent streak.
 
 ### Ports and dist directories
 
@@ -226,14 +264,18 @@ whole runner, so all of them use the `127.0.0.1:3146` default and the shared
 therefore sets its own `PLAYWRIGHT_BASE_URL` and its own
 `PLAYWRIGHT_NEXT_DIST_DIR`:
 
-| lane                  | port |
-| --------------------- | ---- |
-| `e2e-chromium`        | 3146 |
-| `e2e-mobile-safari`   | 3148 |
-| `e2e-desktop-firefox` | 3149 |
-| `e2e-desktop-safari`  | 3150 |
-| `a11y-chromium`       | 3151 |
-| `a11y-mobile-safari`  | 3152 |
+| lane                       | port |
+| -------------------------- | ---- |
+| `e2e-chromium-odd`         | 3146 |
+| `e2e-mobile-safari-odd`    | 3148 |
+| `e2e-desktop-firefox-odd`  | 3149 |
+| `e2e-desktop-safari-odd`   | 3150 |
+| `a11y-chromium`            | 3151 |
+| `a11y-mobile-safari`       | 3152 |
+| `e2e-chromium-even`        | 3153 |
+| `e2e-mobile-safari-even`   | 3154 |
+| `e2e-desktop-firefox-even` | 3155 |
+| `e2e-desktop-safari-even`  | 3156 |
 
 3147 is never assigned: it is the auth-hook callback port the `db` lane's
 `SUPABASE_SEND_EMAIL_HOOK_URI` points at. 3000 is reserved for the
@@ -272,7 +314,7 @@ the relative `.zap/rules.tsv` path resolves identically.
 One hosted job is deliberately **not** reproduced:
 
 - `nightly.yml`'s `cross-browser` runs the same command as ci.yml's `e2e` tier,
-  which the four `e2e-*` lanes already cover for all four projects.
+  which the eight `e2e-*` lanes already cover for all four projects.
 
 `nightly.yml`'s former `load-race` job read `secrets.STAMP_RACE_AUTH_TOKEN`,
 which cannot reach this plane at all (see the contract's `hostSecretsPolicy`),

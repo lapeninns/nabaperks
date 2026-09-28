@@ -58,6 +58,7 @@
       "profiles": ["pr", "main"],
       "streakProfiles": ["pr"],
       "maxProfileDurationSeconds": 4500,
+      "pinnedHostedLanes": ["db"],
       "baselineHeadSha": "d5f5c36417efd114117ca75eb5e7866b9a7ac06d",
       "baselineEvidence": "https://github.com/lapeninns/nabaperks/issues/255 (original 79b8a048a baseline, superseded); current counts from ~/.nabaperks-local-ci/runs/d5f5c36417efd114117ca75eb5e7866b9a7ac06d/main-20260908T234905Z-dec709/lane-result.json",
       "supersededBaseline": {
@@ -116,7 +117,7 @@
           "maximumSkipped": 0
         }
       },
-      "notes": "Floors are the counts a complete, successful main-profile run recorded on the baseline head (fast 2351, e2e-chromium 245, e2e-mobile-safari 288, e2e-desktop-firefox 242, e2e-desktop-safari 242, a11y-chromium 71, a11y-mobile-safari 74, db 576), so a real loss of tests is detected instead of being absorbed by slack. Skip ceilings are that same run's DB-free browser-fixture and project-specific skips; hosted comparison must independently satisfy the same ceilings. This baseline supersedes 79b8a048a3c64a7340db04635fe1143442888f9d, whose floors and ceilings are recorded in the ledger issue under supersededBaseline: since that head tests/e2e/customer-venue-code-live-db-flow.ts added one declared test that every DB-free browser project skips, which is the whole of the +1 on each e2e ceiling (chromium 26, mobile-safari 43, desktop-firefox 42, desktop-safari 42). That is an expected-coverage change rather than a coverage reduction, because the test still executes wherever ADMIN_LIVE_DB_E2E=1 supplies a live database. Quality and print-kit execute command checks rather than countable test suites, so only those two lanes have a zero floor. Lowering a floor or raising a ceiling requires a documented change to expected coverage in the shadow ledger. profiles is the set the duration budget applies to; streakProfiles is the narrower set whose comparisons may feed the equivalence streak, and widening it is a qualification-policy change. This read-only comparison policy changes neither routing nor enforcement. Mutation at concurrency 8 within 75 minutes, fork/fallback evidence and three consecutive equivalent PR heads remain separate cutover prerequisites. Known pending rebaseline (2026-09-11): the customer access-recovery suite registers six tests in each of tests/e2e/customer-recover.spec.ts and customer-recover.desktop.spec.ts and skips all six unless CUSTOMER_FLOW_E2E is set, which no workflow sets for these specs. Both planes therefore skip six more per e2e lane than the ceilings above allow, so compareShadowEvidence will report divergent and reset the cutover streak until the ceilings are refreshed from a new complete successful run. The ceilings were deliberately NOT raised here: they and OBSERVED_RUN are pinned to a real recorded run, and raising them without one would make the contract falsifiable only against itself. compareShadowEvidence has no CI caller and the local-CI check is advisory, so no required check turns red."
+      "notes": "Floors are the counts a complete, successful main-profile run recorded on the baseline head (fast 2351, e2e-chromium 245, e2e-mobile-safari 288, e2e-desktop-firefox 242, e2e-desktop-safari 242, a11y-chromium 71, a11y-mobile-safari 74, db 576), so a real loss of tests is detected instead of being absorbed by slack. Skip ceilings are that same run's DB-free browser-fixture and project-specific skips; hosted comparison must independently satisfy the same ceilings. This baseline supersedes 79b8a048a3c64a7340db04635fe1143442888f9d, whose floors and ceilings are recorded in the ledger issue under supersededBaseline: since that head tests/e2e/customer-venue-code-live-db-flow.ts added one declared test that every DB-free browser project skips, which is the whole of the +1 on each e2e ceiling (chromium 26, mobile-safari 43, desktop-firefox 42, desktop-safari 42). That is an expected-coverage change rather than a coverage reduction, because the test still executes wherever ADMIN_LIVE_DB_E2E=1 supplies a live database. Quality and print-kit execute command checks rather than countable test suites, so only those two lanes have a zero floor. Lowering a floor or raising a ceiling requires a documented change to expected coverage in the shadow ledger. profiles is the set the duration budget applies to; streakProfiles is the narrower set whose comparisons may feed the equivalence streak, and widening it is a qualification-policy change. This read-only comparison policy changes neither routing nor enforcement. Mutation at concurrency 8 within 75 minutes, fork/fallback evidence and three consecutive equivalent PR heads remain separate cutover prerequisites. Known pending rebaseline (2026-09-11): the customer access-recovery suite registers six tests in each of tests/e2e/customer-recover.spec.ts and customer-recover.desktop.spec.ts and skips all six unless CUSTOMER_FLOW_E2E is set, which no workflow sets for these specs. Both planes therefore skip six more per e2e lane than the ceilings above allow, so compareShadowEvidence will report divergent and reset the cutover streak until the ceilings are refreshed from a new complete successful run. The ceilings were deliberately NOT raised here: they and OBSERVED_RUN are pinned to a real recorded run, and raising them without one would make the contract falsifiable only against itself. compareShadowEvidence has no CI caller and the local-CI check is advisory, so no required check turns red. Floors and ceilings stay per project: a local e2e project that runs as the interleaved -odd and -even lanes is compared as the sum of both halves, and only when both halves are present. pinnedHostedLanes names the lanes a runtime may route to the hosted plane (db needs a privileged daemon, which the docker-desktop runtime never starts); such a lane is recorded as pinned-hosted, never as equivalent or passed, and only when the local summary itself lists it as hosted-only. Renaming the e2e lanes restarts the three-consecutive-equivalent streak."
     }
   },
   "agent": {
@@ -304,17 +305,21 @@
     "supabase-local": "Lanes that run their own local Supabase stack on 54321/54322 - db and the nightly db-stress lane."
   },
   "playwrightPorts": {
-    "e2e-chromium": 3146,
-    "e2e-mobile-safari": 3148,
-    "e2e-desktop-firefox": 3149,
-    "e2e-desktop-safari": 3150,
+    "e2e-chromium-odd": 3146,
+    "e2e-mobile-safari-odd": 3148,
+    "e2e-desktop-firefox-odd": 3149,
+    "e2e-desktop-safari-odd": 3150,
     "a11y-chromium": 3151,
     "a11y-mobile-safari": 3152,
+    "e2e-chromium-even": 3153,
+    "e2e-mobile-safari-even": 3154,
+    "e2e-desktop-firefox-even": 3155,
+    "e2e-desktop-safari-even": 3156,
     "reserved": {
       "3000": "print-kit preview, load, zap-full",
       "3147": "SUPABASE_SEND_EMAIL_HOOK_URI on host.docker.internal (db lane)"
     },
-    "notes": "Hosted shards each own a whole runner and all use the 127.0.0.1:3146 default. Concurrent local lanes need distinct dev-server ports, so each Playwright lane sets PLAYWRIGHT_BASE_URL and its own PLAYWRIGHT_NEXT_DIST_DIR. 3147 is never assigned to a browser lane because it is the auth-hook callback port the db lane's SUPABASE_SEND_EMAIL_HOOK_URI points at."
+    "notes": "Hosted shards each own a whole runner and all use the 127.0.0.1:3146 default. Concurrent local lanes need distinct dev-server ports, so each Playwright lane sets PLAYWRIGHT_BASE_URL and its own PLAYWRIGHT_NEXT_DIST_DIR. Each e2e project runs as two interleaved lanes, -odd (shards 1, 3, ..., 31 of 32) and -even (2, 4, ..., 32), so the ten browser lanes own ten ports. 3147 is never assigned to a browser lane because it is the auth-hook callback port the db lane's SUPABASE_SEND_EMAIL_HOOK_URI points at."
   },
   "localShards": 8,
   "agentLiveness": {
