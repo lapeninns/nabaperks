@@ -14,14 +14,23 @@
 #   3. Proves the credential directory is a safe place for a private key:
 #      inside $HOME, not inside the repository, not inside the install root,
 #      not on a mounted volume, not under a world-writable ancestor, and not
-#      reachable from the Lima VM (which is asserted to have zero mounts).
+#      reachable from the runtime the release selects: the Lima VM must have
+#      zero mounts, and Docker Desktop's file sharing must be an explicit list
+#      that covers neither $HOME nor the credential directory.
 #      Symlinks are resolved first, so the checks see the real target.
 #   4. Places the GitHub App private key and the optional monitoring heartbeat URL at
 #      mode 0600 in that directory.
-#   5. Asserts the Lima instance's isolation properties.
+#   5. Asserts the runtime: the Lima instance's isolation properties, or for
+#      Docker Desktop the desktop-linux engine (Docker Desktop, aarch64, the
+#      contract's minimum version, CPUs and memory, seccomp) and the docker CLI
+#      the agent is allowed to run.
 #   6. Pins the job image tag the agent will run, and proves the image exists
-#      inside the VM. Without this the launchd job starts, fails to resolve
-#      LOCAL_CI_JOB_IMAGE and is restarted by KeepAlive forever.
+#      in the runtime - on Docker Desktop, building nabaperks-ci-job:<sha> on
+#      the desktop-linux context from the verified revision when it is absent.
+#      Without this the launchd job starts, fails to resolve
+#      LOCAL_CI_JOB_IMAGE and is restarted by KeepAlive forever. For Docker
+#      Desktop it also writes the agent's own DOCKER_CONFIG directory: the
+#      desktop-linux context and an empty config.json, root-owned.
 #   7. Extracts the verified revision into /opt/nabaperks-local-ci/releases/<sha>
 #      and repoints /opt/nabaperks-local-ci/current at it atomically.
 #   8. Creates the log directory and its newsyslog rotation policy.
@@ -42,9 +51,10 @@
 #                               URL. A file, never a --flag value: an argument
 #                               is visible to every process on the machine via
 #                               `ps` and is recorded in shell history.
-#   --skip-vm-check             Skip the Lima instance assertions (use only
-#                               when provisioning the agent before the VM).
-#                               --job-image then has to be given by hand.
+#   --skip-vm-check             Skip the runtime assertions (use only when
+#                               provisioning the agent before its runtime).
+#                               --job-image then has to be given by hand, and
+#                               on Docker Desktop no image is built.
 #   -h, --help                  Show this help.
 
 set -euo pipefail
@@ -60,6 +70,11 @@ HEARTBEAT_FILE="uptimerobot-heartbeat-url"
 # Optional --image-cache-pin FILE installs a verified Supabase archive pin.
 JOB_IMAGE_FILE="${INSTALL_ROOT}/job-image"
 JOB_IMAGE_REPOSITORY="nabaperks-ci-job"
+# The agent's DOCKER_CONFIG on the Docker Desktop runtime. The plist names it;
+# this script writes it. No credential store, no registry login.
+DOCKER_CONFIG_DIR="${INSTALL_ROOT}/docker-config"
+IMAGE_PINS_RELATIVE_PATH="ops/local-ci/image/build-pins.env"
+DOCKER_DESKTOP_SETTINGS="${HOME}/Library/Group Containers/group.com.docker/settings-store.json"
 RELEASES_TO_KEEP=5
 
 github_app_key_src=""
@@ -284,6 +299,33 @@ grep -q "LOCAL_CI_JOB_IMAGE_FILE" "${revision_plist}" \
 grep -q "<string>${JOB_IMAGE_FILE}</string>" "${revision_plist}" \
   || die "the plist's LOCAL_CI_JOB_IMAGE_FILE does not point at ${JOB_IMAGE_FILE}, which is where this script writes the pinned tag. The two are a fixed interface; see ops/local-ci/host/README.md."
 
+# Read the selected merged revision, never the working tree, for rollback parity.
+revision_contract="${scratch}/contract.json"
+git -C "${repo_root}" show "${release_sha}:config/local-ci-contract.json" >"${revision_contract}" \
+  || die "revision has no local CI contract"
+contract_field() {
+  node -e 'const fs = require("node:fs"); const c = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const v = process.argv[2].split(".").reduce((o, k) => (o == null ? undefined : o[k]), c); process.stdout.write(v === undefined || v === null ? "" : String(v))' "${revision_contract}" "$1"
+}
+runtime_kind="$(contract_field runtime.kind)"
+[ -n "${runtime_kind}" ] || runtime_kind="lima"
+case "${runtime_kind}" in
+  lima | docker-desktop) ;;
+  *) die "revision ${release_sha} selects runtime '${runtime_kind}', which this installer does not know" ;;
+esac
+note "revision ${release_sha} selects the ${runtime_kind} runtime"
+
+if [ "${runtime_kind}" = "docker-desktop" ]; then
+  docker_cli="$(contract_field runtime.dockerCli)"
+  docker_context="$(contract_field runtime.context)"
+  [ "$(contract_field runtime.dockerConfig)" = "${DOCKER_CONFIG_DIR}" ] \
+    || die "the contract's runtime.dockerConfig is not ${DOCKER_CONFIG_DIR}, which is where this script writes the agent's DOCKER_CONFIG"
+  # The agent reads DOCKER_CONFIG from the plist and nowhere else, so the
+  # two must name the same directory.
+  grep -q "<key>DOCKER_CONFIG</key>" "${revision_plist}" \
+    && grep -q "<string>${DOCKER_CONFIG_DIR}</string>" "${revision_plist}" \
+    || die "the plist does not set DOCKER_CONFIG to ${DOCKER_CONFIG_DIR}; the agent would fall back to your own ~/.docker and its credential store"
+fi
+
 # ----------------------------------------------- 3. credential location gate
 step "Validating the credential directory"
 
@@ -354,13 +396,40 @@ while [ "${probe}" != "/" ]; do
   probe="$(dirname "${probe}")"
 done
 
-# The Lima VM is the only thing that runs job containers, and it can only reach
-# host files through mounts. Zero mounts means the credential directory is
-# unreachable from every container by construction, not by policy.
-grep -Eq '^mounts: \[\]$' "${lima_template}" \
-  || die "${LIMA_RELATIVE_PATH} in ${release_sha} no longer declares 'mounts: []'. A mounted host directory would put ${secret_dir_real} within reach of a job container."
-
-note "credential directory ${secret_dir_real} is under \$HOME, off the repository, off the install root, on the boot volume, and unreachable from the VM"
+if [ "${runtime_kind}" = "lima" ]; then
+  # The Lima VM is the only thing that runs job containers, and it can only
+  # reach host files through mounts. Zero mounts means the credential
+  # directory is unreachable from every container by construction.
+  grep -Eq '^mounts: \[\]$' "${lima_template}" \
+    || die "${LIMA_RELATIVE_PATH} in ${release_sha} no longer declares 'mounts: []'. A mounted host directory would put ${secret_dir_real} within reach of a job container."
+  note "credential directory ${secret_dir_real} is under \$HOME, off the repository, off the install root, on the boot volume, and unreachable from the VM"
+else
+  # Docker Desktop shares the directories in its file-sharing list with its
+  # VM, and the default list includes /Users. The agent refuses to dispatch
+  # unless the list is explicit and reaches neither $HOME as a whole nor the
+  # credential directory; check the same rule here so an install cannot
+  # succeed into a plane that will refuse every job.
+  [ -f "${DOCKER_DESKTOP_SETTINGS}" ] \
+    || die "cannot read Docker Desktop's settings at ${DOCKER_DESKTOP_SETTINGS}; is Docker Desktop installed?"
+  node -e '
+    const fs = require("node:fs")
+    const [settingsPath, home, secret] = process.argv.slice(1)
+    const fold = (p) => String(p).replace(/\/+$/, "").toLowerCase() || "/"
+    const covers = (a, p) => fold(a) === "/" || fold(p) === fold(a) || fold(p).startsWith(`${fold(a)}/`)
+    const shared = JSON.parse(fs.readFileSync(settingsPath, "utf8")).FilesharingDirectories
+    if (!Array.isArray(shared)) {
+      console.error("Docker Desktop uses its default file sharing, which includes /Users. In Docker Desktop > Settings > Resources > File sharing, replace it with an explicit list that excludes " + secret)
+      process.exit(1)
+    }
+    const bad = shared.filter((entry) => covers(entry, home) || covers(entry, secret) || covers(secret, entry))
+    if (bad.length) {
+      console.error("Docker Desktop shares " + bad.join(", ") + ", which reaches " + secret + " or the whole home directory")
+      process.exit(1)
+    }
+  ' "${DOCKER_DESKTOP_SETTINGS}" "${home_real}" "${secret_dir_real}" \
+    || die "Docker Desktop's file sharing would expose ${secret_dir_real} to its VM; restrict it first (docs/operations/local-ci.md section 7)"
+  note "credential directory ${secret_dir_real} is under \$HOME, off the repository, off the install root, on the boot volume, and outside Docker Desktop's file sharing"
+fi
 
 # ------------------------------------------------------- 4. place credentials
 step "Placing credentials"
@@ -390,10 +459,6 @@ if [ -n "${heartbeat_url_file_src}" ]; then
   copy_secret "${heartbeat_url_file_src}" "${HEARTBEAT_FILE}"
 fi
 
-# Read the selected merged revision, never the working tree, for rollback parity.
-revision_contract="${scratch}/contract.json"
-git -C "${repo_root}" show "${release_sha}:config/local-ci-contract.json" >"${revision_contract}" \
-  || die "revision has no local CI contract"
 heartbeat_provider="$(node -e 'const fs = require("node:fs"); const c = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(c.agentLiveness?.provider ?? "https")' "${revision_contract}")"
 required_secrets=("${KEY_FILE}")
 case "${heartbeat_provider}" in
@@ -415,10 +480,41 @@ for required_secret in "${required_secrets[@]}"; do
   note "${path} is 0600 and owned by ${owner}"
 done
 
-# ------------------------------------------------------- 5. VM assertions
+# --------------------------------------------------- 5. runtime assertions
 vm_reachable="no"
+engine_reachable="no"
 if [ "${skip_vm_check}" = "yes" ]; then
-  step "Skipping the Lima instance assertions (--skip-vm-check)"
+  step "Skipping the runtime assertions (--skip-vm-check)"
+elif [ "${runtime_kind}" = "docker-desktop" ]; then
+  step "Checking Docker Desktop (${docker_context})"
+  [ -x "${docker_cli}" ] \
+    || die "${docker_cli} is not executable; the agent may run no other docker CLI. Install Docker Desktop's command line tools."
+  docker_real="$(physical_path "${docker_cli}")"
+  case "${docker_real}" in
+    /Applications/Docker.app/*) ;;
+    *) die "${docker_cli} resolves to ${docker_real}, not the CLI inside /Applications/Docker.app" ;;
+  esac
+  info_json="$("${docker_cli}" --context "${docker_context}" info --format '{{json .}}' 2>/dev/null)" \
+    || die "the ${docker_context} engine is not answering. Start Docker Desktop; this script never starts or repairs it."
+  printf '%s' "${info_json}" | node -e '
+    const fs = require("node:fs")
+    const info = JSON.parse(fs.readFileSync(0, "utf8"))
+    const c = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).runtime
+    const version = (v) => String(v).split(/[.+-]/).slice(0, 3).map((x) => Number.parseInt(x, 10) || 0)
+    const older = (a, b) => { const [x, y] = [version(a), version(b)]; for (let i = 0; i < 3; i += 1) if (x[i] !== y[i]) return x[i] < y[i]; return false }
+    const problems = []
+    if (info.OperatingSystem !== "Docker Desktop") problems.push(`the engine is ${info.OperatingSystem}, not Docker Desktop`)
+    if (info.Architecture !== "aarch64") problems.push(`the engine is ${info.Architecture}, not aarch64`)
+    if (older(info.ServerVersion, c.minServerVersion)) problems.push(`engine ${info.ServerVersion} is older than ${c.minServerVersion}`)
+    if (!(info.NCPU >= c.cpus)) problems.push(`the engine has ${info.NCPU} CPUs; the contract needs ${c.cpus} (Docker Desktop > Settings > Resources)`)
+    if (!(info.MemTotal >= c.memoryGb * 1024 ** 3)) problems.push(`the engine has ${(info.MemTotal / 1024 ** 3).toFixed(1)} GiB; the contract needs ${c.memoryGb} GiB (Docker Desktop > Settings > Resources)`)
+    if (!(info.SecurityOptions ?? []).some((o) => String(o).startsWith("name=seccomp"))) problems.push("seccomp is off")
+    if (problems.length) { console.error(problems.join("\n")); process.exit(1) }
+    console.log(`Docker Desktop ${info.ServerVersion}, ${info.NCPU} CPU, ${(info.MemTotal / 1024 ** 3).toFixed(1)} GiB`)
+  ' "${revision_contract}" \
+    || die "the ${docker_context} engine does not meet the contract's runtime block"
+  engine_reachable="yes"
+  note "the agent will run ${docker_cli} --context ${docker_context}, and nothing else on the host but /bin/sh"
 else
   step "Checking the Lima instance"
   instance_config="${HOME}/.lima/${VM_NAME}/lima.yaml"
@@ -463,6 +559,46 @@ fi
 if [ -n "${job_image_arg}" ]; then
   job_image="${job_image_arg}"
   note "pinning the job image given on the command line"
+elif [ "${engine_reachable}" = "yes" ]; then
+  # Docker Desktop: the image for the revision being installed, built from
+  # that revision's own bytes when it is not there yet. An earlier pin is not
+  # kept across releases here, because the image is cheap to rebuild and a
+  # stale one would run a Dockerfile nobody reviewed with this release.
+  job_image="${JOB_IMAGE_REPOSITORY}:${release_sha}"
+  if "${docker_cli}" --context "${docker_context}" image inspect "${job_image}" >/dev/null 2>&1; then
+    note "image ${job_image} already exists on ${docker_context}"
+  else
+    image_context="${scratch}/image-context"
+    image_archive="${scratch}/image-context.tar"
+    mkdir -p "${image_context}"
+    git -C "${repo_root}" archive --format=tar --output="${image_archive}" "${release_sha}" \
+      || die "could not export revision ${release_sha} for the image build"
+    tar -x -f "${image_archive}" -C "${image_context}" \
+      || die "could not extract revision ${release_sha} for the image build"
+    pins="${image_context}/${IMAGE_PINS_RELATIVE_PATH}"
+    [ -f "${pins}" ] || die "revision ${release_sha} carries no ${IMAGE_PINS_RELATIVE_PATH}"
+    build_args=()
+    # Data, never sourced: only the three reviewed names, only pin-shaped values.
+    while IFS= read -r line; do
+      case "${line}" in
+        "" | "#"*) continue ;;
+        K6_VERSION=[0-9]*.[0-9]*.[0-9]*) ;;
+        K6_SHA256=* | SUPABASE_CLI_SHA256=*)
+          [[ "${line#*=}" =~ ^[0-9a-f]{64}$ ]] || die "${IMAGE_PINS_RELATIVE_PATH}: ${line%%=*} is not a sha256"
+          ;;
+        *) die "${IMAGE_PINS_RELATIVE_PATH}: unexpected line '${line}'" ;;
+      esac
+      build_args+=(--build-arg "${line}")
+    done <"${pins}"
+    [ "${#build_args[@]}" -eq 6 ] || die "${IMAGE_PINS_RELATIVE_PATH} must pin K6_VERSION, K6_SHA256 and SUPABASE_CLI_SHA256"
+    note "building ${job_image} on ${docker_context} from revision ${release_sha} (several minutes on a cold cache)"
+    "${docker_cli}" --context "${docker_context}" build \
+      -f "${image_context}/ops/local-ci/image/Dockerfile" \
+      -t "${job_image}" \
+      "${build_args[@]}" \
+      "${image_context}" \
+      || die "the job image build failed; a stale apt pin fails with \"Version ... was not found\" (ops/local-ci/host/README.md pin ledger)"
+  fi
 elif [ -n "${existing_job_image}" ]; then
   job_image="${existing_job_image}"
   note "keeping the job image pinned by an earlier run"
@@ -489,7 +625,11 @@ fi
 
 validate_job_image "${job_image}"
 
-if [ "${vm_reachable}" = "yes" ]; then
+if [ "${engine_reachable}" = "yes" ]; then
+  "${docker_cli}" --context "${docker_context}" image inspect "${job_image}" >/dev/null 2>&1 \
+    || die "image '${job_image}' does not exist on ${docker_context}"
+  note "image ${job_image} exists on ${docker_context}"
+elif [ "${vm_reachable}" = "yes" ]; then
   limactl shell "${VM_NAME}" -- docker image inspect "${job_image}" >/dev/null 2>&1 \
     || die "image '${job_image}' does not exist inside ${VM_NAME}. Build it from a verified main commit (ops/local-ci/host/README.md §3); the agent would otherwise fail every lane on the first run."
   note "image ${job_image} exists inside ${VM_NAME}"
@@ -503,6 +643,12 @@ fi
 image_cache_pin_source="${image_cache_pin_arg}"
 if [ -z "${image_cache_pin_source}" ] && [ -f "${INSTALL_ROOT}/image-cache.json" ]; then
   image_cache_pin_source="${INSTALL_ROOT}/image-cache.json"
+fi
+if [ -n "${image_cache_pin_source}" ] && [ "${runtime_kind}" = "docker-desktop" ]; then
+  # The archive feeds the db lane's Docker-in-Docker sidecar, which this
+  # runtime never starts: db and db-stress are hosted-only here.
+  note "not pinning the Supabase image archive: the docker-desktop runtime runs no database lane"
+  image_cache_pin_source=""
 fi
 if [ -n "${image_cache_pin_source}" ]; then
   [ "${vm_reachable}" = "yes" ] || die "image cache pinning requires a reachable VM"
@@ -536,6 +682,26 @@ printf '%s\n' "${job_image}" | sudo tee "${JOB_IMAGE_FILE}" >/dev/null
 sudo chown root:wheel "${JOB_IMAGE_FILE}"
 sudo chmod 0644 "${JOB_IMAGE_FILE}"
 note "pinned ${JOB_IMAGE_FILE} -> ${job_image}"
+
+if [ "${runtime_kind}" = "docker-desktop" ]; then
+  # The agent's own DOCKER_CONFIG: the one context it may use, pointing at
+  # this operator's Docker Desktop socket, and an empty config.json - no
+  # credsStore, no credHelpers, no auths. Root-owned, like the image pin,
+  # because it decides which engine receives pull-request code.
+  step "Writing the agent's Docker configuration"
+  sudo install -d -m 0755 -o root -g wheel "${DOCKER_CONFIG_DIR}"
+  printf '{}\n' | sudo tee "${DOCKER_CONFIG_DIR}/config.json" >/dev/null
+  sudo env DOCKER_CONFIG="${DOCKER_CONFIG_DIR}" "${docker_cli}" context rm --force "${docker_context}" >/dev/null 2>&1 || true
+  sudo env DOCKER_CONFIG="${DOCKER_CONFIG_DIR}" "${docker_cli}" context create "${docker_context}" \
+    --description "Docker Desktop, for the Nabaperks local CI agent" \
+    --docker "host=unix://${home_real}/.docker/run/docker.sock" >/dev/null \
+    || die "could not write the ${docker_context} context into ${DOCKER_CONFIG_DIR}"
+  sudo chown -R root:wheel "${DOCKER_CONFIG_DIR}"
+  sudo chmod -R u=rwX,go=rX "${DOCKER_CONFIG_DIR}"
+  [ "$(DOCKER_CONFIG="${DOCKER_CONFIG_DIR}" "${docker_cli}" --context "${docker_context}" info --format '{{.OperatingSystem}}' 2>/dev/null)" = "Docker Desktop" ] \
+    || die "the agent's DOCKER_CONFIG at ${DOCKER_CONFIG_DIR} does not reach Docker Desktop"
+  note "DOCKER_CONFIG ${DOCKER_CONFIG_DIR} reaches Docker Desktop through ${docker_context}, with no credential store"
+fi
 
 # --------------------------------------------------------- 7. install release
 step "Installing revision ${release_sha} under ${INSTALL_ROOT}"
@@ -651,11 +817,12 @@ note "bootstrapped gui/${uid}/${LABEL}"
 step "Installed"
 note "agent      ${INSTALL_ROOT}/current/${AGENT_RELATIVE_PATH}"
 note "release    ${release_sha}"
+note "runtime    ${runtime_kind}"
 note "job image  ${job_image} (${JOB_IMAGE_FILE})"
 note "plist      ${installed_plist}"
 note "logs       ${INSTALL_ROOT}/logs/agent.{out,err}.log"
 note "creds      ${secret_dir_real} (0700, files 0600, host-only)"
 printf '\nFollow the agent with:\n  tail -f %s/logs/agent.err.log\n' "${INSTALL_ROOT}"
-printf 'The agent re-asserts the VM before every dispatch and publishes the\n'
+printf 'The agent re-asserts its runtime before every dispatch and publishes the\n'
 printf 'nightly proof on a %s-hour cadence by itself; no separate timer is needed.\n' "24"
 printf 'Check the job-scoped power assertion while a job runs with:\n  pgrep -fl caffeinate\n\n'

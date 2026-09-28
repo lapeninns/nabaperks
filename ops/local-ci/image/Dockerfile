@@ -3,7 +3,9 @@
 # Nabaperks local CI - the disposable job container.
 #
 # Build context is the REPOSITORY ROOT (this file reads .nvmrc from it), and
-# the build runs INSIDE the Lima VM against a verified main checkout:
+# the build runs against a verified main checkout: on the Docker Desktop
+# runtime ops/local-ci/host/install.sh builds it on the desktop-linux context
+# from the installed release; on the Lima runtime it is built inside the VM.
 #
 #   docker build -f ops/local-ci/image/Dockerfile -t nabaperks-ci-job:<sha> \
 #     --build-arg K6_VERSION=<version> \
@@ -20,8 +22,10 @@
 #      build argument, and the final layer fails the build if a
 #      credential-shaped file made it in. The GitHub App private key and the
 #      UptimeRobot heartbeat URL live on the macOS host in
-#      ~/.nabaperks-local-ci, which the Lima VM cannot see at all (mounts: []),
-#      so they cannot reach this image or a container started from it.
+#      ~/.nabaperks-local-ci, which neither the Lima VM (mounts: []) nor any
+#      container the Docker Desktop runtime starts (no bind mounts, and a file
+#      sharing list that excludes it) can see, so they cannot reach this image
+#      or a container started from it.
 #
 #   2. IT NEVER TOUCHES A HOST DOCKER SOCKET. Jobs that need Docker (the
 #      Supabase database tier) talk to a sibling docker:dind container over TCP.
@@ -63,7 +67,7 @@ ARG DOCKER_CLI_VERSION=5:27.5.1-1~ubuntu.24.04~noble
 
 # Ubuntu 24.04 (noble) archive pins.
 ARG APT_CA_CERTIFICATES=20260601~24.04.1
-ARG APT_CURL=8.5.0-2ubuntu10.13
+ARG APT_CURL=8.5.0-2ubuntu10.15
 ARG APT_GIT=1:2.43.0-1ubuntu7.3
 ARG APT_GNUPG=2.4.4-2ubuntu17.6
 ARG APT_JQ=1.7.1-3ubuntu0.24.04.2

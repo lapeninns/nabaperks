@@ -8,9 +8,12 @@
   the installed file are byte-identical: every path here is absolute and
   operator-independent, so nothing is templated at install time.
 
-  This is a LaunchAgent, not a LaunchDaemon, on purpose. `limactl` with
-  vmType "vz" needs a GUI (Aqua) session to hold the Virtualization.framework
-  VM, so the agent has to run in the logged-in user's session. That is the
+  This is a LaunchAgent, not a LaunchDaemon, on purpose. The runtime the
+  contract selects (config/local-ci-contract.json runtime.kind) lives in the
+  logged-in user's GUI session: Docker Desktop is a GUI app whose engine
+  socket is under the operator's ~/.docker/run, and the dormant Lima runtime's
+  `limactl` with vmType "vz" needs an Aqua session to hold its
+  Virtualization.framework VM. So the agent runs in that session. That is the
   reason install.sh tells the operator to enable automatic login, and the
   reason LimitLoadToSessionType is Aqua.
 
@@ -149,6 +152,18 @@
            dotfile. -->
       <key>LOCAL_CI_JOB_IMAGE_FILE</key>
       <string>/opt/nabaperks-local-ci/job-image</string>
+
+      <!-- The Docker CLI's configuration directory for the agent, written by
+           install.sh root-owned beside the release tree. It holds the
+           desktop-linux context the agent addresses by name and an empty
+           config.json: no credsStore, no credHelpers, no auths. So Docker
+           Desktop's credential store and the operator's registry logins are
+           never used by the agent, and a context switch in the operator's
+           own ~/.docker cannot redirect candidate code to another engine.
+           The agent refuses to dispatch if this directory's config.json
+           carries a credential. -->
+      <key>DOCKER_CONFIG</key>
+      <string>/opt/nabaperks-local-ci/docker-config</string>
     </dict>
 
     <!-- Log directory is created by install.sh as
