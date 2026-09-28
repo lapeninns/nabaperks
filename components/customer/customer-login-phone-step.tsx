@@ -163,10 +163,13 @@ function PhoneCodeStep({
             Wrong number? Use a different one
           </SubmitButton>
         </form>
-        {/* Announced when it appears, 30 seconds after the send. */}
-        <div aria-live="polite" className="grid">
-          {emailReady ? codeAlternate : null}
-        </div>
+        {/* Announced when it appears, 30 seconds after the send; no wrapper
+            at all while email sign-in is off. */}
+        {codeAlternate ? (
+          <div aria-live="polite" className="grid">
+            {emailReady ? codeAlternate : null}
+          </div>
+        ) : null}
         <p
           role="status"
           aria-live="polite"

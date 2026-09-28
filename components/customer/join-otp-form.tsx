@@ -204,7 +204,8 @@ export function CustomerOtpForm({
             </form>
           ) : null}
 
-          {emailStepHref ? (
+          {/* No wrapper at all while email sign-in is off. */}
+          {emailStepHref && emailFallbackAt !== undefined ? (
             <EmailFallback
               availableAt={emailFallbackAt}
               emailStepHref={emailStepHref}
@@ -225,7 +226,7 @@ function EmailFallback({
   availableAt,
   emailStepHref,
 }: {
-  availableAt?: number
+  availableAt: number
   emailStepHref: string
 }) {
   const ready = useEmailFallbackReady(availableAt)
