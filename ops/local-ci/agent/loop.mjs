@@ -50,11 +50,24 @@
  *     without settling the promise that timer was going to settle parks the
  *     loop on a promise nothing can resolve, and launchd escalates to SIGKILL
  *     when its ExitTimeOut expires.
+ *
+ *   - **An unhealthy runtime claims nothing.** Before a queued job is started
+ *     the runtime is asked whether it can take one. When it cannot - Docker
+ *     Desktop stopped or failing its isolation checks, a Broken Lima VM - no
+ *     job is claimed and nothing new is published: the work stays queued and
+ *     starts once the runtime is healthy again. Claiming it would open a
+ *     check and immediately fail it, once for every commit pushed while the
+ *     engine was down, and that noise says nothing about the code.
+ *
+ *   - **A run's check shows each lane as it finishes.** The final conclusion
+ *     is still published once, at the end; before that, the in-progress check
+ *     carries the finished lanes, so fast and quality are visible minutes
+ *     before the browser lanes end.
  */
 
 import { spawn } from "node:child_process"
 import { publishAttempt } from "../core/attempts.mjs"
-import { publishDurableCheck } from "./publisher.mjs"
+import { publishDurableCheck, publishLaneProgress } from "./publisher.mjs"
 
 import { LocalCiError, describeValue } from "../core/contract.mjs"
 import { classifyRequest } from "../core/allowlist.mjs"
@@ -307,6 +320,7 @@ export function createLoop({
   sleepAssertion = null,
   logStore = null,
   attempts = null,
+  runtimeHealth = null,
   now = () => Date.now(),
   sleep = null,
   logger = null,
@@ -314,6 +328,12 @@ export function createLoop({
   requireObject(contract, "contract")
   requireObject(github, "github")
   requireObject(runner, "runner")
+  if (runtimeHealth !== null && typeof runtimeHealth !== "function") {
+    fail(
+      "INVALID_INPUT",
+      `runtimeHealth must be a function when given (received ${describeValue(runtimeHealth)})`
+    )
+  }
   if (typeof loadProfile !== "function") {
     fail(
       "INVALID_INPUT",
@@ -350,6 +370,36 @@ export function createLoop({
   // still take the outcome of a run that finished between two ticks.
   let inFlight = null
   let lastRun = null
+  // The last reason the runtime refused work, so a refusal is logged when it
+  // starts or changes rather than once a minute for as long as it lasts.
+  let runtimeRefusal = null
+
+  async function checkRuntime() {
+    let health
+    try {
+      health = await runtimeHealth()
+    } catch (error) {
+      health = {
+        healthy: false,
+        code: error?.code ?? null,
+        reason: error?.message ?? String(error),
+      }
+    }
+    if (health?.healthy === true) {
+      if (runtimeRefusal !== null)
+        log("info", "the runtime is healthy again; queued work can start")
+      runtimeRefusal = null
+      return Object.freeze({ healthy: true })
+    }
+    const reason = health?.reason ?? "the runtime health check gave no answer"
+    if (runtimeRefusal !== reason)
+      log(
+        "error",
+        `the runtime cannot take a job, so none is claimed and nothing new is published: ${reason}`
+      )
+    runtimeRefusal = reason
+    return Object.freeze({ healthy: false, code: health?.code ?? null, reason })
+  }
 
   const checkNameFor = (job) =>
     job.profile === "nightly" ? contract.nightlyCheckName : contract.checkName
@@ -562,11 +612,24 @@ export function createLoop({
       signal?.throwIfAborted()
       checkRunId = await publishStart(job, attemptId)
       signal?.throwIfAborted()
+      const openCheck = checkRunId
       let outcome = await runner.runProfile({
         profile,
         ref: job.ref,
         headSha: job.sha,
         signal,
+        onLaneComplete:
+          openCheck === null || openCheck === undefined
+            ? null
+            : async (progress) => {
+                if (signal?.aborted) return
+                await publishLaneProgress({
+                  github,
+                  contract,
+                  checkRunId: openCheck,
+                  progress,
+                })
+              },
       })
       if (signal?.aborted)
         outcome = {
@@ -858,7 +921,16 @@ export function createLoop({
         // the same ports and the same local Supabase stack.
         let started = null
         if (stopped()) return stopResult()
-        if (inFlight === null) {
+        let runtime = null
+        if (
+          inFlight === null &&
+          runtimeHealth !== null &&
+          queuedJobs(queue).length > 0
+        ) {
+          runtime = await checkRuntime()
+          if (stopped()) return stopResult()
+        }
+        if (inFlight === null && (runtime === null || runtime.healthy)) {
           const selected = selectNext(queue, instant)
           queue = selected.state
           if (selected.job !== null) started = startJob(selected.job)
@@ -878,6 +950,7 @@ export function createLoop({
           running: runningId,
           swept,
           heartbeat: beat,
+          runtime,
         }
 
         if (started === null) {

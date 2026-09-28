@@ -902,3 +902,185 @@ test("stop returns without waiting for a stalled provider read", async () => {
   await Promise.resolve()
   assert.equal(runner.runs.length, 0)
 })
+
+/* ------------------------------------------ an unhealthy runtime claims nothing */
+
+test("an unhealthy runtime claims no job and publishes nothing new", async () => {
+  const github = fakeGitHub({ pulls: [pull()] })
+  const runner = fakeRunner()
+  const sleepAssertion = fakeSleepAssertion()
+  const warnings = []
+  let healthy = false
+  let asked = 0
+  const loop = buildLoop({
+    github,
+    runner,
+    sleepAssertion,
+    logger: {
+      info: () => {},
+      warn: () => {},
+      error: (message) => warnings.push(message),
+    },
+    runtimeHealth: async () => {
+      asked += 1
+      return healthy
+        ? { healthy: true }
+        : {
+            healthy: false,
+            code: "VM_UNVERIFIABLE",
+            reason: "Docker Desktop is not running",
+          }
+    },
+  })
+
+  for (let tick = 0; tick < 3; tick += 1) {
+    const result = await loop.tick()
+    assert.equal(result.outcome === "ran", false)
+    assert.deepEqual(result.runtime, {
+      healthy: false,
+      code: "VM_UNVERIFIABLE",
+      reason: "Docker Desktop is not running",
+    })
+  }
+  // Nothing was claimed, so nothing was opened, failed or run...
+  assert.deepEqual(github.created, [])
+  assert.deepEqual(github.updated, [])
+  assert.deepEqual(runner.runs, [])
+  assert.deepEqual(sleepAssertion.events, [])
+  assert.deepEqual(runningJobs(loop.state), [])
+  // ...the work is still waiting, and the refusal was logged once, not per tick.
+  assert.equal(queuedJobs(loop.state).length, 2)
+  assert.equal(warnings.length, 1)
+  assert.match(warnings[0], /none is claimed and nothing new is published/)
+  assert.equal(asked, 3)
+
+  // Once the runtime recovers, the queued work starts normally.
+  healthy = true
+  const recovered = await loop.tick()
+  assert.equal(recovered.outcome, "ran")
+  assert.deepEqual(recovered.runtime, { healthy: true })
+  await loop.settle()
+  assert.equal(runner.runs.length, 1)
+  assert.equal(github.created.length, 1)
+})
+
+test("a runtime health check that throws is treated as unhealthy, never as healthy", async () => {
+  const github = fakeGitHub()
+  const runner = fakeRunner()
+  const loop = buildLoop({
+    github,
+    runner,
+    runtimeHealth: async () => {
+      throw Object.assign(new Error("docker: command not found"), {
+        code: "COMMAND_FAILED",
+      })
+    },
+  })
+  const result = await loop.tick()
+  assert.equal(result.runtime.healthy, false)
+  assert.equal(result.runtime.code, "COMMAND_FAILED")
+  assert.deepEqual(runner.runs, [])
+  assert.deepEqual(github.created, [])
+})
+
+test("an idle loop does not ask the runtime anything", async () => {
+  let asked = 0
+  const loop = buildLoop({
+    github: {
+      ...fakeGitHub(),
+      async getRef() {
+        return null
+      },
+    },
+    runner: fakeRunner(),
+    runtimeHealth: async () => {
+      asked += 1
+      return { healthy: true }
+    },
+  })
+  const result = await loop.tick()
+  assert.equal(result.outcome, "idle")
+  assert.equal(result.runtime, null)
+  assert.equal(asked, 0)
+  assert.throws(
+    () =>
+      buildLoop({
+        github: fakeGitHub(),
+        runner: fakeRunner(),
+        runtimeHealth: "yes",
+      }),
+    { code: "INVALID_INPUT" }
+  )
+})
+
+test("each finished lane updates the open check before the conclusion is published", async () => {
+  const github = fakeGitHub()
+  const progress = {
+    profile: "main",
+    ref: DEFAULT_BRANCH_REF,
+    headSha: MAIN_SHA,
+    laneIds: ["fast", "quality"],
+    lanes: [
+      null,
+      {
+        laneId: "quality",
+        status: "success",
+        durationSeconds: 20,
+        testsRun: 0,
+        testsPassed: 0,
+        testsFailed: 0,
+        testsSkipped: 0,
+        flaky: 0,
+      },
+    ],
+    hostedOnly: [{ laneId: "db", reason: "requires privileged-daemon" }],
+  }
+  const runner = {
+    async runProfile({ headSha, onLaneComplete }) {
+      assert.equal(typeof onLaneComplete, "function")
+      await onLaneComplete(progress)
+      return { record: record(headSha) }
+    },
+  }
+  const loop = buildLoop({ github, runner })
+  await loop.tick()
+  await loop.settle()
+  assert.equal(github.created.length, 1)
+  assert.equal(github.created[0].status, "in_progress")
+  assert.equal(github.updated.length, 2)
+  const [inProgress, completed] = github.updated
+  assert.equal(inProgress.status, "in_progress")
+  assert.equal(inProgress.id, 1001)
+  assert.match(inProgress.output.title, /1\/2 lanes finished, 1 passed/)
+  assert.match(inProgress.output.text, /\| quality \| success \|/)
+  assert.match(inProgress.output.text, /`fast`/)
+  assert.match(inProgress.output.text, /`db`/)
+  assert.equal(inProgress.conclusion, undefined)
+  assert.equal(completed.status, "completed")
+})
+
+test("a lane progress update that fails does not change the run", async () => {
+  const github = fakeGitHub()
+  github.updateCheckRun = async (id, payload) => {
+    if (payload.status === "in_progress") throw new Error("GitHub 502")
+    github.updated.push({ id, ...payload })
+    return { id }
+  }
+  const runner = {
+    async runProfile({ headSha, onLaneComplete }) {
+      await onLaneComplete({
+        profile: "main",
+        headSha,
+        laneIds: ["fast"],
+        lanes: [null],
+        hostedOnly: [],
+      }).catch(() => {})
+      return { record: record(headSha) }
+    },
+  }
+  const loop = buildLoop({ github, runner })
+  await loop.tick()
+  await loop.settle()
+  assert.equal(github.updated.at(-1).status, "completed")
+  assert.equal(github.updated.at(-1).conclusion, "success")
+})
