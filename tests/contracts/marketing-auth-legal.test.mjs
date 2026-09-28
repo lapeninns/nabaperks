@@ -31,9 +31,15 @@ test("Given push consent is stored with other marketing channels When profile da
     profileMarketing,
     /type DisplayMarketingChannel = Exclude<MarketingConsent\["channel"\], "push">/
   )
+  // Only the channels shown count (all three, or email alone for a wallet
+  // with no phone); push never does.
   assert.match(
     profileMarketing,
-    /const hasAnyConsent = CHANNELS\.some\(\(entry\) =>[\s\S]*optedInByChannel\.has\(entry\.channel\)/
+    /const channels = hasPhone\s*\?\s*CHANNELS\s*:\s*CHANNELS\.filter\(\(entry\) => entry\.channel === "email"\)/
+  )
+  assert.match(
+    profileMarketing,
+    /const hasAnyConsent = channels\.some\(\(entry\) =>[\s\S]*optedInByChannel\.has\(entry\.channel\)/
   )
 })
 

@@ -99,6 +99,19 @@ test("the dispatch budget key cannot be rotated by the caller", () => {
     customerOtpDispatchBurstRateLimitKey("join")
   )
 
+  // Adding a phone to an email-only wallet has its own budget too, so profile
+  // additions cannot starve joining or wallet sign-in.
+  for (const scope of ["wallet", "join"]) {
+    assert.notEqual(
+      customerOtpDispatchBurstRateLimitKey("attach"),
+      customerOtpDispatchBurstRateLimitKey(scope)
+    )
+    assert.notEqual(
+      customerOtpDispatchSustainedRateLimitKey("attach"),
+      customerOtpDispatchSustainedRateLimitKey(scope)
+    )
+  }
+
   // Burst and sustained are distinct buckets, not one key with two limits.
   assert.notEqual(
     customerOtpDispatchBurstRateLimitKey("join"),

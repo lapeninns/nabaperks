@@ -1,7 +1,12 @@
 import Link from "next/link"
 import { QrCode01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, IconRoundel, MonoTag, ReceiptCard } from "@/components/brand"
+import {
+  EmptyState,
+  IconRoundel,
+  MonoTag,
+  ReceiptCard,
+} from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
 /**
@@ -13,7 +18,9 @@ import { Button } from "@/components/ui/button"
  */
 export const HOME_EMPTY_HOW_IT_WORKS = [
   "Find the Nabaperks QR at the counter, then scan it here",
-  "Save the card to your number — one text, no app",
+  // Joining confirms a phone number or, where the venue offers it, an email:
+  // both by one-time code, so the step names neither.
+  "Save the card with a one-time code, no app needed",
   "Collect a stamp on every visit",
 ] as const
 

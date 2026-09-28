@@ -72,7 +72,13 @@ test("Given customer OTP entry When challenge dependencies are inspected Then Cl
   const joinAction = read("app", "m", "[merchantSlug]", "join", "actions.ts")
   const walletAction = read("app", "home", "actions.ts")
   const joinForm = read("components", "customer", "join-forms.tsx")
-  const walletForm = read("components", "customer", "customer-login-form.tsx")
+  const walletForm = [
+    "customer-login-form.tsx",
+    "customer-login-phone-step.tsx",
+    "customer-login-email-step.tsx",
+  ]
+    .map((file) => read("components", "customer", file))
+    .join("\n")
   const csp = read("lib", "security", "csp.ts")
   const envContract = read("config", "env-contract.json")
 

@@ -1,20 +1,24 @@
 "use client"
 
-import Link from "next/link"
 import { useActionState } from "react"
 
 import type { CustomerLoginOtpState } from "@/app/home/actions"
 import { submitCustomerLoginOtpAction } from "@/app/home/login/otp-action"
 import { ReceiptCard, VenueMark } from "@/components/brand"
-import { useRememberContactMethodOnVerify } from "@/components/customer/contact-method-order"
-import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
-import { customerInputClass } from "@/components/customer/input-class"
-import { SubmitButton } from "@/components/forms"
-import { StatusBanner } from "@/components/loyalty"
-import { Button } from "@/components/ui/button"
-import { Field, FieldGroup } from "@/components/ui/field"
-import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
-import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
+import {
+  ContactMethodOrder,
+  useRememberContactMethodOnVerify,
+} from "@/components/customer/contact-method-order"
+import { CustomerLoginEmailStep } from "@/components/customer/customer-login-email-step"
+import {
+  CustomerLoginMethodSwitch,
+  type CustomerLoginStepProps,
+} from "@/components/customer/customer-login-method-switch"
+import { CustomerLoginPhoneStep } from "@/components/customer/customer-login-phone-step"
+import type {
+  JoinContactMethod,
+  JoinEmailMode,
+} from "@/lib/customer/experience/types"
 
 type LoginAction = (
   state: CustomerLoginOtpState,
@@ -24,22 +28,91 @@ type LoginAction = (
 type CustomerLoginFormProps = {
   readonly next: string
   readonly loginAction?: LoginAction
+  /**
+   * The rollout mode, resolved on the server. `off` shows the phone form
+   * alone, as before email sign-in.
+   */
+  readonly emailMode?: JoinEmailMode
 }
 
+/**
+ * /home/login: opens an existing wallet by phone or, once email sign-in is on,
+ * by email. In mode `full` email leads and in `existing` phone leads, unless
+ * this device last verified with the other method (D12); the other method is
+ * always one visible button away. Once the customer has used or picked a
+ * method, the server's answer names it and the screen stays on it.
+ */
 export function CustomerLoginForm({
   next,
   loginAction = submitCustomerLoginOtpAction,
+  emailMode = "off",
 }: CustomerLoginFormProps) {
   const [state, submitAction, pending] = useActionState(loginAction, {})
+  const emailEnabled = emailMode !== "off"
+  const method: JoinContactMethod | undefined = emailEnabled
+    ? state.fields?.method
+    : "phone"
   const editingContact = Boolean(state.fields?.editingContact)
-  const contact = state.fields?.contact ?? ""
+  // A valid code for a number or email with no cards: both methods show the
+  // same scan step, not another code.
   const noCards = Boolean(state.fields?.noCards) && !editingContact
   const otpSent = Boolean(state.fields?.otpSent) && !editingContact && !noCards
-  const contactError = editingContact ? undefined : state.errors?.contact
-  const verifyError = state.errors?.otp ?? state.errors?.form
-  const message = editingContact || pending ? undefined : state.message
-  // A phone sign-in here makes the join page lead with phone next time (D12).
+  // A sign-in here makes the join page lead with that method next time (D12).
   const rememberPhone = useRememberContactMethodOnVerify("phone", state)
+  const rememberEmail = useRememberContactMethodOnVerify("email", state)
+  const step: Omit<CustomerLoginStepProps, "onVerifySubmit"> = {
+    state,
+    submitAction,
+    pending,
+    next,
+  }
+
+  const phone = (
+    <CustomerLoginPhoneStep
+      {...step}
+      onVerifySubmit={rememberPhone}
+      alternate={
+        emailEnabled ? (
+          <CustomerLoginMethodSwitch
+            to="email"
+            submitAction={submitAction}
+            pending={pending}
+          >
+            Use my email instead
+          </CustomerLoginMethodSwitch>
+        ) : undefined
+      }
+      // A text that never arrives is why email sign-in exists, so the code
+      // step offers email too, as the email code step offers phone.
+      codeAlternate={
+        emailEnabled ? (
+          <CustomerLoginMethodSwitch
+            to="email"
+            submitAction={submitAction}
+            pending={pending}
+            variant="link"
+          >
+            Use my email instead
+          </CustomerLoginMethodSwitch>
+        ) : undefined
+      }
+    />
+  )
+  const email = (
+    <CustomerLoginEmailStep
+      {...step}
+      onVerifySubmit={rememberEmail}
+      alternate={
+        <CustomerLoginMethodSwitch
+          to="phone"
+          submitAction={submitAction}
+          pending={pending}
+        >
+          Use my phone number instead
+        </CustomerLoginMethodSwitch>
+      }
+    />
+  )
 
   return (
     <ReceiptCard edge className="grid min-w-0 gap-6 short:gap-4">
@@ -52,7 +125,7 @@ export function CustomerLoginForm({
         <div className="grid gap-1">
           <h1 className="text-2xl leading-tight font-extrabold text-balance">
             {noCards
-              ? "No cards on this number"
+              ? `No cards on this ${method === "email" ? "email" : "number"}`
               : otpSent
                 ? "Enter your code"
                 : "Welcome back"}
@@ -61,184 +134,22 @@ export function CustomerLoginForm({
             {noCards
               ? "Scan the venue QR at the counter. Your first card is created there."
               : otpSent
-                ? "Use the code from your message to open your cards."
+                ? `Use the code from your ${method === "email" ? "email" : "message"} to open your cards.`
                 : "Sign in to see every loyalty card you've collected, track your rewards, and pick up where you left off."}
           </p>
         </div>
       </div>
 
-      {noCards ? (
-        <div className="grid gap-4">
-          <p role="status" className="text-sm leading-6">
-            {message}
-          </p>
-          <Button asChild size="lg" className="w-full">
-            <Link href="/scan">Scan a venue QR</Link>
-          </Button>
-          <form action={submitAction}>
-            <input type="hidden" name="intent" value="edit" />
-            <input type="hidden" name="contact" value={contact} />
-            <SubmitButton
-              variant="link"
-              size="xs"
-              className="h-auto min-h-11 justify-start px-0 text-left whitespace-normal"
-              disabled={pending}
-              pendingLabel="Changing number…"
-            >
-              Use a different number
-            </SubmitButton>
-          </form>
-        </div>
-      ) : otpSent ? (
-        <div className="grid gap-4">
-          <form action={submitAction} onSubmit={rememberPhone}>
-            <input type="hidden" name="intent" value="verify" />
-            <input type="hidden" name="contact" value={contact} />
-            <input type="hidden" name="next" value={next} />
-            <FieldGroup className="gap-4">
-              <Field className="gap-2" data-invalid={Boolean(verifyError)}>
-                <label htmlFor="otp" className="eyebrow">
-                  Phone code
-                </label>
-                <CustomerOtpInput
-                  id="otp"
-                  name="otp"
-                  autoFocus
-                  className={`${customerInputClass} font-mono`}
-                  aria-invalid={Boolean(verifyError)}
-                  aria-describedby={verifyError ? "otp-error" : "otp-hint"}
-                />
-                {verifyError ? (
-                  <p
-                    id="otp-error"
-                    role="alert"
-                    aria-live="assertive"
-                    className="text-sm text-destructive"
-                  >
-                    {verifyError}
-                  </p>
-                ) : (
-                  <p
-                    id="otp-hint"
-                    className="text-xs leading-5 text-muted-foreground"
-                  >
-                    Paste or type the code from the message.
-                  </p>
-                )}
-              </Field>
-              <SubmitButton
-                size="lg"
-                className="w-full"
-                disabled={pending}
-                pendingLabel="Checking…"
-              >
-                {OPEN_MY_CARDS_LABEL}
-              </SubmitButton>
-            </FieldGroup>
-          </form>
-
-          <div className="grid gap-1.5 rounded-lg border-2 border-dashed border-border px-3 py-2.5">
-            <form
-              action={submitAction}
-              className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1"
-            >
-              <input type="hidden" name="intent" value="request" />
-              <input type="hidden" name="contact" value={contact} />
-              <p className="text-sm text-muted-foreground">
-                Phone ending{" "}
-                <span className="font-bold text-foreground tabular-nums">
-                  {contact.slice(-4)}
-                </span>
-              </p>
-              <SubmitButton
-                variant="link"
-                size="xs"
-                disabled={pending}
-                pendingLabel="Sending…"
-              >
-                Resend code
-              </SubmitButton>
-            </form>
-            <form action={submitAction}>
-              <input type="hidden" name="intent" value="edit" />
-              <input type="hidden" name="contact" value={contact} />
-              <SubmitButton
-                variant="link"
-                size="xs"
-                className="h-auto min-h-11 justify-start px-0 text-left whitespace-normal"
-                disabled={pending}
-                pendingLabel="Changing number…"
-              >
-                Wrong number? Use a different one
-              </SubmitButton>
-            </form>
-            <p
-              role="status"
-              aria-live="polite"
-              className="text-xs leading-5 text-muted-foreground"
-            >
-              {message}
-            </p>
-          </div>
-        </div>
+      {method === "email" ? (
+        email
+      ) : method === "phone" ? (
+        phone
       ) : (
-        <form action={submitAction}>
-          <input type="hidden" name="intent" value="request" />
-          <FieldGroup className="gap-4">
-            <Field className="gap-2" data-invalid={Boolean(contactError)}>
-              <label htmlFor="contact" className="eyebrow">
-                Phone number
-              </label>
-              <input
-                id="contact"
-                name="contact"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                autoFocus={editingContact}
-                placeholder="07400 123456"
-                defaultValue={contact}
-                className={customerInputClass}
-                aria-invalid={Boolean(contactError)}
-                aria-describedby={
-                  contactError ? "contact-error" : "contact-hint"
-                }
-              />
-              {contactError ? (
-                <p
-                  id="contact-error"
-                  role="alert"
-                  className="text-sm text-destructive"
-                >
-                  {contactError}
-                </p>
-              ) : (
-                <p
-                  id="contact-hint"
-                  className="text-xs leading-5 text-muted-foreground"
-                >
-                  {JOIN_PHONE_CODE_HINT}
-                </p>
-              )}
-            </Field>
-            {!editingContact && state.errors?.form ? (
-              <StatusBanner tone="error" title={state.errors.form} />
-            ) : null}
-            {message ? (
-              <p role="status" className="text-sm leading-6">
-                {message}
-              </p>
-            ) : null}
-            <SubmitButton
-              size="lg"
-              className="w-full"
-              disabled={pending}
-              pendingLabel="Sending…"
-            >
-              Send code
-            </SubmitButton>
-          </FieldGroup>
-        </form>
+        <ContactMethodOrder
+          defaultMethod={emailMode === "full" ? "email" : "phone"}
+          email={email}
+          phone={phone}
+        />
       )}
 
       {noCards ? null : (

@@ -46,8 +46,12 @@ export function customerOtpVerifyIdentityRateLimitKey(
  * is deliberate: a saturated budget must self-heal without an operator, so the
  * blast radius of a successful exhaustion attempt is an hour of degraded
  * sign-in rather than a day of it.
+ *
+ * `attach` is a signed-in customer adding a phone to an email-only wallet; it
+ * has its own global budget so profile additions cannot starve joining or
+ * wallet sign-in (20261006100600_otp_dispatch_attach_scope.sql).
  */
-export type CustomerOtpDispatchScope = "wallet" | "join"
+export type CustomerOtpDispatchScope = "wallet" | "join" | "attach"
 
 export const customerOtpDispatchBurstWindowMs = 60_000
 export const customerOtpDispatchBurstLimit = 30

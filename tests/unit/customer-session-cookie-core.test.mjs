@@ -211,3 +211,49 @@ test("a pending phone cookie carries the channel that sent the code, and rejects
   )
   assert.equal(unknown.ok, false)
 })
+
+test("Given an attach phone code When its cookie is read Then it carries the wallet it is bound to", () => {
+  const payload = {
+    version: 2,
+    purpose: "attach",
+    phone: "+447700900123",
+    phoneHmac: "phone-hmac",
+    country: "GB",
+    channel: "sms",
+    customerId: "customer-1",
+    issuedAt: 100,
+    expiresAt: 700,
+  }
+  const cookie = createPendingPhoneCookieValue(payload, SECRET)
+
+  assert.deepEqual(readPendingPhoneCookieValue(cookie, SECRET, 699), {
+    ok: true,
+    payload,
+  })
+})
+
+test("Given a phone code cookie When the attach binding is missing or misplaced Then it is not one this build wrote", () => {
+  const base = {
+    version: 2,
+    phone: "+447700900123",
+    phoneHmac: "phone-hmac",
+    country: "GB",
+    issuedAt: 100,
+    expiresAt: 700,
+  }
+  for (const payload of [
+    { ...base, purpose: "attach" },
+    { ...base, purpose: "attach", customerId: "" },
+    { ...base, purpose: "attach", customerId: 42 },
+    { ...base, purpose: "wallet", customerId: "customer-1" },
+    { ...base, purpose: "join", customerId: "customer-1" },
+    { ...base, purpose: "merge", customerId: "customer-1" },
+  ]) {
+    const cookie = createPendingPhoneCookieValue(payload, SECRET)
+    assert.deepEqual(
+      readPendingPhoneCookieValue(cookie, SECRET, 699),
+      { ok: false, reason: "malformed" },
+      JSON.stringify(payload)
+    )
+  }
+})

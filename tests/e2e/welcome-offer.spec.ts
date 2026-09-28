@@ -196,7 +196,7 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
     await retry.focus()
     await retry.press("Enter")
     await expect(
-      page.getByRole("link", { name: "sign in with your number" })
+      page.getByRole("link", { name: "sign in again" })
     ).toBeVisible()
     await expect(
       page.getByRole("button", { name: "Show a fresh code" })

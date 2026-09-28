@@ -3,6 +3,8 @@ import "server-only"
 import { cache } from "react"
 import { after } from "next/server"
 
+import type { ContactEventSurface } from "@/lib/customer/contact-event-core"
+import { recordCustomerPhoneAttachedAudit } from "@/lib/customer/email-audit"
 import {
   customerEmailHmac,
   normalizeEmail,
@@ -232,6 +234,143 @@ async function findCustomerByVerifiedAddress(
 
   const rows = Array.isArray(data) ? data : []
   return rows.length === 1 ? toCurrentCustomer(rows[0]) : null
+}
+
+export type AttachVerifiedPhoneResult =
+  | { readonly status: "attached"; readonly customer: CurrentCustomer }
+  /** Another wallet holds this phone. Nothing changes (D4: attach, never merge). */
+  | { readonly status: "contact_conflict" }
+  /** This wallet already has a phone, so there is nothing to add. */
+  | { readonly status: "already_has_phone" }
+  /** The audit row could not be written, so the phone was taken off again. */
+  | { readonly status: "audit_failed" }
+
+/**
+ * Adds a phone the signed-in customer has just proven to their wallet, which
+ * must not have one yet (an email-only wallet). A phone another wallet holds
+ * is a conflict and nothing changes. The first write is guarded by
+ * `phone_hmac is null`, so a concurrent attach cannot overwrite a phone, and
+ * the unique `phone_hmac` index turns a race with another wallet into a
+ * conflict too.
+ *
+ * The phone is never acknowledged without its `audit_logs` row. PostgREST
+ * cannot put both writes in one transaction, and once `phone_verified_at` is
+ * set `prevent_verified_customer_contact_change` refuses to clear the phone,
+ * even for the service role. So the phone is written first WITHOUT its
+ * verified timestamp, then audited, and only then marked verified. If the
+ * audit write fails, this call's own staged phone is released (the database
+ * allows that while the timestamp is null) and `audit_failed` is returned.
+ * If the release or the final step fails, this throws rather than report an
+ * attach it cannot stand behind.
+ */
+export async function attachVerifiedPhoneToCustomer({
+  customerId,
+  phone,
+  surface,
+}: {
+  customerId: string
+  phone: NormalizedPhone
+  surface: ContactEventSurface
+}): Promise<AttachVerifiedPhoneResult> {
+  const holder = await findCustomerByVerifiedPhone(phone)
+  if (holder) {
+    return holder.id === customerId
+      ? { status: "already_has_phone" }
+      : { status: "contact_conflict" }
+  }
+
+  const pii = customerPhonePii(phone.e164)
+  const supabase = createSupabaseServiceRoleClient()
+  const { data: staged, error } = await supabase
+    .from("customers")
+    .update({
+      phone_hmac: pii.phoneHmac,
+      phone_ciphertext: pii.phoneCiphertext,
+      phone_last4: pii.phoneLast4,
+      phone_country: phone.country,
+    })
+    .eq("id", customerId)
+    .is("phone_hmac", null)
+    .select("id")
+    .maybeSingle()
+
+  if (error) {
+    if (error.code === UNIQUE_VIOLATION) return { status: "contact_conflict" }
+    throw new Error(`Unable to add customer phone: ${error.message}`)
+  }
+  // No row matched: the wallet gained a phone since the check above.
+  if (!staged) return { status: "already_has_phone" }
+
+  const staging = { supabase, customerId, phoneHmac: pii.phoneHmac }
+  const audited = await recordCustomerPhoneAttachedAudit(supabase, {
+    customerId,
+    surface,
+  })
+  if (!audited) {
+    await releaseStagedPhone(staging)
+    return { status: "audit_failed" }
+  }
+
+  const customer = await markStagedPhoneVerified(staging)
+  // A merchant may have sent this phone a reward invite before it was added.
+  after(() => attachRewardInvitesForCustomer(customer.id))
+
+  return { status: "attached", customer }
+}
+
+type StagedPhone = {
+  readonly supabase: ReturnType<typeof createSupabaseServiceRoleClient>
+  readonly customerId: string
+  readonly phoneHmac: string
+}
+
+/** Sets the verified timestamp on the phone this call staged, and only that. */
+async function markStagedPhoneVerified(
+  staged: StagedPhone
+): Promise<CurrentCustomer> {
+  const { data, error } = await staged.supabase
+    .from("customers")
+    .update({ phone_verified_at: new Date().toISOString() })
+    .eq("id", staged.customerId)
+    .eq("phone_hmac", staged.phoneHmac)
+    .is("phone_verified_at", null)
+    .select(CUSTOMER_COLUMNS)
+    .maybeSingle()
+
+  const customer = error ? null : toCurrentCustomer(data)
+  if (customer) return customer
+
+  // The audit row already says added, but an unverified phone must not stay.
+  await releaseStagedPhone(staged)
+  throw new Error(
+    `Unable to confirm customer phone: ${error?.message ?? "row not found"}`
+  )
+}
+
+/**
+ * Takes off the phone this call staged: only while the row still holds this
+ * call's phone and no verified timestamp, so nothing else is ever cleared.
+ */
+async function releaseStagedPhone(staged: StagedPhone): Promise<void> {
+  const { data, error } = await staged.supabase
+    .from("customers")
+    .update({
+      phone_hmac: null,
+      phone_ciphertext: null,
+      phone_last4: null,
+      phone_country: null,
+    })
+    .eq("id", staged.customerId)
+    .eq("phone_hmac", staged.phoneHmac)
+    .is("phone_verified_at", null)
+    .select("id")
+    .maybeSingle()
+
+  if (error || !data) {
+    throw new Error(
+      `Unable to release unaudited customer phone: ${error?.message ?? "row not found"}`
+    )
+  }
 }
 
 export function firstOf<T>(value: T | T[] | null): T | null {

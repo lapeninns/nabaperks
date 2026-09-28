@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { CustomerLoginForm } from "@/components/customer/customer-login-form"
 import { CustomerShell } from "@/components/layout"
+import { customerEmailAuthMode } from "@/lib/customer/email-auth-mode"
 import { getCustomerSession } from "@/lib/customer/session"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
@@ -32,7 +33,7 @@ export default async function HomeLoginPage({
 
   return (
     <CustomerShell>
-      <CustomerLoginForm next={next} />
+      <CustomerLoginForm next={next} emailMode={customerEmailAuthMode()} />
     </CustomerShell>
   )
 }

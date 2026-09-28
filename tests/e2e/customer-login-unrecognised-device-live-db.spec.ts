@@ -9,6 +9,7 @@ import {
   disposableUkMobile,
   type DisposablePhone,
 } from "./helpers/customer-join-live-db"
+import { openPhoneLoginStep } from "./helpers/customer-login-phone"
 import { customerReadbackLiveDbSkipReason } from "./helpers/customer-readback-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
 import {
@@ -69,6 +70,7 @@ test.describe("@customer-flow customer login on an unrecognised device", () => {
       await expect(trustedDeviceCount(sql, customerId)).resolves.toBe(0)
 
       await page.goto("/home/login")
+      await openPhoneLoginStep(page)
       await page.fill("#contact", phone.national)
       await page.getByRole("button", { name: "Send code" }).click()
       await page.fill("#otp", DEV_OTP)

@@ -52,6 +52,8 @@ type PendingPhoneInput = {
   country: string
   /** Channel that carried the code, so the code step says where to look. */
   channel?: OtpChannel
+  /** Required for `attach`: the signed-in wallet the phone is added to. */
+  customerId?: string
 }
 
 type PendingEmailInput = {
@@ -74,6 +76,9 @@ const CUSTOMER_SESSION_SERVER_EXPIRY = "infinity"
 export async function setPendingPhoneVerification(
   input: PendingPhoneInput
 ): Promise<PendingPhonePayload> {
+  if (input.purpose === "attach" && !input.customerId) {
+    throw new Error("An attach code must be bound to the signed-in wallet.")
+  }
   const issuedAt = nowSeconds()
   const payload: PendingPhonePayload = {
     version: 2,
@@ -82,6 +87,9 @@ export async function setPendingPhoneVerification(
     phoneHmac: customerPhoneHmac(input.phone),
     country: input.country,
     ...(input.channel ? { channel: input.channel } : {}),
+    ...(input.purpose === "attach" && input.customerId
+      ? { customerId: input.customerId }
+      : {}),
     issuedAt,
     expiresAt: issuedAt + pendingPhoneTtlSeconds,
   }

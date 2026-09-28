@@ -22,7 +22,7 @@ async function loadActions() {
     "@/lib/rewards/issue-birthday":
       "export function triggerBirthdayIssuanceForCustomer() {}",
     "@/lib/customer/consent":
-      "export function isMarketingChannel() {} export function updateCustomerMarketingConsent() {}",
+      'export const PHONE_MARKETING_CHANNELS = new Set(["sms", "whatsapp"]); export function isMarketingChannel() {} export function updateCustomerMarketingConsent() {}',
     "@/lib/customer/identity":
       'import { state } from "fixture-state"; export async function getCurrentCustomer() { return state.customer }',
     "@/lib/customer/profile": `import { state } from "fixture-state";

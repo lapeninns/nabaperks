@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { parsePhoneNumberWithError } from "libphonenumber-js"
 
+import { openPhoneLoginStep } from "./helpers/customer-login-phone"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
@@ -16,8 +17,9 @@ import { dismissPwaInstall } from "./helpers/harness"
  * DB-free e2e CI job leaves it skipped.
  */
 
+// The same answer whether or not the number holds a wallet (#332 copy).
 const GENERIC_REQUEST_MESSAGE =
-  /If that number has Nabaperks cards, enter the code we sent/i
+  /If a code arrives for that number, enter it here\. Otherwise scan a venue QR to join first\./i
 const DEV_OTP = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const WRONG_OTP = DEV_OTP === "000000" ? "111111" : "000000"
 const SESSION_COOKIE = "nabaperks_customer_session"
@@ -55,6 +57,7 @@ export function describeCustomerLoginAntiEnumeration() {
       await expect(
         page.getByRole("heading", { name: "Welcome back" })
       ).toBeVisible()
+      await openPhoneLoginStep(page)
 
       await page.locator("#contact").fill(unusedUkMobile())
       await page.getByRole("button", { name: "Send code" }).click()

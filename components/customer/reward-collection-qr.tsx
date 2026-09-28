@@ -104,7 +104,7 @@ export function RewardCollectionQr({
                   href={customerLoginHref(`/reward/${rewardId}`)}
                   className="font-bold underline underline-offset-4"
                 >
-                  sign in with your number
+                  sign in again
                 </Link>{" "}
                 to bring it back.
               </span>

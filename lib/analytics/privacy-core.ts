@@ -1,5 +1,10 @@
 import { createHmac } from "node:crypto"
 
+import {
+  CONTACT_EVENT_REASONS,
+  CONTACT_EVENT_SURFACES,
+} from "@/lib/customer/contact-event-core"
+
 const PSEUDONYMOUS_MODE = "pseudonymous"
 const PSEUDONYM_DOMAIN = "nabaperks:analytics:pseudonym:v1"
 const MIN_SECRET_LENGTH = 32
@@ -57,7 +62,13 @@ const externalPropertyValues: Readonly<Record<string, ReadonlySet<string>>> = {
     "billing",
     "dashboard",
     "qr_poster",
+    // Customer contact and sign-in events: the closed surface set from
+    // contact-event-core, so a surface added there reaches PostHog too.
+    ...CONTACT_EVENT_SURFACES,
   ]),
+  // Why a contact event failed or was refused: fixed tokens only, never a
+  // provider message or anything the customer typed.
+  reason: new Set(CONTACT_EVENT_REASONS),
   tab: new Set(["card", "rewards", "qr", "billing", "launch", "profile"]),
   billing_interval: new Set(["28_day", "monthly", "annual"]),
   outcome: new Set([
