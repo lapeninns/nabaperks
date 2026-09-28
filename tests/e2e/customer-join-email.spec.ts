@@ -1,24 +1,30 @@
 import { expect, test, type Page } from "@playwright/test"
 
 import { expectNoAxeViolations } from "./helpers/axe"
+import { emailFallback, installFallbackClock } from "./helpers/email-fallback"
 import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 
 /**
  * The email join screens, rendered by the DB-free welcome-offer harness with
  * the real join components. Submitting needs a database, so these checks stop
- * at what each screen offers; the live journeys cover the actions.
+ * at what each screen offers; the live journeys cover the actions. Email is
+ * never a first option: phone leads in every mode, and the phone code step
+ * offers email 30 seconds after the code was sent.
  */
 test.describe("@customer-flow @a11y join by email screens", () => {
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
   })
 
-  test("the email step leads with email and keeps phone one visible tap away", async ({
+  test("the email step, reached as the fallback, says so and keeps phone one visible tap away", async ({
     page,
   }) => {
     await gotoHydratedPage(page, "/dev/welcome-offer?surface=email&offer=none")
     const shell = page.locator('[data-screen-label="Customer join"]')
     await expect(shell.getByText("Verify · Email")).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Get your code by email instead" })
+    ).toBeVisible()
     const email = page.getByLabel("Email address")
     await expect(email).toHaveAttribute("type", "email")
     await expect(email).toHaveAttribute("autocomplete", "email")
@@ -137,51 +143,153 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     ).toBeVisible()
   })
 
-  test("mode full leads with email on a fresh device and phone after a phone sign-in, with no hydration errors", async ({
+  test("phone leads in every mode, from the welcome CTA to the contact step, with no hydration errors", async ({
     page,
   }) => {
     const hydrationErrors = collectHydrationErrors(page)
 
-    await gotoHydratedPage(
-      page,
-      "/dev/welcome-offer?surface=contact&offer=none"
-    )
-    await expect(page.getByLabel("Email address")).toBeVisible()
-    await expect(page.getByLabel("UK phone number")).toHaveCount(0)
-    await expect(
-      page.getByRole("link", { name: "Use my phone number instead" })
-    ).toBeVisible()
+    for (const surface of ["welcome", "welcome-email"]) {
+      await gotoHydratedPage(
+        page,
+        `/dev/welcome-offer?surface=${surface}&offer=none`
+      )
+      await expect(
+        page.getByRole("link", { name: "Claim my first stamp" })
+      ).toHaveAttribute("href", /step=phone/)
+      await expect(page.getByText(/your email/i)).toHaveCount(0)
+      // Only while email is on, the note tells an email-joined customer
+      // where email is, so they do not verify a phone and start a new wallet.
+      await expect(
+        page.getByText(
+          "Joined by email? The code screen offers email after 30 seconds.",
+          { exact: false }
+        )
+      ).toHaveCount(surface === "welcome-email" ? 1 : 0)
+    }
 
-    await page.evaluate(() =>
-      window.localStorage.setItem("nabaperks.last-contact-method", "phone")
-    )
-    await gotoHydratedPage(
-      page,
-      "/dev/welcome-offer?surface=contact&offer=none"
-    )
-    await expect(page.getByLabel("UK phone number")).toBeVisible()
-    await expect(page.getByLabel("Email address")).toHaveCount(0)
-    await expect(
-      page.getByRole("link", { name: "Use my email instead" })
-    ).toHaveAttribute("href", /step=email/)
-
-    // A method asked for in the address is never reordered.
-    await gotoHydratedPage(page, "/dev/welcome-offer?surface=email&offer=none")
-    await expect(page.getByLabel("Email address")).toBeVisible()
-    await expect(page.getByLabel("UK phone number")).toHaveCount(0)
+    for (const surface of ["contact", "contact-existing", "phone"]) {
+      await gotoHydratedPage(
+        page,
+        `/dev/welcome-offer?surface=${surface}&offer=none`
+      )
+      await expect(page.getByLabel("UK phone number")).toBeVisible()
+      await expect(page.getByText("Verify · Phone")).toBeVisible()
+      await expect(page.getByLabel("Email address")).toHaveCount(0)
+      await expect(page.getByRole("link", { name: /email/i })).toHaveCount(0)
+      await expect(page.getByRole("button", { name: /email/i })).toHaveCount(0)
+    }
 
     expect(hydrationErrors).toEqual([])
   })
 
-  test("with email sign-in off the phone step has no email option", async ({
+  test("the phone code step offers email only once 30 seconds have passed since the send", async ({
     page,
   }) => {
-    await page.addInitScript(() =>
-      window.localStorage.setItem("nabaperks.last-contact-method", "email")
+    const hydrationErrors = collectHydrationErrors(page)
+    await installFallbackClock(page)
+    await gotoHydratedPage(
+      page,
+      "/dev/welcome-offer?surface=code-email&offer=none&ref=FRIEND1"
     )
-    await gotoHydratedPage(page, "/dev/welcome-offer?surface=phone&offer=none")
-    await expect(page.getByLabel("UK phone number")).toBeVisible()
-    await expect(page.getByText("Verify · Phone")).toBeVisible()
+    await expect(page.getByLabel("Your code")).toBeVisible()
+    const fallback = emailFallback(page)
+    await expect(fallback).toHaveCount(0)
+
+    await page.clock.fastForward(20_000)
+    await expect(fallback).toHaveCount(0)
+
+    await page.clock.fastForward(11_000)
+    await expect(fallback).toBeVisible()
+    // Beside the phone's own recovery, not in place of it.
+    await expect(
+      page.getByRole("button", { name: "Resend code" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Wrong number? Use a different one" })
+    ).toBeVisible()
+    const wrongNumber = await page
+      .getByRole("link", { name: "Wrong number? Use a different one" })
+      .boundingBox()
+    expect((await fallback.boundingBox())!.y).toBeGreaterThan(wrongNumber!.y)
+    // The QR and referral travel with it.
+    const href = new URL(
+      (await fallback.getAttribute("href")) ?? "",
+      "http://localhost"
+    )
+    expect(href.searchParams.get("step")).toBe("email")
+    expect(href.searchParams.get("qr")).toBe("welcome-fixture-qr")
+    expect(href.searchParams.get("ref")).toBe("FRIEND1")
+    await expectNoAxeViolations(page, "join phone code step with email")
+    expect(hydrationErrors).toEqual([])
+  })
+
+  test("a load once the send is over 30 seconds old shows the email fallback at once", async ({
+    page,
+  }) => {
+    await installFallbackClock(page)
+    const sentAt = Math.floor(Date.now() / 1_000)
+    // The server works out that no wait is left, whatever the page clock says.
+    await gotoHydratedPage(
+      page,
+      `/dev/welcome-offer?surface=code-email-existing&offer=none&sentAt=${sentAt - 45}`
+    )
+    await expect(emailFallback(page)).toBeVisible()
+  })
+
+  test("a device clock running ahead of the server never offers email early", async ({
+    page,
+  }) => {
+    // 45 seconds fast: a deadline read against this clock would be past.
+    await page.clock.install({ time: Date.now() + 45_000 })
+    const sentAt = Math.floor(Date.now() / 1_000)
+    await gotoHydratedPage(
+      page,
+      `/dev/welcome-offer?surface=code-email&offer=none&sentAt=${sentAt}`
+    )
+    await expect(page.getByLabel("Your code")).toBeVisible()
+    const fallback = emailFallback(page)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(20_000)
+    await expect(fallback).toHaveCount(0)
+    await page.clock.fastForward(11_000)
+    await expect(fallback).toBeVisible()
+  })
+
+  test("with a phone code still pending, the email step's phone link returns to that code", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(
+      page,
+      "/dev/welcome-offer?surface=email-after-code&offer=none"
+    )
+    const phone = page.getByRole("link", {
+      name: "Use my phone number instead",
+    })
+    await expect(phone).toBeVisible()
+    await expect(phone).not.toHaveAttribute("href", /step=/)
+  })
+
+  test("with a phone code still pending, the email code step's phone link returns to that code", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(
+      page,
+      "/dev/welcome-offer?surface=email-code-after-code&offer=none"
+    )
+    await expect(page.getByText("Not sent yet to")).toBeVisible()
+    const phone = page.getByRole("link", { name: "Use my phone instead" })
+    await expect(phone).toBeVisible()
+    await expect(phone).not.toHaveAttribute("href", /step=/)
+  })
+
+  test("with email sign-in off the phone code step never offers email", async ({
+    page,
+  }) => {
+    await installFallbackClock(page)
+    await gotoHydratedPage(page, "/dev/welcome-offer?surface=code&offer=none")
+    await expect(page.getByLabel("Your code")).toBeVisible()
+    await page.clock.fastForward(120_000)
+    await expect(emailFallback(page)).toHaveCount(0)
     await expect(page.getByRole("link", { name: /email/i })).toHaveCount(0)
   })
 })

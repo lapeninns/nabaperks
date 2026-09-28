@@ -385,6 +385,40 @@ test("Given a failed send When the guest retries at once Then it is never report
   })
 })
 
+test("Given a phone code pending When the email fallback's first send fails Then the phone code is kept, and only a code on its way replaces it", async () => {
+  const mod = await loadModule()
+  mod.state.sendError = new Error("Resend send failed (503)")
+  const failed = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  assert.equal(failed.status, "delivery_failed")
+  assert.equal(pendingCookie(mod).delivery, "fail")
+  // No email is on its way, so "Use my phone number instead" still has the
+  // phone code to return to.
+  assert.ok(!mod.state.cleared.includes("phone"))
+
+  // A refused send reads as sent (D8), so it replaces the phone code too.
+  const refused = await loadModule()
+  refused.state.admission = { message: "rate limit exceeded" }
+  await refused.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  assert.ok(refused.state.cleared.includes("phone"))
+
+  // Once a code is on its way, one sign-in stays live per browser.
+  await withClockAhead(61, async () => {
+    mod.state.sendError = null
+    const sent = await mod.startEmailSignInChallenge({
+      email: "guest@example.com",
+      purpose: "join",
+    })
+    assert.equal(sent.status, "code_sent")
+    assert.ok(mod.state.cleared.includes("phone"))
+  })
+})
+
 test("Given a code already delivered When a resend fails Then that earlier code keeps working and is not called delayed", async () => {
   const mod = await loadModule()
   await mod.startEmailSignInChallenge({

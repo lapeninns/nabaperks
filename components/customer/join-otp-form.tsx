@@ -8,12 +8,13 @@ import {
   verifyCustomerOtpAction,
   type CustomerIdentityState,
 } from "@/app/m/[merchantSlug]/join/actions"
-import { useRememberContactMethodOnVerify } from "@/components/customer/contact-method-order"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { useEmailFallbackReady } from "@/hooks/use-email-fallback-ready"
+import { PHONE_CODE_EMAIL_FALLBACK_LABEL } from "@/lib/customer/experience/copy"
 import {
   OTP_TEXT_FALLBACK_LABEL,
   type OtpChannel,
@@ -29,6 +30,19 @@ export type CustomerOtpFormProps = {
   contactLast4: string
   /** Channel that carried the code — the row says so and offers the other. */
   channel?: OtpChannel
+  /**
+   * Seconds, by the server's clock, before email may be offered instead,
+   * counted from when this step appears. Absent while email sign-in is off:
+   * no email option at all.
+   */
+  emailFallbackInSeconds?: number
+  /**
+   * When the server sent the code this step appeared with (epoch seconds).
+   * A resend answers with its own, and the wait restarts from that one.
+   */
+  phoneCodeSentAt?: number
+  /** The email step (`step=email`), keeping the QR and referral params. */
+  emailStepHref?: string
 }
 
 export function CustomerOtpForm({
@@ -37,6 +51,9 @@ export function CustomerOtpForm({
   referralCode,
   contactLast4,
   channel = "sms",
+  emailFallbackInSeconds,
+  phoneCodeSentAt,
+  emailStepHref,
 }: CustomerOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
     verifyCustomerOtpAction,
@@ -47,8 +64,6 @@ export function CustomerOtpForm({
     identityInitialState
   )
   const state = verifyState
-  // This device leads with phone next time once the code is accepted (D12).
-  const rememberPhone = useRememberContactMethodOnVerify("phone", verifyState)
   // A failed or rate-limited resend returns errors; a successful one returns
   // a confirmation message. Both surface inside the aria-live card below so
   // the customer at the counter hears and sees the outcome (CUS-P1-02). While
@@ -70,6 +85,12 @@ export function CustomerOtpForm({
   // A text is offered only when the code went out on WhatsApp; if it already
   // went by text, that is because WhatsApp refused the number.
   const offersText = channel === "whatsapp"
+  // Email waits 30 seconds from the latest code: a resend answers with the
+  // server's new wait, and one that could not be sent offers email at once.
+  const fallback = emailFallbackAfterResend(requestState, {
+    inSeconds: emailFallbackInSeconds,
+    sentAt: phoneCodeSentAt,
+  })
 
   return (
     <div className="grid gap-4">
@@ -82,11 +103,7 @@ export function CustomerOtpForm({
         </>
       ) : (
         <>
-          <form
-            action={verifyAction}
-            onSubmit={rememberPhone}
-            className="grid gap-4"
-          >
+          <form action={verifyAction} className="grid gap-4">
             <input type="hidden" name="merchantSlug" value={merchantSlug} />
             <input type="hidden" name="qrId" value={qrId ?? ""} />
             <input type="hidden" name="ref" value={referralCode ?? ""} />
@@ -199,8 +216,68 @@ export function CustomerOtpForm({
               </SubmitButton>
             </form>
           ) : null}
+
+          {/* No wrapper at all while email sign-in is off. */}
+          {emailStepHref && emailFallbackInSeconds !== undefined ? (
+            <EmailFallback
+              // A new key restarts the wait for the latest code.
+              key={fallback.key}
+              inSeconds={fallback.inSeconds}
+              emailStepHref={emailStepHref}
+            />
+          ) : null}
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * The wait before email is offered, and what restarts it: the step's own code,
+ * then each resend's answer. Only a resend that reached the server changes it.
+ */
+function emailFallbackAfterResend(
+  requestState: CustomerIdentityState,
+  initial: { inSeconds?: number; sentAt?: number }
+): { key: string; inSeconds: number | undefined } {
+  const fields = requestState.fields
+  if (fields?.phoneSendFailed) {
+    return { key: `failed-${fields.phoneCodeSentAt ?? ""}`, inSeconds: 0 }
+  }
+  if (fields?.phoneOtpSent && fields.phoneCodeSentAt !== undefined) {
+    return {
+      key: `sent-${fields.phoneCodeSentAt}`,
+      inSeconds: fields.emailFallbackInSeconds,
+    }
+  }
+  return { key: `sent-${initial.sentAt ?? ""}`, inSeconds: initial.inSeconds }
+}
+
+/**
+ * Email, offered only once the code has had time to arrive: a secondary
+ * action under the phone's own recovery options, never in place of them. The
+ * polite live region announces it when it appears.
+ */
+function EmailFallback({
+  inSeconds,
+  emailStepHref,
+}: {
+  inSeconds: number | undefined
+  emailStepHref: string
+}) {
+  const ready = useEmailFallbackReady(inSeconds)
+  return (
+    <div aria-live="polite" className="grid">
+      {ready ? (
+        <Button
+          asChild
+          variant="outline"
+          size="lg"
+          className="h-auto min-h-12 w-full py-3 whitespace-normal"
+        >
+          <Link href={emailStepHref}>{PHONE_CODE_EMAIL_FALLBACK_LABEL}</Link>
+        </Button>
+      ) : null}
     </div>
   )
 }

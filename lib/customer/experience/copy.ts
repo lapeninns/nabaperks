@@ -49,12 +49,20 @@ export const JOIN_WELCOME_HOW_IT_WORKS = [
 export const JOIN_WELCOME_HOW_IT_WORKS_LABEL = "How it works" as const
 
 /**
- * Under the welcome CTA. The name predates email sign-in; the copy stays true
- * whichever method leads: the wallet is found by the contact it was joined
- * with, so the same phone number or email opens the same card.
+ * Under the welcome CTA while email sign-in is off. The wallet is found by the
+ * contact it was joined with, so the same phone number opens the same card.
  */
 export const JOIN_WELCOME_PHONE_REASSURANCE =
   "Already have a card here? Sign in the same way as before." as const
+
+/**
+ * Under the welcome CTA while email sign-in is on. The CTA always opens the
+ * phone step and email appears only on the code step, so a customer who
+ * joined by email is told where to find it rather than verifying a phone,
+ * which would start a second wallet.
+ */
+export const JOIN_WELCOME_EMAIL_REASSURANCE =
+  "Already have a card here? Sign in the same way as before. Joined by email? The code screen offers email after 30 seconds." as const
 
 /** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
 export const JOIN_PHONE_CODE_HINT = "We'll send you a one-time code." as const
@@ -62,6 +70,18 @@ export const JOIN_PHONE_CODE_HINT = "We'll send you a one-time code." as const
 /** Join-only number guidance: the promise, not the plumbing. */
 export const JOIN_PHONE_RETENTION_HINT =
   "Only used to keep your stamps safe. No spam, ever." as const
+
+/**
+ * The phone code step's email fallback, shown once the code has had time to
+ * arrive (lib/customer/phone-code-email-fallback.ts). Join page and
+ * /home/login.
+ */
+export const PHONE_CODE_EMAIL_FALLBACK_LABEL =
+  "Not received a code? Use your email instead" as const
+
+/** Leads the email step, which is only ever reached as that fallback. */
+export const JOIN_EMAIL_FALLBACK_HEADLINE =
+  "Get your code by email instead" as const
 
 /** Under the email field: why email helps at a venue with no signal. */
 export const JOIN_EMAIL_WIFI_HINT =
@@ -127,14 +147,12 @@ export function getCustomerExperienceViewModel(
         eyebrow: "Stamp 1 is ready",
         headline: "Your first stamp is ready",
         supportLine:
-          exp.contactStep === "email"
-            ? "Save it with your email in 20 seconds. No app, no password, and it's there on every visit."
-            : "Save it to your number in 20 seconds. No app, no password, and it's there on every visit.",
+          "Save it to your number in 20 seconds. No app, no password, and it's there on every visit.",
         primaryAction: {
           label: "Claim my first stamp",
           href: buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
-            step: exp.contactStep,
+            step: "phone",
           }),
         },
       }
@@ -145,9 +163,10 @@ export function getCustomerExperienceViewModel(
         supportLine: `One message confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
     case "join_email":
+      // Reached only from a phone code that has not arrived.
       return {
-        eyebrow: "One email, no password",
-        headline: "Save your stamp with your email",
+        eyebrow: "No code yet?",
+        headline: JOIN_EMAIL_FALLBACK_HEADLINE,
         supportLine: `One code by email confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
       }
     case "join_email_choice":

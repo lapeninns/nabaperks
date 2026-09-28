@@ -684,7 +684,21 @@ page and makes every email sign-in action refuse. `existing` lets a verified
 email open the wallet that holds it; `full` also lets email start a new wallet
 on the join page. The add-your-email prompts and the email-conflict message
 already read the mode, so setting it changes what guests are told about signing
-in by email.
+in by email. In every mode phone is the first contact form on the join page and
+at `/home/login` (owner decision, 28 September 2026). Above `off`, email is
+offered only as a fallback: on the phone code step 30 seconds after the server
+sent the code (by text or WhatsApp), timed by the server's clock; beside the
+phone form when no code could be sent at all; and, at `/home/login` only, on
+the "No cards on this number" step, for a wallet joined by email. The server
+enforces the same rule: `step=email` and the email actions answer with the
+phone step until one of those applies, recorded in the browser's encrypted
+`nabaperks_email_fallback` cookie or read from the pending code's send time.
+A resend restarts the 30 seconds, and a reload of `/home/login` returns to a
+pending phone code. Taking the fallback keeps the phone code pending until an
+email code is on its way (a failed email send keeps it), so "Use my phone
+number instead" returns to it. A customer who joined by email
+and then verifies a phone on the join page gets a separate phone wallet; the
+welcome note tells them the code screen offers email after 30 seconds.
 
 - **Precondition:** keep the mode `off` in an environment until the application
   build with the email sign-in and email join flows, and the database

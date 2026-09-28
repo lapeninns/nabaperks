@@ -21,6 +21,11 @@ import {
   getMerchantJoinContext,
 } from "@/lib/customer/join"
 import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
+import { emailFallbackOpenedFor } from "@/lib/customer/email-fallback"
+import {
+  emailFallbackOpen,
+  phoneCodeEmailFallbackInSeconds,
+} from "@/lib/customer/phone-code-email-fallback"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
 import { logger } from "@/lib/observability/logger"
@@ -40,8 +45,9 @@ type JoinSearchParams = {
  * Impure loader for the join route. Resolves merchant availability, the current
  * session, an existing membership, and a pending OTP — then hands pure facts to
  * {@link deriveCustomerExperience}. The pending-OTP lookup is skipped once a
- * session exists (a verified customer is already past that step), and an explicit
- * `step=phone` always returns the customer to the phone form.
+ * session exists (a verified customer is already past that step), an explicit
+ * `step=phone` always returns the customer to the phone form, and `step=email`
+ * opens the email form only once the server allows the email fallback.
  */
 export async function loadJoinExperienceContext(
   merchantSlug: string,
@@ -136,27 +142,47 @@ export async function loadJoinExperienceContext(
   }
 
   // No session: a pending join verification means show the code step — unless the
-  // customer explicitly asked for a contact step (`step=phone` or `step=email`).
-  const contactStepRequested =
-    searchParams.step === "phone" || searchParams.step === "email"
-  const [email, pending] = await Promise.all([
-    contactStepRequested
-      ? null
-      : pendingEmailFacts(merchantSlug, searchParams.qr),
+  // customer explicitly asked for a contact step (`step=phone`, or `step=email`
+  // once the server opens the email fallback).
+  const emailStepAsked = searchParams.step === "email"
+  const [email, pending, fallbackOpened] = await Promise.all([
+    pendingEmailFacts(merchantSlug, searchParams.qr),
     getPendingPhoneVerification(),
+    emailStepAsked ? emailFallbackOpenedFor("join") : false,
   ])
   const phoneCode = pending?.purpose === "join" ? pending : null
+  // Phone first: `step=email` is only the phone code's fallback, so the
+  // server checks it is open (30 seconds after the latest code, a failed
+  // send, or an email sign-in already under way). Asked for early, the
+  // visitor gets the phone step: the pending code if there is one.
+  const emailFallback =
+    emailStepAsked &&
+    emailFallbackOpen(
+      {
+        phoneCodeSentAt: phoneCode?.issuedAt ?? null,
+        opened: fallbackOpened,
+        emailInProgress:
+          email.pendingIssuedAt !== undefined ||
+          email.handoffIssuedAt !== undefined,
+      },
+      Date.now()
+    )
+  const contactStepRequested = searchParams.step === "phone" || emailFallback
   // Starting any challenge clears the others, but a cookie left from an older
-  // step must never hide the one the visitor started last.
+  // step must never hide the one the visitor started last. An email code that
+  // never reached the customer does not hide a phone code still pending: the
+  // phone is where they came from.
+  const emailCodeUndelivered = email.pendingEmail?.deliveryDelayed === true
   const newest = contactStepRequested
     ? null
     : newestSignedOutJoinChallenge({
-        emailHandoff: email?.handoffIssuedAt,
-        emailCode: email?.pendingIssuedAt,
+        emailHandoff: email.handoffIssuedAt,
+        emailCode:
+          phoneCode && emailCodeUndelivered ? undefined : email.pendingIssuedAt,
         phoneCode: phoneCode?.issuedAt,
       })
 
-  if (email && (newest === "email_handoff" || newest === "email_code")) {
+  if (newest === "email_handoff" || newest === "email_code") {
     return {
       ...base,
       ...(newest === "email_handoff"
@@ -164,6 +190,7 @@ export async function loadJoinExperienceContext(
         : { pendingEmail: email.pendingEmail }),
       hasSession: false,
       pendingOtp: false,
+      phoneCodePending: phoneCode !== null,
       membership: null,
     }
   }
@@ -175,6 +202,14 @@ export async function loadJoinExperienceContext(
       pendingOtp: true,
       pendingPhone: phoneCode.phone,
       pendingChannel: phoneCode.channel,
+      // A resend re-issues the pending cookie, so this is the latest send.
+      // The server works out the wait, so a wrong device clock cannot offer
+      // email early, and the step restarts its wait when this changes.
+      pendingPhoneSentAt: phoneCode.issuedAt,
+      pendingPhoneEmailFallbackInSeconds: phoneCodeEmailFallbackInSeconds(
+        phoneCode.issuedAt,
+        Date.now()
+      ),
       membership: null,
     }
   }
@@ -184,6 +219,9 @@ export async function loadJoinExperienceContext(
     hasSession: false,
     pendingOtp: false,
     pendingPhone: undefined,
+    emailFallbackOpen: emailFallback,
+    // The email fallback keeps the phone code it came from one tap away.
+    phoneCodePending: phoneCode !== null,
     membership: null,
   }
 }

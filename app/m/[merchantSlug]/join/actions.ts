@@ -27,12 +27,17 @@ import {
   clearPendingEmailSignIn,
   clearVerifiedEmailHandoff,
 } from "@/lib/customer/email-sign-in"
+import {
+  closeEmailFallback,
+  openEmailFallback,
+} from "@/lib/customer/email-fallback"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { joinEntry } from "@/lib/customer/join-observability-contract"
 import { isOfferClaimAvailable } from "@/lib/customer/pending-join-offer"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redirect"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
+import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
 import {
   clearPendingPhoneVerification,
   getPendingPhoneVerification,
@@ -73,6 +78,19 @@ export type CustomerIdentityState = {
     merchantSlug?: string
     qrId?: string
     phoneOtpSent?: boolean
+    /**
+     * No code went out (provider or pending state failure). The phone form
+     * offers email beside the error while email sign-in is on, since this
+     * customer never reaches the code step's fallback.
+     */
+    phoneSendFailed?: boolean
+    /**
+     * A resend's code, sent at this server time (epoch seconds): the code
+     * step restarts its wait for the email fallback from it.
+     */
+    phoneCodeSentAt?: number
+    /** Seconds left, by the server's clock, before that step offers email. */
+    emailFallbackInSeconds?: number
   }
   errors?: {
     contact?: string
@@ -180,8 +198,10 @@ export async function requestCustomerIdentityAction(
     )
     if (verification.status === "unavailable") {
       recordJoinCodeSendFailed(joinContext.merchant.id, "provider_unavailable")
+      // No code went out, so email is offered at once, on the server too.
+      await openEmailFallback("join", "phone_send_failed")
       return {
-        fields: requestFields,
+        fields: { ...requestFields, phoneSendFailed: true },
         errors: {
           form: "We couldn't send a code just now. Try again shortly.",
         },
@@ -190,8 +210,9 @@ export async function requestCustomerIdentityAction(
     sentChannel = verification.channel
   }
 
+  let pendingCode: Awaited<ReturnType<typeof setPendingPhoneVerification>>
   try {
-    await setPendingPhoneVerification({
+    pendingCode = await setPendingPhoneVerification({
       purpose: "join",
       phone: contact,
       country: normalized.phone.country,
@@ -203,9 +224,10 @@ export async function requestCustomerIdentityAction(
     }
     logVerificationSendFailure("join", error)
     recordJoinCodeSendFailed(joinContext.merchant.id, "pending_state_failed")
+    await openEmailFallback("join", "phone_send_failed")
 
     return {
-      fields: requestFields,
+      fields: { ...requestFields, phoneSendFailed: true },
       errors: {
         form: "Verification code could not be sent. Try again shortly.",
       },
@@ -215,6 +237,8 @@ export async function requestCustomerIdentityAction(
   // and a confirmed-email handoff, which would otherwise hide the code step.
   await clearPendingEmailSignIn()
   await clearVerifiedEmailHandoff()
+  // Email now waits 30 seconds from this code.
+  await closeEmailFallback()
 
   await captureJoinFunnelEvent({
     eventName: "join_phone_requested",
@@ -229,7 +253,12 @@ export async function requestCustomerIdentityAction(
   // redirect that advances it to the OTP step — semantics unchanged.
   if (value(formData, "resend") === "1") {
     return {
-      fields: { merchantSlug, qrId, phoneOtpSent: true },
+      fields: {
+        merchantSlug,
+        qrId,
+        phoneOtpSent: true,
+        ...phoneCodeStepTiming(pendingCode.issuedAt, Date.now()),
+      },
       message: "If a new code arrives, enter it here.",
     }
   }

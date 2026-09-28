@@ -10,10 +10,6 @@ import {
   type CustomerEmailChoiceState,
   type CustomerEmailIdentityState,
 } from "@/app/m/[merchantSlug]/join/email-actions"
-import {
-  useRememberContactMethodOnVerify,
-  useRestoreContactMethodOnNoWallet,
-} from "@/components/customer/contact-method-order"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
@@ -31,15 +27,17 @@ export type CustomerEmailFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
-  /** The other method, always visible directly under the button (D12). */
+  /** "Use my phone number instead", directly under the button. */
   alternate?: ReactNode
   /** "What do I get?": the welcome step, or the venue page for a direct join. */
   backHref: string
 }
 
 /**
- * Join by email: one field and one button. The code goes out by email, so it
- * arrives over the venue's Wi-Fi when there is no mobile signal. The answer is
+ * Join by email, the fallback for a phone code that has not
+ * arrived: one field and
+ * one button. The code goes out by email, so it arrives over the venue's
+ * Wi-Fi when there is no mobile signal. The answer is
  * the same whether or not a wallet uses the address; that is only said after
  * the customer proves the inbox is theirs.
  */
@@ -161,10 +159,6 @@ export function CustomerEmailChoiceForm({
     startEmailWalletAction,
     choiceInitialState
   )
-  // The code check that led here signed no one in, so this device does not
-  // lead with email for it; starting a wallet with the email does.
-  useRestoreContactMethodOnNoWallet("email")
-  const rememberEmail = useRememberContactMethodOnVerify("email", state)
 
   return (
     <div className="grid gap-4">
@@ -177,7 +171,7 @@ export function CustomerEmailChoiceForm({
       ) : null}
       <div className="grid gap-3">
         {canCreate ? (
-          <form action={createAction} onSubmit={rememberEmail} className="grid">
+          <form action={createAction} className="grid">
             <JoinHiddenFields
               merchantSlug={merchantSlug}
               qrId={qrId}

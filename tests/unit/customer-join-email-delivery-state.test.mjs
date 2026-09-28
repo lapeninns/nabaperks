@@ -18,11 +18,14 @@ const REAL = [
   "@/lib/customer/email-sign-in-core",
   "@/lib/customer/pending-cookie-crypto",
   "@/lib/customer/otp-channel-core",
+  "@/lib/customer/phone-code-email-fallback",
   "@/lib/observability/request-id",
 ]
 
 const STUBS = {
-  "fixture-state": `export const state = { pending: null, handoff: null };`,
+  "fixture-state": `export const state = { pending: null, handoff: null, phone: null, opened: false };`,
+  "@/lib/customer/email-fallback": `import { state } from "fixture-state";
+    export async function emailFallbackOpenedFor(purpose) { return purpose === "join" && state.opened }`,
   "server-only": "",
   "next/headers": "export async function headers() { return new Headers() }",
   "@/lib/customer/email-sign-in": `import { state } from "fixture-state";
@@ -38,8 +41,8 @@ const STUBS = {
       }
     }
     export async function getMembershipForCustomer() { return null }`,
-  "@/lib/customer/session":
-    "export async function getPendingPhoneVerification() { return null }",
+  "@/lib/customer/session": `import { state } from "fixture-state";
+    export async function getPendingPhoneVerification() { return state.phone }`,
   "@/lib/customer/stamp":
     "export async function getMerchantStampLocationRequirement() { return null }",
   "@/lib/observability/logger":
@@ -135,4 +138,108 @@ test("Given a sent or a refused send When the join page loads Then both read as 
   })
   // A refused send is indistinguishable from a sent one (D8).
   assert.deepEqual(loaded[1], loaded[0])
+})
+
+function phoneCode(ageSeconds) {
+  return {
+    purpose: "join",
+    phone: "+447700900123",
+    channel: "sms",
+    issuedAt: Math.floor(Date.now() / 1_000) - ageSeconds,
+  }
+}
+
+test("Given step=email When no phone code, failed send or email is under way Then the server keeps the phone step", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { loadJoinExperienceContext } = await loadJoinLoader()
+
+  const context = await loadJoinExperienceContext("old-crown", {
+    step: "email",
+  })
+
+  assert.equal(context.emailFallbackOpen, false)
+  assert.equal(context.pendingOtp, false)
+})
+
+test("Given step=email When the latest phone code is under 30 seconds old Then its code step shows instead, with the wait left", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { loadJoinExperienceContext, state } = await loadJoinLoader()
+  state.phone = phoneCode(5)
+
+  const context = await loadJoinExperienceContext("old-crown", {
+    step: "email",
+  })
+
+  assert.equal(context.pendingOtp, true)
+  assert.equal(context.pendingPhoneSentAt, state.phone.issuedAt)
+  assert.ok(context.pendingPhoneEmailFallbackInSeconds >= 24)
+  assert.ok(context.pendingPhoneEmailFallbackInSeconds <= 26)
+  assert.equal(context.emailFallbackOpen, undefined)
+})
+
+test("Given step=email When the phone code is 30 seconds old, a send failed, or email is under way Then the email form opens", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { loadJoinExperienceContext, state } = await loadJoinLoader()
+
+  state.phone = phoneCode(31)
+  const waited = await loadJoinExperienceContext("old-crown", { step: "email" })
+  assert.equal(waited.emailFallbackOpen, true)
+  assert.equal(waited.pendingOtp, false)
+  // Its phone link returns to that code.
+  assert.equal(waited.phoneCodePending, true)
+
+  state.phone = null
+  state.opened = true
+  const failed = await loadJoinExperienceContext("old-crown", { step: "email" })
+  assert.equal(failed.emailFallbackOpen, true)
+  assert.equal(failed.phoneCodePending, false)
+
+  state.opened = false
+  state.pending = pendingChallenge("sent")
+  const underWay = await loadJoinExperienceContext("old-crown", {
+    step: "email",
+  })
+  assert.equal(underWay.emailFallbackOpen, true)
+  // An explicit contact step: the email form, not the code step.
+  assert.equal(underWay.pendingEmail, undefined)
+})
+
+test("Given email sign-in is off When step=email is asked for Then the email fallback never opens", async () => {
+  const { loadJoinExperienceContext, state } = await loadJoinLoader()
+  state.phone = phoneCode(5)
+  state.pending = pendingChallenge("sent")
+
+  const context = await loadJoinExperienceContext("old-crown", {
+    step: "email",
+  })
+
+  assert.equal(context.emailFallbackOpen, undefined)
+  assert.equal(context.pendingOtp, true)
+})
+
+test("Given the email fallback's send failed When a phone code is still pending Then the page returns to the phone code, not the delayed email", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { loadJoinExperienceContext, state } = await loadJoinLoader()
+  state.phone = phoneCode(40)
+  // The email challenge is newer, but its code never reached the customer.
+  state.pending = {
+    ...pendingChallenge("fail"),
+    issuedAt: Math.floor(Date.now() / 1_000),
+  }
+
+  const context = await loadJoinExperienceContext("old-crown", {})
+
+  assert.equal(context.pendingOtp, true)
+  assert.equal(context.pendingEmail, undefined)
+  assert.equal(context.pendingPhoneEmailFallbackInSeconds, 0)
+
+  // A code on its way is the newest challenge and wins as before.
+  state.pending = {
+    ...pendingChallenge("sent"),
+    issuedAt: Math.floor(Date.now() / 1_000),
+  }
+  const sent = await loadJoinExperienceContext("old-crown", {})
+  assert.equal(sent.pendingOtp, false)
+  assert.equal(sent.pendingEmail.maskedEmail, "g***@example.com")
+  assert.equal(sent.phoneCodePending, true)
 })

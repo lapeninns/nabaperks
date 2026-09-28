@@ -1,6 +1,8 @@
 import type { OfferClaimLandingProps } from "@/components/customer/offer-claim-landing"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
+import type { JoinEmailMode } from "@/lib/customer/experience/types"
 import type { CustomerOfferPass } from "@/lib/customer/offer-pass"
+import { phoneCodeEmailFallbackInSeconds } from "@/lib/customer/phone-code-email-fallback"
 
 // Display fixtures only, behind the /dev production gate. No live campaign token.
 export const WELCOME_OFFER: OfferClaimLandingProps = {
@@ -53,24 +55,51 @@ export const WELCOME_PASS: CustomerOfferPass = {
 
 /**
  * Join surfaces this harness renders. `contact` is the contact step the server
- * picks by default, which a device may reorder (D12); it and the `email*`
- * surfaces run in mode `full` (`email-choice-existing` in `existing`).
+ * picks with no step asked for (always phone). `welcome-email`, `contact`,
+ * `code-email` and the `email*` surfaces run in mode `full`; the `-existing`
+ * ones in `existing`; the rest with email sign-in off. The `code*` surfaces
+ * take `sentAt` (epoch seconds) as the phone code's send time, now by default,
+ * and the server works out the wait from it as the join loader does.
+ * `email-after-code` is the email step with that phone code still pending,
+ * and `email-code-after-code` the email code step with one still pending (the
+ * provider never took the email). The `email` surfaces show the step the
+ * server opened as the phone code's fallback.
  */
 export const WELCOME_JOIN_SURFACES = [
   "welcome",
+  "welcome-email",
   "phone",
   "code",
+  "code-email",
+  "code-email-existing",
   "terms",
   "contact",
+  "contact-existing",
   "email",
+  "email-after-code",
   "email-code",
   "email-code-delayed",
+  "email-code-after-code",
   "email-choice",
   "email-choice-existing",
 ] as const
 
-export function welcomeJoinExperience(step: string) {
-  const emailSurface = step === "contact" || step.startsWith("email")
+function joinFixtureEmailMode(step: string): JoinEmailMode {
+  if (step.endsWith("-existing")) return "existing"
+  const emailSurface =
+    step === "welcome-email" ||
+    step === "contact" ||
+    step === "code-email" ||
+    step.startsWith("email")
+  return emailSurface ? "full" : "off"
+}
+
+export function welcomeJoinExperience(
+  step: string,
+  options: { readonly sentAt?: number } = {}
+) {
+  const codeSurface = step.startsWith("code")
+  const sentAt = options.sentAt ?? Math.floor(Date.now() / 1_000)
   return deriveCustomerExperience({
     entry: "join",
     context: {
@@ -86,21 +115,28 @@ export function welcomeJoinExperience(step: string) {
         rewardTerms:
           "Fixture venue terms. No live consent is collected on this display route.",
       },
-      qrId: step === "welcome" ? "welcome-fixture-qr" : undefined,
-      step: step === "email" ? "email" : undefined,
+      qrId:
+        step.startsWith("welcome") || step.startsWith("code-email")
+          ? "welcome-fixture-qr"
+          : undefined,
+      step:
+        step === "email" || step === "email-after-code" ? "email" : undefined,
+      emailFallbackOpen: step === "email" || step === "email-after-code",
+      phoneCodePending: step.endsWith("after-code"),
       hasSession: step === "terms",
-      pendingOtp: step === "code",
-      emailMode: !emailSurface
-        ? "off"
-        : step === "email-choice-existing"
-          ? "existing"
-          : "full",
+      pendingOtp: codeSurface,
+      pendingPhoneSentAt: codeSurface ? sentAt : undefined,
+      pendingPhoneEmailFallbackInSeconds: codeSurface
+        ? phoneCodeEmailFallbackInSeconds(sentAt, Date.now())
+        : undefined,
+      emailMode: joinFixtureEmailMode(step),
       // A past resend time keeps the resend button steady for screenshots.
       pendingEmail: step.startsWith("email-code")
         ? {
             maskedEmail: "j***@example.com",
             resendAvailableAt: 0,
-            deliveryDelayed: step === "email-code-delayed",
+            deliveryDelayed:
+              step === "email-code-delayed" || step === "email-code-after-code",
           }
         : undefined,
       emailHandoff: step.startsWith("email-choice")

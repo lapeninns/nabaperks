@@ -10,7 +10,6 @@ import {
   CustomerStampCard,
   type FlowProgress,
 } from "@/components/customer/customer-flow-system"
-import { ContactMethodOrder } from "@/components/customer/contact-method-order"
 import type {
   CustomerEmailChoiceFormProps,
   CustomerEmailFormProps,
@@ -81,8 +80,8 @@ type PhoneExperience = Extract<CustomerExperience, { kind: "join_phone" }>
 type EmailExperience = Extract<CustomerExperience, { kind: "join_email" }>
 
 /**
- * Step wizard for the join flow — one job per screen (welcome → email or phone
- * → code → terms), plus the email choice, returning-member and unavailable
+ * Step wizard for the join flow — one job per screen (welcome → phone → code
+ * → terms, with email as the phone code's fallback), plus the email choice, returning-member and unavailable
  * states. The route page derives a join {@link CustomerExperience}; this maps
  * it to chrome + the step. Backend order: verify phone or email → terms →
  * membership + first stamp (via QR join).
@@ -149,11 +148,11 @@ export function JoinWizard({
 const ONBOARDING_STEPS = 3
 
 /**
- * The contact step. While email sign-in is off it is the phone form alone, as
- * before. Otherwise both complete screens are built here and one leads (D12):
- * the method the address asked for, else phone while a phone-only offer is in
- * progress, else this device's last verified method, else the server default.
- * The other method is always one visible link away.
+ * The contact step: the phone form, always. Email is never a first option; it
+ * is the phone code step's fallback once the code has had time to arrive, and
+ * that fallback opens the email form here (`step=email`). Phone stays one link
+ * away: back to the pending code if there is one, since a late code is the
+ * usual reason for coming back, else the number form.
  */
 function ContactStep({
   exp,
@@ -164,104 +163,37 @@ function ContactStep({
   referralCode?: string
   pendingOffer?: PendingJoinOffer | null
 }) {
-  if (exp.kind === "join_phone" && exp.emailMode === "off") {
+  const vm = getCustomerExperienceViewModel(exp)
+  if (exp.kind === "join_phone") {
     return (
       <PhoneStep
         exp={exp}
-        vm={getCustomerExperienceViewModel(exp)}
+        vm={vm}
         referralCode={referralCode}
         pendingOffer={pendingOffer}
       />
     )
   }
-
-  const { phoneExp, emailExp } = contactExperiences(exp)
-  const contactHref = (step: JoinContactMethod) =>
-    buildCustomerJoinHref(exp.merchant.slug, {
-      qrId: exp.qrId,
-      referralCode,
-      step,
-    })
-  const phone = (
-    <PhoneStep
-      exp={phoneExp}
-      vm={getCustomerExperienceViewModel(phoneExp)}
-      referralCode={referralCode}
-      pendingOffer={pendingOffer}
-      alternate={
-        <AlternateContactLink href={contactHref("email")}>
-          Use my email instead
-        </AlternateContactLink>
-      }
-    />
-  )
-  const email = (
+  return (
     <EmailStep
-      exp={emailExp}
-      vm={getCustomerExperienceViewModel(emailExp)}
+      exp={exp}
+      vm={vm}
       referralCode={referralCode}
       pendingOffer={pendingOffer}
       alternate={
-        <AlternateContactLink href={contactHref("phone")}>
-          Use my phone number instead
-        </AlternateContactLink>
+        <Button asChild variant="outline" size="lg" className="w-full">
+          <Link
+            href={buildCustomerJoinHref(exp.merchant.slug, {
+              qrId: exp.qrId,
+              referralCode,
+              step: exp.phoneCodePending ? undefined : "phone",
+            })}
+          >
+            Use my phone number instead
+          </Link>
+        </Button>
       }
     />
-  )
-
-  if (exp.methodRequested) return exp.kind === "join_email" ? email : phone
-  // Public offer campaigns are claimed by a confirmed phone number only, so
-  // an offer in progress leads with phone.
-  if (pendingOffer) return phone
-  return (
-    <ContactMethodOrder
-      defaultMethod={exp.defaultMethod}
-      email={email}
-      phone={phone}
-    />
-  )
-}
-
-/** Both contact screens for one contact step, the unrequested one unrequested. */
-function contactExperiences(exp: PhoneExperience | EmailExperience): {
-  phoneExp: PhoneExperience
-  emailExp: EmailExperience
-} {
-  const shared = {
-    merchant: exp.merchant,
-    card: exp.card,
-    qrId: exp.qrId,
-    defaultMethod: exp.defaultMethod,
-    methodRequested: false,
-    channel: exp.channel,
-  }
-  if (exp.kind === "join_email") {
-    return {
-      emailExp: exp,
-      phoneExp: { ...shared, kind: "join_phone", emailMode: exp.emailMode },
-    }
-  }
-  return {
-    phoneExp: exp,
-    emailExp: {
-      ...shared,
-      kind: "join_email",
-      emailMode: exp.emailMode === "full" ? "full" : "existing",
-    },
-  }
-}
-
-function AlternateContactLink({
-  href,
-  children,
-}: {
-  href: string
-  children: ReactNode
-}) {
-  return (
-    <Button asChild variant="outline" size="lg" className="w-full">
-      <Link href={href}>{children}</Link>
-    </Button>
   )
 }
 
@@ -285,13 +217,11 @@ function PhoneStep({
   vm,
   referralCode,
   pendingOffer,
-  alternate,
 }: {
   exp: PhoneExperience
   vm: CustomerExperienceViewModel
   referralCode?: string
   pendingOffer?: PendingJoinOffer | null
-  alternate?: ReactNode
 }) {
   return (
     <JoinShell
@@ -309,7 +239,15 @@ function PhoneStep({
         qrId={exp.qrId}
         channel={exp.channel}
         referralCode={referralCode}
-        alternate={alternate}
+        emailStepHref={
+          exp.emailSignIn
+            ? buildCustomerJoinHref(exp.merchant.slug, {
+                qrId: exp.qrId,
+                referralCode,
+                step: "email",
+              })
+            : undefined
+        }
       />
     </JoinShell>
   )
@@ -425,10 +363,11 @@ function OtpStep({
             referralCode,
             step: "email",
           })}
+          // Back to a phone code still pending, else the number form.
           phoneStepHref={buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
             referralCode,
-            step: "phone",
+            step: exp.contact.phoneCodePending ? undefined : "phone",
           })}
         />
       ) : (
@@ -438,6 +377,13 @@ function OtpStep({
           contactLast4={exp.contact.last4}
           channel={exp.contact.channel}
           referralCode={referralCode}
+          emailFallbackInSeconds={exp.contact.emailFallbackInSeconds}
+          phoneCodeSentAt={exp.contact.phoneCodeSentAt}
+          emailStepHref={buildCustomerJoinHref(exp.merchant.slug, {
+            qrId: exp.qrId,
+            referralCode,
+            step: "email",
+          })}
         />
       )}
     </JoinShell>

@@ -10,14 +10,21 @@ import {
   createVerifiedEmailHandoffCookieValue,
   emailSignInCodeHmac,
 } from "@/lib/customer/email-sign-in-core"
+import { PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS } from "@/lib/customer/phone-code-email-fallback"
+import {
+  createPendingPhoneCookieValue,
+  readPendingPhoneCookieValue,
+} from "@/lib/customer/session-cookie-core"
 import { issueCustomerDeviceToken } from "@/lib/security/customer-device-token"
 
 import type { Sql } from "./admin-live-db"
-import { DEV_OTP } from "./customer-join-live-db"
 import {
-  publicQrPath,
-  type PublicQrRouterFixture,
-} from "./public-qr-router-live-db"
+  DEV_OTP,
+  openOtpStep,
+  type DisposablePhone,
+} from "./customer-join-live-db"
+import { installFallbackClock, takeEmailFallback } from "./email-fallback"
+import type { PublicQrRouterFixture } from "./public-qr-router-live-db"
 
 /**
  * Fixtures for the join-by-email journeys against local Supabase. The server
@@ -31,6 +38,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
 export const PENDING_EMAIL_SIGN_IN_COOKIE = "nabaperks_pending_email_sign_in"
 export const EMAIL_HANDOFF_COOKIE = "nabaperks_email_handoff"
+const PENDING_PHONE_COOKIE = "nabaperks_pending_phone"
 const DEVICE_COOKIE = "nabaperks_device"
 
 export type EmailJoinDevice = {
@@ -171,22 +179,66 @@ export async function installForeignDeviceHandoff(
 }
 
 /**
- * Scan the venue QR, take the contact step the device leads with (email on a
- * fresh device in mode full), and send a code to `email`.
+ * Moves the pending phone code's send time `seconds` into the past, as if the
+ * server had sent it then: the server times the email fallback from its own
+ * send time and clock, which the page clock cannot move. Re-sealed with the
+ * dev server's session secret, so the server reads it as its own.
+ */
+export async function agePendingPhoneCode(
+  page: Page,
+  seconds: number = PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS + 1
+): Promise<void> {
+  const context = page.context()
+  const cookie = (await context.cookies()).find(
+    (candidate) => candidate.name === PENDING_PHONE_COOKIE
+  )
+  if (!cookie) throw new Error("No phone code is pending to age.")
+  const secret = sessionSecret()
+  const read = readPendingPhoneCookieValue(
+    cookie.value,
+    secret,
+    Math.floor(Date.now() / 1000)
+  )
+  if (!read.ok) throw new Error(`Pending phone code unreadable: ${read.reason}`)
+  await context.addCookies([
+    {
+      name: PENDING_PHONE_COOKIE,
+      value: createPendingPhoneCookieValue(
+        { ...read.payload, issuedAt: read.payload.issuedAt - seconds },
+        secret
+      ),
+      url: baseURL,
+      httpOnly: true,
+      sameSite: "Lax",
+      expires: cookie.expires,
+    },
+  ])
+}
+
+/**
+ * Scan the venue QR and send a text to `phone` (phone always leads), let 30
+ * seconds pass for the server (aging the pending code) and the page clock,
+ * take the email fallback, and send a code to `email`. Installs the page
+ * clock, so call it before any navigation. Pass the same `phone` to the
+ * journey's cleanup: its send buckets are spent.
  */
 export async function requestJoinEmailCode(
   page: Page,
   fixture: PublicQrRouterFixture,
-  email: string
+  email: string,
+  phone: DisposablePhone
 ): Promise<void> {
-  await page.goto(publicQrPath(fixture.activeQrId))
+  await installFallbackClock(page)
+  await openOtpStep(page, fixture, phone)
+  await agePendingPhoneCode(page)
+  await takeEmailFallback(page)
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("step") === "email" &&
+      url.searchParams.get("qr") === fixture.activeQrId
+  )
   await expect(
-    page.getByRole("heading", { name: "Your first stamp is ready" })
-  ).toBeVisible()
-  await page.getByRole("link", { name: "Claim my first stamp" }).click()
-  await expect(page).toHaveURL(/step=email/)
-  await expect(
-    page.getByRole("heading", { name: "Save your stamp with your email" })
+    page.getByRole("heading", { name: "Get your code by email instead" })
   ).toBeVisible()
   await expect(page.getByLabel("UK phone number")).toHaveCount(0)
 

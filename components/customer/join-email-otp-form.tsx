@@ -8,7 +8,6 @@ import {
   verifyCustomerEmailOtpAction,
   type CustomerEmailIdentityState,
 } from "@/app/m/[merchantSlug]/join/email-actions"
-import { useRememberContactMethodOnVerify } from "@/components/customer/contact-method-order"
 import { JoinHiddenFields } from "@/components/customer/join-email-forms"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
@@ -63,7 +62,6 @@ export function CustomerEmailOtpForm({
     requestCustomerEmailIdentityAction,
     emailInitialState
   )
-  const rememberEmail = useRememberContactMethodOnVerify("email", verifyState)
   const retryAtSeconds =
     requestState.fields?.resendAvailableAt ?? resendAvailableAt
   const countdown = useOtpRetryCountdown(
@@ -87,11 +85,7 @@ export function CustomerEmailOtpForm({
 
   return (
     <div className="grid gap-4">
-      <form
-        action={verifyAction}
-        onSubmit={rememberEmail}
-        className="grid gap-4"
-      >
+      <form action={verifyAction} className="grid gap-4">
         <JoinHiddenFields
           merchantSlug={merchantSlug}
           qrId={qrId}

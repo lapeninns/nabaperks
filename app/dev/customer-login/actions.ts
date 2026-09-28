@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation"
 
 import type { CustomerLoginOtpState } from "@/app/home/actions"
+import { PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS } from "@/lib/customer/phone-code-email-fallback"
 import { isEmailAddress } from "@/lib/customer/profile-fields"
 
 const DISPLAY_OTP = "424242"
@@ -37,6 +38,8 @@ export async function submitLoginFixture(
         },
       }
     case "switch-method":
+      // No pending code cookie here: the real action returns to a phone code
+      // still pending (covered by the live journey), this shows the number.
       return {
         fields: { method: data.get("method") === "email" ? "email" : "phone" },
       }
@@ -68,12 +71,22 @@ async function requestLoginFixture(
     (scenario === "resend-error" && state.fields?.otpSent)
   ) {
     return {
-      fields: { contact },
+      fields: { contact, phoneSendFailed: true },
       errors: { form: "We couldn't send a code just now. Try again shortly." },
     }
   }
   return {
-    fields: { contact, otpSent: true },
+    fields: {
+      contact,
+      otpSent: true,
+      emailFallbackInSeconds: PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS,
+      // Each send is newer than the last, as the pending cookie's issue time
+      // is, so a resend restarts the email fallback's wait.
+      phoneCodeSentAt: Math.max(
+        Math.floor(Date.now() / 1_000),
+        (state.fields?.phoneCodeSentAt ?? 0) + 1
+      ),
+    },
     message:
       "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
   }
@@ -81,16 +94,22 @@ async function requestLoginFixture(
 
 async function verifyLoginFixture(
   scenario: string,
-  _state: CustomerLoginOtpState,
+  state: CustomerLoginOtpState,
   data: FormData
 ): Promise<CustomerLoginOtpState> {
   if (process.env.NODE_ENV === "production") notFound()
   const contact = String(data.get("contact") ?? "")
+  // The real action works the wait out again from the pending code cookie;
+  // the same code keeps its send time, so the step keeps counting down.
+  const codeTiming = {
+    emailFallbackInSeconds: state.fields?.emailFallbackInSeconds,
+    phoneCodeSentAt: state.fields?.phoneCodeSentAt,
+  }
   if (scenario === "expired")
     return { errors: { contact: "Request a new phone code." } }
   if (scenario === "verify-error") {
     return {
-      fields: { contact, otpSent: true },
+      fields: { contact, otpSent: true, ...codeTiming },
       errors: {
         form: "We couldn't check that code. Try again or request a new one.",
       },
@@ -98,7 +117,7 @@ async function verifyLoginFixture(
   }
   if (data.get("otp") !== DISPLAY_OTP) {
     return {
-      fields: { contact, otpSent: true },
+      fields: { contact, otpSent: true, ...codeTiming },
       errors: { otp: "That code was not accepted." },
     }
   }

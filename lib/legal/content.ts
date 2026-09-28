@@ -147,7 +147,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
 ]
 
 export const PRIVACY_META = {
-  eyebrow: "For customers and merchants · effective 27 September 2026",
+  eyebrow: "For customers and merchants · effective 28 September 2026",
   title: "Nabaperks privacy notice.",
   description:
     "How Nabaperks collects, uses, shares, retains, and removes information about customers and merchants.",
@@ -159,7 +159,7 @@ export const COOKIE_SECTIONS: LegalSection[] = [
   {
     id: "customer-cookies",
     title: "Customer verification and session cookies",
-    body: "The HttpOnly nabaperks_pending_phone, nabaperks_pending_email, nabaperks_pending_email_sign_in, and nabaperks_access_recovery cookies each last up to 10 minutes while a phone number, email, email sign-in code, or existing-wallet recovery is checked. The encrypted HttpOnly nabaperks_email_handoff cookie lasts up to 10 minutes after an email is confirmed on a join page that no wallet uses yet; it is tied to that browser and venue, and it creates nothing by itself. After verification, the signed HttpOnly nabaperks_customer_session cookie identifies a revocable, device-bound server-side customer session that lasts until you log out on that device or on all devices. The cookie is renewed as you use Nabaperks and lapses after one year without use.",
+    body: "The HttpOnly nabaperks_pending_phone, nabaperks_pending_email, nabaperks_pending_email_sign_in, and nabaperks_access_recovery cookies each last up to 10 minutes while a phone number, email, email sign-in code, or existing-wallet recovery is checked. The encrypted HttpOnly nabaperks_email_handoff cookie lasts up to 10 minutes after an email is confirmed on a join page that no wallet uses yet; it is tied to that browser and venue, and it creates nothing by itself. The encrypted HttpOnly nabaperks_email_fallback cookie lasts up to 10 minutes after a phone code could not be sent, a number with no cards was confirmed, or email was chosen once a phone code had had time to arrive; it records only that email may be offered on this browser instead of phone, not the number or the address. After verification, the signed HttpOnly nabaperks_customer_session cookie identifies a revocable, device-bound server-side customer session that lasts until you log out on that device or on all devices. The cookie is renewed as you use Nabaperks and lapses after one year without use.",
   },
   {
     id: "device-cookie",
@@ -189,7 +189,7 @@ export const COOKIE_SECTIONS: LegalSection[] = [
   {
     id: "local-storage",
     title: "Local storage",
-    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the birthday-profile prompt (nabaperks.dob-prompt-dismissed), dismissal of the add-your-email prompt (nabaperks.email-prompt-dismissed), and the sign-in method this browser last confirmed, email or phone (nabaperks.last-contact-method), so the join page can show that method first. Each prompt dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
+    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the birthday-profile prompt (nabaperks.dob-prompt-dismissed), and dismissal of the add-your-email prompt (nabaperks.email-prompt-dismissed). An older entry recording the sign-in method this browser last used (nabaperks.last-contact-method) is no longer used and is removed when the join or sign-in page loads. Each prompt dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
   },
   {
     id: "push-and-analytics",
@@ -204,12 +204,12 @@ export const COOKIE_SECTIONS: LegalSection[] = [
 ]
 
 export const COOKIE_META = {
-  eyebrow: "Browser data · effective 27 September 2026",
+  eyebrow: "Browser data · effective 28 September 2026",
   title: "Cookie and browser-storage notice.",
   description:
     "The cookies, local browser storage, and push information used by Nabaperks.",
   cardTitle: "Browser storage",
-  docNumber: "CS-2026-09-27",
+  docNumber: "CS-2026-09-28",
 }
 
 export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [

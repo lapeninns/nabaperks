@@ -35,6 +35,8 @@ export default async function WelcomeOfferHarness({
     state?: string
     long?: string
     offer?: string
+    sentAt?: string
+    ref?: string
   }>
 }) {
   if (process.env.NODE_ENV === "production") notFound()
@@ -46,7 +48,10 @@ export default async function WelcomeOfferHarness({
   ) {
     return (
       <JoinWizard
-        experience={welcomeJoinExperience(query.surface ?? "phone")}
+        experience={welcomeJoinExperience(query.surface ?? "phone", {
+          sentAt: fixtureSentAt(query.sentAt),
+        })}
+        referralCode={query.ref}
         pendingOffer={query.offer === "none" ? null : offer}
       />
     )
@@ -184,4 +189,10 @@ export default async function WelcomeOfferHarness({
       />
     </OfferFlowShell>
   )
+}
+
+/** `sentAt` as whole epoch seconds, or undefined for "now". */
+function fixtureSentAt(raw: string | undefined): number | undefined {
+  const seconds = Number(raw)
+  return raw && Number.isSafeInteger(seconds) ? seconds : undefined
 }

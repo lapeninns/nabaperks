@@ -6,17 +6,19 @@ import {
   confirmJoinCode,
   customerJoinEmailSkipReason,
   installKnownDevice,
-  maskedJoinEmail,
   readEmailWallets,
+  requestJoinEmailCode,
   uniqueJoinEmail,
 } from "./helpers/customer-join-email-live-db"
-import { cleanupCustomerJoinRows } from "./helpers/customer-join-live-db"
+import {
+  cleanupCustomerJoinRows,
+  disposableUkMobile,
+} from "./helpers/customer-join-live-db"
 import { customerReadbackLiveDbSkipReason } from "./helpers/customer-readback-live-db"
 import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 import {
   cleanupPublicQrRouterFixture,
   createPublicQrRouterFixture,
-  publicQrPath,
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
@@ -52,6 +54,7 @@ test.describe("@customer-flow join by email (live database, mode existing)", () 
     if (!sql) return
 
     const email = uniqueJoinEmail("existing")
+    const phone = disposableUkMobile()
     let fixture: PublicQrRouterFixture | undefined
     try {
       fixture = await createPublicQrRouterFixture(sql)
@@ -59,14 +62,8 @@ test.describe("@customer-flow join by email (live database, mode existing)", () 
       if (!fixture) return
       await installKnownDevice(context)
 
-      // Mode existing leads with phone; email is one visible link away.
-      await page.goto(publicQrPath(fixture.activeQrId))
-      await page.getByRole("link", { name: "Claim my first stamp" }).click()
-      await expect(page).toHaveURL(/step=phone/)
-      await page.getByRole("link", { name: "Use my email instead" }).click()
-      await page.getByLabel("Email address").fill(email)
-      await page.getByRole("button", { name: "Send my code" }).click()
-      await expect(page.getByText(maskedJoinEmail(email))).toBeVisible()
+      // Phone leads; email is the code step's fallback after 30 seconds.
+      await requestJoinEmailCode(page, fixture, email, phone)
       await confirmJoinCode(page)
 
       await expect(
@@ -106,7 +103,7 @@ test.describe("@customer-flow join by email (live database, mode existing)", () 
       await expect(page.getByText(CREATION_OFF)).toBeVisible()
       await expect(readEmailWallets(sql, email)).resolves.toEqual([])
     } finally {
-      await cleanupCustomerJoinRows(sql, fixture)
+      await cleanupCustomerJoinRows(sql, fixture, phone)
       await cleanupEmailJoinRows(sql, [email])
       await cleanupPublicQrRouterFixture(sql, fixture)
       await sql.end()

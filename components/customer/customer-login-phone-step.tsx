@@ -1,5 +1,7 @@
 "use client"
 
+import type { ReactNode } from "react"
+
 import type { CustomerLoginStepProps } from "@/components/customer/customer-login-method-switch"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { CustomerLoginScanStep } from "@/components/customer/customer-login-scan-step"
@@ -7,13 +9,15 @@ import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Field, FieldGroup } from "@/components/ui/field"
+import { useEmailFallbackReady } from "@/hooks/use-email-fallback-ready"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
 
 /**
  * /home/login by phone: the number, then the code from the message. A code
  * only opens a wallet the number already holds; the request answer is the
- * same whether or not one does.
+ * same whether or not one does. Email is offered beside the number only when
+ * no code could be sent at all; otherwise it is the code step's fallback.
  */
 export function CustomerLoginPhoneStep(props: CustomerLoginStepProps) {
   const { state } = props
@@ -36,7 +40,7 @@ function PhoneScanStep({
   state,
   submitAction,
   pending,
-  codeAlternate,
+  scanAlternate,
 }: CustomerLoginStepProps) {
   const contact = state.fields?.contact ?? ""
   return (
@@ -55,7 +59,7 @@ function PhoneScanStep({
         </SubmitButton>
       </form>
       {/* A wallet joined by email is opened by email. */}
-      {codeAlternate}
+      {scanAlternate}
     </CustomerLoginScanStep>
   )
 }
@@ -65,7 +69,6 @@ function PhoneCodeStep({
   submitAction,
   pending,
   next,
-  onVerifySubmit,
   codeAlternate,
 }: CustomerLoginStepProps) {
   const contact = state.fields?.contact ?? ""
@@ -74,7 +77,7 @@ function PhoneCodeStep({
 
   return (
     <div className="grid gap-4">
-      <form action={submitAction} onSubmit={onVerifySubmit}>
+      <form action={submitAction}>
         <input type="hidden" name="intent" value="verify" />
         <input type="hidden" name="contact" value={contact} />
         <input type="hidden" name="next" value={next} />
@@ -155,7 +158,17 @@ function PhoneCodeStep({
             Wrong number? Use a different one
           </SubmitButton>
         </form>
-        {codeAlternate}
+        {/* Announced when it appears, 30 seconds after the latest send (a
+            resend's new send time restarts it); no wrapper at all while
+            email sign-in is off. */}
+        {codeAlternate ? (
+          <CodeEmailFallback
+            key={state.fields?.phoneCodeSentAt ?? "code"}
+            inSeconds={state.fields?.emailFallbackInSeconds}
+          >
+            {codeAlternate}
+          </CodeEmailFallback>
+        ) : null}
         <p
           role="status"
           aria-live="polite"
@@ -168,11 +181,27 @@ function PhoneCodeStep({
   )
 }
 
+/** The code step's email switch, shown once the server's wait has run. */
+function CodeEmailFallback({
+  inSeconds,
+  children,
+}: {
+  inSeconds: number | undefined
+  children: ReactNode
+}) {
+  const ready = useEmailFallbackReady(inSeconds)
+  return (
+    <div aria-live="polite" className="grid">
+      {ready ? children : null}
+    </div>
+  )
+}
+
 function PhoneRequestStep({
   state,
   submitAction,
   pending,
-  alternate,
+  sendFailedAlternate,
 }: CustomerLoginStepProps) {
   const editingContact = Boolean(state.fields?.editingContact)
   const contact = state.fields?.contact ?? ""
@@ -236,7 +265,10 @@ function PhoneRequestStep({
           </SubmitButton>
         </FieldGroup>
       </form>
-      {alternate}
+      {/* No code went out, so the code step's fallback is never reached. */}
+      {!editingContact && state.fields?.phoneSendFailed
+        ? sendFailedAlternate
+        : null}
     </div>
   )
 }

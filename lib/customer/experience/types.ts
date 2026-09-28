@@ -44,6 +44,17 @@ export type JoinOtpContact =
       last4: string
       /** Where the code went, so the step says "by text" or "on WhatsApp". */
       channel: OtpChannel
+      /**
+       * Seconds left, by the server's clock, before the step may offer email
+       * instead, measured from when the latest code was sent. The step counts
+       * it down from when it appears. Absent while email sign-in is off.
+       */
+      emailFallbackInSeconds?: number
+      /**
+       * When the server sent that code (epoch seconds). A resend changes it,
+       * so the step restarts its wait from the latest code.
+       */
+      phoneCodeSentAt?: number
     }
   | {
       method: "email"
@@ -53,6 +64,11 @@ export type JoinOtpContact =
       resendAvailableAt: number
       /** The provider failed to take the latest code, so none is on its way. */
       deliveryDelayed?: boolean
+      /**
+       * A phone code is still pending, so "Use my phone instead" returns to
+       * that code rather than a blank number form.
+       */
+      phoneCodePending: boolean
     }
 
 /** Contact channels a verified wallet holds, for the marketing-consent line. */
@@ -221,11 +237,10 @@ export type CustomerExperience =
       kind: "join_welcome"
       merchant: JoinMerchant
       card: JoinCard
+      /** The welcome CTA always opens the phone step: email is a fallback. */
       qrId: string
-      /** The contact step the welcome CTA opens (the server default, D12). */
-      contactStep: JoinContactMethod
-      /** `off` keeps the CTA on the phone step whatever the device remembers. */
-      emailMode: JoinEmailMode
+      /** Email sign-in is on: the note says where email is offered. */
+      emailSignIn: boolean
     }
   | {
       kind: "join_phone"
@@ -234,26 +249,24 @@ export type CustomerExperience =
       qrId?: string
       /** Channel the code will be sent on first. */
       channel: OtpChannel
-      /** `off` hides every email option. */
-      emailMode: JoinEmailMode
-      /** Method the server shows first; a device may reorder it (D12). */
-      defaultMethod: JoinContactMethod
-      /** The address asked for this method (`step=phone`): never reordered. */
-      methodRequested: boolean
+      /** Email sign-in is on: a failed send offers email beside the error. */
+      emailSignIn: boolean
     }
   | {
       kind: "join_email"
       merchant: JoinMerchant
       card: JoinCard
       qrId?: string
-      /** Never `off`: this step does not exist while email sign-in is off. */
+      /**
+       * Never `off`: this step does not exist while email sign-in is off. It
+       * is reached only as a fallback from the phone code step (`step=email`).
+       */
       emailMode: Exclude<JoinEmailMode, "off">
-      /** Method the server shows first; a device may reorder it (D12). */
-      defaultMethod: JoinContactMethod
-      /** The address asked for this method (`step=email`): never reordered. */
-      methodRequested: boolean
-      /** Channel a phone code would go out on, for the phone alternative. */
-      channel: OtpChannel
+      /**
+       * A phone code is still pending, so "Use my phone number instead"
+       * returns to that code rather than a blank number form.
+       */
+      phoneCodePending: boolean
     }
   | {
       /**

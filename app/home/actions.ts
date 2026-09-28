@@ -4,6 +4,11 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
+import {
+  closeEmailFallback,
+  openEmailFallback,
+} from "@/lib/customer/email-fallback"
+import { clearPendingEmailSignIn } from "@/lib/customer/email-sign-in"
 import { findCustomerByVerifiedPhone } from "@/lib/customer/identity"
 import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
@@ -15,6 +20,7 @@ import {
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
 import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
+import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
 import {
   checkCustomerPhoneVerification,
   startCustomerPhoneVerification,
@@ -36,6 +42,23 @@ export type CustomerLoginOtpState = {
     contact?: string
     /** A code has been sent — show the code entry step. */
     otpSent?: boolean
+    /**
+     * Seconds left, by the server's clock, before the phone code step may
+     * offer email (30 seconds after the pending code was sent). The step
+     * counts it down from when it appears, when email sign-in is on.
+     */
+    emailFallbackInSeconds?: number
+    /**
+     * When the server sent the pending phone code (epoch seconds). A resend
+     * changes it, and the code step restarts its wait from the latest code.
+     */
+    phoneCodeSentAt?: number
+    /**
+     * No code went out (provider or pending state failure). The phone form
+     * offers email beside the error while email sign-in is on, since this
+     * customer never reaches the code step's fallback.
+     */
+    phoneSendFailed?: boolean
     /** The code was valid and this number or email has no cards. Offer a scan, not another code. */
     noCards?: boolean
     /** Focus the phone field after the customer asks to correct it. */
@@ -108,8 +131,10 @@ export async function requestCustomerLoginOtpAction(
     )
     if (verification.status === "unavailable") {
       recordLoginCodeSendFailed("provider_unavailable")
+      // No code went out, so email is offered at once, on the server too.
+      await openEmailFallback("wallet", "phone_send_failed")
       return {
-        fields: { contact },
+        fields: { contact, phoneSendFailed: true },
         errors: {
           form: "We couldn't send a code just now. Try again shortly.",
         },
@@ -118,8 +143,9 @@ export async function requestCustomerLoginOtpAction(
     sentChannel = verification.channel
   }
 
+  let pendingCode: Awaited<ReturnType<typeof setPendingPhoneVerification>>
   try {
-    await setPendingPhoneVerification({
+    pendingCode = await setPendingPhoneVerification({
       purpose: "wallet",
       phone: contact,
       country: normalized.phone.country,
@@ -128,14 +154,19 @@ export async function requestCustomerLoginOtpAction(
   } catch (error) {
     logVerificationSendFailure("wallet", error)
     recordLoginCodeSendFailed("pending_state_failed")
+    await openEmailFallback("wallet", "phone_send_failed")
 
     return {
-      fields: { contact },
+      fields: { contact, phoneSendFailed: true },
       errors: {
         form: "Verification code could not be sent. Try again shortly.",
       },
     }
   }
+
+  // One sign-in per browser, and email now waits 30 seconds from this code.
+  await clearPendingEmailSignIn()
+  await closeEmailFallback()
 
   recordCustomerContactEvent({
     eventName: "customer_login_code_requested",
@@ -143,9 +174,20 @@ export async function requestCustomerLoginOtpAction(
   })
 
   return {
-    fields: { contact, otpSent: true },
+    fields: loginPhoneCodeFields(pendingCode),
     message:
       "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
+  }
+}
+
+function loginPhoneCodeFields(pending: {
+  readonly phone: string
+  readonly issuedAt: number
+}): NonNullable<CustomerLoginOtpState["fields"]> {
+  return {
+    contact: pending.phone,
+    otpSent: true,
+    ...phoneCodeStepTiming(pending.issuedAt, Date.now()),
   }
 }
 
@@ -180,10 +222,12 @@ export async function verifyCustomerLoginOtpAction(
   }
 
   const contact = pending.phone
+  // Every answer that keeps the code step carries the server's wait.
+  const codeStep = loginPhoneCodeFields(pending)
 
   if (!/^\d{4,8}$/.test(otp)) {
     return {
-      fields: { contact, otpSent: true },
+      fields: codeStep,
       errors: { otp: "Enter the verification code." },
     }
   }
@@ -196,7 +240,7 @@ export async function verifyCustomerLoginOtpAction(
   } catch (error) {
     if (error instanceof RateLimitError) {
       return {
-        fields: { contact, otpSent: true },
+        fields: codeStep,
         errors: { form: "Too many code attempts. Request a new code shortly." },
       }
     }
@@ -208,7 +252,7 @@ export async function verifyCustomerLoginOtpAction(
 
   if (verification.status === "unavailable") {
     return {
-      fields: { contact, otpSent: true },
+      fields: codeStep,
       errors: {
         form: "We couldn't check that code. Try again or request a new one.",
       },
@@ -217,7 +261,7 @@ export async function verifyCustomerLoginOtpAction(
 
   if (verification.status === "rejected") {
     return {
-      fields: { contact, otpSent: true },
+      fields: codeStep,
       errors: { form: "That code was not accepted." },
     }
   }
@@ -230,6 +274,8 @@ export async function verifyCustomerLoginOtpAction(
 
   if (!customer) {
     await clearPendingPhoneVerification()
+    // A wallet joined by email may be why: the scan step offers email.
+    await openEmailFallback("wallet", "no_cards")
     recordCustomerContactEvent({
       eventName: "customer_login_no_wallet",
       metadata: { method: "phone", surface: "home_login" },
@@ -251,7 +297,7 @@ export async function verifyCustomerLoginOtpAction(
     })
   } catch {
     return {
-      fields: { contact, otpSent: true },
+      fields: codeStep,
       errors: {
         form: "We couldn't confirm account continuity. Try again shortly.",
       },

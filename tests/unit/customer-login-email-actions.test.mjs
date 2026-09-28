@@ -12,6 +12,7 @@ import { build } from "esbuild"
 const REAL = [
   "@/lib/customer/email-auth-mode",
   "@/lib/customer/experience/otp-field",
+  "@/lib/customer/phone-code-email-fallback",
   "@/lib/navigation/safe-next-path",
 ]
 
@@ -27,7 +28,14 @@ const STUBS = {
     wallet: null,
     findFails: false,
     sessionFails: false,
+    phonePending: null,
+    gate: { open: true, phoneCode: null },
+    opened: [],
   };`,
+  // The fallback gate itself is proved in email-fallback-gate.test.mjs.
+  "@/lib/customer/email-fallback": `import { state } from "fixture-state";
+    export async function walletEmailFallbackGate() { return state.gate }
+    export async function openEmailFallback(purpose, reason) { state.opened.push([purpose, reason]) }`,
   "server-only": "",
   "next/navigation": `export function redirect(destination) {
     const error = new Error("NEXT_REDIRECT"); error.destination = destination; throw error
@@ -58,7 +66,8 @@ const STUBS = {
   "@/lib/customer/profile-fields":
     "export function isEmailAddress(raw) { return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(raw) }",
   "@/lib/customer/session": `import { state } from "fixture-state";
-    export async function clearPendingPhoneVerification() { state.calls.push(["clearPhone"]) }`,
+    export async function clearPendingPhoneVerification() { state.calls.push(["clearPhone"]) }
+    export async function getPendingPhoneVerification() { state.calls.push(["phonePending"]); return state.phonePending }`,
   "@/lib/observability/logger":
     "export const logger = { error() {}, warn() {}, info() {} }",
   // Only the dispatcher build reaches these two.
@@ -422,7 +431,7 @@ test("Given a signed-in wallet When the email code is confirmed Then the spent c
   assert.ok(!state.calls.some(([name]) => name === "keepForRetry"))
 })
 
-test("Given the code step When the customer changes email or method Then only the method being left loses its pending code", async () => {
+test("Given the code step When the customer changes email or method Then only email loses its pending code, and the phone code survives the fallback", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "existing"
   const actions = await loadActions()
   const { state } = actions
@@ -454,11 +463,145 @@ test("Given the code step When the customer changes email or method Then only th
     ),
     { fields: { method: "email" } }
   )
+  // Taking the email fallback keeps the phone code: only an email code
+  // actually requested replaces it (startEmailSignInChallenge).
   assert.deepEqual(state.calls, [
     ["clearEmail"],
     ["clearEmail"],
-    ["clearPhone"],
+    ["phonePending"],
   ])
+})
+
+test("Given a phone code is still pending When the customer leaves the email fallback Then they return to that code step with the server's wait", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const actions = await loadActions()
+  const { state } = actions
+  const nowSeconds = Math.floor(Date.now() / 1_000)
+  state.phonePending = {
+    purpose: "wallet",
+    phone: "+447700900123",
+    issuedAt: nowSeconds - 40,
+  }
+
+  assert.deepEqual(
+    await actions.switchCustomerLoginMethodAction(
+      {},
+      form({ method: "phone" })
+    ),
+    {
+      fields: {
+        method: "phone",
+        contact: "+447700900123",
+        otpSent: true,
+        // Over 30 seconds since the send: the fallback shows again at once.
+        emailFallbackInSeconds: 0,
+        // The step keys its wait on the send time.
+        phoneCodeSentAt: nowSeconds - 40,
+      },
+    }
+  )
+
+  state.phonePending = { ...state.phonePending, issuedAt: nowSeconds - 10 }
+  const recent = await actions.switchCustomerLoginMethodAction(
+    {},
+    form({ method: "phone" })
+  )
+  assert.ok(recent.fields.emailFallbackInSeconds >= 19)
+  assert.ok(recent.fields.emailFallbackInSeconds <= 21)
+
+  // A code for another purpose is never shown here.
+  state.phonePending = { ...state.phonePending, purpose: "join" }
+  assert.deepEqual(
+    await actions.switchCustomerLoginMethodAction(
+      {},
+      form({ method: "phone" })
+    ),
+    { fields: { method: "phone" } }
+  )
+  assert.ok(!state.calls.some(([name]) => name === "clearPhone"))
+})
+
+test("Given the server has not opened email When the switch, request or edit is posted Then each answers with the phone step and touches no email state", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const actions = await loadActions()
+  const { state } = actions
+  const nowSeconds = Math.floor(Date.now() / 1_000)
+  // A phone code sent 10 seconds ago: 20 seconds of its wait are left.
+  state.gate = {
+    open: false,
+    phoneCode: { phone: "+447700900123", issuedAt: nowSeconds - 10 },
+  }
+
+  const answers = [
+    await actions.switchCustomerLoginMethodAction(
+      {},
+      form({ method: "email" })
+    ),
+    await actions.requestCustomerLoginEmailAction(
+      {},
+      form({ email: "guest@example.com" })
+    ),
+    await actions.requestCustomerLoginEmailAction(
+      {},
+      form({ email: "someone-else@example.com" })
+    ),
+    await actions.editCustomerLoginEmailAction(
+      {},
+      form({ email: "guest@example.com" })
+    ),
+  ]
+  for (const answer of answers) {
+    assert.equal(answer.fields.method, "phone")
+    assert.equal(answer.fields.otpSent, true)
+    assert.equal(answer.fields.contact, "+447700900123")
+    assert.equal(answer.fields.phoneCodeSentAt, nowSeconds - 10)
+    assert.ok(answer.fields.emailFallbackInSeconds >= 19)
+    assert.ok(answer.fields.emailFallbackInSeconds <= 21)
+    assert.equal(answer.errors, undefined)
+  }
+  // The same answer whatever address was named: nothing to enumerate.
+  assert.deepEqual(answers[1], answers[2])
+  assert.deepEqual(state.calls, [])
+  assert.deepEqual(state.opened, [])
+  assert.deepEqual(state.events, [])
+
+  // No phone code pending: the number form.
+  state.gate = { open: false, phoneCode: null }
+  assert.deepEqual(
+    await actions.switchCustomerLoginMethodAction(
+      {},
+      form({ method: "email" })
+    ),
+    { fields: { method: "phone" } }
+  )
+})
+
+test("Given the server has opened email When the switch or request is posted Then email opens and stays open for the next address", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const actions = await loadActions()
+  const { state } = actions
+
+  assert.deepEqual(
+    await actions.switchCustomerLoginMethodAction(
+      {},
+      form({ method: "email" })
+    ),
+    { fields: { method: "email" } }
+  )
+  await actions.requestCustomerLoginEmailAction(
+    {},
+    form({ email: "guest@example.com" })
+  )
+  await actions.editCustomerLoginEmailAction(
+    {},
+    form({ email: "guest@example.com" })
+  )
+  assert.deepEqual(state.opened, [
+    ["wallet", "opened"],
+    ["wallet", "opened"],
+    ["wallet", "opened"],
+  ])
+  assert.ok(state.calls.some(([name]) => name === "start"))
 })
 
 test("Given the login dispatcher When each intent is posted Then it reaches its action and phone answers stay on phone", async () => {

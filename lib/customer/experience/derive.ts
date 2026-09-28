@@ -9,7 +9,6 @@ import {
   type CustomerExperienceKind,
   type JoinCard,
   type JoinContactChannels,
-  type JoinContactMethod,
   type JoinEmailMode,
   type JoinMerchant,
   type JoinOtpContact,
@@ -151,6 +150,27 @@ export type JoinContext =
       pendingOtp: boolean
       pendingPhone?: string
       pendingChannel?: OtpChannel
+      /**
+       * Seconds left, by the server's clock, before the pending phone code's
+       * step may offer email (lib/customer/phone-code-email-fallback.ts).
+       */
+      pendingPhoneEmailFallbackInSeconds?: number
+      /**
+       * When the server sent the pending phone code (epoch seconds). A resend
+       * changes it, which restarts the step's wait for the email fallback.
+       */
+      pendingPhoneSentAt?: number
+      /**
+       * A join phone code is still pending while another step shows, so the
+       * email step's phone link returns to that code, not a blank number.
+       */
+      phoneCodePending?: boolean
+      /**
+       * The server opened the email fallback for `step=email` (see
+       * lib/customer/phone-code-email-fallback.ts). Without it `step=email`
+       * shows the phone step.
+       */
+      emailFallbackOpen?: boolean
       /** Channel a first code goes out on (configured primary). */
       primaryChannel?: OtpChannel
       /** Email sign-in rollout mode; unset means `off`. */
@@ -519,8 +539,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
             merchant: context.merchant,
             card: context.card,
             qrId: context.qrId,
-            contactStep: defaultJoinContactMethod(joinEmailMode(context)),
-            emailMode: joinEmailMode(context),
+            emailSignIn: joinEmailMode(context) !== "off",
           }
         : joinPhone(context)
     default:
@@ -532,8 +551,8 @@ type AvailableJoinContext = Extract<JoinContext, { unavailable?: false }>
 
 /**
  * Every join state the loaded facts satisfy; `JOIN_PRIORITY` picks one. A QR
- * scan lands on welcome, whose CTA carries `step=email` or `step=phone` to
- * open the contact step; an explicit contact step always skips welcome.
+ * scan lands on welcome, whose CTA carries `step=phone` to open the contact
+ * step; an explicit contact step always skips welcome.
  */
 function joinCandidates(
   context: AvailableJoinContext
@@ -557,34 +576,29 @@ function joinEmailMode(context: AvailableJoinContext): JoinEmailMode {
   return context.emailMode ?? "off"
 }
 
-/** D12 server default: email first only once email can start a wallet. */
-function defaultJoinContactMethod(mode: JoinEmailMode): JoinContactMethod {
-  return mode === "full" ? "email" : "phone"
-}
-
+/**
+ * Phone is always the contact step. Email is a fallback the phone code step
+ * offers (`step=email`): it does not exist while email sign-in is off, and
+ * only once the server has opened it.
+ */
 function joinContactKind(
   context: AvailableJoinContext
 ): "join_email" | "join_phone" {
-  const mode = joinEmailMode(context)
-  if (mode === "off") return "join_phone"
-  if (context.step === "email") return "join_email"
-  if (context.step === "phone") return "join_phone"
-  return defaultJoinContactMethod(mode) === "email"
+  return context.step === "email" &&
+    joinEmailMode(context) !== "off" &&
+    context.emailFallbackOpen === true
     ? "join_email"
     : "join_phone"
 }
 
 function joinPhone(context: AvailableJoinContext): CustomerExperience {
-  const emailMode = joinEmailMode(context)
   return {
     kind: "join_phone",
     merchant: context.merchant,
     card: context.card,
     channel: context.primaryChannel ?? "whatsapp",
     qrId: context.qrId,
-    emailMode,
-    defaultMethod: defaultJoinContactMethod(emailMode),
-    methodRequested: context.step === "phone",
+    emailSignIn: joinEmailMode(context) !== "off",
   }
 }
 
@@ -597,9 +611,22 @@ function joinEmail(context: AvailableJoinContext): CustomerExperience {
     card: context.card,
     qrId: context.qrId,
     emailMode,
-    defaultMethod: defaultJoinContactMethod(emailMode),
-    methodRequested: context.step === "email",
-    channel: context.primaryChannel ?? "whatsapp",
+    phoneCodePending: context.phoneCodePending === true,
+  }
+}
+
+/** When a phone code step may offer email: never while email sign-in is off. */
+function phoneCodeFallback(context: AvailableJoinContext): {
+  emailFallbackInSeconds?: number
+  phoneCodeSentAt?: number
+} {
+  if (joinEmailMode(context) === "off") return {}
+  if (context.pendingPhoneEmailFallbackInSeconds === undefined) return {}
+  return {
+    emailFallbackInSeconds: context.pendingPhoneEmailFallbackInSeconds,
+    ...(context.pendingPhoneSentAt === undefined
+      ? {}
+      : { phoneCodeSentAt: context.pendingPhoneSentAt }),
   }
 }
 
@@ -613,11 +640,13 @@ function joinOtp(context: AvailableJoinContext): CustomerExperience {
         ...(context.pendingEmail.deliveryDelayed
           ? { deliveryDelayed: true }
           : {}),
+        phoneCodePending: context.phoneCodePending === true,
       }
     : {
         method: "phone",
         last4: context.pendingPhone?.slice(-4) ?? "",
         channel: context.pendingChannel ?? "sms",
+        ...phoneCodeFallback(context),
       }
   return {
     kind: "join_otp",

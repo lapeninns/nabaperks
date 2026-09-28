@@ -566,14 +566,17 @@ function rebindChallenge(
 
 /**
  * Writes the challenge and drops the other signed-out sign-in state, so only
- * one challenge is live per browser.
+ * one challenge is live per browser once an email code is on its way (`sent`,
+ * or `held`, which must look the same, D8). A challenge whose code never
+ * reached the customer (`fail`) keeps a phone code still pending: the phone
+ * is where they came from, and "Use my phone number instead" returns to it.
  */
 async function makeOnlyLiveChallenge(
   payload: PendingEmailSignInPayload,
   secret: string
 ): Promise<void> {
   await writeChallenge(payload, secret)
-  await clearPendingPhoneVerification()
+  if (payload.delivery !== "fail") await clearPendingPhoneVerification()
   await clearVerifiedEmailHandoff()
 }
 

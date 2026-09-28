@@ -1,13 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import {
-  useActionState,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react"
+import { useActionState, useEffect, useRef, useState } from "react"
 
 import {
   joinRewardsAction,
@@ -29,6 +23,7 @@ import type {
   JoinContactChannels,
 } from "@/lib/customer/experience/types"
 import { Button } from "@/components/ui/button"
+import { useForgetLegacyContactMethod } from "@/hooks/use-forget-legacy-contact-method"
 import {
   joinCompletionHint,
   JOIN_PHONE_BACK_LABEL,
@@ -48,8 +43,12 @@ export type CustomerIdentityFormProps = {
   referralCode?: string
   /** Channel the code goes out on first; the button says where. */
   channel?: OtpChannel
-  /** The email alternative, directly under the button, when email is on. */
-  alternate?: ReactNode
+  /**
+   * The email step, while email sign-in is on. Offered only when the code
+   * could not be sent at all, since that customer never reaches the code step
+   * and its 30-second fallback.
+   */
+  emailStepHref?: string
 }
 
 export function CustomerIdentityForm({
@@ -57,12 +56,13 @@ export function CustomerIdentityForm({
   qrId,
   referralCode,
   channel = "whatsapp",
-  alternate,
+  emailStepHref,
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
     identityInitialState
   )
+  useForgetLegacyContactMethod()
 
   return (
     <div className="grid gap-4">
@@ -128,7 +128,11 @@ export function CustomerIdentityForm({
         </p>
       </form>
 
-      {alternate}
+      {state.fields?.phoneSendFailed && emailStepHref ? (
+        <Button asChild variant="outline" size="lg" className="w-full">
+          <Link href={emailStepHref}>Use my email instead</Link>
+        </Button>
+      ) : null}
 
       {/* A back affordance to re-read the offer always renders (VCU-P3-10):
           the QR journey returns to the welcome step; a direct join links the
