@@ -28,20 +28,29 @@ cache. Browser roots run inside the CI-pinned Playwright image on the headless
 shell channel visual CI uses (regular Chromium for e2e and a11y); Lighthouse
 and ZAP build the branch on the host; `db` starts an isolated Supabase stack
 on the `557xx` port range with the Homebrew CLI. The workflow's synthetic env
-is extracted from `ci.yml` by `workflow-env.mjs`, never real secrets.
+is extracted from `ci.yml` by `workflow-env.mjs`, never real secrets. `db`
+first removes any stack left under its own project id, then starts a fresh
+one; if copying or rewriting the candidate's `supabase/` or the start fails,
+it reports `db-setup` as failed and skips the seed and tests, so they never
+run against an earlier candidate's database.
 
 - `--jobs 1` (the default) keeps the original shape: one container runs the
-  container roots one after another.
+  container roots one after another. Browser roots still run shard by shard
+  (a11y and visual 1/4, e2e packs), as unsharded Playwright against one dev
+  server runs out of heap.
 - `--jobs N` gives each container root (`fast`, `coverage`, `quality`,
-  `build`, `visual`), each of the eight a11y shards and each of the sixteen
-  e2e packs its own `docker run --rm`, exactly as `ci.yml` splits them. Each
-  container is capped: 4 CPUs and 8 GiB for `fast`, `coverage` and `build`,
-  2 CPUs and 6 GiB for `quality`, 2 CPUs and 8 GiB for browser work. The
-  longest expected work (hosted median pack times) starts first, at most `N`
-  run at once, and a root waits rather than start when the caps of the
-  running roots plus its own would exceed the memory Docker has left after
-  other containers, less 2 GiB. Each slot has its own `node_modules` volume;
-  the pnpm store volume is shared.
+  `build`), each of the eight a11y and eight visual shards and each of the
+  sixteen e2e packs its own `docker run --rm`, exactly as `ci.yml` splits
+  them. Each container is capped: 4 CPUs and 8 GiB for `fast`, `coverage`
+  and `build`, 2 CPUs and 6 GiB for `quality`, 2 CPUs and 8 GiB for a
+  browser shard or pack. The longest expected work (hosted median shard and
+  pack times) starts first and at most `N` run at once. Before each start
+  the runner measures what other projects' containers use at that moment
+  (this run's own containers count at their caps instead), and a root waits
+  rather than start when the running roots' caps plus its own would exceed
+  the memory left, less 2 GiB. A long run therefore slows down when another
+  project starts containers and speeds up when they stop. Each slot has its
+  own `node_modules` volume; the pnpm store volume is shared.
 - Lighthouse, ZAP and `db` always run on the host, one after another, after
   the container roots.
 - `--dry-run` prints the plan, caps and mounts without touching git, Docker or

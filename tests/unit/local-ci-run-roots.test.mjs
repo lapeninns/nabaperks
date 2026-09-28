@@ -1,6 +1,14 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
@@ -15,6 +23,9 @@ import { fileURLToPath } from "node:url"
  * 8 GiB a sequential pack needs, and a container may only see paths under
  * the cache directory (so restricted Docker file sharing still works).
  * --dry-run touches neither Docker nor the cache, so this runs anywhere.
+ * The admission and db-setup tests run the script for real against stub
+ * `docker`, `supabase` and `pnpm` commands in a temporary cache directory;
+ * they clone this repository but never reach Docker or Supabase.
  */
 
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url))
@@ -138,4 +149,151 @@ test("root containers install from the pnpm store volume they are given", () => 
     storeMount,
     "pnpm install must use the mounted store volume"
   )
+})
+
+test("--jobs N splits visual into the hosted project shards", () => {
+  const run = runRoots(["visual", "--jobs", "2"])
+  assert.equal(run.status, 0, run.stderr)
+  const tasks = [
+    ...run.stdout.matchAll(/^ {2}task (visual\S*) cpus=\d+ memory=(\d+)g /gm),
+  ]
+  const expected = []
+  for (const project of matrix("visual", "project"))
+    for (const shard of matrix("visual", "shard"))
+      expected.push(`visual-${project}-${shard.split("/")[0]}`)
+  assert.deepEqual(tasks.map(([, name]) => name).sort(), expected.sort())
+  for (const [, name, memory] of tasks)
+    assert.equal(Number(memory), 8, `${name} must keep the 8 GiB cap`)
+})
+
+test("every visual run inside a container is one project shard", () => {
+  // Unsharded Playwright against one dev server runs out of heap, so the
+  // whole visual root (--jobs 1) must also walk the shards one at a time.
+  const container = readFileSync(
+    join(REPO_ROOT, "ops/local-ci/roots/container-roots.sh"),
+    "utf8"
+  )
+  const invocations = container.match(/^.*test:visual.*$/gm) ?? []
+  assert.equal(invocations.length, 1, "one visual invocation, per shard")
+  assert.match(invocations[0], /--project="\$1" --shard="\$2"/)
+  const whole = /^ {4}visual\) (.*)$/m.exec(container)?.[1] ?? ""
+  assert.match(whole, /for project in chromium mobile-safari/)
+  assert.match(whole, /for shard in 1 2 3 4; do visual_shard /)
+})
+
+// Runs the script for real in a temporary cache with stub commands first on
+// PATH; returns the run and a reader for files the stubs wrote.
+function runWithStubs(args, stubs, env = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "run-roots-stub-"))
+  const bin = join(dir, "bin")
+  mkdirSync(bin)
+  for (const [name, body] of Object.entries(stubs)) {
+    writeFileSync(join(bin, name), `#!/usr/bin/env bash\n${body}\n`)
+    chmodSync(join(bin, name), 0o755)
+  }
+  try {
+    const run = spawnSync("bash", [SCRIPT, "HEAD", ...args], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        LOCAL_CI_WORK: join(dir, "work"),
+        STUB_DIR: dir,
+        ...env,
+      },
+    })
+    const files = {}
+    for (const name of ["supabase", "pnpm", "config.toml"])
+      files[name] = existsSync(join(dir, name))
+        ? readFileSync(join(dir, name), "utf8")
+        : ""
+    return { run, output: run.stdout + run.stderr, files }
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+test("each admission re-measures what other containers use now", () => {
+  // 20 GiB VM, 2 GiB reserve. Another project's container uses 2 GiB for
+  // the first two measurements and 10 GiB afterwards; this run's own two
+  // containers (7 GiB between them) must not count, since their caps are
+  // already committed. Two ids, one per line, as `docker ps -q` prints them.
+  const docker = `
+case "$1" in
+  info) echo 21474836480 ;;
+  ps) case "$*" in *-aq*) ;; *) printf '0wn000000001\n0wn000000002\n' ;; esac ;;
+  stats)
+    n=$(( $(cat "$STUB_DIR/stats" 2>/dev/null || echo 0) + 1 )); echo "$n" >"$STUB_DIR/stats"
+    other=2; [ "$n" -le 2 ] || other=10
+    echo "0ther0000001 \${other}GiB / 20GiB"
+    echo "0wn000000001 4GiB / 8GiB"; echo "0wn000000002 3GiB / 8GiB" ;;
+  run)
+    task="\${!#}"; [ "$task" != coverage ] || sleep 6
+    echo "=== ROOT $task EXIT 0 00:00:00 0s"; echo "=== ALL DONE" ;;
+esac`
+  const { run, output } = runWithStubs(
+    ["build", "coverage", "fast", "--jobs", "3"],
+    { docker }
+  )
+  assert.equal(run.status, 0, output)
+  const starts = Object.fromEntries(
+    [
+      ...output.matchAll(
+        /^=== START (\S+) slot \d+ cpus=\d+ memory=(\d+)g running=(\d+) committed=(\d+)g admissible=(-?\d+)g /gm
+      ),
+    ].map(([, task, ...numbers]) => {
+      const [memory, running, committed, admissible] = numbers.map(Number)
+      return [task, { memory, running, committed, admissible }]
+    })
+  )
+  assert.deepEqual(Object.keys(starts).sort(), ["build", "coverage", "fast"])
+  for (const [task, start] of Object.entries(starts))
+    assert.ok(
+      start.running === 0 || start.committed + start.memory <= start.admissible,
+      `${task} was admitted beyond the measured headroom`
+    )
+  assert.equal(starts.build.admissible, 16, "own containers must not count")
+  assert.equal(starts.coverage.running, 1)
+  // Sampled once, fast would start beside coverage (8 + 8 <= 16) as soon as
+  // build finished; re-measured, it waits until only it fits the 8 GiB left.
+  assert.equal(starts.fast.admissible, 8)
+  assert.equal(starts.fast.running, 0)
+})
+
+test("a failed db setup fails the db root and skips seed and tests", () => {
+  const stubs = {
+    docker: `case "$1" in ps | stats | info) ;; *) exit 0 ;; esac`,
+    pnpm: `echo "$*" >>"$STUB_DIR/pnpm"; [ "$1" != test:db ] || echo "# pass 1"`,
+    supabase: `echo "$1" >>"$STUB_DIR/supabase"
+cp "$3/supabase/config.toml" "$STUB_DIR/config.toml"
+[ "$1" != start ] || exit "$STUB_START_RC"`,
+  }
+  for (const startRc of ["1", "0"]) {
+    const { run, output, files } = runWithStubs(["db"], stubs, {
+      SUPABASE_CLI: "supabase",
+      STUB_START_RC: startRc,
+    })
+    // Any stack left under this project id is removed first; the
+    // candidate's stack is started fresh and always stopped.
+    assert.deepEqual(files.supabase.trim().split("\n"), [
+      "stop",
+      "start",
+      "stop",
+    ])
+    assert.match(files["config.toml"], /^project_id = "nabaperks_local_ci"$/m)
+    assert.match(files["config.toml"], /^port = 55722$/m)
+    assert.doesNotMatch(files["config.toml"], /^[^#]*port = 543/m)
+    if (startRc === "1") {
+      assert.notEqual(run.status, 0, "a failed setup must fail the run")
+      assert.match(output, /^=== ROOT db-setup EXIT 1 /m)
+      assert.doesNotMatch(output, /=== ROOT db-(seed|test) /)
+      assert.equal(files.pnpm, "", "seed and tests must not run")
+    } else {
+      assert.equal(run.status, 0, output)
+      for (const root of ["db-setup", "db-seed", "db-test"])
+        assert.match(output, new RegExp(`^=== ROOT ${root} EXIT 0 `, "m"))
+      assert.deepEqual(files.pnpm.trim().split("\n"), ["db:seed", "test:db"])
+    }
+  }
 })

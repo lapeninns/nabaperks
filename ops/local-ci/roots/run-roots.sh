@@ -17,11 +17,13 @@
 # always run on the host, one after another, after the container roots.
 #
 # --jobs 1 (the default) runs every container root one after another in a
-# single container. --jobs N > 1 gives each container root, each a11y shard
-# and each e2e pack its own capped `docker run --rm` (see budget below),
-# starts the longest first and runs at most N at once, admitted against the
-# memory Docker has left after other containers. --dry-run prints the plan
-# and exits without touching git, Docker or the cache.
+# single container. --jobs N > 1 gives each container root, each a11y and
+# visual shard and each e2e pack its own capped `docker run --rm` (see budget
+# below), starts the longest first and runs at most N at once. Before each
+# start it measures what other projects' containers use now, so a long run
+# waits when another project starts containers and speeds up when they stop.
+# --dry-run prints the plan and exits without touching git, Docker or the
+# cache.
 #
 # Every root prints `=== ROOT <name> EXIT <code> ...`; the run ends with a
 # per-root wall-time summary and exits non-zero if any root failed.
@@ -70,7 +72,11 @@ wants() { for r in "${ROOTS[@]}"; do [ "$r" = "$1" ] && return 0; done; return 1
 
 # Per-container caps for --jobs N: "<cpus> <memory GiB>". Browser work gets
 # 8 GiB, the cap under which a sequential pack stays clear of the OOM kill
-# described in scripts/ci/run-browser-pack.mjs.
+# described in scripts/ci/run-browser-pack.mjs. Browser work only ever runs
+# as one hosted shard or pack per container (a11y and visual 1/4, e2e packs):
+# unsharded Playwright against one dev server runs out of heap. Visual shards
+# peaked at 2.7 GiB (chromium) and 3.8 GiB (mobile-safari) in a local
+# --jobs 3 run on 2026-09-28 (docker stats every 3s).
 budget() {
   case "$1" in
     fast | coverage | build) echo "4 8" ;;
@@ -78,14 +84,18 @@ budget() {
     *) echo "2 8" ;;
   esac
 }
-# Expected seconds, used only to start the longest work first. e2e packs are
-# hosted median test-step times sampled on 2026-09-28 (mobile-safari's late
-# packs are the hosted critical path); fast and quality are local root times
-# from the same day (32-39s and 6-10s); visual, a11y, build and coverage are
-# estimates from hosted machine time.
+# Expected seconds, used only to start the longest work first. e2e packs and
+# visual shards are hosted median test-step times sampled on 2026-09-28
+# (mobile-safari's late e2e packs are the hosted critical path; visual from
+# the last six green runs); fast and quality are local root times from the
+# same day (32-39s and 6-10s); a11y, build and coverage are estimates from
+# hosted machine time.
 estimate() {
   case "$1" in
-    visual) echo 400 ;;
+    visual-chromium-1) echo 35 ;; visual-chromium-2) echo 36 ;;
+    visual-chromium-3) echo 36 ;; visual-chromium-4) echo 30 ;;
+    visual-mobile-safari-1) echo 43 ;; visual-mobile-safari-2) echo 28 ;;
+    visual-mobile-safari-3) echo 36 ;; visual-mobile-safari-4) echo 26 ;;
     e2e-mobile-safari-1) echo 277 ;; e2e-mobile-safari-2) echo 397 ;;
     e2e-mobile-safari-3) echo 419 ;; e2e-mobile-safari-4) echo 448 ;;
     e2e-desktop-firefox-1) echo 381 ;; e2e-desktop-firefox-2) echo 307 ;;
@@ -103,13 +113,13 @@ CONTAINER_ROOTS=()
 for r in fast coverage quality build a11y visual e2e; do wants "$r" && CONTAINER_ROOTS+=("$r"); done
 HOST_ROOTS=()
 for r in lighthouse zap db; do wants "$r" && HOST_ROOTS+=("$r"); done
-# One task per hosted job: a11y splits into its 8 shards and e2e into its
-# 16 packs, as in ci.yml. Printed as "<estimate> <task>".
+# One task per hosted job: a11y and visual split into their 8 shards each
+# and e2e into its 16 packs, as in ci.yml. Printed as "<estimate> <task>".
 expand_tasks() {
   local r p n
   for r in "${CONTAINER_ROOTS[@]}"; do
     case "$r" in
-      a11y) for p in chromium mobile-safari; do for n in 1 2 3 4; do echo "$(estimate "a11y-$p-$n") a11y-$p-$n"; done; done ;;
+      a11y | visual) for p in chromium mobile-safari; do for n in 1 2 3 4; do echo "$(estimate "$r-$p-$n") $r-$p-$n"; done; done ;;
       e2e) for p in chromium mobile-safari desktop-firefox desktop-safari; do for n in 1 2 3 4; do echo "$(estimate "e2e-$p-$n") e2e-$p-$n"; done; done ;;
       *) echo "$(estimate "$r") $r" ;;
     esac
@@ -192,16 +202,21 @@ ensure_volume() {
     ${LOCAL_CI_EXTRA_LABEL:+--label "$LOCAL_CI_EXTRA_LABEL"} "$1" >/dev/null
 }
 
-# Bytes of memory the Docker VM has left for us: total minus what every
-# running container uses now minus a small reserve, in GiB.
+# GiB of the Docker VM this run may commit, measured now: total memory minus
+# what other projects' running containers use minus a small reserve. This
+# run's own containers are left out because their caps are counted in USED.
 available_gib() {
-  local total used
-  total="$(docker info --format '{{.MemTotal}}')"
-  used="$(docker stats --no-stream --format '{{.MemUsage}}' | awk '
-    { v = $1; n = v + 0; u = v; sub(/^[0-9.]+/, "", u)
+  local total own used
+  total="$(docker info --format '{{.MemTotal}}')" || return 1
+  # Space-separated: BSD awk (macOS) rejects a -v value holding newlines.
+  own="$(docker ps -q --filter "label=nabaperks.local-ci.run=$RUN_ID" | tr '\n' ' ')" || return 1
+  used="$(docker stats --no-stream --format '{{.ID}} {{.MemUsage}}' | awk -v own="$own" '
+    BEGIN { n = split(own, ids, " "); for (i = 1; i <= n; i++) mine[ids[i]] = 1 }
+    ($1 in mine) { next }
+    { v = $2; b = v + 0; u = v; sub(/^[0-9.]+/, "", u)
       m = (u == "KiB" || u == "kB") ? 1024 : (u == "MiB" || u == "MB") ? 1048576 : (u == "GiB" || u == "GB") ? 1073741824 : (u == "TiB") ? 1099511627776 : 1
-      s += n * m }
-    END { printf "%d", s }')"
+      s += b * m }
+    END { printf "%d", s }')" || return 1
   echo $(((total - used) / 1073741824 - RESERVE_GIB))
 }
 
@@ -225,8 +240,7 @@ if [ ${#CONTAINER_ROOTS[@]} -gt 0 ] && [ "$JOBS" = 1 ]; then
 fi
 
 if [ ${#TASKS[@]} -gt 0 ]; then
-  AVAIL="$(available_gib)"
-  echo "=== PARALLEL ${#TASKS[@]} containers, $JOBS slots, ${AVAIL} GiB admissible; logs in $LOG/<task>.log"
+  echo "=== PARALLEL ${#TASKS[@]} containers, $JOBS slots; logs in $LOG/<task>.log"
   SLOT_PID=(); SLOT_TASK=(); SLOT_START=(); SLOT_MEM=()
   for ((s = 1; s <= JOBS; s++)); do
     SLOT_PID[s]=""; SLOT_TASK[s]=""; SLOT_START[s]=0; SLOT_MEM[s]=0
@@ -266,11 +280,14 @@ if [ ${#TASKS[@]} -gt 0 ]; then
       [ -z "${SLOT_PID[s]}" ] || continue
       [ "$NEXT" -lt ${#TASKS[@]} ] || break
       task="${TASKS[NEXT]}"; read -r cpus mem <<<"$(budget "$task")"
-      # Admit by memory cap: wait for a running root to finish rather than
-      # oversubscribe, but never refuse the only root.
+      # Admit by memory cap against headroom measured now, so containers
+      # other projects start or stop during a long run count: wait for a
+      # running root to finish rather than oversubscribe, but never refuse
+      # the only root. An unreadable Docker counts as no headroom.
+      AVAIL="$(available_gib)" || AVAIL=0
       if [ "$RUNNING" -gt 0 ] && [ $((USED + mem)) -gt "$AVAIL" ]; then break; fi
       rm -f "$LOG/$task.rc"
-      echo "=== START $task slot $s cpus=$cpus memory=${mem}g $(date +%T)"
+      echo "=== START $task slot $s cpus=$cpus memory=${mem}g running=$RUNNING committed=${USED}g admissible=${AVAIL}g $(date +%T)"
       (
         trap - EXIT INT TERM; rc=0
         run_task "$s" "$task" "$cpus" "$mem" >"$LOG/$task.log" 2>&1 || rc=$?
@@ -306,17 +323,32 @@ if wants db; then
   HOST_TREE="$WORK/tree-host"
   wants lighthouse || wants zap || prepare_tree "$HOST_TREE"
   ( set +eu; source "$CI_DIR/env.sh"
-    DBWORK="$WORK/dbwork"; rm -rf "$DBWORK"; mkdir -p "$DBWORK"; cp -R "$HOST_TREE/supabase" "$DBWORK/supabase"
-    sed -i.bak -e 's/^project_id = .*/project_id = "nabaperks_local_ci"/' -e 's/port = 543\([0-9][0-9]\)/port = 557\1/' "$DBWORK/supabase/config.toml"
+    DBWORK="$WORK/dbwork"; CONFIG="$DBWORK/supabase/config.toml"
     export SUPABASE_SEND_EMAIL_HOOK_SECRET="v1,whsec_dGVzdF9zdXBhYmFzZV9ob29rX3NlY3JldF8zMl9ieXRlcw=="
     export SUPABASE_SEND_EMAIL_HOOK_URI="http://host.docker.internal:3147/api/auth/hooks/send-email"
     export SUPABASE_DB_URL="postgres://postgres:postgres@127.0.0.1:55722/postgres"
     SUPA="${SUPABASE_CLI:-/opt/homebrew/bin/supabase}"
-    cd "$HOST_TREE" || exit 1; [ -e node_modules ] || ln -s "$REPO/node_modules" node_modules
-    "$SUPA" start --workdir "$DBWORK" -x studio,imgproxy,edge-runtime,logflare,vector,supavisor >/dev/null
-    t=$SECONDS; pnpm db:seed >/dev/null; report db-seed $? $((SECONDS - t))
-    t=$SECONDS; pnpm test:db 2>&1 | grep -E "^# (pass|fail)"; report db-test "${PIPESTATUS[0]}" $((SECONDS - t))
-    "$SUPA" stop --workdir "$DBWORK" --no-backup >/dev/null
+    # Every setup step must succeed, or the seed and tests could pass against
+    # a stack still listening on the 557xx ports from an earlier candidate.
+    # The rewrite is checked (sed succeeds when nothing matches), and any
+    # stack left under this project id is removed before the fresh start.
+    db_setup() {
+      rm -rf "$DBWORK" && mkdir -p "$DBWORK" && cp -R "$HOST_TREE/supabase" "$DBWORK/supabase" &&
+        sed -i.bak -e 's/^project_id = .*/project_id = "nabaperks_local_ci"/' -e 's/port = 543\([0-9][0-9]\)/port = 557\1/' "$CONFIG" &&
+        grep -q '^project_id = "nabaperks_local_ci"$' "$CONFIG" && grep -q '^port = 55722$' "$CONFIG" &&
+        ! grep -q '^[^#]*port = 543' "$CONFIG" &&
+        cd "$HOST_TREE" && { [ -e node_modules ] || ln -s "$REPO/node_modules" node_modules; } || return 1
+      "$SUPA" stop --workdir "$DBWORK" --no-backup >/dev/null 2>&1
+      "$SUPA" start --workdir "$DBWORK" -x studio,imgproxy,edge-runtime,logflare,vector,supavisor >/dev/null
+    }
+    t=$SECONDS; db_setup; rc=$?; report db-setup "$rc" $((SECONDS - t))
+    if [ "$rc" = 0 ]; then
+      t=$SECONDS; pnpm db:seed >/dev/null; report db-seed $? $((SECONDS - t))
+      t=$SECONDS; pnpm test:db 2>&1 | grep -E "^# (pass|fail)"; report db-test "${PIPESTATUS[0]}" $((SECONDS - t))
+    else
+      echo "--- db setup failed (exit $rc): seed and tests skipped"
+    fi
+    [ ! -f "$CONFIG" ] || "$SUPA" stop --workdir "$DBWORK" --no-backup >/dev/null
   ) 2>&1 | tee "$LOG/db.log" || SECTION_FAILED=1
 fi
 
