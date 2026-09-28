@@ -52,12 +52,9 @@ are unaffected.
 
 ### Email sign-in (27 September 2026)
 
-Email is a fallback sign-in method. It ships behind
-`CUSTOMER_EMAIL_AUTH_MODE` (`off`, `existing`, `full`; default `off`). Phone
-always leads on the join page and `/home/login`; email is offered on the phone
-code step 30 seconds after the server sent the code, or at once when the phone
-code cannot be sent (owner decision, 28 September 2026, replacing the earlier
-email-first plan).
+Email is becoming the first sign-in method on the join page. It ships behind
+`CUSTOMER_EMAIL_AUTH_MODE` (`off`, `existing`, `full`; default `off`). In
+`full` the join page leads with email; phone stays one visible link away.
 
 - It narrows the reopened exposure only for customers who sign in by email: a
   customer who never uses their phone number is not reachable through a
