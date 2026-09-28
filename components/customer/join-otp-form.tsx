@@ -8,12 +8,13 @@ import {
   verifyCustomerOtpAction,
   type CustomerIdentityState,
 } from "@/app/m/[merchantSlug]/join/actions"
-import { useRememberContactMethodOnVerify } from "@/components/customer/contact-method-order"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { useEmailFallbackReady } from "@/hooks/use-email-fallback-ready"
+import { PHONE_CODE_EMAIL_FALLBACK_LABEL } from "@/lib/customer/experience/copy"
 import {
   OTP_TEXT_FALLBACK_LABEL,
   type OtpChannel,
@@ -29,6 +30,13 @@ export type CustomerOtpFormProps = {
   contactLast4: string
   /** Channel that carried the code — the row says so and offers the other. */
   channel?: OtpChannel
+  /**
+   * Epoch seconds when email may be offered instead, from the server's send
+   * time. Absent while email sign-in is off: no email option at all.
+   */
+  emailFallbackAt?: number
+  /** The email step (`step=email`), keeping the QR and referral params. */
+  emailStepHref?: string
 }
 
 export function CustomerOtpForm({
@@ -37,6 +45,8 @@ export function CustomerOtpForm({
   referralCode,
   contactLast4,
   channel = "sms",
+  emailFallbackAt,
+  emailStepHref,
 }: CustomerOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
     verifyCustomerOtpAction,
@@ -47,8 +57,6 @@ export function CustomerOtpForm({
     identityInitialState
   )
   const state = verifyState
-  // This device leads with phone next time once the code is accepted (D12).
-  const rememberPhone = useRememberContactMethodOnVerify("phone", verifyState)
   // A failed or rate-limited resend returns errors; a successful one returns
   // a confirmation message. Both surface inside the aria-live card below so
   // the customer at the counter hears and sees the outcome (CUS-P1-02). While
@@ -82,11 +90,7 @@ export function CustomerOtpForm({
         </>
       ) : (
         <>
-          <form
-            action={verifyAction}
-            onSubmit={rememberPhone}
-            className="grid gap-4"
-          >
+          <form action={verifyAction} className="grid gap-4">
             <input type="hidden" name="merchantSlug" value={merchantSlug} />
             <input type="hidden" name="qrId" value={qrId ?? ""} />
             <input type="hidden" name="ref" value={referralCode ?? ""} />
@@ -199,8 +203,44 @@ export function CustomerOtpForm({
               </SubmitButton>
             </form>
           ) : null}
+
+          {emailStepHref ? (
+            <EmailFallback
+              availableAt={emailFallbackAt}
+              emailStepHref={emailStepHref}
+            />
+          ) : null}
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * Email, offered only once the text has had time to arrive: a secondary
+ * action under the phone's own recovery options, never in place of them. The
+ * polite live region announces it when it appears.
+ */
+function EmailFallback({
+  availableAt,
+  emailStepHref,
+}: {
+  availableAt?: number
+  emailStepHref: string
+}) {
+  const ready = useEmailFallbackReady(availableAt)
+  return (
+    <div aria-live="polite" className="grid">
+      {ready ? (
+        <Button
+          asChild
+          variant="outline"
+          size="lg"
+          className="h-auto min-h-12 w-full py-3 whitespace-normal"
+        >
+          <Link href={emailStepHref}>{PHONE_CODE_EMAIL_FALLBACK_LABEL}</Link>
+        </Button>
+      ) : null}
     </div>
   )
 }

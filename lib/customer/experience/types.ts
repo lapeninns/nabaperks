@@ -44,6 +44,12 @@ export type JoinOtpContact =
       last4: string
       /** Where the code went, so the step says "by text" or "on WhatsApp". */
       channel: OtpChannel
+      /**
+       * Epoch seconds (server clock) when the step may offer email instead,
+       * measured from when the latest code was sent. Absent while email
+       * sign-in is off.
+       */
+      emailFallbackAt?: number
     }
   | {
       method: "email"
@@ -221,11 +227,8 @@ export type CustomerExperience =
       kind: "join_welcome"
       merchant: JoinMerchant
       card: JoinCard
+      /** The welcome CTA always opens the phone step: email is a fallback. */
       qrId: string
-      /** The contact step the welcome CTA opens (the server default, D12). */
-      contactStep: JoinContactMethod
-      /** `off` keeps the CTA on the phone step whatever the device remembers. */
-      emailMode: JoinEmailMode
     }
   | {
       kind: "join_phone"
@@ -234,26 +237,17 @@ export type CustomerExperience =
       qrId?: string
       /** Channel the code will be sent on first. */
       channel: OtpChannel
-      /** `off` hides every email option. */
-      emailMode: JoinEmailMode
-      /** Method the server shows first; a device may reorder it (D12). */
-      defaultMethod: JoinContactMethod
-      /** The address asked for this method (`step=phone`): never reordered. */
-      methodRequested: boolean
     }
   | {
       kind: "join_email"
       merchant: JoinMerchant
       card: JoinCard
       qrId?: string
-      /** Never `off`: this step does not exist while email sign-in is off. */
+      /**
+       * Never `off`: this step does not exist while email sign-in is off. It
+       * is reached only as a fallback from the phone code step (`step=email`).
+       */
       emailMode: Exclude<JoinEmailMode, "off">
-      /** Method the server shows first; a device may reorder it (D12). */
-      defaultMethod: JoinContactMethod
-      /** The address asked for this method (`step=email`): never reordered. */
-      methodRequested: boolean
-      /** Channel a phone code would go out on, for the phone alternative. */
-      channel: OtpChannel
     }
   | {
       /**

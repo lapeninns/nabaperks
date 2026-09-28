@@ -12,23 +12,21 @@ export type CustomerLoginStepProps = {
   readonly submitAction: (data: FormData) => void
   readonly pending: boolean
   readonly next: string
-  /** The other method, directly under the step's own button (D12). */
+  /** Email step: the phone, directly under the step's own button. */
   readonly alternate?: ReactNode
   /**
-   * The other method as a link beside "Resend code" on the code step, for a
-   * customer whose code never arrives. Absent when there is no other method.
+   * Phone code step: email beside "Resend code", for a customer whose text
+   * has not arrived. Shown only once the send is 30 seconds old; absent
+   * while email sign-in is off.
    */
   readonly codeAlternate?: ReactNode
-  /**
-   * Records this method as the code check submits. Owned by the login form,
-   * which outlives both steps, so an answer in place (a wrong code, no
-   * wallet) that swaps the step can still put the stored method back.
-   */
-  readonly onVerifySubmit: () => void
+  /** Phone scan step (no cards on the number): email, for an email wallet. */
+  readonly scanAlternate?: ReactNode
 }
 
 /**
- * "Use my email instead" / "Use my phone number instead". A plain form post,
+ * Switches /home/login between phone and email ("Not received a code? Use
+ * your email instead", "Use my phone number instead"). A plain form post,
  * so it works before hydration too; the server drops the code pending for the
  * method being left.
  */

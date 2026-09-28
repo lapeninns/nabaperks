@@ -156,7 +156,6 @@ function EmailCodeStep({
   submitAction,
   pending,
   next,
-  onVerifySubmit,
 }: CustomerLoginStepProps) {
   const fields = state.fields
   const verifyError = state.errors?.otp
@@ -169,7 +168,7 @@ function EmailCodeStep({
 
   return (
     <div className="grid gap-4">
-      <form action={submitAction} onSubmit={onVerifySubmit}>
+      <form action={submitAction}>
         <input type="hidden" name="intent" value="email-verify" />
         <input type="hidden" name="next" value={next} />
         <FieldGroup className="gap-4">

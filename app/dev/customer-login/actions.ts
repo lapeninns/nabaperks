@@ -73,7 +73,11 @@ async function requestLoginFixture(
     }
   }
   return {
-    fields: { contact, otpSent: true },
+    fields: {
+      contact,
+      otpSent: true,
+      codeSentAt: Math.floor(Date.now() / 1_000),
+    },
     message:
       "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
   }
@@ -81,16 +85,18 @@ async function requestLoginFixture(
 
 async function verifyLoginFixture(
   scenario: string,
-  _state: CustomerLoginOtpState,
+  state: CustomerLoginOtpState,
   data: FormData
 ): Promise<CustomerLoginOtpState> {
   if (process.env.NODE_ENV === "production") notFound()
   const contact = String(data.get("contact") ?? "")
+  // The real action reads the send time from the pending code cookie.
+  const codeSentAt = state.fields?.codeSentAt
   if (scenario === "expired")
     return { errors: { contact: "Request a new phone code." } }
   if (scenario === "verify-error") {
     return {
-      fields: { contact, otpSent: true },
+      fields: { contact, otpSent: true, codeSentAt },
       errors: {
         form: "We couldn't check that code. Try again or request a new one.",
       },
@@ -98,7 +104,7 @@ async function verifyLoginFixture(
   }
   if (data.get("otp") !== DISPLAY_OTP) {
     return {
-      fields: { contact, otpSent: true },
+      fields: { contact, otpSent: true, codeSentAt },
       errors: { otp: "That code was not accepted." },
     }
   }

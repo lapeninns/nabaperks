@@ -106,9 +106,42 @@ test("Given the login page When the form renders Then the mode comes from the se
   const form = read("components", "customer", "customer-login-form.tsx")
   assert.match(page, /emailMode=\{customerEmailAuthMode\(\)\}/)
   assert.doesNotMatch(form, /process\.env/)
-  assert.match(form, /<ContactMethodOrder/)
+})
+
+test("Given any email mode When /home/login opens Then phone leads and email is only the phone code step's fallback", () => {
+  const form = read("components", "customer", "customer-login-form.tsx")
+  // Phone until the customer has picked email from the fallback.
+  assert.match(form, /\(state\.fields\?\.method \?\? "phone"\)/)
+  assert.doesNotMatch(form, /ContactMethodOrder|defaultMethod/)
   assert.match(
     form,
-    /defaultMethod=\{emailMode === "full" \? "email" : "phone"\}/
+    /codeAlternate=\{emailSwitch\(PHONE_CODE_EMAIL_FALLBACK_LABEL\)\}/
   )
+
+  const phone = read("components", "customer", "customer-login-phone-step.tsx")
+  const request = phone.slice(phone.indexOf("function PhoneRequestStep("))
+  assert.doesNotMatch(request, /alternate/i)
+  // The code step waits for 30 seconds from the server's send time.
+  const code = phone.slice(
+    phone.indexOf("function PhoneCodeStep("),
+    phone.indexOf("function PhoneRequestStep(")
+  )
+  assert.match(code, /phoneCodeEmailFallbackAt\(codeSentAt\)/)
+  assert.match(code, /\{emailReady \? codeAlternate : null\}/)
+  assert.ok(
+    code.indexOf("Wrong number? Use a different one") <
+      code.indexOf("{emailReady ? codeAlternate : null}")
+  )
+
+  // Every phone answer that keeps the code step carries the cookie's send time.
+  const actions = read("app", "home", "actions.ts")
+  assert.match(actions, /codeSentAt = pendingCode\.issuedAt/)
+  const verify = actions.slice(
+    actions.indexOf("export async function verifyCustomerLoginOtpAction(")
+  )
+  const codeAnswers = verify.match(/otpSent: true[^}]*\}/g) ?? []
+  assert.ok(codeAnswers.length > 0)
+  for (const answer of codeAnswers) {
+    assert.match(answer, /codeSentAt: pending\.issuedAt/)
+  }
 })

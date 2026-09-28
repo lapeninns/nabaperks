@@ -251,9 +251,6 @@ test("Given the join email screens When they are read Then they carry the agreed
     copy,
     /"Use the phone number you joined with\. You can add this email to your wallet once you're signed in\."/
   )
-  // The contact method is remembered only when the choice starts a wallet.
-  assert.match(choice, /useRestoreContactMethodOnNoWallet\("email"\)/)
-  assert.match(choice, /onSubmit=\{rememberEmail\}/)
   assert.match(choice, /action=\{switchJoinToPhoneAction\}/)
   assert.equal((choice.match(/variant="outline"/g) ?? []).length, 2)
   assert.doesNotMatch(choice, /variant="default"/)
@@ -271,47 +268,107 @@ test("Given the join email screens When they are read Then they carry the agreed
   assert.match(otp, /SPAM_HINT_AFTER_MS = 30_000/)
 })
 
-test("Given email sign-in is off When the contact step renders Then it is the phone form alone", () => {
+test("Given any email mode When the contact step renders Then it is the phone form alone and email is only the code step's fallback", () => {
   const wizard = read("components", "customer", "join-wizard.tsx")
   const contact = wizard.slice(
     wizard.indexOf("function ContactStep("),
-    wizard.indexOf("function contactExperiences(")
+    wizard.indexOf('/** Where "What do I get?" goes')
   )
-  const offBranch = contact.slice(
-    contact.indexOf('exp.emailMode === "off"'),
-    contact.indexOf("const { phoneExp, emailExp }")
+  const phoneBranch = contact.slice(
+    contact.indexOf('if (exp.kind === "join_phone")'),
+    contact.indexOf("return (\n    <EmailStep")
   )
-  assert.match(offBranch, /<PhoneStep/)
-  assert.doesNotMatch(offBranch, /alternate=|ContactMethodOrder/)
-  // A requested method is never reordered, and an offer in progress leads
-  // with phone because public offer claims need a confirmed phone.
-  assert.ok(
-    contact.indexOf("if (exp.methodRequested)") <
-      contact.indexOf("<ContactMethodOrder")
-  )
-  assert.ok(
-    contact.indexOf("if (pendingOffer) return phone") <
-      contact.indexOf("<ContactMethodOrder")
+  assert.match(phoneBranch, /<PhoneStep/)
+  assert.doesNotMatch(phoneBranch, /alternate=|email/i)
+  // The email step, reached only from the fallback, keeps phone one tap away.
+  assert.match(contact, /<EmailStep[\s\S]*Use my phone number instead/)
+  const forms = read("components", "customer", "join-forms.tsx")
+  assert.doesNotMatch(forms, /alternate/)
+
+  // The welcome CTA always opens the phone step.
+  const welcome = read("components", "customer", "join-welcome-step.tsx")
+  assert.match(welcome, /step: "phone"/)
+  assert.doesNotMatch(welcome, /step: "email"/)
+  const copy = read("lib", "customer", "experience", "copy.ts")
+  assert.doesNotMatch(copy, /step: exp\.contactStep|Save it with your email/)
+
+  // The phone code step passes the server's fallback time and the email step
+  // (keeping the QR and referral params) to the form.
+  const otpStep = wizard.slice(wizard.indexOf("function OtpStep("))
+  assert.match(otpStep, /emailFallbackAt=\{exp\.contact\.emailFallbackAt\}/)
+  assert.match(
+    otpStep,
+    /emailStepHref=\{buildCustomerJoinHref\(exp\.merchant\.slug, \{\s*qrId: exp\.qrId,\s*referralCode,\s*step: "email",/
   )
 })
 
-test("Given the device remembers its sign-in method When it is stored Then it is convenience only and disclosed", () => {
-  const order = read("components", "customer", "contact-method-order.tsx")
-  const legal = read("lib", "legal", "content.ts")
-  const phoneOtp = read("components", "customer", "join-otp-form.tsx")
-  const emailOtp = read("components", "customer", "join-email-otp-form.tsx")
-
-  assert.match(order, /^"use client"/)
-  assert.match(order, /"nabaperks\.last-contact-method"/)
-  // The server snapshot is the mode default: no hydration mismatch.
-  assert.match(
-    order,
-    /useSyncExternalStore\([\s\S]*?\(\) => serverDefault\s*\)/
+test("Given a phone code was sent When the code step renders Then email appears 30 seconds after the server's send time, beside the phone recovery", () => {
+  const fallback = read("lib", "customer", "phone-code-email-fallback.ts")
+  assert.match(fallback, /PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS = 30$/m)
+  const derive = read("lib", "customer", "experience", "derive.ts")
+  const phoneFallback = derive.slice(
+    derive.indexOf("function phoneCodeFallback(")
   )
-  assert.match(phoneOtp, /useRememberContactMethodOnVerify\("phone"/)
-  assert.match(emailOtp, /useRememberContactMethodOnVerify\("email"/)
+  assert.match(
+    phoneFallback,
+    /joinEmailMode\(context\) === "off"\) return \{\}/
+  )
+  assert.match(
+    phoneFallback,
+    /phoneCodeEmailFallbackAt\(context\.pendingPhoneSentAt\)/
+  )
+  // The send time is the pending code cookie's, re-issued by every resend.
+  const loader = read("lib", "customer", "experience", "load-join.ts")
+  assert.match(loader, /pendingPhoneSentAt: phoneCode\.issuedAt/)
 
-  assert.match(legal, /\(nabaperks\.last-contact-method\)/)
+  const phoneOtp = read("components", "customer", "join-otp-form.tsx")
+  assert.match(phoneOtp, /useEmailFallbackReady\(availableAt\)/)
+  assert.match(phoneOtp, /PHONE_CODE_EMAIL_FALLBACK_LABEL/)
+  // Added below the phone's own recovery, never in place of it.
+  for (const recovery of [
+    "Resend code",
+    "Wrong number? Use a different one",
+    "OTP_TEXT_FALLBACK_LABEL",
+  ]) {
+    assert.ok(
+      phoneOtp.indexOf(recovery) !== -1 &&
+        phoneOtp.indexOf(recovery) < phoneOtp.indexOf("<EmailFallback"),
+      recovery
+    )
+  }
+  const copy = read("lib", "customer", "experience", "copy.ts")
+  assert.match(
+    copy,
+    /PHONE_CODE_EMAIL_FALLBACK_LABEL =\s*"Not received a code\? Use your email instead"/
+  )
+  assert.match(
+    copy,
+    /JOIN_EMAIL_FALLBACK_HEADLINE =\s*"Get your code by email instead"/
+  )
+
+  // Hidden in the server render and on hydration; measured from the send
+  // time, not the mount.
+  const hook = read("hooks", "use-email-fallback-ready.ts")
+  assert.match(hook, /useState\(false\)/)
+  assert.match(
+    hook,
+    /phoneCodeEmailFallbackWaitMs\(availableAt, Date\.now\(\)\)/
+  )
+})
+
+test("Given email is a fallback When the join and login screens load Then no device memory reorders the contact methods", () => {
+  const legal = read("lib", "legal", "content.ts")
+  for (const file of walk(path.join(projectRoot, "components"))
+    .concat(walk(path.join(projectRoot, "lib")))
+    .concat(walk(path.join(projectRoot, "app")))) {
+    if (file.endsWith(path.join("lib", "legal", "content.ts"))) continue
+    assert.doesNotMatch(
+      readFileSync(file, "utf8"),
+      /last-contact-method|ContactMethodOrder|rememberContactMethod/,
+      path.relative(projectRoot, file)
+    )
+  }
+
   const signIn = read("lib", "customer", "email-sign-in-core.ts")
   for (const cookie of [
     "nabaperks_pending_email_sign_in",

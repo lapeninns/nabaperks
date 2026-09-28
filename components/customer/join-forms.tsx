@@ -1,13 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import {
-  useActionState,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react"
+import { useActionState, useEffect, useRef, useState } from "react"
 
 import {
   joinRewardsAction,
@@ -48,8 +42,6 @@ export type CustomerIdentityFormProps = {
   referralCode?: string
   /** Channel the code goes out on first; the button says where. */
   channel?: OtpChannel
-  /** The email alternative, directly under the button, when email is on. */
-  alternate?: ReactNode
 }
 
 export function CustomerIdentityForm({
@@ -57,7 +49,6 @@ export function CustomerIdentityForm({
   qrId,
   referralCode,
   channel = "whatsapp",
-  alternate,
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
@@ -127,8 +118,6 @@ export function CustomerIdentityForm({
           {requestPending ? "Sending your code" : ""}
         </p>
       </form>
-
-      {alternate}
 
       {/* A back affordance to re-read the offer always renders (VCU-P3-10):
           the QR journey returns to the welcome step; a direct join links the

@@ -92,39 +92,45 @@ test("with email sign-in off the join page is phone only, whatever the step asks
   for (const step of [undefined, "email", "phone"]) {
     const experience = join({ step })
     assert.equal(experience.kind, "join_phone")
-    assert.equal(experience.emailMode, "off")
-    assert.equal(experience.defaultMethod, "phone")
+    assert.equal("emailMode" in experience, false)
   }
   const welcome = join({ qrId: "venue-qr" })
   assert.equal(welcome.kind, "join_welcome")
-  assert.equal(welcome.contactStep, "phone")
   assert.match(
     getCustomerExperienceViewModel(welcome).primaryAction.href,
     /step=phone$/
   )
 })
 
-test("mode full leads with email and the welcome CTA opens the email step (D12)", () => {
-  const experience = join({ emailMode: "full" })
-  assert.equal(experience.kind, "join_email")
-  assert.equal(experience.defaultMethod, "email")
-  assert.equal(join({ emailMode: "full", step: "phone" }).kind, "join_phone")
+test("phone is the contact step in every mode, and the welcome CTA always opens it", () => {
+  for (const emailMode of ["off", "existing", "full"]) {
+    assert.equal(join({ emailMode }).kind, "join_phone", emailMode)
+    assert.equal(join({ emailMode, step: "phone" }).kind, "join_phone")
 
-  const welcome = join({ emailMode: "full", qrId: "venue-qr" })
-  assert.equal(welcome.contactStep, "email")
-  const viewModel = getCustomerExperienceViewModel(welcome)
-  assert.match(viewModel.primaryAction.href, /step=email$/)
-  assert.match(viewModel.supportLine, /^Save it with your email/)
+    const welcome = join({ emailMode, qrId: "venue-qr" })
+    assert.equal(welcome.kind, "join_welcome")
+    assert.deepEqual(Object.keys(welcome).sort(), [
+      "card",
+      "kind",
+      "merchant",
+      "qrId",
+    ])
+    const viewModel = getCustomerExperienceViewModel(welcome)
+    assert.match(viewModel.primaryAction.href, /step=phone$/)
+    assert.match(viewModel.supportLine, /^Save it to your number/)
+  }
 })
 
-test("mode existing keeps phone first and offers email only when asked", () => {
-  const experience = join({ emailMode: "existing" })
-  assert.equal(experience.kind, "join_phone")
-  assert.equal(experience.emailMode, "existing")
-  assert.equal(experience.defaultMethod, "phone")
-  const email = join({ emailMode: "existing", step: "email" })
-  assert.equal(email.kind, "join_email")
-  assert.equal(email.defaultMethod, "phone")
+test("the email step exists only as the fallback address, and never while email is off", () => {
+  for (const emailMode of ["existing", "full"]) {
+    const email = join({ emailMode, step: "email" })
+    assert.equal(email.kind, "join_email")
+    assert.equal(email.emailMode, emailMode)
+    const viewModel = getCustomerExperienceViewModel(email)
+    assert.equal(viewModel.headline, "Get your code by email instead")
+    assert.doesNotMatch(viewModel.headline, /!/)
+  }
+  assert.equal(join({ emailMode: "off", step: "email" }).kind, "join_phone")
 })
 
 test("an explicit contact step skips the QR welcome", () => {
@@ -184,12 +190,41 @@ test("a pending phone code keeps the phone contact on the code step", () => {
     pendingOtp: true,
     pendingPhone: "+447700900123",
     pendingChannel: "whatsapp",
+    pendingPhoneSentAt: 1_000,
   })
   assert.deepEqual(experience.contact, {
     method: "phone",
     last4: "0123",
     channel: "whatsapp",
   })
+})
+
+test("a phone code step offers email 30 seconds after the server sent the code, never while email is off", () => {
+  const pendingPhone = {
+    pendingOtp: true,
+    pendingPhone: "+447700900123",
+    pendingChannel: "sms",
+    pendingPhoneSentAt: 1_000,
+  }
+  for (const emailMode of ["existing", "full"]) {
+    const experience = join({ ...pendingPhone, emailMode })
+    assert.equal(experience.kind, "join_otp")
+    assert.deepEqual(experience.contact, {
+      method: "phone",
+      last4: "0123",
+      channel: "sms",
+      emailFallbackAt: 1_030,
+    })
+  }
+  const off = join({ ...pendingPhone, emailMode: "off" })
+  assert.equal("emailFallbackAt" in off.contact, false)
+  // No send time known: no fallback rather than a guessed one.
+  const unknown = join({
+    ...pendingPhone,
+    pendingPhoneSentAt: undefined,
+    emailMode: "full",
+  })
+  assert.equal("emailFallbackAt" in unknown.contact, false)
 })
 
 test("a verified email with no wallet shows the choice, and only mode full may create", () => {
@@ -224,25 +259,11 @@ test("a signed-in customer outranks any email handoff and the terms step knows t
   assert.deepEqual(experience.contactChannels, { phone: false, email: true })
 })
 
-test("a contact step records whether the address asked for it, so a device never reorders a request", () => {
-  const byDefault = join({ emailMode: "full" })
-  assert.equal(byDefault.methodRequested, false)
-  assert.equal(byDefault.channel, "whatsapp")
-  assert.equal(join({ emailMode: "full", step: "email" }).methodRequested, true)
-  assert.equal(join({ emailMode: "full", step: "phone" }).methodRequested, true)
-  assert.equal(join({ emailMode: "existing" }).methodRequested, false)
+test("a contact step carries the configured first channel", () => {
+  assert.equal(join({ emailMode: "full" }).channel, "whatsapp")
   assert.equal(
     join({ emailMode: "full", primaryChannel: "sms" }).channel,
-    "sms",
-    "the phone alternative keeps the configured first channel"
-  )
-})
-
-test("the welcome carries the mode so a device can only reorder it while email is on", () => {
-  assert.equal(join({ qrId: "venue-qr" }).emailMode, "off")
-  assert.equal(
-    join({ qrId: "venue-qr", emailMode: "existing" }).emailMode,
-    "existing"
+    "sms"
   )
 })
 

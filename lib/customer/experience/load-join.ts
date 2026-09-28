@@ -175,6 +175,8 @@ export async function loadJoinExperienceContext(
       pendingOtp: true,
       pendingPhone: phoneCode.phone,
       pendingChannel: phoneCode.channel,
+      // A resend re-issues the pending cookie, so this is the latest send.
+      pendingPhoneSentAt: phoneCode.issuedAt,
       membership: null,
     }
   }
