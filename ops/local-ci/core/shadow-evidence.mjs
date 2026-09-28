@@ -107,9 +107,14 @@ export function indexEvidence(evidence, plane, headSha, profile, expectedIds) {
     const lane = indexed.get(id)
     if (lane.blockedByLaneId == null) continue
     const blocker = indexed.get(lane.blockedByLaneId)
+    // Lanes are admitted longest first, so the lane that failed first and
+    // stopped the run can sit later in profile order than the lane it
+    // blocked. What must hold is that it is another expected lane, and that
+    // it did fail.
     requireCondition(
       lane.status === "skipped" &&
-        expectedIds.indexOf(lane.blockedByLaneId) < expectedIds.indexOf(id) &&
+        lane.blockedByLaneId !== id &&
+        expectedIds.includes(lane.blockedByLaneId) &&
         ["failure", "timed_out"].includes(blocker?.status),
       `${plane}/${id}: invalid blocking lane`
     )

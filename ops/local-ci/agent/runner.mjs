@@ -415,7 +415,11 @@ function snapshotGuardBlock(contract) {
  * ci.yml's own `supabase stop --no-backup` runs under `if: always()`: a lane
  * that failed still has to release its ports and its containers.
  */
-export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
+export function buildLaneScript(
+  lane,
+  contract,
+  { workspacePath = null, prelude = [] } = {}
+) {
   requireObject(lane, "lane")
   requireObject(contract, "contract")
   const commands = lane.commands ?? []
@@ -457,6 +461,14 @@ export function buildLaneScript(lane, contract, { workspacePath = null } = {}) {
     `trap ${SHELL_NS}_cleanup EXIT`,
     `echo ${shellSingleQuote(`${LOG_MARKER} lane ${lane.id} starting`)}`
   )
+  // Commands the runtime needs before any lane command: on Docker Desktop,
+  // the offline dependency install. They run under the same strict mode and
+  // trap, so a failure fails the lane with its output in the lane log.
+  for (const command of prelude) {
+    if (typeof command !== "string" || command.trim() === "")
+      fail("INVALID_INPUT", "a lane script prelude line must be a command")
+    lines.push(command)
+  }
 
   for (const service of services) {
     const after = service.startAfter ?? 0
@@ -1006,6 +1018,10 @@ export function createRunner({
   prepareLaneWorkspace = null,
   now = () => Date.now(),
   logger = null,
+  hostedOnlyRequirements = [],
+  laneScriptPrelude = [],
+  externalMemoryGb = () => 0,
+  expectedSeconds = () => null,
 } = {}) {
   requireObject(contract, "contract")
   requireObject(containerRuntime, "containerRuntime")
@@ -1097,9 +1113,10 @@ export function createRunner({
       headSha,
       signal = null,
       writeEnvFile,
+      onLaneComplete = null,
     }) {
       requireObject(profile, "profile")
-      const routing = selectLanes(profile, { arch })
+      const routing = selectLanes(profile, { arch, hostedOnlyRequirements })
       const runStarted = now()
       const deadlineMs = runDeadlineMs(contract)
       const deadlineMinutes = Math.round(deadlineMs / 60_000)
@@ -1125,225 +1142,273 @@ export function createRunner({
       let stoppedByLaneId = null
       let deadlineExpired = false
 
-      const scheduling = await scheduleLanes({
-        lanes: routing.local,
-        contract,
-        run: async (lane, laneIndex) => {
-          let laneWorkspace = workspaceHostPath
-          const remainingMs = deadlineAt - now()
-          if (
-            !stopped &&
-            !deadlineExpired &&
-            !signal?.aborted &&
-            remainingMs <= 0
-          ) {
-            deadlineExpired = true
-            log(
-              "warn",
-              `the run passed its ${deadlineMinutes}-minute ceiling before lane ${lane.id} started; the remaining lanes are recorded as skipped and this run publishes a timed-out conclusion while the hosted bridge is still listening`
-            )
-          }
-          if (stopped || deadlineExpired || signal?.aborted) {
-            laneResults[laneIndex] = buildLaneResult({
-              lane,
-              contract,
-              profile: profile.profile,
-              ref,
-              headSha,
-              status: signal?.aborted ? "cancelled" : "skipped",
-              executionStarted: false,
-              blockedByLaneId: stoppedByLaneId,
-              output: "",
-              durationSeconds: 0,
-            })
-            return
-          }
-
-          const laneStarted = now()
-          const env = buildJobEnv({
-            profile,
-            lane: laneForEnvBuild(lane, contract),
-            runtimeEnv: perRunValues,
-            hostEnv,
-            contract,
-          })
-          const envFile =
-            typeof writeEnvFile === "function"
-              ? await writeEnvFile(lane, env)
-              : null
-          if (signal?.aborted) {
-            laneResults[laneIndex] = buildLaneResult({
-              lane,
-              contract,
-              profile: profile.profile,
-              ref,
-              headSha,
-              status: "cancelled",
-              executionStarted: false,
-              output: "",
-              durationSeconds: 0,
-            })
-            return
-          }
-          const sink = openLaneLog ? await openLaneLog(`${lane.id}.log`) : null
-          // Buffers, in arrival order. These are what the log file receives and
-          // what the digest binds; the text view is decoded from them once, at
-          // the end, so no chunk boundary falls inside a character.
-          const outputChunks = []
-
-          let result = null
-          let runtimeError = null
-          try {
-            if (lane.resources) {
-              if (typeof prepareLaneWorkspace !== "function")
-                throw new Error("Parallel lanes require isolated workspaces")
-              const preparationBudgetMs = deadlineAt - now()
-              if (preparationBudgetMs <= 0)
-                throw new Error(
-                  "Profile deadline expired before workspace preparation"
-                )
-              laneWorkspace = await prepareLaneWorkspace(lane, {
-                timeoutMs: preparationBudgetMs,
-                signal,
-              })
-            }
-            if (deadlineAt <= now())
-              throw new Error(
-                "Profile deadline expired during workspace preparation"
-              )
-            signal?.throwIfAborted()
-            result = await containerRuntime.withJobContainer({
-              headSha,
+      // Each finished lane is offered to the caller in profile order, with
+      // the lanes still pending as null, so an in-progress check can show
+      // fast and quality minutes before the browser lanes end. Deliveries are
+      // chained so they arrive in order, and a failed delivery is logged,
+      // never allowed to change the run.
+      let progress = Promise.resolve()
+      const notify = () => {
+        if (typeof onLaneComplete !== "function") return
+        const snapshot = Object.freeze({
+          profile: profile.profile,
+          ref,
+          headSha: String(headSha).toLowerCase(),
+          laneIds: Object.freeze(routing.local.map((lane) => lane.id)),
+          lanes: Object.freeze(
+            routing.local.map((_, index) => laneResults[index] ?? null)
+          ),
+          hostedOnly: Object.freeze(
+            routing.hostedOnly.map((lane) => ({
               laneId: lane.id,
-              image,
-              daemonImage,
-              command: ["bash", "-lc", buildLaneScript(lane, contract)],
-              workspaceHostPath: laneWorkspace,
-              resources: laneResources(lane, contract),
-              env,
-              envFile,
-              labels: {
-                "com.nabaperks.local-ci.profile": profile.profile,
-                "com.nabaperks.local-ci.lane": lane.id,
-                "com.nabaperks.local-ci.head-sha":
-                  String(headSha).toLowerCase(),
-              },
-              // The remaining run budget, not the lane's own: the two differ
-              // only when the deadline would fall inside this lane, and that is
-              // precisely when the lane must be the one to give way.
-              timeoutMs: Math.min(
-                Math.round(lane.timeoutMinutes * 60_000),
-                Math.max(1, deadlineAt - now())
-              ),
-              // The lane declares this. Inferring it from `concurrencyGroup`
-              // tied "needs a Docker daemon" to "contends for the Supabase
-              // ports", which are unrelated facts: the nightly `zap-full` lane
-              // shells out to `docker run` while grouping on the HTTP port, so
-              // it was scheduled without a daemon and could only ever have
-              // failed. A group rename must not be able to take the daemon away
-              // from a lane that needs one.
-              needsDaemon: lane.needsDaemon === true,
-              signal,
-              onOutput: (chunk) => {
-                // A container runtime hands over buffers; a test double may
-                // still hand over a string, and encoding it here is exact.
-                const bytes = Buffer.isBuffer(chunk)
-                  ? chunk
-                  : Buffer.from(chunk, "utf8")
-                outputChunks.push(bytes)
-                sink?.write(bytes)
-              },
-            })
-            if (result.teardownErrors?.length)
-              throw new Error(
-                "Container cleanup was not verified; stopping admission"
-              )
-          } catch (error) {
-            if (deadlineAt <= now()) deadlineExpired = true
-            // A lane whose container could not be started at all - a stale
-            // resource that would not reconcile, a docker that is not there - is
-            // a failed lane, not a failed run. Letting this escape would abort
-            // the whole profile before anything was published, and the check the
-            // bridge is polling would simply never arrive.
-            runtimeError = error
-            // Through the sink as well, so the reason is in the lane's log file
-            // and not only in the agent's own stderr. The digest below covers
-            // these bytes; the file it is rebuilt from has to carry them too.
-            const note = Buffer.from(
-              `${LOG_MARKER} lane ${lane.id} could not run: ${error.message}\n`,
-              "utf8"
-            )
-            outputChunks.push(note)
-            sink?.write(note)
-            log("error", `lane ${lane.id} could not run: ${error.message}`)
-          } finally {
-            await sink?.close?.()
-          }
-
-          // The bytes the log file received, rather than the runtime's own
-          // buffered copy: that copy is capped, and a digest taken over a
-          // truncated copy would not match the file §6.4 rebuilds it from. The
-          // fallback is for a runtime that returns output without streaming it,
-          // which writes no file either.
-          const streamed = Buffer.concat(outputChunks)
-          const laneOutputBytes =
-            streamed.length === 0
-              ? toLogBytes(result?.outputBytes ?? result?.output ?? "")
-              : streamed
-          // Decoded once, over the whole lane capture. Only the digest needs
-          // the bytes; the count parser, the failure extractor and the summary
-          // all read this.
-          const laneOutput = laneOutputBytes.toString("utf8")
-          const laneEnded = now()
-          const captured = await captureLaneLogs(
-            lane,
-            laneOutput,
-            laneOutputBytes,
-            laneWorkspace
+              reason: routing.reasons[lane.id] ?? null,
+            }))
+          ),
+        })
+        progress = progress
+          .then(() => onLaneComplete(snapshot))
+          .catch((error) =>
+            log("warn", `could not publish lane progress: ${error.message}`)
           )
-          const laneResult = buildLaneResult({
-            lane,
-            contract,
-            profile: profile.profile,
-            ref,
-            headSha,
-            output: laneOutput,
-            // Candidate stdout is never authenticated execution evidence. The
-            // current container protocol has no supervisor-owned validation
-            // transition, even when a setup command prints our log marker.
-            executionStarted: null,
-            exitCode: result?.exitCode ?? null,
-            timedOut: result?.timedOut ?? false,
-            cancelled: result?.cancelled ?? false,
-            status: signal?.aborted
-              ? "cancelled"
-              : runtimeError === null
-                ? null
-                : "failure",
-            startedAt: new Date(laneStarted).toISOString(),
-            completedAt: new Date(laneEnded).toISOString(),
-            durationSeconds: Math.round((laneEnded - laneStarted) / 1000),
-            logs: captured.logs,
-            missingLogs: captured.missing,
-          })
-          laneResults[laneIndex] = laneResult
-          // In `logParts` order, so the run digest is reproducible from the
-          // manifest the lane documents publish.
-          logBundles[laneIndex] = captured.logs.map(logPartBytes)
+      }
 
-          if (
-            laneResult.status !== "success" &&
-            lane.continueOnError !== true
-          ) {
-            log(
-              "warn",
-              `lane ${lane.id} reported ${laneResult.status}; stopping the run - the remaining lanes are recorded as skipped`
+      let scheduling
+      try {
+        scheduling = await scheduleLanes({
+          lanes: routing.local,
+          contract,
+          externalMemoryGb,
+          expectedSeconds,
+          run: async (lane, laneIndex) => {
+            let laneWorkspace = workspaceHostPath
+            const remainingMs = deadlineAt - now()
+            if (
+              !stopped &&
+              !deadlineExpired &&
+              !signal?.aborted &&
+              remainingMs <= 0
+            ) {
+              deadlineExpired = true
+              log(
+                "warn",
+                `the run passed its ${deadlineMinutes}-minute ceiling before lane ${lane.id} started; the remaining lanes are recorded as skipped and this run publishes a timed-out conclusion while the hosted bridge is still listening`
+              )
+            }
+            if (stopped || deadlineExpired || signal?.aborted) {
+              laneResults[laneIndex] = buildLaneResult({
+                lane,
+                contract,
+                profile: profile.profile,
+                ref,
+                headSha,
+                status: signal?.aborted ? "cancelled" : "skipped",
+                executionStarted: false,
+                blockedByLaneId: stoppedByLaneId,
+                output: "",
+                durationSeconds: 0,
+              })
+              notify()
+              return
+            }
+
+            const laneStarted = now()
+            const env = buildJobEnv({
+              profile,
+              lane: laneForEnvBuild(lane, contract),
+              runtimeEnv: perRunValues,
+              hostEnv,
+              contract,
+            })
+            const envFile =
+              typeof writeEnvFile === "function"
+                ? await writeEnvFile(lane, env)
+                : null
+            if (signal?.aborted) {
+              laneResults[laneIndex] = buildLaneResult({
+                lane,
+                contract,
+                profile: profile.profile,
+                ref,
+                headSha,
+                status: "cancelled",
+                executionStarted: false,
+                output: "",
+                durationSeconds: 0,
+              })
+              return
+            }
+            const sink = openLaneLog
+              ? await openLaneLog(`${lane.id}.log`)
+              : null
+            // Buffers, in arrival order. These are what the log file receives and
+            // what the digest binds; the text view is decoded from them once, at
+            // the end, so no chunk boundary falls inside a character.
+            const outputChunks = []
+
+            let result = null
+            let runtimeError = null
+            try {
+              if (lane.resources) {
+                if (typeof prepareLaneWorkspace !== "function")
+                  throw new Error("Parallel lanes require isolated workspaces")
+                const preparationBudgetMs = deadlineAt - now()
+                if (preparationBudgetMs <= 0)
+                  throw new Error(
+                    "Profile deadline expired before workspace preparation"
+                  )
+                laneWorkspace = await prepareLaneWorkspace(lane, {
+                  timeoutMs: preparationBudgetMs,
+                  signal,
+                })
+              }
+              if (deadlineAt <= now())
+                throw new Error(
+                  "Profile deadline expired during workspace preparation"
+                )
+              signal?.throwIfAborted()
+              result = await containerRuntime.withJobContainer({
+                headSha,
+                laneId: lane.id,
+                image,
+                daemonImage,
+                command: [
+                  "bash",
+                  "-lc",
+                  buildLaneScript(lane, contract, {
+                    prelude: laneScriptPrelude,
+                  }),
+                ],
+                workspaceHostPath: laneWorkspace,
+                resources: laneResources(lane, contract),
+                env,
+                envFile,
+                labels: {
+                  "com.nabaperks.local-ci.profile": profile.profile,
+                  "com.nabaperks.local-ci.lane": lane.id,
+                  "com.nabaperks.local-ci.head-sha":
+                    String(headSha).toLowerCase(),
+                },
+                // The remaining run budget, not the lane's own: the two differ
+                // only when the deadline would fall inside this lane, and that is
+                // precisely when the lane must be the one to give way.
+                timeoutMs: Math.min(
+                  Math.round(lane.timeoutMinutes * 60_000),
+                  Math.max(1, deadlineAt - now())
+                ),
+                // The lane declares this. Inferring it from `concurrencyGroup`
+                // tied "needs a Docker daemon" to "contends for the Supabase
+                // ports", which are unrelated facts: the nightly `zap-full` lane
+                // shells out to `docker run` while grouping on the HTTP port, so
+                // it was scheduled without a daemon and could only ever have
+                // failed. A group rename must not be able to take the daemon away
+                // from a lane that needs one.
+                needsDaemon: lane.needsDaemon === true,
+                signal,
+                onOutput: (chunk) => {
+                  // A container runtime hands over buffers; a test double may
+                  // still hand over a string, and encoding it here is exact.
+                  const bytes = Buffer.isBuffer(chunk)
+                    ? chunk
+                    : Buffer.from(chunk, "utf8")
+                  outputChunks.push(bytes)
+                  sink?.write(bytes)
+                },
+              })
+              if (result.teardownErrors?.length)
+                throw new Error(
+                  "Container cleanup was not verified; stopping admission"
+                )
+            } catch (error) {
+              if (deadlineAt <= now()) deadlineExpired = true
+              // A lane whose container could not be started at all - a stale
+              // resource that would not reconcile, a docker that is not there - is
+              // a failed lane, not a failed run. Letting this escape would abort
+              // the whole profile before anything was published, and the check the
+              // bridge is polling would simply never arrive.
+              runtimeError = error
+              // Through the sink as well, so the reason is in the lane's log file
+              // and not only in the agent's own stderr. The digest below covers
+              // these bytes; the file it is rebuilt from has to carry them too.
+              const note = Buffer.from(
+                `${LOG_MARKER} lane ${lane.id} could not run: ${error.message}\n`,
+                "utf8"
+              )
+              outputChunks.push(note)
+              sink?.write(note)
+              log("error", `lane ${lane.id} could not run: ${error.message}`)
+            } finally {
+              await sink?.close?.()
+            }
+
+            // The bytes the log file received, rather than the runtime's own
+            // buffered copy: that copy is capped, and a digest taken over a
+            // truncated copy would not match the file §6.4 rebuilds it from. The
+            // fallback is for a runtime that returns output without streaming it,
+            // which writes no file either.
+            const streamed = Buffer.concat(outputChunks)
+            const laneOutputBytes =
+              streamed.length === 0
+                ? toLogBytes(result?.outputBytes ?? result?.output ?? "")
+                : streamed
+            // Decoded once, over the whole lane capture. Only the digest needs
+            // the bytes; the count parser, the failure extractor and the summary
+            // all read this.
+            const laneOutput = laneOutputBytes.toString("utf8")
+            const laneEnded = now()
+            const captured = await captureLaneLogs(
+              lane,
+              laneOutput,
+              laneOutputBytes,
+              laneWorkspace
             )
-            stopped = true
-            stoppedByLaneId ??= lane.id
-          }
-        },
-      })
+            const laneResult = buildLaneResult({
+              lane,
+              contract,
+              profile: profile.profile,
+              ref,
+              headSha,
+              output: laneOutput,
+              // Candidate stdout is never authenticated execution evidence. The
+              // current container protocol has no supervisor-owned validation
+              // transition, even when a setup command prints our log marker.
+              executionStarted: null,
+              exitCode: result?.exitCode ?? null,
+              timedOut: result?.timedOut ?? false,
+              cancelled: result?.cancelled ?? false,
+              status: signal?.aborted
+                ? "cancelled"
+                : runtimeError === null
+                  ? null
+                  : "failure",
+              startedAt: new Date(laneStarted).toISOString(),
+              completedAt: new Date(laneEnded).toISOString(),
+              durationSeconds: Math.round((laneEnded - laneStarted) / 1000),
+              logs: captured.logs,
+              missingLogs: captured.missing,
+            })
+            laneResults[laneIndex] = laneResult
+            // In `logParts` order, so the run digest is reproducible from the
+            // manifest the lane documents publish.
+            logBundles[laneIndex] = captured.logs.map(logPartBytes)
+            notify()
+
+            if (
+              laneResult.status !== "success" &&
+              lane.continueOnError !== true
+            ) {
+              log(
+                "warn",
+                `lane ${lane.id} reported ${laneResult.status}; stopping the run - the remaining lanes are recorded as skipped`
+              )
+              stopped = true
+              stoppedByLaneId ??= lane.id
+            }
+          },
+        })
+      } finally {
+        // No progress update may land after the caller publishes the result.
+        await progress
+      }
 
       const runEnded = now()
       return Object.freeze({
