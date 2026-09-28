@@ -700,6 +700,23 @@ function assertLimaIsolation(contract) {
   assert.equal(contract.vm.diskGb, 150)
   assert.equal(contract.vm.forwardAgent, false)
   assert.equal(contract.vm.inboundConnections, "blocked")
+  // A rollback has to fit the VM it rolls back to: the job container, its
+  // Docker-in-Docker daemon and the VM reserve, or every local job fails
+  // with RESOURCE_OVERCOMMIT after its check was opened.
+  const { container } = contract
+  assert.equal(container.dockerInDocker, true)
+  assert.ok(
+    container.cpus + container.daemon.cpus + contract.vm.reserveCpus <=
+      contract.vm.cpus,
+    "container, daemon and reserve CPUs must fit vm.cpus"
+  )
+  assert.ok(
+    container.memoryGb +
+      container.daemon.memoryGb +
+      contract.vm.reserveMemoryGb <=
+      contract.vm.memoryGb,
+    "container, daemon and reserve memory must fit vm.memoryGb"
+  )
 
   // No host directory is visible to the guest, in the only form Lima accepts.
   assert.match(lima, /\nmounts: \[\]\n/)
