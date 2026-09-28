@@ -46,7 +46,15 @@ import {
   resolveHostConfig,
   runDirectoryName,
   isStoppedInstance,
+  createHostRuntime,
+  runtimeHealth,
+  runtimeDispatchDependencies,
 } from "../../ops/local-ci/agent/main.mjs"
+import { PERMITTED_HOST_EXECUTABLES as DOCKER_DESKTOP_EXECUTABLES } from "../../ops/local-ci/agent/runtime-docker-desktop.mjs"
+import {
+  committedContract,
+  limaContract,
+} from "../support/local-ci-contracts.mjs"
 
 /**
  * local CI — the host-facing edges of the CLI entry point.
@@ -76,6 +84,10 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(HERE, "..", "..")
 const AGENT_SOURCE = join(REPO_ROOT, "ops/local-ci/agent/main.mjs")
+const LIMA_RUNTIME_SOURCE = join(
+  REPO_ROOT,
+  "ops/local-ci/agent/runtime-lima.mjs"
+)
 const INSTALLER = join(REPO_ROOT, "ops/local-ci/host/install.sh")
 const HOST_PLIST = join(
   REPO_ROOT,
@@ -732,8 +744,8 @@ test("a stopped instance is started before the isolation verdict; every other no
 
   // The live path starts only after a listing says Stopped, lists again, and
   // still hands the verdict to the pure check: the pure check keeps refusing
-  // anything that is not Running.
-  const source = readFileSync(AGENT_SOURCE, "utf8")
+  // anything that is not Running. It moved, unchanged, to the Lima runtime.
+  const source = readFileSync(LIMA_RUNTIME_SOURCE, "utf8")
   const liveStart = source.indexOf("async function assertVmIsolationLive(")
   const live = source.slice(
     liveStart,
@@ -1322,4 +1334,206 @@ test("host configuration loads an operator pin and refuses an explicitly missing
   } finally {
     rmSync(stateRoot, { recursive: true, force: true })
   }
+})
+
+/* ------------------------------------------------------------- runtimes */
+
+test("the Docker Desktop allowlist admits its absolute docker CLI and never limactl", async () => {
+  assert.equal(
+    permittedExecutable(
+      ["/usr/local/bin/docker", "info"],
+      DOCKER_DESKTOP_EXECUTABLES
+    ),
+    "/usr/local/bin/docker"
+  )
+  for (const executable of ["limactl", "docker", "/opt/homebrew/bin/docker"]) {
+    assert.throws(
+      () =>
+        permittedExecutable([executable, "info"], DOCKER_DESKTOP_EXECUTABLES),
+      { code: "EXECUTABLE_NOT_PERMITTED" }
+    )
+  }
+  await assert.rejects(
+    execHost(["limactl", "list"], { permitted: DOCKER_DESKTOP_EXECUTABLES }),
+    { code: "EXECUTABLE_NOT_PERMITTED" }
+  )
+  // An explicit environment reaches the spawned process, and nothing else does.
+  assert.equal(
+    await execHost(["/bin/sh", "-c", 'printf "%s" "${DOCKER_CONFIG:-unset}"'], {
+      env: { PATH: "/usr/bin:/bin", DOCKER_CONFIG: "/opt/cfg" },
+    }),
+    "/opt/cfg"
+  )
+})
+
+test("the contract's runtime.kind selects the runtime the agent dispatches into", () => {
+  const config = {
+    stateRoot: "/tmp/state",
+    jobImage: "nabaperks-ci-job:abc",
+    vm: "nabaperks-ci",
+    vmWorkspaceRoot: "/var/lib/nabaperks-ci",
+  }
+  const logger = { info() {}, warn() {}, error() {} }
+  const desktop = createHostRuntime({
+    contract: committedContract(),
+    config,
+    logger,
+    exec: async () => "",
+  })
+  assert.equal(desktop.kind, "docker-desktop")
+  assert.deepEqual(desktop.permittedHostExecutables, [
+    "/bin/sh",
+    "/usr/local/bin/docker",
+  ])
+  assert.deepEqual(desktop.hostedOnlyRequirements, ["privileged-daemon"])
+  const lima = createHostRuntime({
+    contract: limaContract(),
+    config,
+    logger,
+    exec: async () => "",
+  })
+  assert.equal(lima.kind, "lima")
+  assert.deepEqual(lima.permittedHostExecutables, PERMITTED_HOST_EXECUTABLES)
+  assert.deepEqual(lima.hostedOnlyRequirements, [])
+  assert.throws(
+    () =>
+      createHostRuntime({
+        contract: { runtime: { kind: "podman" } },
+        config,
+        logger,
+      }),
+    { code: "UNKNOWN_RUNTIME" }
+  )
+})
+
+test("runtime health reports a refusal as unhealthy with its code, never as a throw", async () => {
+  const healthy = runtimeHealth({ assertIsolationLive: async () => ({}) })
+  assert.deepEqual(await healthy(), { healthy: true })
+  const refusing = runtimeHealth({
+    assertIsolationLive: async () => {
+      throw Object.assign(new Error("file sharing is too wide"), {
+        code: "VM_ISOLATION_VIOLATION",
+      })
+    },
+  })
+  assert.deepEqual(await refusing(), {
+    healthy: false,
+    code: "VM_ISOLATION_VIOLATION",
+    reason: "file sharing is too wide",
+  })
+})
+
+test("a dispatch without a runtime refuses before it touches anything", async () => {
+  const dependencies = runtimeDispatchDependencies(null)
+  await assert.rejects(async () => dependencies.assertVmIsolationLive({}), {
+    code: "RUNTIME_NOT_CONFIGURED",
+  })
+  assert.throws(
+    () => dependencies.makeEnvFileWriter({ headSha: "a".repeat(40) }),
+    {
+      code: "RUNTIME_NOT_CONFIGURED",
+    }
+  )
+})
+
+test("dispatch hands the lane-progress callback to the runner", async (t) => {
+  const runDir = mkdtempSync(join(tmpdir(), "ci-dispatch-progress-"))
+  t.after(() => rmSync(runDir, { recursive: true, force: true }))
+  const onLaneComplete = async () => {}
+  let received = null
+  await dispatchRun(
+    {
+      contract: { evidence: { resultSchema: "nabaperks.lane-result.v1" } },
+      config: {},
+      logger: { info() {} },
+      evidence: { open: () => ({ path: runDir, close() {} }) },
+      profile: { profile: "main" },
+      headSha: "a".repeat(40),
+      onLaneComplete,
+    },
+    {
+      assertInstalledExecutionCurrent: async () => ({}),
+      assertVmIsolationLive: async () => ({}),
+      buildDependencies: async () => ({
+        runner: {
+          runProfile: async (options) => {
+            received = options.onLaneComplete
+            return {
+              laneResults: [],
+              record: { logDigest: "d".repeat(64) },
+            }
+          },
+        },
+      }),
+      makeEnvFileWriter: () => async () => "/env",
+      releaseWorkspace: async () => {},
+    }
+  )
+  assert.equal(received, onLaneComplete)
+})
+
+test("lane history is this host's own successful durations, newest first", (t) => {
+  const stateRoot = mkdtempSync(join(tmpdir(), "ci-durations-"))
+  t.after(() => rmSync(stateRoot, { recursive: true, force: true }))
+  let at = Date.parse("2026-09-28T10:00:00Z")
+  const evidence = createRunEvidenceStore({
+    stateRoot,
+    now: () => (at += 60_000),
+    entropy: () => "abcdef",
+  })
+  for (const [status, seconds] of [
+    ["success", 100],
+    ["failure", 5],
+    ["success", 200],
+    ["success", 300],
+    ["success", 400],
+    ["success", 500],
+    ["success", 600],
+  ]) {
+    const run = evidence.open({ headSha: "a".repeat(40), profile: "pr" })
+    writeFileSync(
+      join(run.path, "e2e-chromium-odd.lane-result.json"),
+      JSON.stringify({
+        laneId: "e2e-chromium-odd",
+        status,
+        durationSeconds: seconds,
+      })
+    )
+    run.close()
+  }
+  assert.deepEqual(
+    evidence.laneDurations("e2e-chromium-odd"),
+    [600, 500, 400, 300, 200]
+  )
+  assert.deepEqual(evidence.laneDurations("e2e-chromium-odd", 2), [600, 500])
+  assert.deepEqual(evidence.laneDurations("quality"), [])
+  assert.deepEqual(evidence.laneDurations("../../etc"), [])
+})
+
+test("a due nightly waits for a healthy runtime instead of publishing a failure", async () => {
+  let asked = false
+  const result = await nightlyTick({
+    contract: nightlyContract,
+    logger: { info() {} },
+    github: {
+      getRef: async () => {
+        asked = true
+        return { sha: "a".repeat(40) }
+      },
+    },
+    evidence: { lastRunAt: () => null },
+    loadProfileFor: () => assert.fail("no profile is loaded"),
+    dispatch: () => assert.fail("nothing is dispatched"),
+    runtimeHealth: async () => ({
+      healthy: false,
+      reason: "Docker Desktop is not running",
+    }),
+  })
+  assert.equal(result.ran, false)
+  assert.equal(result.due, true)
+  assert.match(
+    result.reason,
+    /runtime cannot take it: Docker Desktop is not running/
+  )
+  assert.equal(asked, false)
 })

@@ -5,12 +5,15 @@ import { assertBrowserMemoryBudget } from "../../ops/local-ci/core/browser-budge
 import { loadProfile } from "../../ops/local-ci/core/profiles.mjs"
 import { lanesFit } from "../../ops/local-ci/core/lane-scheduler.mjs"
 import { assertResourceBudgets } from "../../ops/local-ci/agent/container.mjs"
+import { limaRollback } from "../support/local-ci-contracts.mjs"
 
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8")
 const contract = JSON.parse(read("config/local-ci-contract.json"))
 const profile = loadProfile("main", contract, read)
-const browser = profile.lanes.find((lane) => lane.id === "e2e-mobile-safari")
+const browser = profile.lanes.find(
+  (lane) => lane.id === "e2e-mobile-safari-odd"
+)
 
 test("all browser profiles reserve memory beyond old space inside the unchanged lane limit", () => {
   assert.deepEqual(
@@ -50,18 +53,46 @@ test("heap-only or container-only edits cannot consume the reviewed headroom sil
   }
 })
 
-test("browser workers, daemon and VM reserve fit as one admission budget", () => {
+test("browser workers, Desktop's reserve and other stacks' memory fit as one admission budget", () => {
   assertResourceBudgets(contract)
   const browsers = profile.lanes.filter((l) => l.id.startsWith("e2e-"))
-  const db = profile.lanes.find((l) => l.id === "db")
-  assert.equal(contract.container.memoryGb, 32)
-  assert.equal(contract.container.daemon.memoryGb, 6)
-  assert.equal(contract.vm.reserveMemoryGb, 2)
-  assert.equal(contract.vm.memoryGb, 40)
-  assert.equal(lanesFit(browsers, contract), true)
-  assert.equal(lanesFit([...browsers.slice(0, 3), db], contract), true)
-  assert.equal(lanesFit([...browsers, db], contract), false)
+  assert.equal(contract.runtime.kind, "docker-desktop")
+  assert.equal(contract.container.memoryGb, 40)
+  assert.equal(contract.runtime.reserveMemoryGb, 4)
+  assert.equal(contract.runtime.externalMemoryFloorGb, 6)
+  assert.equal(contract.runtime.memoryGb, 50)
+  // Five 8 GiB browser lanes fill the 40 GiB job budget beside the reserve
+  // and the floor; a sixth does not fit.
+  assert.equal(lanesFit(browsers.slice(0, 5), contract), true)
+  assert.equal(lanesFit(browsers.slice(0, 6), contract), false)
+  // Other worktrees' containers holding 20 GiB leave room for three.
+  assert.equal(
+    lanesFit(browsers.slice(0, 3), contract, { externalMemoryGb: 20 }),
+    true
+  )
+  assert.equal(
+    lanesFit(browsers.slice(0, 4), contract, { externalMemoryGb: 20 }),
+    false
+  )
+  // A low or failed sample never admits more than the floor allows.
+  assert.equal(
+    lanesFit(browsers.slice(0, 6), contract, { externalMemoryGb: 0 }),
+    false
+  )
   const overcommitted = structuredClone(contract)
+  overcommitted.runtime.reserveMemoryGb = 5
+  assert.throws(() => assertResourceBudgets(overcommitted), /reserves/)
+})
+
+test("the Lima rollback keeps its daemon and VM reserve arithmetic", () => {
+  const lima = limaRollback(contract)
+  assertResourceBudgets(lima)
+  const browsers = profile.lanes.filter((l) => l.id.startsWith("e2e-"))
+  const db = profile.lanes.find((l) => l.id === "db")
+  assert.equal(lanesFit(browsers.slice(0, 4), lima), true)
+  assert.equal(lanesFit([...browsers.slice(0, 3), db], lima), true)
+  assert.equal(lanesFit([...browsers.slice(0, 4), db], lima), false)
+  const overcommitted = structuredClone(lima)
   overcommitted.container.daemon.memoryGb = 7
   assert.throws(() => assertResourceBudgets(overcommitted), /reserves/)
   assert.equal(lanesFit([...browsers.slice(0, 3), db], overcommitted), false)

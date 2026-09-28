@@ -6,15 +6,18 @@ import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
 import { loadContract } from "../../ops/local-ci/core/contract.mjs"
+import { limaContract } from "../support/local-ci-contracts.mjs"
 import {
   ContainerError,
   DAEMON_NETWORK_ALIAS,
   DAEMON_TCP_PORT,
   READ_ABSENT_STATUS,
   READ_NOT_A_FILE_STATUS,
+  assertNoBindMounts,
   assertNoDaemonSocket,
   assertResourceBudgets,
   buildContainerArgv,
+  buildMountSpec,
   buildDaemonArgv,
   buildNetworkCreateArgv,
   buildNetworkRemoveArgv,
@@ -56,7 +59,11 @@ const CONTRACT_TEXT = readFileSync(
   "utf8"
 )
 
-const contract = loadContract(() => CONTRACT_TEXT)
+// Everything in this file up to the Docker Desktop section exercises the Lima
+// runtime, so it runs against the contract as a rollback to Lima would shape
+// it. The committed contract selects Docker Desktop and is tested at the end.
+const committed = loadContract(() => CONTRACT_TEXT)
+const contract = limaContract()
 
 const SOCKET_BASENAME = ["docker", "sock"].join(".")
 const HOST_SOCKET = `/var/run/${SOCKET_BASENAME}`
@@ -975,4 +982,352 @@ test("image preload time consumes the lane budget before repository commands", a
     calls.slice(-5, -2).map((argv) => argv.at(-1)),
     [JOB_NAME, DAEMON_NAME, NET_NAME]
   )
+})
+
+/* --------------------------------------------- the Docker Desktop runtime */
+
+const DD_SHA = "a".repeat(40)
+const DD_LANE_PATH = `/var/lib/nabaperks-ci/runs/${DD_SHA}-lanes/fast`
+const DD_OPTIONS = Object.freeze({
+  context: "desktop-linux",
+  workspaceMount: {
+    type: "volume",
+    source: "nabaperks-ci-state",
+    subpath: `runs/${DD_SHA}-lanes/fast`,
+  },
+  extraMounts: [
+    {
+      type: "volume",
+      source: "nabaperks-ci-state",
+      target: "/var/lib/nabaperks-ci/stores/pnpm",
+      subpath: `runs/${DD_SHA}-store/pnpm`,
+      readonly: true,
+    },
+    { type: "tmpfs", target: "/var/lib/nabaperks-ci/stores/pnpm/v10/projects" },
+  ],
+  forbidBindMounts: true,
+  addHosts: [],
+})
+
+const ddArgv = (overrides = {}) =>
+  buildContainerArgv({
+    contract: committed,
+    image: IMAGE,
+    name: jobContainerName({ headSha: DD_SHA, laneId: "fast" }),
+    network: `nabaperks-ci-net-${DD_SHA.slice(0, 12)}-fast-1`,
+    command: ["bash", "-lc", "pnpm test:unit"],
+    workspaceHostPath: DD_LANE_PATH,
+    docker: "/usr/local/bin/docker",
+    ...DD_OPTIONS,
+    ...overrides,
+  })
+
+test("every Docker Desktop command names its context, so a context switch cannot redirect it", () => {
+  assert.deepEqual(
+    dockerPrefix({ docker: "/usr/local/bin/docker", context: "desktop-linux" }),
+    ["/usr/local/bin/docker", "--context", "desktop-linux"]
+  )
+  assert.deepEqual(dockerPrefix({ vm: "nabaperks-ci" }).at(-1), "docker")
+  const built = ddArgv()
+  assert.deepEqual(built.slice(0, 4), [
+    "/usr/local/bin/docker",
+    "--context",
+    "desktop-linux",
+    "run",
+  ])
+  assert.equal(
+    buildRemoveArgv({ name: JOB_NAME, context: "desktop-linux" })[2],
+    "desktop-linux"
+  )
+})
+
+test("a Docker Desktop job network is internal and drawn from the reserved pool", () => {
+  const created = buildNetworkCreateArgv({
+    name: NET_NAME,
+    context: "desktop-linux",
+    internal: true,
+    subnet: "10.213.16.0/24",
+  })
+  assert.ok(created.includes("--internal"))
+  assert.equal(valueAfter(created, "--subnet"), "10.213.16.0/24")
+  assert.equal(
+    buildNetworkCreateArgv({ name: NET_NAME }).includes("--internal"),
+    false
+  )
+  for (const subnet of ["10.213.16.0", "10.213.16.0/8", "not-a-cidr"]) {
+    assert.throws(
+      () => buildNetworkCreateArgv({ name: NET_NAME, subnet }),
+      ContainerError
+    )
+  }
+})
+
+test("a Docker Desktop job mounts only its lane directory and its run's store, never a Mac path", () => {
+  const built = ddArgv()
+  assert.equal(built.includes("--volume"), false)
+  const mounts = built.flatMap((word, index) =>
+    word === "--mount" ? [built[index + 1]] : []
+  )
+  assert.deepEqual(mounts, [
+    `type=volume,src=nabaperks-ci-state,dst=/workspace,volume-subpath=runs/${DD_SHA}-lanes/fast`,
+    `type=volume,src=nabaperks-ci-state,dst=/var/lib/nabaperks-ci/stores/pnpm,volume-subpath=runs/${DD_SHA}-store/pnpm,readonly`,
+    "type=tmpfs,dst=/var/lib/nabaperks-ci/stores/pnpm/v10/projects",
+  ])
+  assert.equal(built.includes("--add-host"), false)
+  assert.equal(ddArgv({ mode: "create" })[3], "create")
+  assert.throws(() => ddArgv({ mode: "exec" }), { code: "INVALID_INPUT" })
+  // Without a volume mount the workspace would be a bind, which is refused.
+  assert.throws(() => ddArgv({ workspaceMount: null }), {
+    code: "BIND_MOUNT_REFUSED",
+  })
+})
+
+test("the bind-mount proof refuses every spelling of a host path", () => {
+  assert.doesNotThrow(() =>
+    assertNoBindMounts([
+      "docker",
+      "run",
+      "--mount",
+      "type=volume,src=v,dst=/w",
+      "--mount=type=tmpfs,dst=/t",
+    ])
+  )
+  for (const argv of [
+    ["docker", "run", "-v", "/Users:/u"],
+    ["docker", "run", "-v/Users:/u"],
+    ["docker", "run", "--volume", "named:/w"],
+    ["docker", "run", "--volume=/:/host"],
+    ["docker", "run", "--volumes-from", "other"],
+    ["docker", "run", "--mount", "type=bind,src=/Users,dst=/u"],
+    ["docker", "run", "--mount", "src=/Users,dst=/u"],
+    ["docker", "run", "--mount=type=volume,src=/Users,dst=/u"],
+  ]) {
+    assert.throws(
+      () => assertNoBindMounts(argv, "probe"),
+      { code: "BIND_MOUNT_REFUSED" },
+      argv.join(" ")
+    )
+  }
+})
+
+test("a mount spec accepts only plain relative subpaths into a named volume", () => {
+  assert.equal(
+    buildMountSpec({
+      type: "volume",
+      source: "nabaperks-ci-state",
+      target: "/w",
+      subpath: "runs/x-lanes/fast",
+      readonly: true,
+    }),
+    "type=volume,src=nabaperks-ci-state,dst=/w,volume-subpath=runs/x-lanes/fast,readonly"
+  )
+  for (const mount of [
+    { type: "bind", source: "/Users", target: "/u" },
+    { type: "volume", source: "/Users", target: "/u" },
+    { type: "volume", source: "v", target: "/u", subpath: "../other" },
+    { type: "volume", source: "v", target: "/u", subpath: "/abs" },
+    { type: "volume", source: "v", target: "/u", subpath: "a,readonly=false" },
+    { type: "volume", source: "v", target: "relative" },
+    { type: "tmpfs", target: "/t=x" },
+  ]) {
+    assert.throws(() => buildMountSpec(mount), ContainerError)
+  }
+})
+
+test("the Docker Desktop runtime never builds a privileged sidecar", () => {
+  assert.throws(
+    () =>
+      buildDaemonArgv({
+        contract,
+        name: DAEMON_NAME,
+        network: NET_NAME,
+        image: DAEMON_IMAGE,
+        allowPrivileged: false,
+      }),
+    { code: "PRIVILEGED_CONTAINER_REFUSED" }
+  )
+  // The committed contract turns Docker-in-Docker off for this runtime too.
+  assert.throws(
+    () =>
+      buildDaemonArgv({
+        contract: committed,
+        name: DAEMON_NAME,
+        network: NET_NAME,
+        image: DAEMON_IMAGE,
+      }),
+    { code: "DIND_DISABLED" }
+  )
+})
+
+test("a job container is refused added capabilities, host devices and unconfined profiles", () => {
+  // The proofs run over the finished array, so a flag is caught wherever in
+  // it a future edit would put it; the command slot is the one input here
+  // that can carry arbitrary words.
+  for (const addition of [
+    ["--cap-add", "SYS_ADMIN"],
+    ["--cap-add=NET_ADMIN"],
+    ["--device", "/dev/kvm"],
+    ["--security-opt", "seccomp=unconfined"],
+    ["--security-opt=apparmor=unconfined"],
+  ]) {
+    assert.throws(
+      () => ddArgv({ command: [...addition, "true"] }),
+      { code: "PRIVILEGED_JOB_CONTAINER" },
+      addition.join(" ")
+    )
+  }
+  assert.doesNotThrow(() => ddArgv({ command: ["bash", "-lc", "true"] }))
+})
+
+test("the Docker Desktop budget leaves Desktop's reserve and the external-memory floor", () => {
+  assert.doesNotThrow(() => assertResourceBudgets(committed))
+  for (const [field, delta] of [
+    ["reserveMemoryGb", 1],
+    ["externalMemoryFloorGb", 1],
+    ["reserveCpus", 1],
+  ]) {
+    const modified = structuredClone(committed)
+    modified.runtime[field] += delta
+    assert.throws(() => assertResourceBudgets(modified), {
+      code: "RESOURCE_OVERCOMMIT",
+    })
+  }
+  const invalid = structuredClone(committed)
+  invalid.runtime.memoryGb = Number.NaN
+  assert.throws(() => assertResourceBudgets(invalid), {
+    code: "INVALID_RESOURCE_BUDGET",
+  })
+})
+
+test("a Docker Desktop job is created, inspected, and started only after the inspection passes", async () => {
+  const spawned = []
+  const spawnFn = (executable, args, options) => {
+    const argv = [executable, ...args]
+    spawned.push({ argv, env: options.env })
+    const child = new EventEmitter()
+    child.stdout = new EventEmitter()
+    child.stderr = new EventEmitter()
+    child.kill = () => {}
+    setImmediate(() => child.emit("close", 0, null))
+    return child
+  }
+  const allocations = []
+  const inspected = []
+  for (const verdict of ["pass", "refuse"]) {
+    spawned.length = 0
+    const runtime = createContainerRuntime({
+      contract: committed,
+      docker: "/usr/local/bin/docker",
+      context: "desktop-linux",
+      env: { DOCKER_CONFIG: "/opt/nabaperks-local-ci/docker-config" },
+      spawnFn,
+      allowPrivilegedDaemon: false,
+      forbidBindMounts: true,
+      addHosts: [],
+      roleLabel: "com.nabaperks.local-ci.role",
+      extraLabels: { "nabaperks-ci-dev": "1" },
+      jobNetwork: {
+        internal: true,
+        allocateSubnet: () => {
+          allocations.push("take")
+          return "10.213.16.0/24"
+        },
+        releaseSubnet: (subnet) => allocations.push(`release ${subnet}`),
+      },
+      workspaceMountFor: () => DD_OPTIONS.workspaceMount,
+      extraMountsFor: () => DD_OPTIONS.extraMounts,
+      inspectJobContainer: async (details) => {
+        inspected.push(details)
+        if (verdict === "refuse")
+          throw new ContainerError("VM_ISOLATION_VIOLATION", "refused")
+      },
+    })
+    const run = runtime.withJobContainer({
+      headSha: DD_SHA,
+      laneId: "fast",
+      image: IMAGE,
+      command: ["bash", "-lc", "true"],
+      workspaceHostPath: DD_LANE_PATH,
+      env: {},
+      envFile: "/tmp/fast.env",
+      labels: { "com.nabaperks.local-ci.head-sha": DD_SHA },
+    })
+    if (verdict === "refuse") {
+      await assert.rejects(run, { code: "VM_ISOLATION_VIOLATION" })
+      assert.equal(
+        spawned.some(({ argv }) => argv.includes("start")),
+        false,
+        "a refused container is never started"
+      )
+    } else {
+      assert.equal((await run).exitCode, 0)
+      const create = spawned.find(({ argv }) => argv[3] === "create")
+      const start = spawned.findIndex(({ argv }) => argv[3] === "start")
+      assert.ok(create, "the job is created first")
+      assert.ok(start > spawned.indexOf(create))
+      assert.deepEqual(spawned[start].argv.slice(3), [
+        "start",
+        "--attach",
+        jobContainerName({ headSha: DD_SHA, laneId: "fast" }),
+      ])
+      const network = spawned.find(
+        ({ argv }) => argv[3] === "network" && argv[4] === "create"
+      )
+      assert.ok(network.argv.includes("--internal"))
+      assert.equal(valueAfter(network.argv, "--subnet"), "10.213.16.0/24")
+      assert.ok(
+        network.argv.includes("com.nabaperks.local-ci.role=net") &&
+          create.argv.includes("com.nabaperks.local-ci.role=job") &&
+          create.argv.includes("nabaperks-ci-dev=1")
+      )
+      for (const { argv, env } of spawned) {
+        assert.deepEqual(argv.slice(0, 3), [
+          "/usr/local/bin/docker",
+          "--context",
+          "desktop-linux",
+        ])
+        assert.equal(env.DOCKER_CONFIG, "/opt/nabaperks-local-ci/docker-config")
+      }
+    }
+  }
+  assert.equal(inspected.length, 2)
+  assert.equal(inspected[0].subnet, "10.213.16.0/24")
+  assert.deepEqual(allocations, [
+    "take",
+    "release 10.213.16.0/24",
+    "take",
+    "release 10.213.16.0/24",
+  ])
+})
+
+test("a Docker Desktop log read runs the same script in the helper the runtime supplies", async () => {
+  const { spawnFn, calls } = scriptedSpawn(() => ({ stdout: "log bytes" }))
+  const shells = []
+  const runtime = createContainerRuntime({
+    contract: committed,
+    docker: "/usr/local/bin/docker",
+    context: "desktop-linux",
+    spawnFn,
+    workspaceShellArgv: (script, { workspaceHostPath }) => {
+      shells.push({ script, workspaceHostPath })
+      return [
+        "/usr/local/bin/docker",
+        "--context",
+        "desktop-linux",
+        "run",
+        "helper",
+        "-c",
+        script,
+      ]
+    },
+  })
+  const read = await runtime.readWorkspaceLog({
+    workspaceHostPath: DD_LANE_PATH,
+    name: "service.log",
+  })
+  assert.equal(read.status, "captured")
+  assert.equal(read.text, "log bytes")
+  assert.equal(shells[0].workspaceHostPath, DD_LANE_PATH)
+  assert.match(shells[0].script, /if \[ -L "\$part" \]/)
+  assert.equal(calls[0][0], "/usr/local/bin/docker")
 })

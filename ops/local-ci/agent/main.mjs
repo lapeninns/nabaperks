@@ -56,19 +56,46 @@ import {
   describeValue,
   loadContract,
   quoteForMessage,
+  runtimeKind,
   toEpochMs,
 } from "../core/contract.mjs"
+import {
+  DURATION_HISTORY,
+  expectedLaneSeconds,
+} from "../core/lane-scheduler.mjs"
 import { loadProfile, snapshotGuardViolations } from "../core/profiles.mjs"
 import { isCommitSha } from "../core/queue.mjs"
 import { parseImageCachePin } from "../core/image-cache.mjs"
 import { renderCheckSummary } from "../core/summary.mjs"
 import { createContainerRuntime } from "./container.mjs"
-import { reconcileAgentResources } from "./recovery.mjs"
+import {
+  PERMITTED_HOST_EXECUTABLES,
+  createLimaRuntime,
+} from "./runtime-lima.mjs"
+import { createDockerDesktopRuntime } from "./runtime-docker-desktop.mjs"
 import { createGitHubClient } from "./github.mjs"
 import { createGitHubHeartbeat } from "./github-heartbeat.mjs"
 import { createHeartbeat } from "./heartbeat.mjs"
 import { createLoop, createSleepAssertion } from "./loop.mjs"
 import { createRunner, createRuntimeEnvResolver } from "./runner.mjs"
+
+// The Lima runtime's pieces and the shared workspace scripts moved out of this
+// file unchanged. They are re-exported so every existing caller - the
+// benchmark, the tests, an operator's REPL - keeps its import path.
+export {
+  PERMITTED_HOST_EXECUTABLES,
+  VM_PROBE_MARKER,
+  VM_PROBE_SCRIPT,
+  assertVmIsolation,
+  isStoppedInstance,
+  parseLimaInstances,
+  parseVmProbe,
+} from "./runtime-lima.mjs"
+export {
+  buildLaneWorkspaceScript,
+  buildWorkspacePreparationScript,
+  shQuote,
+} from "./workspace.mjs"
 
 class CliError extends LocalCiError {}
 
@@ -108,6 +135,11 @@ Host configuration (environment first, then a file the installer wrote):
   LOCAL_CI_IMAGE_CACHE_PIN_FILE       optional reviewed image archive pin
   NABAPERKS_LOCAL_CI_HOME             state root (default ~/.nabaperks-local-ci)
   NABAPERKS_LOCAL_CI_VM               Lima instance (default from the contract)
+
+The runtime is config/local-ci-contract.json runtime.kind: docker-desktop
+dispatches into Docker Desktop through \`docker --context desktop-linux\`
+with DOCKER_CONFIG at runtime.dockerConfig; lima dispatches into the
+dedicated Lima VM.
 `
 
 /** The ref a nightly proof is produced for. */
@@ -526,18 +558,15 @@ function createLogger() {
  * shells out to a fixed, small set of tools; this is that description as a
  * mechanism instead of a convention.
  *
- * `git`, `docker` and `curl` are documented tools of this plane but are absent
- * here on purpose: they run *inside* the VM, as words in a script that
- * `/bin/sh` or `limactl shell` interprets, and `container.mjs` owns the
- * `docker` argv it spawns. Nothing in this file ever names them as a host
- * executable, so admitting them here would widen the allowlist past its only
- * two real call sites.
+ * Each runtime declares its own list. The Lima runtime's -
+ * `["/bin/sh", "limactl"]`, re-exported above as `PERMITTED_HOST_EXECUTABLES`
+ * - is the default for a caller that names none. The Docker Desktop runtime's
+ * is `/bin/sh` and the absolute docker CLI, without limactl. `git` and `curl`
+ * never run on the host: they run inside the VM or a helper container.
  *
  * Entries are matched whole. A basename match would accept `/tmp/x/limactl`,
  * which is the attack this exists to stop.
  */
-export const PERMITTED_HOST_EXECUTABLES = Object.freeze(["/bin/sh", "limactl"])
-
 /**
  * Check one argv and return the *allowlist's own* string for its executable.
  *
@@ -545,7 +574,10 @@ export const PERMITTED_HOST_EXECUTABLES = Object.freeze(["/bin/sh", "limactl"])
  * reaches `spawn` is then one of the two literals above by construction, not a
  * caller-supplied value that merely compared equal to one.
  */
-export function permittedExecutable(argv) {
+export function permittedExecutable(
+  argv,
+  permitted = PERMITTED_HOST_EXECUTABLES
+) {
   if (!Array.isArray(argv) || argv.length === 0) {
     throw new CliError(
       "INVALID_COMMAND",
@@ -559,11 +591,11 @@ export function permittedExecutable(argv) {
       `host command word ${nonString} must be a string (received ${describeValue(argv[nonString])})`
     )
   }
-  const executable = PERMITTED_HOST_EXECUTABLES.find((name) => name === argv[0])
+  const executable = permitted.find((name) => name === argv[0])
   if (executable === undefined) {
     throw new CliError(
       "EXECUTABLE_NOT_PERMITTED",
-      `this agent may not run ${JSON.stringify(argv[0])} on the host; the permitted executables are ${PERMITTED_HOST_EXECUTABLES.join(", ")}`
+      `this agent may not run ${JSON.stringify(argv[0])} on the host; the permitted executables are ${permitted.join(", ")}`
     )
   }
   return executable
@@ -579,14 +611,22 @@ export function permittedExecutable(argv) {
  */
 export async function execHost(
   argv,
-  { input = null, timeoutMs = 600_000, cwd = undefined, signal = null } = {}
+  {
+    input = null,
+    timeoutMs = 600_000,
+    cwd = undefined,
+    signal = null,
+    permitted = PERMITTED_HOST_EXECUTABLES,
+    env = undefined,
+  } = {}
 ) {
-  const executable = permittedExecutable(argv)
+  const executable = permittedExecutable(argv, permitted)
   signal?.throwIfAborted()
   return new Promise((resolveExec, rejectExec) => {
     const child = spawn(executable, argv.slice(1), {
       ...PROCESS_TREE_OPTIONS,
       cwd,
+      ...(env === undefined ? {} : { env }),
       stdio: [input === null ? "ignore" : "pipe", "pipe", "pipe"],
     })
     let stdout = ""
@@ -642,299 +682,41 @@ export async function execHost(
   })
 }
 
-/**
- * Quote one value for POSIX `sh`.
- *
- * The scripts below are assembled as text and handed to `/bin/sh -c`, so every
- * interpolated value is shell syntax until it is quoted. The inputs are not
- * arbitrary - a head SHA is validated as 40 hex, a lane id comes from a
- * reviewed profile - but "currently well-formed" is not a security boundary:
- * this agent exists to run pull-request code, and the remote URL, the
- * workspace root and the VM name all reach here from a contract file or the
- * environment. Quoting at the seam means a future caller cannot turn a value
- * into a command by accident.
- *
- * Single quotes are literal in `sh` for every character except the single
- * quote itself, which is closed, escaped and reopened.
- */
-export function shQuote(value) {
-  const text = String(value)
-  if (text === "") return "''"
-  return `'${text.replace(/'/g, `'\\''`)}'`
-}
-
-const vmShell = (vm, script) =>
-  vm === null
-    ? ["/bin/sh", "-c", script]
-    : ["limactl", "shell", vm, "--", "/bin/sh", "-c", script]
-
-/* ------------------------------------------------------- the VM self-check */
+/* ---------------------------------------------------------------- runtime */
 
 /**
- * The last line of the guest probe, and the proof that all of it ran.
- *
- * Without a terminator, a probe that died halfway - the VM stopped, the SSH
- * transport dropped, `limactl shell` printed a warning and exited 0 - would
- * present as "every isolation property is absent", which reads exactly like
- * "every isolation property is satisfied". The marker turns a truncated probe
- * into a refusal instead of a silent pass.
+ * The VM layer this contract selects, behind one interface: the isolation
+ * verdict, the resource sweep, workspace preparation, env files, release and
+ * the container options. `runtime.kind` in the contract decides; a contract
+ * without a runtime block predates the adapter and means Lima.
  */
-export const VM_PROBE_MARKER = "probe=ok"
-
-/**
- * What the guest is asked about itself before every dispatch.
- *
- * These are live facts, not declared ones. `~/.lima/<name>/lima.yaml` says
- * what the instance was created from; `findmnt` says what is mounted right
- * now, and a host directory mounted into a running VM by hand is invisible to
- * the former and obvious to the latter. Each line is `key=value` so the
- * parsing is a pure function of text.
- */
-export const VM_PROBE_SCRIPT = [
-  "set -u",
-  'printf "ssh_auth_sock=[%s]\\n" "${SSH_AUTH_SOCK:-}"',
-  // `findmnt` answering "nothing is mounted" and `findmnt` not being installed
-  // both used to print an empty host_mounts, and the caller reads empty as
-  // "clean". That is fail-open on the one probe that decides whether this VM
-  // may receive pull-request code: deleting the binary would silence the
-  // check. Report the tool's own availability separately so a missing or
-  // failing findmnt refuses the dispatch instead of passing it.
-  'if command -v findmnt >/dev/null 2>&1; then printf "findmnt=present\\n"; else printf "findmnt=absent\\n"; fi',
-  'if command -v findmnt >/dev/null 2>&1; then if host_mounts="$(findmnt -rn -t virtiofs,9p,nfs,nfs4,cifs,sshfs -o TARGET)"; then printf "host_mounts_status=ok\\n"; else status=$?; if [ "$status" -eq 1 ]; then printf "host_mounts_status=ok\\n"; host_mounts=""; else printf "host_mounts_status=failed\\n"; host_mounts=""; fi; fi; else printf "host_mounts_status=unavailable\\n"; host_mounts=""; fi',
-  'printf "host_mounts=%s\\n" "$(printf "%s" "${host_mounts:-}" | tr "\\n" " ")"',
-  'printf "host_home=%s\\n" "$(ls -d /Users 2>/dev/null || printf absent)"',
-  'printf "rosetta=%s\\n" "$(ls -d /mnt/lima-rosetta 2>/dev/null || printf absent)"',
-  `printf "${VM_PROBE_MARKER}\\n"`,
-].join("\n")
-
-/**
- * `limactl list --json` as an array of instance records. Pure.
- *
- * Lima has emitted both a JSON array and newline-delimited objects across
- * versions, so both are accepted; anything else is `VM_UNVERIFIABLE` rather
- * than an empty list, because "I could not read the answer" must not resolve
- * to "there is nothing to worry about".
- */
-/**
- * A Lima instance that exists but is `Stopped` is the one state the agent can
- * repair on its own: after a Mac reboot nothing restarts the VM, so without
- * this every dispatch would be refused until an operator ran
- * `limactl start` by hand — which is exactly what left a failing verdict on
- * every pull request during the first cutover week. Any other non-Running
- * state (Broken, Starting, unknown) stays a refusal, and the operator's way
- * to pause the plane is still the LaunchAgent, never the VM.
- */
-export function isStoppedInstance({ vm, instances }) {
-  const list = Array.isArray(instances) ? instances : []
-  const instance = list.find((entry) => entry?.name === vm)
-  return String(instance?.status ?? "").toLowerCase() === "stopped"
-}
-
-export function parseLimaInstances(text) {
-  const trimmed = String(text ?? "").trim()
-  if (trimmed === "") return []
-  try {
-    const parsed = JSON.parse(trimmed)
-    return Array.isArray(parsed) ? parsed : [parsed]
-  } catch {
-    const instances = []
-    for (const line of trimmed.split("\n")) {
-      const candidate = line.trim()
-      if (candidate === "") continue
-      try {
-        instances.push(JSON.parse(candidate))
-      } catch {
-        throw new CliError(
-          "VM_UNVERIFIABLE",
-          `limactl list --json emitted a line that is not JSON: ${quoteForMessage(candidate.slice(0, 120))}`
-        )
-      }
-    }
-    return instances
-  }
-}
-
-/** The guest probe's `key=value` lines as a record. Pure. */
-export function parseVmProbe(text) {
-  const report = Object.create(null)
-  for (const line of String(text ?? "").split("\n")) {
-    const at = line.indexOf("=")
-    if (at <= 0) continue
-    report[line.slice(0, at).trim()] = line.slice(at + 1).trim()
-  }
-  return report
-}
-
-const isNonEmptyArray = (value) => Array.isArray(value) && value.length > 0
-
-/**
- * Refuse unless the live VM still presents the isolation this plane rests on.
- * **Pure**: it decides, it does not look.
- *
- * The VM is the entire reason it is safe to run pull-request code on a Mac
- * that holds a GitHub App private key, and "the VM was isolated when it was
- * installed" is a different claim from "the VM is isolated now". An instance
- * can be stopped and re-created, edited with `limactl edit`, or - the case no
- * configuration file records - handed a mount at run time. It can also have
- * been installed with `--skip-vm-check` and never checked at all.
- *
- * So the properties are re-derived from two live sources on every dispatch:
- * the instance record for what Lima believes it is running, and a probe inside
- * the guest for what is actually true there. Every mismatch is collected and
- * reported together, because an operator fixing one violation wants to know
- * about the other three before recreating the instance.
- */
-export function assertVmIsolation({ vm, instances, probe, contract }) {
-  if (typeof vm !== "string" || vm.trim() === "") {
-    throw new CliError(
-      "VM_NOT_CONFIGURED",
-      `no Lima instance is configured, so the isolation this plane depends on cannot be asserted and pull-request code would run directly on the Mac. Set NABAPERKS_LOCAL_CI_VM or contract.vm.name (received ${describeValue(vm)}).`
-    )
-  }
-  const list = Array.isArray(instances) ? instances : []
-  const instance = list.find((entry) => entry?.name === vm)
-  if (instance === undefined) {
-    throw new CliError(
-      "VM_NOT_FOUND",
-      `limactl reports no instance named ${quoteForMessage(vm)}; create it from ${contract?.vm?.definition ?? "the committed Lima template"} before dispatching a job.`
-    )
-  }
-  const status = String(instance.status ?? "")
-  if (status.toLowerCase() !== "running") {
-    throw new CliError(
-      "VM_NOT_RUNNING",
-      `instance ${vm} is ${quoteForMessage(status || "in an unreported state")}, not Running; start it with: limactl start ${vm}`
-    )
-  }
-
-  const violations = []
-  const config = instance.config ?? {}
-
-  // Lima omits an empty list from the JSON, so only a *present, non-empty*
-  // collection is evidence of a violation here. The absence of evidence is
-  // covered by the guest probe below, which cannot be omitted.
-  const mounts = instance.mounts ?? config.mounts
-  if (isNonEmptyArray(mounts)) {
-    violations.push(
-      `declares ${mounts.length} host mount(s); the credential directory on the Mac must be unreachable from every job container`
-    )
-  }
-  const networks = instance.networks ?? config.networks
-  if (isNonEmptyArray(networks)) {
-    violations.push(
-      `declares ${networks.length} shared network(s); the template pins networks: [] so nothing inbound can reach the guest`
-    )
-  }
-  const ssh = config.ssh ?? {}
-  if (ssh.forwardAgent === true) {
-    violations.push(
-      "forwards an SSH agent; a job container could then authenticate as the operator"
-    )
-  }
-  if (ssh.loadDotSSHPubKeys === true) {
-    violations.push(
-      "loads the operator's ~/.ssh public keys; the template pins loadDotSSHPubKeys: false"
-    )
-  }
-  if (config.rosetta?.enabled === true) {
-    violations.push(
-      "enables Rosetta; the template pins rosetta.enabled: false so no x86-64 binary runs under emulation"
-    )
-  }
-
-  const report = probe ?? {}
-  if (report.probe !== "ok") {
-    throw new CliError(
-      "VM_UNVERIFIABLE",
-      `the isolation probe inside ${vm} did not run to completion (expected a trailing ${VM_PROBE_MARKER} line); refusing to dispatch on an unverified VM`
-    )
-  }
-  if (report.ssh_auth_sock !== "[]") {
-    violations.push(
-      `has SSH_AUTH_SOCK set to ${quoteForMessage(report.ssh_auth_sock)}; a forwarded agent socket is reachable from inside the guest`
-    )
-  }
-  // An unanswerable mount question is a refusal, not a pass. `findmnt` being
-  // absent or erroring would otherwise render an empty host_mounts that reads
-  // exactly like a clean guest, which would let the strongest isolation check
-  // be disabled by removing one binary.
-  if (report.findmnt !== "present") {
-    violations.push(
-      "has no usable findmnt, so its live mount table cannot be read; the host-mount check cannot be answered and must not be assumed clean"
-    )
-  } else if (report.host_mounts_status !== "ok") {
-    violations.push(
-      `could not read its live mount table (findmnt reported ${quoteForMessage(report.host_mounts_status ?? "nothing")}); the host-mount check cannot be answered and must not be assumed clean`
-    )
-  } else if (report.host_mounts !== "") {
-    violations.push(
-      `has host filesystem mounts live right now: ${report.host_mounts.trim()}`
-    )
-  }
-  if (report.host_home !== "absent") {
-    violations.push(
-      `can see ${report.host_home} inside the guest; the Mac's home directory must not be visible there`
-    )
-  }
-  if (report.rosetta !== "absent") {
-    violations.push(`has Rosetta mounted at ${report.rosetta}`)
-  }
-
-  if (violations.length > 0) {
-    throw new CliError(
-      "VM_ISOLATION_VIOLATION",
-      `instance ${vm} no longer matches the isolation this plane depends on, so no pull-request code will be dispatched to it:\n  - ${violations.join("\n  - ")}\nDelete and recreate it from ${contract?.vm?.definition ?? "the committed Lima template"}; never patch it in place.`
-    )
-  }
-  return Object.freeze({ vm, status })
-}
-
-/**
- * Ask the host and the guest, then decide. **Impure.**
- *
- * Any failure to *ask* is itself a refusal: a dispatch that proceeds because
- * the check could not be made has no isolation guarantee at all.
- */
-async function assertVmIsolationLive({ config, contract }) {
-  const vm = config.vm
-  if (typeof vm !== "string" || vm.trim() === "") {
-    // Same refusal as the pure check, raised before anything is spawned.
-    return assertVmIsolation({ vm, instances: [], probe: null, contract })
-  }
-  let listed
-  let probed
-  try {
-    listed = await execHost(["limactl", "list", "--json", vm], {
-      timeoutMs: 60_000,
+export function createHostRuntime({
+  contract,
+  config,
+  logger,
+  exec = execHost,
+  ...options
+}) {
+  const kind = runtimeKind(contract)
+  if (kind === "docker-desktop")
+    return createDockerDesktopRuntime({
+      contract,
+      config,
+      logger,
+      execHost: exec,
+      ...options,
     })
-    if (isStoppedInstance({ vm, instances: parseLimaInstances(listed) })) {
-      // Start, then list again: the isolation verdict below must come from
-      // the instance as it is now running, never from the pre-start listing.
-      await execHost(["limactl", "start", "--tty=false", vm], {
-        timeoutMs: 600_000,
-      })
-      listed = await execHost(["limactl", "list", "--json", vm], {
-        timeoutMs: 60_000,
-      })
-    }
-    probed = await execHost(vmShell(vm, VM_PROBE_SCRIPT), { timeoutMs: 60_000 })
-  } catch (error) {
-    throw new CliError(
-      "VM_UNVERIFIABLE",
-      `could not re-assert the isolation of instance ${vm} (${error.message}); refusing to dispatch`
-    )
-  }
-  const isolation = assertVmIsolation({
-    vm,
-    instances: parseLimaInstances(listed),
-    probe: parseVmProbe(probed),
-    contract,
-  })
-  return isolation
+  if (kind === "lima")
+    return createLimaRuntime({ contract, config, logger, execHost: exec })
+  throw new CliError(
+    "UNKNOWN_RUNTIME",
+    `contract.runtime.kind is ${describeValue(kind)}; this agent knows lima and docker-desktop`
+  )
 }
 
-export async function reconcileOwnedResources({ config, contract }) {
-  const profiles = Object.fromEntries(
+/** The installed profiles' lane ids, which the resource sweep validates against. */
+function installedProfileLanes(contract) {
+  return Object.fromEntries(
     Object.keys(contract.profiles).map((name) => [
       name,
       loadProfile(name, contract, (path) =>
@@ -942,88 +724,10 @@ export async function reconcileOwnedResources({ config, contract }) {
       ).lanes.map((lane) => lane.id),
     ])
   )
-  return reconcileAgentResources({
-    vm: config.vm,
-    stateRoot: config.stateRoot,
-    profiles,
-    exec: execHost,
-  })
 }
 
-/** Build a self-contained checkout: no Git paths or object hardlinks escape it. */
-export function buildWorkspacePreparationScript({ root, remoteUrl, headSha }) {
-  const mirror = `${root}/repo`
-  const workspace = `${root}/runs/${headSha}`
-  return [
-    "set -eu",
-    `mkdir -p ${shQuote(`${root}/runs`)}`,
-    `if [ ! -d ${shQuote(`${mirror}/.git`)} ]; then git clone ${shQuote(remoteUrl)} ${shQuote(mirror)}; fi`,
-    `cd ${shQuote(mirror)}`,
-    `git remote set-url origin ${shQuote(remoteUrl)}`,
-    'if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then git fetch --unshallow origin; fi',
-    "git fetch --prune --tags origin '+refs/heads/*:refs/remotes/origin/*'",
-    `git fetch origin ${shQuote(headSha)}`,
-    `git worktree remove --force ${shQuote(workspace)} 2>/dev/null || true`,
-    `rm -rf ${shQuote(workspace)} ${shQuote(`${workspace}-lanes`)}`,
-    `git clone --no-hardlinks --no-checkout ${shQuote(mirror)} ${shQuote(workspace)}`,
-    `git -C ${shQuote(workspace)} remote set-url origin ${shQuote(remoteUrl)}`,
-    `git -C ${shQuote(workspace)} fetch --no-tags ${shQuote(mirror)} ${shQuote(headSha)}`,
-    `git -C ${shQuote(workspace)} checkout --detach ${shQuote(headSha)}`,
-  ].join("\n")
-}
-
-/** Full Git history stays inside the disposable /workspace container mount. */
-async function prepareWorkspace({ config, contract, headSha, logger, signal }) {
-  const root = config.vmWorkspaceRoot
-  const workspace = `${root}/runs/${headSha}`
-  logger.info(`preparing ${workspace} inside the VM`)
-  const script = buildWorkspacePreparationScript({
-    root,
-    remoteUrl: contract.remoteUrl,
-    headSha,
-  })
-  await execHost(vmShell(config.vm, script), { signal })
-  return workspace
-}
-
-/** Each lane owns its Git metadata, dependencies, caches and generated files. */
-export function buildLaneWorkspaceScript({
-  workspace,
-  laneId,
-  headSha,
-  remoteUrl,
-}) {
-  if (!isCommitSha(headSha) || !/^[a-z][a-z0-9-]*$/.test(laneId))
-    throw new Error("Invalid lane workspace identity")
-  if (!workspace.endsWith(`/runs/${headSha}`))
-    throw new Error("Lane workspace must belong to the exact run")
-  const destination = `${workspace}-lanes/${laneId}`
-  return {
-    destination,
-    script: [
-      "set -eu",
-      `mkdir -p ${shQuote(`${workspace}-lanes`)}`,
-      // git clone refuses an existing directory with content; no candidate
-      // workspace is reused, and --no-hardlinks prevents cross-lane mutation.
-      `git clone --no-hardlinks --no-checkout ${shQuote(workspace)} ${shQuote(destination)}`,
-      `git -C ${shQuote(destination)} remote set-url origin ${shQuote(remoteUrl)}`,
-      `git -C ${shQuote(destination)} checkout --detach ${shQuote(headSha)}`,
-    ].join("\n"),
-  }
-}
-
-async function releaseWorkspace({ config, headSha }) {
-  const root = config.vmWorkspaceRoot
-  const script = [
-    "set -eu",
-    `remaining=$(docker ps --all --filter ${shQuote(`label=com.nabaperks.local-ci.head-sha=${headSha}`)} --format '{{.Names}}')`,
-    'if [ -n "$remaining" ]; then echo "CI resources remain; workspace quarantined" >&2; exit 1; fi',
-    `cd ${shQuote(`${root}/repo`)} 2>/dev/null || exit 0`,
-    `git worktree remove --force ${shQuote(`${root}/runs/${headSha}`)} 2>/dev/null || true`,
-    `rm -rf ${shQuote(`${root}/runs/${headSha}`)}`,
-    `rm -rf ${shQuote(`${root}/runs/${headSha}-lanes`)}`,
-  ].join("\n")
-  await execHost(vmShell(config.vm, script), { timeoutMs: 20_000 })
+export async function reconcileOwnedResources({ contract, runtime }) {
+  return runtime.reconcile({ profiles: installedProfileLanes(contract) })
 }
 
 /* --------------------------------------------------------------- evidence */
@@ -1168,6 +872,37 @@ export function createRunEvidenceStore({
       return listEntries()
     },
 
+    /**
+     * The newest `limit` successful durations of one lane on this host, in
+     * seconds, newest first. They come from lane-result documents this agent
+     * wrote and timed itself - never from anything a candidate printed - and
+     * they order admission, longest first, and nothing else.
+     */
+    laneDurations(laneId, limit = DURATION_HISTORY) {
+      if (!/^[a-z][a-z0-9-]*$/.test(String(laneId))) return []
+      const durations = []
+      const entries = listEntries().sort((a, b) => b.createdAt - a.createdAt)
+      for (const entry of entries) {
+        if (durations.length >= limit) break
+        let document
+        try {
+          document = JSON.parse(
+            readFileSync(join(entry.path, `${laneId}.lane-result.json`), "utf8")
+          )
+        } catch {
+          continue
+        }
+        if (
+          document?.laneId === laneId &&
+          document.status === "success" &&
+          Number.isFinite(document.durationSeconds) &&
+          document.durationSeconds > 0
+        )
+          durations.push(document.durationSeconds)
+      }
+      return durations
+    },
+
     /** When this profile last started a run here, or null. */
     lastRunAt(profile) {
       let newest = null
@@ -1213,27 +948,6 @@ function makeLaneLogOpener(runDir) {
       },
       close() {},
     }
-  }
-}
-
-/**
- * Write a lane's environment to a file inside the VM at mode 0600.
- *
- * A file rather than `--env NAME=VALUE`: process arguments are readable by
- * every process on the VM through `ps`, and the runtime fixtures a lane needs
- * are not worth publishing that way even though none of them is a host secret.
- */
-function makeEnvFileWriter({ config, headSha, signal }) {
-  return async (lane, env) => {
-    const path = `${config.vmWorkspaceRoot}/runs/${headSha}/.env.${lane.id}`
-    const body = Object.entries(env)
-      .map(([name, value]) => `${name}=${value}`)
-      .join("\n")
-    await execHost(vmShell(config.vm, `umask 077; cat > ${shQuote(path)}`), {
-      input: `${body}\n`,
-      signal,
-    })
-    return path
   }
 }
 
@@ -1374,6 +1088,61 @@ export function createSerialGate() {
 
 /* -------------------------------------------------------------------- main */
 
+/**
+ * What `dispatchRun` needs from the runtime, under the names it has always
+ * called them by. Every step goes through the runtime the contract selected,
+ * so there is one door and one set of checks per runtime.
+ */
+export function runtimeDispatchDependencies(runtime) {
+  const missing = () => {
+    throw new CliError(
+      "RUNTIME_NOT_CONFIGURED",
+      "dispatchRun needs the host runtime the contract selects; no job is dispatched without one"
+    )
+  }
+  return {
+    assertInstalledExecutionCurrent,
+    assertVmIsolationLive: () =>
+      runtime === null ? missing() : runtime.assertIsolationLive(),
+    reconcileOwnedResources: ({ contract }) =>
+      runtime === null
+        ? missing()
+        : reconcileOwnedResources({ contract, runtime }),
+    buildDependencies,
+    makeEnvFileWriter: ({ headSha, signal }) =>
+      runtime === null ? missing() : runtime.envFileWriter({ headSha, signal }),
+    releaseWorkspace: ({ headSha }) =>
+      runtime === null ? missing() : runtime.releaseWorkspace({ headSha }),
+  }
+}
+
+/** One line for the log that says what the verdict actually checked. */
+function describeIsolation(isolation) {
+  if (isolation?.runtime !== "docker-desktop")
+    return "no host mounts, no forwarded agent, no host home, no Rosetta"
+  return `engine ${isolation.engine.serverVersion} (${isolation.engine.cpus} CPU, ${isolation.engine.memoryGb} GiB), file sharing limited to ${isolation.fileSharing.shared.length} path(s), canary unreachable on ${isolation.canary.unreachable.join(", ")}`
+}
+
+/**
+ * Whether the runtime can take a job now. The poll loop and the nightly
+ * schedule ask before claiming anything, so a stopped engine or a failed
+ * isolation check leaves work queued instead of failing a check per commit.
+ */
+export function runtimeHealth(runtime) {
+  return async () => {
+    try {
+      await runtime.assertIsolationLive()
+      return Object.freeze({ healthy: true })
+    } catch (error) {
+      return Object.freeze({
+        healthy: false,
+        code: error?.code ?? "VM_UNVERIFIABLE",
+        reason: error?.message ?? String(error),
+      })
+    }
+  }
+}
+
 async function buildDependencies({
   contract,
   config,
@@ -1381,12 +1150,14 @@ async function buildDependencies({
   headSha,
   runDir,
   signal,
+  runtime,
+  evidence = null,
 }) {
   const containerRuntime = createContainerRuntime({
     contract,
-    vm: config.vm,
     logger,
     imageCachePin: config.imageCachePin,
+    ...runtime.containerRuntimeOptions(),
   })
   const resolveRuntimeEnv = createRuntimeEnvResolver({
     contract,
@@ -1398,13 +1169,7 @@ async function buildDependencies({
       }),
     randomBytes,
   })
-  const workspaceHostPath = await prepareWorkspace({
-    config,
-    contract,
-    headSha,
-    logger,
-    signal,
-  })
+  const workspaceHostPath = await runtime.prepareWorkspace({ headSha, signal })
   const runner = createRunner({
     contract,
     containerRuntime,
@@ -1415,16 +1180,18 @@ async function buildDependencies({
     image: config.jobImage,
     daemonImage: config.daemonImage,
     workspaceHostPath,
-    prepareLaneWorkspace: async (lane, options) => {
-      const { destination, script } = buildLaneWorkspaceScript({
+    prepareLaneWorkspace: (lane, options) =>
+      runtime.prepareLaneWorkspace(lane, {
+        ...options,
         workspace: workspaceHostPath,
-        laneId: lane.id,
         headSha,
-        remoteUrl: contract.remoteUrl,
-      })
-      await execHost(vmShell(config.vm, script), options)
-      return destination
-    },
+      }),
+    hostedOnlyRequirements: runtime.hostedOnlyRequirements,
+    laneScriptPrelude: runtime.laneScriptPrelude,
+    externalMemoryGb: () => runtime.externalMemoryGb(),
+    // Longest first, from this host's own lane-result records only.
+    expectedSeconds: (lane) =>
+      expectedLaneSeconds(lane, evidence?.laneDurations?.(lane.id) ?? []),
     logger,
   })
   return { runner, containerRuntime }
@@ -1571,15 +1338,19 @@ function durablePublisher({ github, contract, journal }) {
  * would never have been asserted at all.
  */
 export async function dispatchRun(
-  { contract, config, logger, evidence, profile, ref, headSha, signal = null },
-  dependencies = {
-    assertInstalledExecutionCurrent,
-    assertVmIsolationLive,
-    reconcileOwnedResources,
-    buildDependencies,
-    makeEnvFileWriter,
-    releaseWorkspace,
-  }
+  {
+    contract,
+    config,
+    logger,
+    evidence,
+    profile,
+    ref,
+    headSha,
+    signal = null,
+    runtime = null,
+    onLaneComplete = null,
+  },
+  dependencies = runtimeDispatchDependencies(runtime)
 ) {
   signal?.throwIfAborted()
   const installedRevision = await dependencies.assertInstalledExecutionCurrent({
@@ -1587,12 +1358,17 @@ export async function dispatchRun(
     logger,
   })
   signal?.throwIfAborted()
-  await dependencies.assertVmIsolationLive({ config, contract })
+  const isolation = await dependencies.assertVmIsolationLive({
+    config,
+    contract,
+  })
   signal?.throwIfAborted()
   await dependencies.reconcileOwnedResources?.({ config, contract })
   signal?.throwIfAborted()
   logger.info(
-    `instance ${config.vm} re-asserted: no host mounts, no forwarded agent, no host home, no Rosetta`
+    runtime === null
+      ? `instance ${config.vm} re-asserted: no host mounts, no forwarded agent, no host home, no Rosetta`
+      : `${runtime.description} re-asserted before dispatch: ${describeIsolation(isolation)}`
   )
   const run = evidence.open({ headSha, profile: profile.profile })
   try {
@@ -1608,6 +1384,8 @@ export async function dispatchRun(
       headSha,
       runDir: run.path,
       signal,
+      runtime,
+      evidence,
     })
     signal?.throwIfAborted()
     const outcome = await runner.runProfile({
@@ -1616,6 +1394,7 @@ export async function dispatchRun(
       headSha,
       signal,
       writeEnvFile: dependencies.makeEnvFileWriter({ config, headSha, signal }),
+      onLaneComplete,
     })
     writeLaneResults({ runDir: run.path, outcome, contract })
     logger.info(
@@ -1649,6 +1428,7 @@ export async function nightlyTick({
   publishPending = null,
   ref = DEFAULT_MAIN_REF,
   now = () => Date.now(),
+  runtimeHealth = null,
 }) {
   for (const attempt of attempts?.entries ?? []) {
     if (
@@ -1680,6 +1460,20 @@ export async function nightlyTick({
       ran: false,
       headSha: null,
       conclusion: null,
+    })
+  }
+  // Due, but a runtime that cannot take the job gets no job: the nightly
+  // stays due and is asked about again on the next interval, and nothing is
+  // published for a run that could not have happened.
+  const health = runtimeHealth === null ? null : await runtimeHealth()
+  if (health !== null && health.healthy !== true) {
+    return Object.freeze({
+      ...verdict,
+      due: true,
+      ran: false,
+      headSha: null,
+      conclusion: null,
+      reason: `a nightly proof is due but the runtime cannot take it: ${health.reason ?? "no answer"}`,
     })
   }
   const head = await github.getRef(ref)
@@ -1775,10 +1569,12 @@ export function createNightlyScheduler({
  * be worse than a warning: a dry-run preflight an operator runs before the VM
  * exists, and agent startup, where exiting would only make launchd restart
  * into a crash loop. Every real dispatch still refuses. */
-async function reportVmIsolation({ config, contract, logger }) {
+async function reportVmIsolation({ runtime, logger }) {
   try {
-    await assertVmIsolationLive({ config, contract })
-    logger.info(`instance ${config.vm} is running and still isolated`)
+    const isolation = await runtime.assertIsolationLive()
+    logger.info(
+      `${runtime.description} is running and still isolated: ${describeIsolation(isolation)}`
+    )
     return true
   } catch (error) {
     logger.error(
@@ -1791,11 +1587,12 @@ async function reportVmIsolation({ config, contract, logger }) {
 async function runOnce({ contract, config, options, logger }) {
   const headSha = options.sha.toLowerCase()
   const profile = loadProfileChecked(options.profile, contract)
+  const runtime = createHostRuntime({ contract, config, logger })
   if (options.dryRun) {
     logger.info(
-      `dry run: profile ${profile.profile}, ${profile.lanes.length} lanes, host arch ${processArch}, sha ${headSha}`
+      `dry run: profile ${profile.profile}, ${profile.lanes.length} lanes, host arch ${processArch}, sha ${headSha}, runtime ${runtime.kind}`
     )
-    await reportVmIsolation({ config, contract, logger })
+    await reportVmIsolation({ runtime, logger })
     return 0
   }
 
@@ -1810,7 +1607,7 @@ async function runOnce({ contract, config, options, logger }) {
     ref: options.ref,
     headSha,
     dispatch: (args) =>
-      dispatchRun({ contract, config, logger, evidence, ...args }),
+      dispatchRun({ contract, config, logger, evidence, runtime, ...args }),
     publish: options.publish
       ? durablePublisher({ github, contract, journal })
       : null,
@@ -1822,6 +1619,7 @@ async function runOnce({ contract, config, options, logger }) {
 
 async function runNightlyOnce({ contract, config, options, logger }) {
   const evidence = createRunEvidenceStore({ stateRoot: config.stateRoot })
+  const runtime = createHostRuntime({ contract, config, logger })
   if (options.dryRun) {
     const verdict = nightlyRunIsDue({
       lastRunAt: evidence.lastRunAt(contract.nightlyProof.profile),
@@ -1831,7 +1629,7 @@ async function runNightlyOnce({ contract, config, options, logger }) {
     logger.info(
       `dry run: a nightly proof is ${verdict.due ? "due" : "not due"} - ${verdict.reason}`
     )
-    await reportVmIsolation({ config, contract, logger })
+    await reportVmIsolation({ runtime, logger })
     return 0
   }
   const github = hostGitHubClient({ contract, config, logger })
@@ -1849,12 +1647,20 @@ async function runNightlyOnce({ contract, config, options, logger }) {
     evidence,
     ref: options.ref,
     loadProfileFor: (name) => loadProfileChecked(name, contract),
+    runtimeHealth: runtimeHealth(runtime),
     dispatch: (args) =>
       executeDurableRun({
         journal,
         ...args,
         dispatch: (request) =>
-          dispatchRun({ contract, config, logger, evidence, ...request }),
+          dispatchRun({
+            contract,
+            config,
+            logger,
+            evidence,
+            runtime,
+            ...request,
+          }),
         publish: options.publish
           ? durablePublisher({ github, contract, journal })
           : null,
@@ -1921,8 +1727,12 @@ async function watch({ contract, config, logger }) {
     path: join(config.stateRoot, "attempts.json"),
   })
   const gate = createSerialGate()
+  const runtime = createHostRuntime({ contract, config, logger })
+  const health = runtimeHealth(runtime)
   const dispatch = (args) =>
-    gate.run(() => dispatchRun({ contract, config, logger, evidence, ...args }))
+    gate.run(() =>
+      dispatchRun({ contract, config, logger, evidence, runtime, ...args })
+    )
   const nightlyDispatch = (args) =>
     gate.run(async () => {
       nightlyAssertion.acquire()
@@ -1932,7 +1742,14 @@ async function watch({ contract, config, logger }) {
           ...args,
           signal: nightlyAbort.signal,
           dispatch: (request) =>
-            dispatchRun({ contract, config, logger, evidence, ...request }),
+            dispatchRun({
+              contract,
+              config,
+              logger,
+              evidence,
+              runtime,
+              ...request,
+            }),
           publish: durablePublisher({ github, contract, journal: attempts }),
         })
       } finally {
@@ -1940,8 +1757,10 @@ async function watch({ contract, config, logger }) {
       }
     })
 
-  logger.info(`job image ${config.jobImage} (from ${config.jobImageSource})`)
-  await reportVmIsolation({ config, contract, logger })
+  logger.info(
+    `runtime ${runtime.kind}, job image ${config.jobImage} (from ${config.jobImageSource})`
+  )
+  await reportVmIsolation({ runtime, logger })
 
   const loop = createLoop({
     attempts,
@@ -1962,6 +1781,9 @@ async function watch({ contract, config, logger }) {
     // Built per job: the runner needs a workspace materialised for that head
     // SHA, and there is no useful long-lived runner to hold open between them.
     runner: { runProfile: dispatch },
+    // Asked before a queued job is claimed: an unhealthy runtime claims and
+    // publishes nothing, and the work starts once it is healthy again.
+    runtimeHealth: health,
   })
 
   const nightly = createNightlyScheduler({
@@ -1980,6 +1802,7 @@ async function watch({ contract, config, logger }) {
         evidence,
         dispatch: nightlyDispatch,
         loadProfileFor: (name) => loadProfileChecked(name, contract),
+        runtimeHealth: health,
       }),
   })
 

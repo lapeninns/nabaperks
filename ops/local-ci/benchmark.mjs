@@ -1,7 +1,14 @@
 #!/usr/bin/env node
-/** Credential-free qualification; never publishes a check or changes routing. */
+/**
+ * Credential-free qualification; never publishes a check or changes routing.
+ *
+ * It runs the same runtime a dispatch runs - the one config/local-ci-contract.json
+ * selects - through the same isolation verdict, workspace preparation, env
+ * files and release, so a benchmark measures what the agent would do rather
+ * than a Lima-only copy of it.
+ */
 import { spawn } from "node:child_process"
-import { randomBytes, randomUUID } from "node:crypto"
+import { randomBytes } from "node:crypto"
 import {
   appendFileSync,
   existsSync,
@@ -23,18 +30,10 @@ import {
   createRuntimeEnvResolver,
   laneBrowserReports,
 } from "./agent/runner.mjs"
-import {
-  assertVmIsolation,
-  parseLimaInstances,
-  parseVmProbe,
-  VM_PROBE_SCRIPT,
-  buildWorkspacePreparationScript,
-  buildLaneWorkspaceScript,
-} from "./agent/main.mjs"
+import { createHostRuntime } from "./agent/main.mjs"
 import { inventoryFromPlaywright } from "../../scripts/ci/browser-parity.mjs"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
-const quote = (value) => `'${String(value).replaceAll("'", "'\\''")}'`
 const controller = new AbortController()
 export function command(
   argv,
@@ -121,15 +120,20 @@ export function collectBrowserEvidence({ lanes, names, read }) {
 
 async function main() {
   const [sha, count, output, mode = "pilot", ...extra] = process.argv.slice(2)
+  const contract = structuredClone(
+    loadContract((path) => readFileSync(join(root, path), "utf8"))
+  )
+  const maximum = contract.agent.maxConcurrentLanes
   if (
     !/^[a-f0-9]{40}$/.test(sha ?? "") ||
-    !/^[1-6]$/.test(count ?? "") ||
+    !/^[1-9][0-9]*$/.test(count ?? "") ||
+    Number(count) > maximum ||
     !output ||
     !["pilot", "full"].includes(mode) ||
     extra.length
   )
     throw new Error(
-      "Usage: node ops/local-ci/benchmark.mjs <sha> <1-6> <new-output-directory> [pilot|full]"
+      `Usage: node ops/local-ci/benchmark.mjs <sha> <1-${maximum}> <new-output-directory> [pilot|full]`
     )
   if ((await command(["git", "rev-parse", "HEAD"])).trim() !== sha)
     throw new Error("Benchmark runtime must match the requested commit")
@@ -148,9 +152,6 @@ async function main() {
   if (existsSync(directory))
     throw new Error("Benchmark evidence directory must be new")
   mkdirSync(directory, { recursive: true, mode: 0o700 })
-  const contract = structuredClone(
-    loadContract((path) => readFileSync(join(root, path), "utf8"))
-  )
   contract.agent.maxConcurrentLanes = Number(count)
   const profile = structuredClone(
     loadProfile("pr", contract, (path) =>
@@ -161,48 +162,49 @@ async function main() {
     profile.lanes = profile.lanes.filter((lane) => lane.id.startsWith("e2e-"))
     for (const lane of profile.lanes) lane.commands = lane.commands.slice(0, 3)
   }
-  const vm = contract.vm.name
-  const shell = (script, options) =>
-    command(["limactl", "shell", vm, "--", "/bin/sh", "-c", script], options)
+  const stateRoot = join(homedir(), ".nabaperks-local-ci")
+  const image = readFileSync("/opt/nabaperks-local-ci/job-image", "utf8").trim()
+  const config = {
+    stateRoot,
+    jobImage: image,
+    vm: contract.vm.name,
+    vmWorkspaceRoot: "/var/lib/nabaperks-ci",
+  }
+  const logger = {
+    info: (message) => console.error(message),
+    warn: (message) => console.error(message),
+    error: (message) => console.error(message),
+  }
+  const runtime = createHostRuntime({ contract, config, logger })
   const lease = acquireControllerLease({
-    path: join(homedir(), ".nabaperks-local-ci/controller.lock"),
+    path: join(stateRoot, "controller.lock"),
   })
-  const scratch = `/var/lib/nabaperks-ci/qualification/bench-${randomUUID()}`
-  const workspace = `${scratch}/runs/${sha}`
   let sampling = true
   let sampler
+  let workspace = null
   const startedAt = Date.now()
   try {
-    const instances = parseLimaInstances(
-      await command(["limactl", "list", "--json", vm])
-    )
-    const probe = parseVmProbe(await shell(VM_PROBE_SCRIPT))
-    assertVmIsolation({ vm, instances, probe, contract })
-    const names = await shell("docker ps --all --format '{{.Names}}'")
-    if (names.split(/\r?\n/).some((name) => name.startsWith("nabaperks-ci-")))
+    // The runtime probe: the same verdict a dispatch must pass.
+    const isolation = await runtime.assertIsolationLive()
+    if ((await runtime.ownedContainerNames()).length > 0)
       throw new Error(
         "Existing local CI containers must finish or be reconciled first"
       )
-    const image = readFileSync(
-      "/opt/nabaperks-local-ci/job-image",
-      "utf8"
-    ).trim()
-    const imageId = (
-      await shell(`docker image inspect --format '{{.Id}}' ${quote(image)}`)
-    ).trim()
+    const imageId = await runtime.imageId(image)
     const imageCachePin = process.env.LOCAL_CI_IMAGE_CACHE_PIN_FILE
       ? parseImageCachePin(
           readFileSync(process.env.LOCAL_CI_IMAGE_CACHE_PIN_FILE, "utf8")
         )
       : null
-    await shell(
-      buildWorkspacePreparationScript({
-        root: scratch,
-        remoteUrl: contract.remoteUrl,
-        headSha: sha,
-      })
-    )
-    const runtime = createContainerRuntime({ contract, vm, imageCachePin })
+    workspace = await runtime.prepareWorkspace({
+      headSha: sha,
+      signal: controller.signal,
+    })
+    const containerRuntime = createContainerRuntime({
+      contract,
+      imageCachePin,
+      ...runtime.containerRuntimeOptions(),
+    })
     const resolver = createRuntimeEnvResolver({
       contract,
       randomBytes,
@@ -211,17 +213,11 @@ async function main() {
     sampler = (async () => {
       while (sampling) {
         try {
-          const data = await shell(
-            "docker stats --no-stream --format '{{json .}}'",
-            { signal: null, timeoutMs: 15_000 }
-          )
           appendFileSync(
             join(directory, "resources.jsonl"),
             JSON.stringify({
               at: Date.now(),
-              containers: data.trim()
-                ? data.trim().split(/\r?\n/).map(JSON.parse)
-                : [],
+              containers: await runtime.containerStats(),
             }) + "\n"
           )
         } catch (error) {
@@ -235,22 +231,21 @@ async function main() {
     })()
     const runner = createRunner({
       contract,
-      containerRuntime: runtime,
+      containerRuntime,
       resolveRuntimeEnv: resolver,
       arch: "arm64",
       image,
       daemonImage: "docker:27.5.1-dind",
       workspaceHostPath: workspace,
-      prepareLaneWorkspace: async (lane, options) => {
-        const prepared = buildLaneWorkspaceScript({
+      prepareLaneWorkspace: (lane, options) =>
+        runtime.prepareLaneWorkspace(lane, {
+          ...options,
           workspace,
-          laneId: lane.id,
           headSha: sha,
-          remoteUrl: contract.remoteUrl,
-        })
-        await shell(prepared.script, options)
-        return prepared.destination
-      },
+        }),
+      hostedOnlyRequirements: runtime.hostedOnlyRequirements,
+      laneScriptPrelude: runtime.laneScriptPrelude,
+      externalMemoryGb: () => runtime.externalMemoryGb(),
       openLaneLog: (name) => {
         const path = join(directory, name)
         writeFileSync(path, "", { flag: "wx", mode: 0o600 })
@@ -261,16 +256,10 @@ async function main() {
       profile,
       headSha: sha,
       signal: controller.signal,
-      writeEnvFile: async (lane, env) => {
-        const path = `${workspace}/.env.${lane.id}`
-        await shell(`umask 077; cat > ${quote(path)}`, {
-          input:
-            Object.entries(env)
-              .map(([key, value]) => `${key}=${value}`)
-              .join("\n") + "\n",
-        })
-        return path
-      },
+      writeEnvFile: runtime.envFileWriter({
+        headSha: sha,
+        signal: controller.signal,
+      }),
     })
     sampling = false
     await sampler
@@ -292,6 +281,8 @@ async function main() {
     const result = {
       sha,
       mode,
+      runtime: runtime.kind,
+      isolation,
       maxConcurrentLanes: Number(count),
       image,
       imageId,
@@ -309,6 +300,7 @@ async function main() {
       JSON.stringify({
         sha,
         mode,
+        runtime: runtime.kind,
         concurrency: Number(count),
         peak: outcome.peakConcurrentLanes,
         durationSeconds: outcome.record.durationSeconds,
@@ -333,13 +325,7 @@ async function main() {
     sampling = false
     await sampler
     try {
-      const leftovers = await shell(
-        `docker ps --all --filter ${quote(`label=com.nabaperks.local-ci.head-sha=${sha}`)} --format '{{.Names}}'`,
-        { signal: null }
-      )
-      if (leftovers.trim())
-        throw new Error("Resources remain; benchmark workspace is quarantined")
-      await shell(`rm -rf ${quote(scratch)}`, { signal: null })
+      if (workspace !== null) await runtime.releaseWorkspace({ headSha: sha })
     } finally {
       lease.release()
     }

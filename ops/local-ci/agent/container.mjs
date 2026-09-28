@@ -34,7 +34,7 @@
 
 import { spawn } from "node:child_process"
 
-import { LocalCiError, describeValue } from "../core/contract.mjs"
+import { LocalCiError, describeValue, runtimeKind } from "../core/contract.mjs"
 import { laneResources } from "../core/lane-scheduler.mjs"
 import { hostSecretNames } from "../core/contract.mjs"
 import {
@@ -251,7 +251,151 @@ function assertUnprivileged(argv, label) {
       )
     }
   }
+  for (const [index, argument] of argv.entries()) {
+    const separator = argument.indexOf("=")
+    const flag = separator === -1 ? argument : argument.slice(0, separator)
+    const value =
+      separator === -1 ? argv[index + 1] : argument.slice(separator + 1)
+    // Added capabilities, host devices and an unconfined profile are the
+    // other ways to hand a container what --privileged would; the job needs
+    // none of them.
+    if (flag === "--cap-add" || flag === "--device") {
+      fail(
+        "PRIVILEGED_JOB_CONTAINER",
+        `${label} carries ${JSON.stringify(flag)}; the container that runs repository code gets no added capability and no host device`
+      )
+    }
+    if (flag === "--security-opt" && /unconfined/.test(String(value))) {
+      fail(
+        "PRIVILEGED_JOB_CONTAINER",
+        `${label} runs the container ${JSON.stringify(value)}; seccomp and AppArmor confinement stay on`
+      )
+    }
+  }
   return argv
+}
+
+/** Flags that bring a path of the machine running the daemon into a container. */
+const HOST_PATH_FLAGS = Object.freeze(["-v", "--volume", "--volumes-from"])
+
+/**
+ * Refuse an argv that mounts anything but a named volume or a tmpfs.
+ *
+ * On the shared Docker Desktop VM, a bind mount is a path of that VM, and the
+ * VM's file shares put the Mac's own directories behind such paths. No
+ * container this plane starts there is given one: workspaces live in a named
+ * volume and reach a job through a volume-subpath mount instead. `-v` and
+ * `--volume` are refused in every form - they accept a host path or a volume
+ * name with the same syntax - and a `--mount` must say `type=volume` or
+ * `type=tmpfs` explicitly. Pure, and exported so a caller that assembles its
+ * own argv can run the same proof.
+ */
+export function assertNoBindMounts(argv, label = "argv") {
+  if (!Array.isArray(argv)) {
+    fail(
+      "INVALID_INPUT",
+      `${label} must be an array of arguments (received ${describeValue(argv)})`
+    )
+  }
+  for (const [index, argument] of argv.entries()) {
+    const text = String(argument)
+    const separator = text.indexOf("=")
+    const flag = separator === -1 ? text : text.slice(0, separator)
+    if (HOST_PATH_FLAGS.includes(flag) || /^-v./.test(text)) {
+      fail(
+        "BIND_MOUNT_REFUSED",
+        `${label}[${index}] (${JSON.stringify(flag)}) can bind a host path into the container; only named volumes and tmpfs mounts are allowed here`
+      )
+    }
+    if (flag !== "--mount") continue
+    const spec = separator === -1 ? argv[index + 1] : text.slice(separator + 1)
+    const type = /(?:^|,)type=([^,]*)/.exec(String(spec))?.[1]
+    if (type !== "volume" && type !== "tmpfs") {
+      fail(
+        "BIND_MOUNT_REFUSED",
+        `${label}[${index}] mounts ${JSON.stringify(spec)}; only type=volume and type=tmpfs mounts are allowed here`
+      )
+    }
+    const source = /(?:^|,)(?:src|source)=([^,]*)/.exec(String(spec))?.[1]
+    if (type === "volume" && (!source || source.includes("/"))) {
+      fail(
+        "BIND_MOUNT_REFUSED",
+        `${label}[${index}] names volume source ${JSON.stringify(source)}; a volume mount must name a volume, never a path`
+      )
+    }
+  }
+  return argv
+}
+
+const MOUNT_VALUE = /^[A-Za-z0-9._/:-]+$/
+
+function requireMountValue(value, label) {
+  requireNonEmptyString(value, label)
+  if (!MOUNT_VALUE.test(value) || value.split("/").includes("..")) {
+    fail(
+      "INVALID_INPUT",
+      `${label} is ${JSON.stringify(value)}; a mount value must be plain path characters with no ".." segment, comma or equals sign`
+    )
+  }
+  return value
+}
+
+/**
+ * One `--mount` value from a structured spec. Pure.
+ *
+ * Only the two kinds this plane uses exist: a named volume, optionally
+ * narrowed to a subdirectory with `volume-subpath` (Engine 26 and later), and
+ * a tmpfs. The daemon follows a symlink or `..` inside the volume when it
+ * resolves a subpath, so the subpath is refused here unless it is relative
+ * and plain, and the runtime builds it only from validated ids.
+ */
+export function buildMountSpec(mount) {
+  requireObject(mount, "mount")
+  const target = requireMountValue(mount.target, "mount.target")
+  if (!target.startsWith("/")) {
+    fail(
+      "INVALID_INPUT",
+      `mount.target ${JSON.stringify(target)} must be absolute`
+    )
+  }
+  if (mount.type === "tmpfs") return `type=tmpfs,dst=${target}`
+  if (mount.type !== "volume") {
+    fail(
+      "BIND_MOUNT_REFUSED",
+      `mount.type is ${JSON.stringify(mount.type)}; only volume and tmpfs mounts are built here`
+    )
+  }
+  const source = requireMountValue(mount.source, "mount.source")
+  if (source.includes("/")) {
+    fail(
+      "BIND_MOUNT_REFUSED",
+      `mount.source ${JSON.stringify(source)} is a path; a volume mount names a volume`
+    )
+  }
+  const parts = ["type=volume", `src=${source}`, `dst=${target}`]
+  if (mount.subpath !== undefined && mount.subpath !== null) {
+    const subpath = requireMountValue(mount.subpath, "mount.subpath")
+    if (subpath.startsWith("/")) {
+      fail(
+        "INVALID_INPUT",
+        `mount.subpath ${JSON.stringify(subpath)} must be relative to the volume`
+      )
+    }
+    parts.push(`volume-subpath=${subpath}`)
+  }
+  if (mount.readonly === true) parts.push("readonly")
+  return parts.join(",")
+}
+
+/** A /16 or narrower IPv4 subnet in CIDR form. */
+function requireSubnet(value) {
+  requireNonEmptyString(value, "subnet")
+  if (
+    !/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\/(1[6-9]|2[0-9])$/.test(value)
+  ) {
+    fail("INVALID_INPUT", `subnet ${JSON.stringify(value)} is not an IPv4 CIDR`)
+  }
+  return value
 }
 
 function containerConfig(contract) {
@@ -270,6 +414,42 @@ function containerConfig(contract) {
 export function assertResourceBudgets(contract) {
   const container = containerConfig(contract)
   const daemon = requireObject(container.daemon, "contract.container.daemon")
+  if (runtimeKind(contract) === "docker-desktop") {
+    // No sidecar runs on this runtime, so the daemon budget is not charged;
+    // the Docker Desktop VM keeps its own reserve and a floor for the other
+    // worktrees' containers that share it.
+    const runtime = requireObject(contract.runtime, "contract.runtime")
+    const budgets = {
+      "container.cpus": container.cpus,
+      "container.memoryGb": container.memoryGb,
+      "runtime.cpus": runtime.cpus,
+      "runtime.memoryGb": runtime.memoryGb,
+      "runtime.reserveCpus": runtime.reserveCpus,
+      "runtime.reserveMemoryGb": runtime.reserveMemoryGb,
+      "runtime.externalMemoryFloorGb": runtime.externalMemoryFloorGb,
+    }
+    for (const [label, value] of Object.entries(budgets)) {
+      if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+        fail(
+          "INVALID_RESOURCE_BUDGET",
+          `${label} must be a positive finite number`
+        )
+      }
+    }
+    if (
+      container.cpus + runtime.reserveCpus > runtime.cpus ||
+      container.memoryGb +
+        runtime.reserveMemoryGb +
+        runtime.externalMemoryFloorGb >
+        runtime.memoryGb
+    ) {
+      fail(
+        "RESOURCE_OVERCOMMIT",
+        "job budgets must leave the Docker Desktop runtime's reserves and external-memory floor"
+      )
+    }
+    return Object.freeze({ container, daemon })
+  }
   const vm = requireObject(contract.vm, "contract.vm")
   const budgets = {
     "container.cpus": container.cpus,
@@ -363,8 +543,14 @@ export function dockerPrefix({
   vm = null,
   docker = "docker",
   limactl = "limactl",
+  context = null,
 } = {}) {
-  return [...vmPrefix({ vm, limactl }), docker]
+  const prefix = [...vmPrefix({ vm, limactl }), docker]
+  if (context === null || context === undefined) return prefix
+  // Every command names its engine. On a Mac with Docker Desktop, the CLI's
+  // current context is the operator's to change, and a switch must never
+  // redirect candidate code to some other daemon.
+  return [...prefix, "--context", requireNonEmptyString(context, "context")]
 }
 
 /** `docker network create --driver <driver> --label … <name>`. Pure. */
@@ -373,16 +559,23 @@ export function buildNetworkCreateArgv({
   vm = null,
   docker,
   limactl,
+  context = null,
   driver = "bridge",
   labels = {},
+  internal = false,
+  subnet = null,
 } = {}) {
   const argv = [
-    ...dockerPrefix({ vm, docker, limactl }),
+    ...dockerPrefix({ vm, docker, limactl, context }),
     "network",
     "create",
     "--driver",
     driver,
   ]
+  // An internal network has no gateway: nothing on it reaches the host, the
+  // LAN or the internet, and host.docker.internal does not even resolve.
+  if (internal === true) argv.push("--internal")
+  if (subnet !== null) argv.push("--subnet", requireSubnet(subnet))
   // Labelled for the same reason the containers are: the runbook's sweep has
   // to be able to name what this plane left behind without matching on a
   // prefix that a human could also have typed.
@@ -399,9 +592,10 @@ export function buildNetworkRemoveArgv({
   vm = null,
   docker,
   limactl,
+  context = null,
 } = {}) {
   const argv = [
-    ...dockerPrefix({ vm, docker, limactl }),
+    ...dockerPrefix({ vm, docker, limactl, context }),
     "network",
     "rm",
     requireOwnedName(name, "name"),
@@ -415,10 +609,11 @@ export function buildStopArgv({
   vm = null,
   docker,
   limactl,
+  context = null,
   timeoutSeconds = STOP_GRACE_SECONDS,
 } = {}) {
   const argv = [
-    ...dockerPrefix({ vm, docker, limactl }),
+    ...dockerPrefix({ vm, docker, limactl, context }),
     "stop",
     "--timeout",
     String(timeoutSeconds),
@@ -428,9 +623,15 @@ export function buildStopArgv({
 }
 
 /** `docker rm --force --volumes <name>`. Pure. */
-export function buildRemoveArgv({ name, vm = null, docker, limactl } = {}) {
+export function buildRemoveArgv({
+  name,
+  vm = null,
+  docker,
+  limactl,
+  context = null,
+} = {}) {
   const argv = [
-    ...dockerPrefix({ vm, docker, limactl }),
+    ...dockerPrefix({ vm, docker, limactl, context }),
     "rm",
     "--force",
     "--volumes",
@@ -445,10 +646,11 @@ export function buildInspectArgv({
   vm = null,
   docker,
   limactl,
+  context = null,
   format = "{{json .HostConfig}}",
 } = {}) {
   const argv = [
-    ...dockerPrefix({ vm, docker, limactl }),
+    ...dockerPrefix({ vm, docker, limactl, context }),
     "inspect",
     "--format",
     format,
@@ -499,6 +701,26 @@ export function buildWorkspaceReadArgv({
   shell = "/bin/sh",
   maxBytes = MAX_LOG_PART_BYTES,
 } = {}) {
+  const script = buildWorkspaceReadScript({ workspaceHostPath, name, maxBytes })
+  const argv = [
+    ...vmPrefix({ vm, limactl }),
+    requireNonEmptyString(shell, "shell"),
+    "-c",
+    script,
+  ]
+  return Object.freeze(assertNoDaemonSocket(argv, "workspace read argv"))
+}
+
+/**
+ * The read script itself. **Pure.** Split from the argv so a runtime whose
+ * workspace lives in a named volume can run the same bytes in a helper
+ * container that mounts it, rather than inside a VM shell.
+ */
+export function buildWorkspaceReadScript({
+  workspaceHostPath,
+  name,
+  maxBytes = MAX_LOG_PART_BYTES,
+} = {}) {
   requireNonEmptyString(workspaceHostPath, "workspaceHostPath")
   requireNonEmptyString(name, "name")
   if (name.includes("/") || name.split("/").includes("..")) {
@@ -514,7 +736,7 @@ export function buildWorkspaceReadArgv({
     )
   }
   const path = `${workspaceHostPath}/${name}`
-  const script = [
+  return [
     "set -eu",
     `part=${shQuote(path)}`,
     `if [ -L "$part" ]; then exit ${READ_NOT_A_FILE_STATUS}; fi`,
@@ -522,13 +744,6 @@ export function buildWorkspaceReadArgv({
     `if [ ! -f "$part" ]; then exit ${READ_NOT_A_FILE_STATUS}; fi`,
     `head -c ${maxBytes} -- "$part"`,
   ].join("\n")
-  const argv = [
-    ...vmPrefix({ vm, limactl }),
-    requireNonEmptyString(shell, "shell"),
-    "-c",
-    script,
-  ]
-  return Object.freeze(assertNoDaemonSocket(argv, "workspace read argv"))
 }
 
 function assertPinnedImage(image, label) {
@@ -570,8 +785,19 @@ export function buildDaemonArgv({
   vm = null,
   docker,
   limactl,
+  context = null,
   labels = {},
+  allowPrivileged = true,
 } = {}) {
+  if (allowPrivileged !== true) {
+    // The shared Docker Desktop VM holds other worktrees' containers and the
+    // Mac's file shares; a privileged sidecar there would hand candidate code
+    // all of it. That runtime reports daemon lanes hosted-only instead.
+    fail(
+      "PRIVILEGED_CONTAINER_REFUSED",
+      "this runtime never starts a privileged container; a lane that needs a Docker daemon stays on the hosted plane"
+    )
+  }
   const { container, daemon } = assertResourceBudgets(contract)
   if (container.dockerInDocker !== true) {
     fail(
@@ -582,7 +808,7 @@ export function buildDaemonArgv({
   assertPinnedImage(image, "daemon image")
 
   const argv = [
-    ...dockerPrefix({ vm, docker, limactl }),
+    ...dockerPrefix({ vm, docker, limactl, context }),
     "run",
     "--detach",
     "--rm",
@@ -645,12 +871,23 @@ export function buildContainerArgv({
   vm = null,
   docker,
   limactl,
+  context = null,
   labels = {},
   addHosts = ["host.docker.internal:host-gateway"],
   shmSize = DEFAULT_SHM_SIZE,
   timeoutSeconds = null,
+  mode = "run",
+  workspaceMount = null,
+  extraMounts = [],
+  forbidBindMounts = false,
 } = {}) {
   assertResourceBudgets(contract)
+  if (mode !== "run" && mode !== "create") {
+    fail(
+      "INVALID_INPUT",
+      `mode must be "run" or "create" (received ${describeValue(mode)})`
+    )
+  }
   const container = {
     ...contract.container,
     ...laneResources({ id: name, resources }, contract),
@@ -693,8 +930,8 @@ export function buildContainerArgv({
   }
 
   const argv = [
-    ...dockerPrefix({ vm, docker, limactl }),
-    "run",
+    ...dockerPrefix({ vm, docker, limactl, context }),
+    mode,
     "--rm",
     // PID 1 that reaps. Lanes background a dev server and a browser; without
     // an init the container accumulates zombies for the whole run.
@@ -722,11 +959,24 @@ export function buildContainerArgv({
     "no-new-privileges",
     "--workdir",
     workspacePath,
-    "--volume",
-    `${requireNonEmptyString(workspaceHostPath, "workspaceHostPath")}:${workspacePath}`,
-    "--env",
-    `DOCKER_HOST=tcp://${daemonName === null ? DAEMON_NETWORK_ALIAS : "127.0.0.1"}:${DAEMON_TCP_PORT}`,
   ]
+  if (workspaceMount === null) {
+    argv.push(
+      "--volume",
+      `${requireNonEmptyString(workspaceHostPath, "workspaceHostPath")}:${workspacePath}`
+    )
+  } else {
+    // The lane's own directory of a named volume, never a path of the VM.
+    argv.push(
+      "--mount",
+      buildMountSpec({ ...workspaceMount, target: workspacePath })
+    )
+  }
+  for (const mount of extraMounts) argv.push("--mount", buildMountSpec(mount))
+  argv.push(
+    "--env",
+    `DOCKER_HOST=tcp://${daemonName === null ? DAEMON_NETWORK_ALIAS : "127.0.0.1"}:${DAEMON_TCP_PORT}`
+  )
 
   if (container.readOnlyRootFilesystem === true) {
     argv.push("--read-only")
@@ -765,10 +1015,11 @@ export function buildContainerArgv({
     argv.push(part)
   }
 
-  // The three proofs, over the finished array rather than over the inputs.
+  // The proofs, over the finished array rather than over the inputs.
   assertNoDaemonSocket(argv, "job container argv")
   assertNoPublishedPorts(argv, "job container argv")
   assertUnprivileged(argv, "job container argv")
+  if (forbidBindMounts) assertNoBindMounts(argv, "job container argv")
   return Object.freeze(argv)
 }
 
@@ -799,6 +1050,7 @@ export async function runContainer(
     signal = null,
     spawnFn = spawn,
     maxBufferBytes = 8 * 1024 * 1024,
+    env = null,
   } = {}
 ) {
   if (!Array.isArray(argv) || argv.length === 0) {
@@ -826,6 +1078,7 @@ export async function runContainer(
   const child = spawnFn(executable, args, {
     ...PROCESS_TREE_OPTIONS,
     stdio: ["ignore", "pipe", "pipe"],
+    ...(env === null ? {} : { env }),
   })
 
   const buffered = []
@@ -928,22 +1181,42 @@ export async function runContainer(
  * collision forever. Removing this attempt's three names before creating them
  * turns that into a self-healing restart. It removes only those three names,
  * every one of which carries a prefix this module owns.
+ *
+ * The runtime decides the rest. The Lima runtime passes `vm` and nothing else.
+ * The Docker Desktop runtime passes a `context`, a clean `env` for the CLI, an
+ * internal pool `jobNetwork`, the lane's volume-subpath `workspaceMountFor`,
+ * `forbidBindMounts`, `allowPrivilegedDaemon: false` and an
+ * `inspectJobContainer` check: the job is then created, inspected and only
+ * started once the inspection shows what the argv promised.
  */
 export function createContainerRuntime({
   contract,
   vm = null,
   docker = "docker",
   limactl = "limactl",
+  context = null,
+  env = null,
   spawnFn = spawn,
   logger = null,
   imageCachePin = null,
+  allowPrivilegedDaemon = true,
+  forbidBindMounts = false,
+  workspaceMountFor = null,
+  extraMountsFor = null,
+  jobNetwork = null,
+  addHosts = undefined,
+  extraLabels = {},
+  roleLabel = null,
+  inspectJobContainer = null,
+  workspaceShellArgv = null,
 } = {}) {
   assertResourceBudgets(contract)
   const log = (level, message) => {
     if (logger && typeof logger[level] === "function") logger[level](message)
   }
   const exec = (argv, options = {}) =>
-    runContainer(argv, { spawnFn, ...options })
+    runContainer(argv, { spawnFn, env, ...options })
+  const cli = { vm, docker, limactl, context }
 
   return Object.freeze({
     async withJobContainer({
@@ -955,7 +1228,7 @@ export function createContainerRuntime({
       command,
       workspaceHostPath,
       resources = null,
-      env,
+      env: jobEnv,
       envFile,
       labels = {},
       timeoutMs = null,
@@ -969,6 +1242,9 @@ export function createContainerRuntime({
       const jobName = jobContainerName(identity)
       const daemonName = daemonContainerName(identity)
       const teardownErrors = []
+      const ownedLabels = { ...labels, ...extraLabels }
+      const labelsFor = (role) =>
+        roleLabel === null ? ownedLabels : { ...ownedLabels, [roleLabel]: role }
 
       const quietly = async (argv, label) => {
         try {
@@ -991,23 +1267,20 @@ export function createContainerRuntime({
           // create below is what decides whether this lane can start.
         }
       }
-      await reconcile(buildRemoveArgv({ name: jobName, vm, docker, limactl }))
-      await reconcile(
-        buildRemoveArgv({ name: daemonName, vm, docker, limactl })
-      )
-      await reconcile(
-        buildNetworkRemoveArgv({ name: net, vm, docker, limactl })
-      )
+      await reconcile(buildRemoveArgv({ name: jobName, ...cli }))
+      await reconcile(buildRemoveArgv({ name: daemonName, ...cli }))
+      await reconcile(buildNetworkRemoveArgv({ name: net, ...cli }))
 
+      const subnet = jobNetwork?.allocateSubnet?.() ?? null
       try {
         signal?.throwIfAborted()
         const created = await exec(
           buildNetworkCreateArgv({
             name: net,
-            vm,
-            docker,
-            limactl,
-            labels,
+            ...cli,
+            labels: labelsFor("net"),
+            internal: jobNetwork?.internal === true,
+            subnet,
           }),
           { timeoutMs: 30_000, signal }
         )
@@ -1028,10 +1301,9 @@ export function createContainerRuntime({
               name: daemonName,
               network: net,
               image: daemonImage,
-              vm,
-              docker,
-              limactl,
-              labels,
+              ...cli,
+              labels: labelsFor("dind"),
+              allowPrivileged: allowPrivilegedDaemon,
             }),
             { timeoutMs: 30_000, signal }
           )
@@ -1043,7 +1315,7 @@ export function createContainerRuntime({
           }
           const ready = await exec(
             [
-              ...dockerPrefix({ vm, docker, limactl }),
+              ...dockerPrefix(cli),
               "exec",
               daemonName,
               "sh",
@@ -1096,6 +1368,7 @@ export function createContainerRuntime({
           }
         }
         signal?.throwIfAborted()
+        const verifyBeforeStart = typeof inspectJobContainer === "function"
         const argv = buildContainerArgv({
           contract,
           resources,
@@ -1105,23 +1378,54 @@ export function createContainerRuntime({
           network: net,
           command,
           workspaceHostPath,
-          env,
+          env: jobEnv,
           envFile,
-          vm,
-          docker,
-          limactl,
-          labels,
+          ...cli,
+          labels: labelsFor("job"),
+          ...(addHosts === undefined ? {} : { addHosts }),
+          mode: verifyBeforeStart ? "create" : "run",
+          workspaceMount:
+            typeof workspaceMountFor === "function"
+              ? workspaceMountFor(workspaceHostPath)
+              : null,
+          extraMounts:
+            typeof extraMountsFor === "function"
+              ? extraMountsFor(workspaceHostPath)
+              : [],
+          forbidBindMounts,
         })
+        let launch = argv
+        if (verifyBeforeStart) {
+          // Created, not started: what the daemon actually built is checked
+          // before any repository code exists in a process.
+          const createdJob = await exec(argv, { timeoutMs: 60_000, signal })
+          signal?.throwIfAborted()
+          if (createdJob.exitCode !== 0) {
+            fail(
+              "CONTAINER_UNAVAILABLE",
+              `could not create the job container for lane ${JSON.stringify(laneId)} (docker exited ${createdJob.exitCode}): ${createdJob.output.trim() || "no output"}`
+            )
+          }
+          await inspectJobContainer({
+            name: jobName,
+            network: net,
+            subnet,
+            workspaceHostPath,
+            signal,
+          })
+          signal?.throwIfAborted()
+          launch = [...dockerPrefix(cli), "start", "--attach", jobName]
+        }
         let terminationCleanup = null
         let result
         try {
-          result = await exec(argv, {
+          result = await exec(launch, {
             timeoutMs,
             onOutput,
             signal,
             onTerminate: () => {
               terminationCleanup = quietly(
-                buildRemoveArgv({ name: jobName, vm, docker, limactl }),
+                buildRemoveArgv({ name: jobName, ...cli }),
                 "remove cancelled or timed-out job container"
               )
             },
@@ -1138,17 +1442,17 @@ export function createContainerRuntime({
         })
       } finally {
         await quietly(
-          buildRemoveArgv({ name: jobName, vm, docker, limactl }),
+          buildRemoveArgv({ name: jobName, ...cli }),
           "remove job container"
         )
         if (needsDaemon) {
           await quietly(
-            buildRemoveArgv({ name: daemonName, vm, docker, limactl }),
+            buildRemoveArgv({ name: daemonName, ...cli }),
             "remove sidecar daemon"
           )
         }
         await quietly(
-          buildNetworkRemoveArgv({ name: net, vm, docker, limactl }),
+          buildNetworkRemoveArgv({ name: net, ...cli }),
           "remove job network"
         )
         // A non-throwing Docker command can still have failed. Verify absence
@@ -1161,10 +1465,9 @@ export function createContainerRuntime({
           [["network", "ls", "--format", "{{.Name}}"], [net]],
         ]) {
           try {
-            const observed = await exec(
-              [...dockerPrefix({ vm, docker, limactl }), ...args],
-              { timeoutMs: 15_000 }
-            )
+            const observed = await exec([...dockerPrefix(cli), ...args], {
+              timeoutMs: 15_000,
+            })
             const remaining = observed.output.trim().split(/\r?\n/)
             if (
               observed.exitCode !== 0 ||
@@ -1179,6 +1482,7 @@ export function createContainerRuntime({
             teardownErrors.push("owned resource absence could not be verified")
           }
         }
+        if (subnet !== null) jobNetwork.releaseSubnet?.(subnet)
         if (teardownErrors.length > 0) {
           log(
             "warn",
@@ -1209,13 +1513,26 @@ export function createContainerRuntime({
     }) {
       let argv
       try {
-        argv = buildWorkspaceReadArgv({
-          workspaceHostPath,
-          name,
-          vm,
-          limactl,
-          maxBytes,
-        })
+        argv =
+          typeof workspaceShellArgv === "function"
+            ? assertNoDaemonSocket(
+                workspaceShellArgv(
+                  buildWorkspaceReadScript({
+                    workspaceHostPath,
+                    name,
+                    maxBytes,
+                  }),
+                  { workspaceHostPath }
+                ),
+                "workspace read argv"
+              )
+            : buildWorkspaceReadArgv({
+                workspaceHostPath,
+                name,
+                vm,
+                limactl,
+                maxBytes,
+              })
       } catch (error) {
         return Object.freeze({
           name,
