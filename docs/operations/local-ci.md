@@ -1469,17 +1469,22 @@ Supabase stacks and anything else the operator runs - and it sees every
 directory in Docker Desktop's file-sharing list. A kernel exploit from an
 unprivileged job container would reach that VM, the directories it shares
 (which include repositories' `.env.local` files if a project tree is shared)
-and the other containers on it. Docker Desktop's Enhanced Container Isolation
-would close this; it is not available or configured here.
+and the other containers on it. The VM also carries Docker Desktop's
+host-service sockets and its own unrestricted network; see "Residual risk not
+covered by the 2026-09-28 acceptance" below. Docker Desktop's Enhanced
+Container Isolation would close this; it is not available or configured here.
 
 **What still holds.** Each item is enforced by the agent before every dispatch
 or by the argv builders, and fails closed:
 
 1. The credential directory is outside Docker Desktop's file sharing. The list
    must be explicit (the default shares `/Users`) and may not cover
-   `~/.nabaperks-local-ci` or the whole home directory, so even an escape into
-   the VM does not reach the App private key. The installation token exists
-   only in the agent's memory on the Mac.
+   `~/.nabaperks-local-ci` or the whole home directory. Paths are compared as
+   written, without the `/System/Volumes/Data` firmlink, and where they
+   physically live, so a share of `/Volumes/Macintosh HD/Users` or of the
+   real target of a symlinked credential directory is refused too. Through
+   file sharing, an escape into the VM does not reach the App private key. The
+   installation token exists only in the agent's memory on the Mac.
 2. No privileged container runs, and none executes candidate code: there is no
    Docker-in-Docker sidecar on this runtime, so `db` and `db-stress` are
    reported hosted-only and the hosted `db` root stays authoritative.
@@ -1493,14 +1498,25 @@ or by the argv builders, and fails closed:
    `--internal` networks from `10.213.0.0/16`, and a negative canary proves on
    every dispatch that a listener on the Mac's `127.0.0.1` is unreachable
    through `host.docker.internal` and `192.168.65.254`.
-5. No candidate code runs while anything has network access. The trusted
-   helper clones and installs with lifecycle scripts, pnpmfile hooks and
+5. Candidate code runs only in job containers, each on its own per-lane
+   `--internal` network with no route to the prep network, the proxy or any
+   gateway. The trusted helper that has egress never runs candidate code: it
+   clones and installs with lifecycle scripts, pnpmfile hooks and
    `configDependencies` refused, through an allowlist proxy to `github.com`,
    `codeload.github.com` and `registry.npmjs.org` on 443 at public addresses
-   only; the job then installs offline.
-6. The daemon is shared, so the agent removes only resources that carry both
-   its `com.nabaperks.local-ci.` labels and its `nabaperks-ci-` name prefix,
-   by inspected ID, and never prunes.
+   only; the job then installs offline. Lanes are admitted concurrently, so a
+   helper may be installing through the proxy while other lanes' jobs are
+   already running candidate code: the separation is the network, not the
+   timing.
+6. The daemon is shared, so the agent never prunes and touches only
+   `nabaperks-ci-`-prefixed resources. The pre-dispatch sweep and the canary
+   sweep remove only resources that also carry its `com.nabaperks.local-ci.`
+   labels, by inspected ID. The per-run proxy, prep and egress networks and
+   the per-lane job, sidecar and network resources are removed by their
+   deterministic agent-prefixed name, without a label check. Two agent
+   processes against the same engine and the same SHA are not supported (one
+   host, `agent.maxConcurrentJobs` 1): each would remove the other's per-run
+   resources by name.
 7. Everything in sections 7.1 to 7.4 is unchanged: fork code never runs,
    `hostSecrets` never enter a container, and the agent is never updated from
    pull-request code.
@@ -1508,7 +1524,32 @@ or by the argv builders, and fails closed:
 **The residual risk that was accepted.** A kernel exploit from an unprivileged
 job container reaches the Docker Desktop VM, the directories it shares and the
 other worktrees' containers on it. It does not reach the App private key or the
-installation token.
+installation token through file sharing.
+
+**Residual risk not covered by the 2026-09-28 acceptance.** Review of this
+record on 2026-09-28 found two further things a kernel escape reaches, which
+the owner was not shown when accepting. They need the owner's acceptance of the
+corrected scope; until it is recorded here, do not load the agent on this
+runtime.
+
+- **The operator's forwarded SSH agent, and so their GitHub identity.** Docker
+  Desktop for Mac forwards the Mac's SSH agent into its VM at
+  `/run/host-services/ssh-auth.sock` (observed present on this Mac on
+  2026-09-28; the canary's `/run/host-services` probe exists because the path
+  is in the VM). Root in the VM can use every key the macOS `ssh-agent` holds
+  to authenticate to `github.com` as the operator (`lapeninns` or
+  `amanshresthaa`, with push and admin on `lapeninns/nabaperks` and the other
+  repositories) - a more powerful identity than the App key item 1 protects.
+- **The VM's own network is unrestricted.** Items 4 and 5 constrain container
+  networks, not the VM: root in the VM reaches the internet and the Mac's
+  loopback services through `host.docker.internal` or `192.168.65.254` (the
+  2026-09-28 spike showed a plain bridge reaches them). Anything in the shared
+  directories, such as a project tree's `.env.local`, can be sent out.
+- **Docker Desktop's other host-service sockets** in the same directory
+  (among them its backend, proxy and secrets-engine sockets, observed on
+  2026-09-28) were not assessed. What an escape can do through them is
+  unknown, so the statement that an escape cannot reach the App key rests on
+  file sharing alone and is unproven against those services.
 
 **Conditions.** The acceptance holds only while all of these are true;
 revisit it with the owner if any changes:
@@ -1516,6 +1557,11 @@ revisit it with the owner if any changes:
 - Docker Desktop's file sharing stays restricted as in item 1. The agent
   refuses every dispatch otherwise, so a reset to the defaults stops the plane
   rather than weakening it.
+- Proposed, pending the owner's acceptance of the corrected scope: while the
+  agent is loaded, the macOS `ssh-agent` holds no key that can authenticate to
+  GitHub (`ssh-add -l` reports no identities), or every such key needs
+  hardware confirmation for each use. The agent does not enforce this; it is
+  an operator condition.
 - Local results stay advisory: no local check joins a required context, and
   `LOCAL_CI_MODE` and the enforcement fields are not flipped.
 - The repository stays public, because the helper fetches anonymously.
@@ -1609,7 +1655,10 @@ before loading the agent, then read the first run's verdict and lane table in
 3. Either reinstall a release from before the switch with
    `ops/local-ci/host/install.sh --revision <sha> --job-image <the Lima image tag>`,
    or merge a pull request that sets `runtime.kind` to `lima` with the Lima
-   `container` budget (10 CPUs, 32 GiB, `dockerInDocker: true`) and install it.
+   `container` budget (10 CPUs, 32 GiB, `dockerInDocker: true`) and
+   `agent.maxConcurrentLanes` back to 6, and install it. The contract refuses
+   to load a Lima runtime whose container, daemon and VM reserve do not fit
+   `vm`, so a pull request that flips only the kind fails CI.
 4. Never run both runtimes' agents: `agent.maxConcurrentJobs` is 1 per host.
 
 ---

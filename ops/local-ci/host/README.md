@@ -404,15 +404,19 @@ Selected by `runtime.kind: "docker-desktop"`. The agent's own code for it is
 Docker Desktop's VM is shared with other worktrees' containers and sees the
 directories in Docker Desktop's file-sharing list. The owner accepted that
 weaker isolation on 2026-09-28; `docs/operations/local-ci.md` section 7.6
-records the residual risk. The barriers that replace Lima's are, again,
+records the residual risk, including two paths found afterwards - the
+forwarded SSH agent in the VM and the VM's unrestricted network - that still
+need the owner's acceptance before the agent is loaded. The barriers that replace Lima's are, again,
 mechanisms rather than policy, and the agent re-checks them before every
 dispatch, refusing on any failure:
 
 1. **The credential directory is not shared with the VM.** Docker Desktop's
    `FilesharingDirectories` must be an explicit list, and no entry may cover
-   `~/.nabaperks-local-ci` or the whole home directory. The default list
-   includes `/Users`, so a fresh Docker Desktop fails this until the operator
-   restricts it.
+   `~/.nabaperks-local-ci` or the whole home directory, compared both as
+   written and where each path physically lives (symlinks and the
+   `/System/Volumes/Data` firmlink resolved). The default list includes
+   `/Users`, so a fresh Docker Desktop fails this until the operator restricts
+   it.
 2. **No container is given a Mac path, a daemon or privilege.** Workspaces
    live in the `nabaperks-ci-state` named volume; a job mounts only its own
    lane directory through `volume-subpath` and its run's pnpm store read-only.
@@ -476,7 +480,9 @@ and canary - and dispatches nothing.
 3. Either reinstall a release from before the switch
    (`install.sh --revision <sha> --job-image <lima image tag>`), or merge a
    pull request that sets `runtime.kind` to `lima` with the Lima `container`
-   budget (10 CPUs, 32 GiB, `dockerInDocker: true`) and reinstall it.
+   budget (10 CPUs, 32 GiB, `dockerInDocker: true`) and
+   `agent.maxConcurrentLanes` 6, and reinstall it. A Lima runtime that does not
+   fit `vm` is refused when the contract loads.
 
 ## Pin ledger
 
