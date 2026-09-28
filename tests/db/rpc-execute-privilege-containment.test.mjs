@@ -135,6 +135,8 @@ const MUST_BE_LOCKED = [
   "finalize_billing_checkout_session",
   "satisfy_merchant_launch_fee",
   "register_customer_session",
+  "admit_customer_otp_dispatch",
+  "admit_anonymous_customer_email_otp_send",
   "record_customer_marketing_consent",
   "join_customer_membership_with_first_stamp",
   "issue_self_service_stamp",

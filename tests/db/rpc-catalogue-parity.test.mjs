@@ -45,6 +45,12 @@ const EXPECTED_SIGNATURES = {
   qualify_referral_on_stamp: ["p_membership_id uuid, p_stamp_event_id uuid"],
   admit_qr_scan: ["p_identity_bucket text, p_code_bucket text"],
   admit_customer_otp_verify: ["p_phone_bucket text, p_identity_bucket text"],
+  admit_customer_otp_dispatch: [
+    "p_scope text, p_phone_bucket text, p_identity_bucket text, p_ip_bucket text, p_phone_hmac text, p_device_hash text",
+  ],
+  admit_anonymous_customer_email_otp_send: [
+    "p_device_bucket text, p_ip_bucket text, p_recipient_bucket text, p_cooldown_bucket text, p_global_minute_bucket text, p_global_hour_bucket text",
+  ],
   touch_customer_session_and_load: [
     "p_customer_id uuid, p_session_id uuid, p_device_hash text",
   ],
