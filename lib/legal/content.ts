@@ -30,7 +30,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "wallet-contacts",
     title: "Your wallet and contact details",
-    body: "Each phone number and each verified email address can belong to only one Nabaperks wallet. Once signed in, a wallet without a verified email address can add one, and a wallet without a mobile number can add one, as long as no other wallet already holds that email address or number. Once verified, an email address or phone number cannot be changed or removed from your profile. Stamps, rewards and venue memberships stay on the wallet they were recorded on, and Nabaperks does not combine wallets. For help with a verified contact detail or with more than one wallet, contact Nabaperks support using the details under Records and support.",
+    body: "Each phone number and each verified email address can belong to only one Nabaperks wallet. Once signed in, a wallet without a verified email address can add one, and a wallet without a mobile number can add one, as long as no other wallet already holds that email address or number. Once verified, an email address or phone number cannot be changed or removed by editing your profile; you can still ask for it to be deleted through a privacy request, as described under Records and support. Stamps, rewards and venue memberships stay on the wallet they were recorded on, and Nabaperks does not combine wallets. For help with a verified contact detail or with more than one wallet, contact Nabaperks support using the details under Records and support.",
   },
   {
     id: "marketing",

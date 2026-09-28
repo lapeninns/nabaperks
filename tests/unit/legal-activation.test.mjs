@@ -60,7 +60,7 @@ test("customer terms describe joining and signing in by phone or email as shippe
     /Each phone number and each verified email address can belong to only one Nabaperks wallet/,
     /Once signed in, a wallet without a verified email address can add one, and a wallet without a mobile number can add one, as long as no other wallet already holds that email address or number/,
     // prevent_verified_customer_contact_change locks verified contacts.
-    /Once verified, an email address or phone number cannot be changed or removed from your profile/,
+    /Once verified, an email address or phone number cannot be changed or removed by editing your profile; you can still ask for it to be deleted through a privacy request/,
     /Stamps, rewards and venue memberships stay on the wallet they were recorded on/,
     // No merge or transfer tooling exists (identity.ts: attach, never merge).
     /Nabaperks does not combine wallets/,
