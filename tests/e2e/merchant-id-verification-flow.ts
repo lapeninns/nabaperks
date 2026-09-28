@@ -18,6 +18,16 @@ import {
   installRewardOwnerSession,
 } from "./helpers/reward-id-check-sessions"
 
+// WebKit reports a Next.js router (RSC) request that a navigation cancels as an
+// uncaught "… ?_rsc=… due to access control checks." page error. The request is
+// abandoned by the browser, not failed by the app, so only that exact shape is
+// ignored; every other page error still fails the journey.
+const ABORTED_RSC_REQUEST = /[?&]_rsc=\S+ due to access control checks\.?$/
+
+function isAbortedRscRequestError(message: string) {
+  return ABORTED_RSC_REQUEST.test(message)
+}
+
 export function registerMerchantIdVerificationTests() {
   test.describe("merchant in-person ID verification", () => {
     const reason = adminLiveDbSkipReason()
@@ -62,8 +72,11 @@ export function registerMerchantIdVerificationTests() {
       })
       const merchant = await merchantContext.newPage()
       const errors: string[] = []
-      page.on("pageerror", (error) => errors.push(error.message))
-      merchant.on("pageerror", (error) => errors.push(error.message))
+      const recordPageError = (error: Error) => {
+        if (!isAbortedRscRequestError(error.message)) errors.push(error.message)
+      }
+      page.on("pageerror", recordPageError)
+      merchant.on("pageerror", recordPageError)
       try {
         await dismissPwaInstall(page)
         await dismissPwaInstall(merchant)
