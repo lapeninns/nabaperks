@@ -118,3 +118,24 @@ test("unknown roots and non-positive job counts are refused", () => {
     assert.equal(run.status, 2, `${args.join(" ")} must be refused`)
   }
 })
+
+test("root containers install from the pnpm store volume they are given", () => {
+  // /work is a bind mount of the clone, so without an explicit store pnpm
+  // writes a store into the clone, the next reset deletes it and every slot
+  // downloads the whole dependency tree again; the store volume stays empty.
+  const run = runRoots(["fast", "--jobs", "2"])
+  assert.equal(run.status, 0, run.stderr)
+  const mounts = /^ {2}mounts: (.*)$/m.exec(run.stdout)?.[1] ?? ""
+  const storeMount = /-v \S+-pnpm-store:(\S+)/.exec(mounts)?.[1]
+  assert.ok(storeMount, "run-roots.sh must mount a pnpm store volume")
+  const container = readFileSync(
+    join(REPO_ROOT, "ops/local-ci/roots/container-roots.sh"),
+    "utf8"
+  )
+  const install = /^pnpm install .*$/m.exec(container)?.[0] ?? ""
+  assert.equal(
+    /--store-dir (\S+)/.exec(install)?.[1],
+    storeMount,
+    "pnpm install must use the mounted store volume"
+  )
+})

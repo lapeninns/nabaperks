@@ -12,7 +12,11 @@ source /ci/env.sh
 git config --global --add safe.directory '*'
 corepack enable >/dev/null 2>&1; corepack prepare pnpm@10.28.0 --activate >/dev/null 2>&1
 apt-get update -qq >/dev/null 2>&1; apt-get install -y -qq jq poppler-utils imagemagick >/dev/null 2>&1
-pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1
+# /work is a host bind mount, so pnpm's default would put a 1.3 GiB store in
+# the clone (wiped by every reset) and download it again per slot. Pin the
+# shared store volume that run-roots.sh mounts; pnpm copies from it into the
+# node_modules volume (measured 2026-09-28: cold install 4s instead of 54s).
+pnpm install --frozen-lockfile --prefer-offline --store-dir /root/.local/share/pnpm/store >/dev/null 2>&1
 eval "$(node scripts/generate-ci-vapid-env.mjs | sed 's/^/export /')" 2>/dev/null || true
 rm -rf .next-e2e .next-e2e-* test-results playwright-report coverage reports/jscpd
 root() {
