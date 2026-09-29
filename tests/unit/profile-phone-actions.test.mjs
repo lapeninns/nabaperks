@@ -436,6 +436,25 @@ test("Given another wallet's pending code When a resend is posted Then the poste
   assert.ok(!state.calls.some(([name]) => name === "send"))
 })
 
+test("Given the wallet is erased while the code is checked When it is confirmed Then nothing is added and the customer is asked to sign in (QA BUG-002)", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = WHATSAPP_PENDING
+  state.attach = { status: "wallet_unavailable" }
+
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+
+  assert.deepEqual(result, {
+    step: "phone",
+    errors: { form: "Sign in to add a phone number." },
+  })
+  assert.equal(state.pending, null)
+  assert.deepEqual(state.revalidated, [])
+  assert.deepEqual(state.events, [])
+})
+
 test("Given a wrong code on a WhatsApp code step When it is refused Then the step still knows the channel", async () => {
   const { profilePhoneAction, state } = await loadActions()
   state.pending = WHATSAPP_PENDING

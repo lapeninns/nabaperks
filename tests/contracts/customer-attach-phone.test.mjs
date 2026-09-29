@@ -70,11 +70,23 @@ test("Given a verified phone When it is attached Then it never overwrites a phon
     identity.indexOf("export async function attachVerifiedPhoneToCustomer"),
     identity.indexOf("export function firstOf")
   )
-  assert.match(attach, /findCustomerByVerifiedPhone\(phone\)/)
-  assert.match(attach, /status: "contact_conflict"/)
-  assert.match(attach, /\.is\("phone_verified_at", null\)/)
-  assert.match(attach, /error\.code === UNIQUE_VIOLATION/)
+  // One locked transaction decides and writes the attach (QA BUG-002,
+  // BUG-013); the app makes no write of its own.
+  assert.match(attach, /\.rpc\("attach_verified_customer_phone"/)
+  assert.doesNotMatch(attach, /\.update\(|\.insert\(/)
+  assert.match(attach, /case "contact_conflict":/)
+  assert.match(attach, /case "wallet_unavailable":/)
   assert.match(attach, /customerPhonePii\(phone\.e164\)/)
+  const migration = read(
+    "supabase",
+    "migrations",
+    "20261009110000_atomic_customer_phone_attach.sql"
+  )
+  assert.match(migration, /for update;[\s\S]*'wallet_unavailable'/)
+  assert.match(
+    migration,
+    /grant execute on function public\.attach_verified_customer_phone\([^)]*\)\s+to service_role;/
+  )
   assert.match(
     attach,
     /after\(\(\) => attachRewardInvitesForCustomer\(customer\.id\)\)/

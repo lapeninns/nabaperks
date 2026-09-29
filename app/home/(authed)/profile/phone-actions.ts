@@ -223,6 +223,9 @@ async function verifyAttachPhone(
     surface,
   })
   await clearPendingPhoneVerification()
+  if (result.status === "wallet_unavailable") {
+    return { step: "phone", errors: { form: SIGN_IN_FIRST } }
+  }
 
   // The phone was taken off again because its audit row could not be
   // written; the code is spent, so the customer starts over.
