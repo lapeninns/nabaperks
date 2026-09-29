@@ -88,6 +88,11 @@ function EmailRequestStep({
   const emailError = editing ? undefined : state.errors?.email
   const formError = editing ? undefined : state.errors?.form
   const message = editing || pending ? undefined : state.message
+  // The field takes focus when this step replaces the phone step (a method
+  // switch answers with no address yet) or reopens for a different address,
+  // so a keyboard or screen-reader customer lands on it, as on the join page.
+  // It only mounts once per switch, so an error re-render never moves focus.
+  const focusField = editing || !state.fields?.email
 
   return (
     <div className="grid gap-3">
@@ -106,7 +111,7 @@ function EmailRequestStep({
               autoComplete="email"
               autoCapitalize="none"
               spellCheck={false}
-              autoFocus={editing}
+              autoFocus={focusField}
               placeholder="you@example.com"
               defaultValue={state.fields?.email ?? ""}
               className={customerInputClass}
