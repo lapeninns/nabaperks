@@ -1,6 +1,7 @@
 import {
   createCustomerSessionCookieValue,
   readCustomerSessionCookieValue,
+  type CustomerSessionPayload,
 } from "@/lib/customer/session-cookie-core"
 
 /**
@@ -16,9 +17,9 @@ import {
  * customer gets at most one Set-Cookie a day.
  *
  * Returns the renewed cookie value, or null when the cookie is missing,
- * forged, expired, or not yet due. Validity against the database is still
- * checked on every request by the session touch; renewing a revoked session's
- * cookie grants nothing.
+ * forged, expired, or not yet due. The signature says nothing about the
+ * server-side row, so a due renewal must still pass
+ * `confirmCustomerSessionRenewal` before it is set.
  */
 export function renewCustomerSessionCookieValue({
   value,
@@ -45,4 +46,42 @@ export function renewCustomerSessionCookieValue({
     { ...current.payload, expiresAt: nowSeconds + ttlSeconds },
     secret
   )
+}
+
+/** Whether the database still accepts this session on this device. */
+export type CustomerSessionActivityCheck = (
+  session: Pick<CustomerSessionPayload, "customerId" | "sessionId">
+) => Promise<boolean>
+
+/**
+ * Gate a due renewal on the server-side session. A revoked, expired or
+ * deleted session keeps its current cookie, which then lapses at its signed
+ * expiry, instead of being re-signed for another full window on every visit.
+ *
+ * The check runs only for a renewal that is already due, so a signed-in
+ * browser pays for it at most once a day. If it cannot be answered, nothing is
+ * renewed: the cookie stays valid for the rest of its window and the next due
+ * request asks again.
+ */
+export async function confirmCustomerSessionRenewal({
+  renewed,
+  secret,
+  nowSeconds,
+  isSessionActive,
+}: {
+  renewed: string | null
+  secret: string | undefined
+  nowSeconds: number
+  isSessionActive: CustomerSessionActivityCheck
+}): Promise<string | null> {
+  if (!renewed || !secret) return null
+
+  const session = readCustomerSessionCookieValue(renewed, secret, nowSeconds)
+  if (!session.ok) return null
+
+  try {
+    return (await isSessionActive(session.payload)) ? renewed : null
+  } catch {
+    return null
+  }
 }

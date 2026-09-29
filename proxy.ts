@@ -28,7 +28,11 @@ import {
   CUSTOMER_SESSION_TTL_SECONDS,
   persistentCookieOptions,
 } from "@/lib/http/persistent-cookie-options"
-import { renewCustomerSessionCookieValue } from "@/lib/customer/session-renewal-core"
+import { customerSessionActivityCheck } from "@/lib/customer/session-renewal"
+import {
+  confirmCustomerSessionRenewal,
+  renewCustomerSessionCookieValue,
+} from "@/lib/customer/session-renewal-core"
 import { CUSTOMER_DEVICE_HEADER } from "@/lib/security/rate-limit-core"
 import {
   issueCustomerDeviceToken,
@@ -101,16 +105,30 @@ export async function proxy(request: NextRequest) {
 
   // A session is bound to its device, so only renew it alongside a device
   // cookie that was already valid; a freshly minted device cannot use it.
-  const renewedSession =
+  const sessionSecret = process.env.CUSTOMER_SESSION_SECRET?.trim()
+  const nowSeconds = Math.floor(Date.now() / 1_000)
+  const dueSessionRenewal =
     customerDevice &&
     !customerDevice.isNew &&
     canPersistFirstPartyCookies(request)
       ? renewCustomerSessionCookieValue({
           value: request.cookies.get(CUSTOMER_SESSION_COOKIE)?.value,
-          secret: process.env.CUSTOMER_SESSION_SECRET?.trim(),
-          nowSeconds: Math.floor(Date.now() / 1_000),
+          secret: sessionSecret,
+          nowSeconds,
           ttlSeconds: CUSTOMER_SESSION_TTL_SECONDS,
           renewAfterSeconds: CUSTOMER_SESSION_RENEW_AFTER_SECONDS,
+        })
+      : null
+  // Only a session the database still accepts is extended. A revoked, expired
+  // or deleted session's cookie is left to lapse rather than re-signed for
+  // another year. The check runs only when a renewal is due (at most daily).
+  const renewedSession =
+    dueSessionRenewal && customerDevice
+      ? await confirmCustomerSessionRenewal({
+          renewed: dueSessionRenewal,
+          secret: sessionSecret,
+          nowSeconds,
+          isSessionActive: customerSessionActivityCheck(customerDevice.id),
         })
       : null
   if (renewedSession) {
