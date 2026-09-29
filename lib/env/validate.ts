@@ -59,22 +59,15 @@ export function assertValidEnv(
 
   invalid.push(...validateCustomerOtpBypassMode(customerOtpBypassMode))
   invalid.push(...validateCustomerMessaging(values))
-  invalid.push(...validateCustomerEmailAuthMode(values))
+  // CUSTOMER_EMAIL_AUTH_MODE is deliberately not checked here. This runs on
+  // every service-role client, and the runtime parser already treats an
+  // unrecognised value as `off` (lib/customer/email-auth-mode.ts), so failing
+  // here would turn a typo into a full outage (QA BUG-015). The deploy gate,
+  // scripts/check-env.mjs, still rejects it; getServerEnv warns once.
 
   if (missing.length || invalid.length) {
     throw new EnvConfigError({ missing, invalid })
   }
-}
-
-const customerEmailAuthModes = ["off", "existing", "full"]
-
-function validateCustomerEmailAuthMode(
-  values: Record<string, string | undefined>
-) {
-  const mode = values.CUSTOMER_EMAIL_AUTH_MODE?.trim() || "off"
-  return customerEmailAuthModes.includes(mode)
-    ? []
-    : ["CUSTOMER_EMAIL_AUTH_MODE must be off, existing or full"]
 }
 
 function validateCustomerMessaging(values: Record<string, string | undefined>) {

@@ -8,7 +8,7 @@ import {
   emailWalletCreationEnabled,
   parseCustomerEmailAuthMode,
 } from "@/lib/customer/email-auth-mode"
-import { assertValidEnv, EnvConfigError } from "@/lib/env/validate"
+import { assertValidEnv } from "@/lib/env/validate"
 
 test("CUSTOMER_EMAIL_AUTH_MODE defaults to off and never widens on an unknown value", () => {
   for (const raw of [
@@ -60,18 +60,19 @@ test("each mode grants exactly its email capabilities", () => {
   }
 })
 
-test("environment validation accepts the three modes and rejects anything else", () => {
-  for (const mode of ["off", "existing", "full"]) {
+test("runtime environment validation never fails on the email sign-in mode, which the parser reads as off (QA BUG-015)", () => {
+  // The deploy gate (scripts/check-env.mjs) rejects an unrecognised value;
+  // at runtime it must not take down every service-role path.
+  for (const mode of [
+    "off",
+    "existing",
+    "full",
+    "FULL",
+    "on",
+    "full,existing",
+  ]) {
     assert.doesNotThrow(() =>
       assertValidEnv([], { CUSTOMER_EMAIL_AUTH_MODE: mode })
     )
   }
-  assert.throws(
-    () => assertValidEnv([], { CUSTOMER_EMAIL_AUTH_MODE: "on" }),
-    (error) =>
-      error instanceof EnvConfigError &&
-      error.invalid.includes(
-        "CUSTOMER_EMAIL_AUTH_MODE must be off, existing or full"
-      )
-  )
 })
