@@ -259,12 +259,23 @@ function scanContext(
       phone: stringField(row, "customer_phone"),
       phoneLast4: stringField(row, "customer_phone_last4"),
     }),
-    blockedReason: stringField(row, "blocked_reason") ?? undefined,
+    blockedReason: merchantScanBlockedReason(
+      stringField(row, "blocked_reason")
+    ),
     inWindow: row.in_window === true,
     windowEndsAt: stringField(row, "window_ends_at") ?? undefined,
     upgradeRewardName: stringField(row, "upgrade_reward_name") ?? undefined,
     upgradeRewardTerms: stringField(row, "upgrade_reward_terms") ?? undefined,
   }
+}
+
+// Setup blocks (profile, verified phone, verified email) carry customer-facing
+// copy from the database; staff see what to ask the customer instead.
+function merchantScanBlockedReason(reason: string | null): string | undefined {
+  if (!reason) return undefined
+  return /^(Complete your profile|Verified email required)/.test(reason)
+    ? merchantCollectionBlockedCopy(reason)
+    : reason
 }
 
 function firstRecord(value: unknown): Record<string, unknown> | null {
