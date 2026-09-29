@@ -228,7 +228,8 @@ export async function createCustomerByVerifiedEmail(
  * The one wallet whose VERIFIED email is exactly this normalised address, or
  * null. Exact equality, never a pattern, so an address holding `%` or `_`
  * cannot match another. This app writes verified emails in the normalised
- * form that `lower(btrim(email))` indexes; an older row stored otherwise is
+ * form the address index keys on (`normalizeEmail`: Unicode edge whitespace
+ * trimmed, lower case, NFC; 20261009110100); an older row stored otherwise is
  * not matched, and the caller treats the address as held elsewhere.
  */
 async function findCustomerByVerifiedAddress(
