@@ -456,11 +456,10 @@ test("Given a handoff already used When a copy of it is replayed Then no wallet 
   const replay = await startEmailWalletAction({}, form({ qrId: "venue-qr" }))
 
   assert.match(replay.errors.form, /confirmation has expired/)
-  assert.deepEqual(callNames(state), [
-    "readHandoff",
-    "consumeHandoff",
-    "clearHandoff",
-  ])
+  // The refusal changes no cookie (QA BUG-017): deleting the spent handoff
+  // here re-rendered the page to the welcome step and lost this message. The
+  // copy stays on the choice screen with the message; it can never be spent.
+  assert.deepEqual(callNames(state), ["readHandoff", "consumeHandoff"])
 })
 
 test("Given no handoff for this device and venue When a new wallet is started Then nothing is created", async () => {
@@ -621,11 +620,7 @@ test("Given a spent handoff When creating the wallet or its session fails Then a
     state.calls = []
     const replay = await startEmailWalletAction({}, form({}))
     assert.match(replay.errors.form, /confirmation has expired/)
-    assert.deepEqual(callNames(state), [
-      "readHandoff",
-      "consumeHandoff",
-      "clearHandoff",
-    ])
+    assert.deepEqual(callNames(state), ["readHandoff", "consumeHandoff"])
   }
 })
 

@@ -291,8 +291,11 @@ export async function startEmailWalletAction(
 
   // Single use on the server, not only in this browser: a replayed copy of
   // the cookie must not sign in to the wallet the first use created.
+  // The refusal leaves the cookie alone: deleting it here refreshes the page
+  // to the welcome step and the guest never sees why (QA BUG-017). The spent
+  // copy keeps the choice screen, which shows this message and offers a
+  // different email or the phone, and it can never be spent again.
   if (!(await consumeVerifiedEmailHandoff(handoff))) {
-    await clearVerifiedEmailHandoff()
     return { errors: { form: HANDOFF_EXPIRED } }
   }
 
