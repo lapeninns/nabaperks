@@ -74,11 +74,23 @@ export const EMAIL_SIGN_IN_IP_GUESS_LIMIT = 60
 const CHALLENGE_WINDOW_MS = 15 * 60_000
 const HOUR_MS = 60 * 60_000
 
+/**
+ * What admission did with a `code_sent` answer. Internal to the server, for
+ * tracking only: the guest's answer is identical for all three (D8), so a
+ * caller must never let it reach the page.
+ *
+ * - `admitted`: a new code was admitted and sent.
+ * - `held`: admission refused the send; no new code went out.
+ * - `repeat`: a double submit or early resend kept the challenge already live.
+ */
+export type EmailSignInAdmission = "admitted" | "held" | "repeat"
+
 export type EmailSignInStartResult =
   | {
       readonly status: "code_sent"
       readonly maskedEmail: string
       readonly resendAvailableAt: number
+      readonly admission: EmailSignInAdmission
     }
   | { readonly status: "invalid_email" }
   | {
@@ -143,12 +155,12 @@ export async function startEmailSignInChallenge(
   // challenge with no delivered code keeps saying so until it may be resent.
   if (current && now < current.resendAvailableAt) {
     await writeChallenge(current, secret)
-    return answerFor(current)
+    return answerFor(current, "repeat")
   }
 
-  const admission = await admitSend(email, emailHmac)
+  const admission = await admitSend(email, emailHmac, input.purpose)
   if (admission === "unavailable") {
-    recordSendFailure(input)
+    recordSendFailure(input, "provider_unavailable")
     return deliveryFailed(email, now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS)
   }
 
@@ -162,7 +174,9 @@ export async function startEmailSignInChallenge(
         }
       : mintChallenge({ email, emailHmac, purpose: input.purpose, now, secret })
     await makeOnlyLiveChallenge(held, secret)
-    return answerFor(held)
+    // Tracked as a send that did not go out, never as a code requested.
+    recordSendFailure(input, "admission_refused")
+    return answerFor(held, "held")
   }
 
   const code = generateEmailSignInCode()
@@ -187,7 +201,7 @@ export async function startEmailSignInChallenge(
         purpose: input.purpose,
         category: sendFailureCategory(error),
       })
-      recordSendFailure(input)
+      recordSendFailure(input, "provider_unavailable")
       const resendAvailableAt = now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS
       await makeOnlyLiveChallenge(
         keptAfterFailedSend(current, payload, resendAvailableAt),
@@ -199,7 +213,7 @@ export async function startEmailSignInChallenge(
   }
 
   await makeOnlyLiveChallenge(payload, secret)
-  return codeSent(payload)
+  return codeSent(payload, "admitted")
 }
 
 export async function checkEmailSignInChallenge({
@@ -596,7 +610,8 @@ async function makeOnlyLiveChallenge(
  */
 async function admitSend(
   email: string,
-  emailHmac: string
+  emailHmac: string,
+  purpose: EmailSignInPurpose
 ): Promise<AdmissionOutcome> {
   const requestHeaders = await headers()
   const device =
@@ -627,7 +642,7 @@ async function admitSend(
   )
   if (!error) return "admitted"
   if (/rate limit exceeded/i.test(error.message)) {
-    logger.warn("customer_email_sign_in_admission_refused", {})
+    logger.warn("customer_email_sign_in_admission_refused", { purpose })
     return "refused"
   }
   logger.error("customer_email_sign_in_admission_failed", {
@@ -694,7 +709,10 @@ function ipv6Groups(address: string): string[] | null {
   return groups.map((group) => Number.parseInt(group, 16).toString(16))
 }
 
-function recordSendFailure(input: StartInput): void {
+function recordSendFailure(
+  input: StartInput,
+  reason: "provider_unavailable" | "admission_refused"
+): void {
   const join = input.purpose === "join"
   recordCustomerContactEvent({
     eventName: join
@@ -704,7 +722,7 @@ function recordSendFailure(input: StartInput): void {
     metadata: {
       method: "email",
       surface: join ? "join" : "home_login",
-      reason: "provider_unavailable",
+      reason,
     },
   })
 }
@@ -721,11 +739,15 @@ function sendFailureCategory(error: unknown): string {
   return "provider_unavailable"
 }
 
-function codeSent(payload: PendingEmailSignInPayload) {
+function codeSent(
+  payload: PendingEmailSignInPayload,
+  admission: EmailSignInAdmission
+) {
   return {
     status: "code_sent" as const,
     maskedEmail: maskEmail(payload.email) ?? "",
     resendAvailableAt: payload.resendAvailableAt,
+    admission,
   }
 }
 
@@ -738,10 +760,13 @@ function deliveryFailed(email: string, resendAvailableAt: number) {
 }
 
 /** A `held` challenge answers as sent (D8); one never delivered never does. */
-function answerFor(payload: PendingEmailSignInPayload): EmailSignInStartResult {
+function answerFor(
+  payload: PendingEmailSignInPayload,
+  admission: Exclude<EmailSignInAdmission, "admitted">
+): EmailSignInStartResult {
   return payload.delivery === "fail"
     ? deliveryFailed(payload.email, payload.resendAvailableAt)
-    : codeSent(payload)
+    : codeSent(payload, admission)
 }
 
 function nowSeconds(): number {

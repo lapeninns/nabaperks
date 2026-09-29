@@ -226,7 +226,18 @@ test("Given admission refuses When a challenge starts Then the answer and cookie
   assert.equal(pendingCookie(mod).email, "guest@example.com")
   assert.equal(pendingCookie(mod).delivery, "held")
   assert.deepEqual(mod.state.sends, [])
-  assert.deepEqual(mod.state.events, [])
+  // Only the server's own tracking says the send was refused (QA BUG-026).
+  assert.deepEqual(mod.state.events, [
+    {
+      eventName: "join_code_send_failed",
+      merchantId: null,
+      metadata: {
+        method: "email",
+        surface: "join",
+        reason: "admission_refused",
+      },
+    },
+  ])
 
   // Same size as the cookie an admitted send sets for the same address.
   const admitted = await loadModule()
@@ -941,4 +952,52 @@ test("Given IPv6 and mapped IPv4 clients When admitted Then the source is the /4
     const args = await sendBucketsFrom(ip)
     assert.equal(args.p_global_hour_bucket, sha256(`${prefix}:${source}`), ip)
   }
+})
+
+test("Given admitted, repeated and refused sends When a challenge starts Then the guest's answer is the same and only the internal admission differs (QA BUG-026)", async () => {
+  const mod = await loadModule()
+  const admitted = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  const repeat = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  assert.equal(admitted.admission, "admitted")
+  assert.equal(repeat.admission, "repeat")
+  assert.deepEqual(mod.state.events, [])
+
+  const refused = await loadModule()
+  refused.state.admission = { message: "rate limit exceeded" }
+  const held = await refused.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  assert.equal(held.admission, "held")
+  const guestView = ({ status, maskedEmail }) => ({ status, maskedEmail })
+  assert.deepEqual(guestView(held), guestView(admitted))
+  assert.deepEqual(guestView(repeat), guestView(admitted))
+
+  assert.deepEqual(refused.state.events, [
+    {
+      eventName: "customer_login_code_send_failed",
+      merchantId: null,
+      metadata: {
+        method: "email",
+        surface: "home_login",
+        reason: "admission_refused",
+      },
+    },
+  ])
+  assert.deepEqual(
+    refused.state.logs.filter((log) => log.level === "warn"),
+    [
+      {
+        level: "warn",
+        message: "customer_email_sign_in_admission_refused",
+        context: { purpose: "wallet" },
+      },
+    ]
+  )
 })

@@ -54,6 +54,8 @@ export const CONTACT_EVENT_REASONS = [
   "pending_state_failed",
   "email_in_use",
   "phone_in_use",
+  // Send admission refused an email code (a rate limit); nothing was sent.
+  "admission_refused",
 ] as const
 export type ContactEventReason = (typeof CONTACT_EVENT_REASONS)[number]
 

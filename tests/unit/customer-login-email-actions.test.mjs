@@ -22,7 +22,7 @@ const STUBS = {
   "fixture-state": `export const state = {
     calls: [],
     events: [],
-    start: { status: "code_sent", maskedEmail: "g***@example.com", resendAvailableAt: 1060 },
+    start: { status: "code_sent", maskedEmail: "g***@example.com", resendAvailableAt: 1060, admission: "admitted" },
     pending: null,
     check: { status: "verified", email: "guest@example.com", emailHmac: "a".repeat(64), retryChallenge: { challengeId: "retry-1" } },
     wallet: null,
@@ -205,6 +205,27 @@ test("Given mode existing When an email code is requested Then a wallet challeng
       metadata: { method: "email", surface: "home_login" },
     },
   ])
+})
+
+test("Given a refused or repeated send When a code is requested Then the guest sees the same answer and no code request is counted (QA BUG-026)", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const answers = []
+  for (const admission of ["admitted", "held", "repeat"]) {
+    const { requestCustomerLoginEmailAction, state } = await loadActions()
+    state.start = { ...state.start, admission }
+    answers.push(
+      await requestCustomerLoginEmailAction(
+        {},
+        form({ email: "guest@example.com" })
+      )
+    )
+    const requested = state.events.filter(
+      (event) => event.eventName === "customer_login_code_requested"
+    )
+    assert.equal(requested.length, admission === "admitted" ? 1 : 0, admission)
+  }
+  assert.deepEqual(answers[1], answers[0])
+  assert.deepEqual(answers[2], answers[0])
 })
 
 test("Given an invalid address When a code is requested Then nothing is sent", async () => {
