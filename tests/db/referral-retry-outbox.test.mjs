@@ -41,8 +41,8 @@ const PICK_QR_REWARDS = /* sql */ `
 
 async function makeCustomer(tx) {
   const [c] = await tx`
-    insert into public.customers (email, email_verified_at, created_at, updated_at)
-    values (${`ro-${randomUUID()}@test.local`}, now(), now(), now()) returning id`
+    insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+    values (${`ro-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now()) returning id`
   return c.id
 }
 async function joinNoStamp(tx, customerId, slug, ref = null) {

@@ -106,8 +106,8 @@ const PICK_QR = /* sql */ `
 
 async function makeCustomer(tx) {
   const [c] = await tx`
-    insert into public.customers (email, email_verified_at, created_at, updated_at)
-    values (${`bonus-${randomUUID()}@test.local`}, now(), now(), now())
+    insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+    values (${`bonus-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now())
     returning id`
   return c.id
 }
@@ -659,8 +659,8 @@ test(
       // stamp is inserted DIRECTLY (not via the hook) so the bonus is owed but
       // unawarded — the exact state two award calls can race on.
       const [referrerCustomer] = await setup`
-        insert into public.customers (email, email_verified_at, created_at, updated_at)
-        values (${`race-ref-${randomUUID()}@test.local`}, now(), now(), now())
+        insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+        values (${`race-ref-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now())
         returning id`
       committedCustomerIds.add(referrerCustomer.id)
       const [referrer] = await setup`
@@ -670,8 +670,8 @@ test(
       committedMembershipIds.add(referrer.id)
 
       const [friendCustomer] = await setup`
-        insert into public.customers (email, email_verified_at, created_at, updated_at)
-        values (${`race-friend-${randomUUID()}@test.local`}, now(), now(), now())
+        insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+        values (${`race-friend-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now())
         returning id`
       committedCustomerIds.add(friendCustomer.id)
       const [friend] = await setup`
