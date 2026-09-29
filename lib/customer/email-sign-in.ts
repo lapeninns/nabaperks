@@ -586,6 +586,13 @@ async function makeOnlyLiveChallenge(
 /**
  * All six buckets commit together in one RPC (PR 2); a refusal by any of them
  * spends none. Keys are hashed before they leave the process.
+ *
+ * The minute and hour backstops are keyed by the client's network source
+ * (IPv4 /24, IPv6 /48), not by one constant shared by every send: with a
+ * constant key, one actor making ~150 requests an hour from three IPs refused
+ * every customer's email code platform-wide (QA BUG-003). The RPC keeps its
+ * own much higher platform-wide cap (20261009120000). The parameter names
+ * stay `p_global_*` so the deployed function and this call stay compatible.
  */
 async function admitSend(
   email: string,
@@ -596,13 +603,13 @@ async function admitSend(
     customerDeviceHashFromHeaders(requestHeaders) ??
     `identity:${customerRateLimitIdentityFromHeaders(requestHeaders)}`
   const prefix = "customer-email-sign-in:send"
+  const clientIp = trustedClientIp(requestHeaders).toLowerCase()
+  const source = networkSource(clientIp)
   const { error } = await createSupabaseServiceRoleClient().rpc(
     "admit_anonymous_customer_email_otp_send",
     {
       p_device_bucket: rateLimitBucketHash(`${prefix}:device:${device}`),
-      p_ip_bucket: rateLimitBucketHash(
-        `${prefix}:ip:${trustedClientIp(requestHeaders).toLowerCase()}`
-      ),
+      p_ip_bucket: rateLimitBucketHash(`${prefix}:ip:${clientIp}`),
       p_recipient_bucket: rateLimitBucketHash(
         `${prefix}:recipient:${emailHmac}`
       ),
@@ -610,8 +617,12 @@ async function admitSend(
       p_cooldown_bucket: rateLimitBucketHash(
         `customer-email-otp:cooldown:${email}`
       ),
-      p_global_minute_bucket: rateLimitBucketHash(`${prefix}:global:minute`),
-      p_global_hour_bucket: rateLimitBucketHash(`${prefix}:global:hour`),
+      p_global_minute_bucket: rateLimitBucketHash(
+        `${prefix}:source:minute:${source}`
+      ),
+      p_global_hour_bucket: rateLimitBucketHash(
+        `${prefix}:source:hour:${source}`
+      ),
     }
   )
   if (!error) return "admitted"
@@ -645,6 +656,42 @@ function emailHmacOrNull(
     })
     return null
   }
+}
+
+/**
+ * The coarse network a client IP belongs to: its IPv4 /24 (IPv4-mapped IPv6
+ * included) or IPv6 /48, the block one household, venue or single operator
+ * usually holds. Anything unparseable shares the `unknown` source, as it
+ * already shares the per-IP `unknown` bucket.
+ */
+function networkSource(ip: string): string {
+  const address = ip.trim().toLowerCase().split("%")[0] ?? ""
+  const ipv4 = /^(?:::ffff:)?(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(
+    address
+  )
+  if (ipv4) {
+    const octets = ipv4.slice(1, 4).map(Number)
+    const last = Number(ipv4[4])
+    return [...octets, last].every((octet) => octet <= 255)
+      ? `${octets.join(".")}.0/24`
+      : "unknown"
+  }
+  const groups = ipv6Groups(address)
+  return groups ? `${groups.slice(0, 3).join(":")}::/48` : "unknown"
+}
+
+/** The eight groups of an IPv6 address, without leading zeros, or null. */
+function ipv6Groups(address: string): string[] | null {
+  const halves = address.split("::")
+  if (halves.length > 2) return null
+  const split = (half: string | undefined) => (half ? half.split(":") : [])
+  const head = split(halves[0])
+  const tail = split(halves[1])
+  const missing = 8 - head.length - tail.length
+  if (halves.length === 1 ? missing !== 0 : missing < 1) return null
+  const groups = [...head, ...Array<string>(missing).fill("0"), ...tail]
+  if (!groups.every((group) => /^[0-9a-f]{1,4}$/.test(group))) return null
+  return groups.map((group) => Number.parseInt(group, 16).toString(16))
 }
 
 function recordSendFailure(input: StartInput): void {

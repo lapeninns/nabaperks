@@ -40,6 +40,7 @@ const STATE = `export const state = {
   events: [],
   buckets: new Map(),
   limits: [],
+  ip: "203.0.113.9",
 };`
 
 const STUBS = {
@@ -77,7 +78,7 @@ const STUBS = {
       return device ? createHash("sha256").update("customer-device:" + device).digest("hex") : null
     }
     export function customerRateLimitIdentityFromHeaders() { return "identity-1" }
-    export function trustedClientIp() { return "203.0.113.9" }
+    export function trustedClientIp() { return state.ip }
     export async function enforceRateLimit({ key, limit, windowMs }) {
       state.limits.push({ key, limit, windowMs });
       const used = state.buckets.get(key) ?? 0;
@@ -878,4 +879,66 @@ test("Given email identity is not configured When a challenge starts Then the gu
       context: { purpose: "wallet", category: "not_configured" },
     },
   ])
+})
+
+const sha256 = (value) => createHash("sha256").update(value).digest("hex")
+
+async function sendBucketsFrom(ip) {
+  const mod = await loadModule()
+  mod.state.ip = ip
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  const [rpc] = mod.state.rpcCalls
+  return rpc.args
+}
+
+test("Given sends from different networks When admitted Then each network has its own minute and hour windows, never one platform-wide pair (QA BUG-003)", async () => {
+  const prefix = "customer-email-sign-in:send"
+  const constant = [
+    sha256(`${prefix}:global:minute`),
+    sha256(`${prefix}:global:hour`),
+  ]
+  const first = await sendBucketsFrom("203.0.113.9")
+  assert.equal(
+    first.p_global_minute_bucket,
+    sha256(`${prefix}:source:minute:203.0.113.0/24`)
+  )
+  assert.equal(
+    first.p_global_hour_bucket,
+    sha256(`${prefix}:source:hour:203.0.113.0/24`)
+  )
+  for (const bucket of constant) {
+    assert.ok(!Object.values(first).includes(bucket), "no constant bucket")
+  }
+
+  // The same /24 shares its windows (a venue's Wi-Fi or one attacker's
+  // block); another network does not.
+  const neighbour = await sendBucketsFrom("203.0.113.77")
+  assert.equal(neighbour.p_global_hour_bucket, first.p_global_hour_bucket)
+  assert.notEqual(neighbour.p_ip_bucket, first.p_ip_bucket)
+  const elsewhere = await sendBucketsFrom("198.51.100.4")
+  assert.notEqual(
+    elsewhere.p_global_minute_bucket,
+    first.p_global_minute_bucket
+  )
+  assert.notEqual(elsewhere.p_global_hour_bucket, first.p_global_hour_bucket)
+})
+
+test("Given IPv6 and mapped IPv4 clients When admitted Then the source is the /48 or the IPv4 /24", async () => {
+  const prefix = "customer-email-sign-in:send:source:hour"
+  const cases = [
+    ["2001:db8:abcd:12::1", "2001:db8:abcd::/48"],
+    ["2001:0DB8:ABCD:0012:0000:0000:0000:0099", "2001:db8:abcd::/48"],
+    ["2001:db8::1", "2001:db8:0::/48"],
+    ["::ffff:203.0.113.5", "203.0.113.0/24"],
+    ["fe80::1%en0", "fe80:0:0::/48"],
+    ["unknown", "unknown"],
+    ["not an address", "unknown"],
+  ]
+  for (const [ip, source] of cases) {
+    const args = await sendBucketsFrom(ip)
+    assert.equal(args.p_global_hour_bucket, sha256(`${prefix}:${source}`), ip)
+  }
 })
