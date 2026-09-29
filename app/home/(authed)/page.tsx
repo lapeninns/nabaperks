@@ -6,6 +6,8 @@ import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
 import { HomeEmptyState } from "@/components/customer/home-empty-state"
 import { HomeRedeemBanner } from "@/components/customer/home-redeem-banner"
 import { HomeSummaryStrip } from "@/components/customer/home-summary-strip"
+import { HomeWalletLinkPrompt } from "@/components/customer/home-wallet-link-prompt"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
 import { emailPromptReason } from "@/lib/customer/email-auth-mode"
 import { emailPromptOpening } from "@/lib/customer/email-prompt-opening"
 import { getCustomerHomeDashboard } from "@/lib/customer/home"
@@ -34,6 +36,10 @@ export default async function HomeDashboardPage() {
   // free read of the stored DOB.
   const customer = await getCurrentCustomer()
   const needsBirthday = !customer?.dateOfBirth && cards.length > 0
+  const needsPhoneLink =
+    customer !== null &&
+    customerHasVerifiedEmail(customer) &&
+    !(await customerHasVerifiedPhone(customer.id))
   const needsEmail =
     customer !== null && cards.length > 0 && !customerHasVerifiedEmail(customer)
   // Open the prompt at the code step only when a code for the saved address is
@@ -50,6 +56,7 @@ export default async function HomeDashboardPage() {
           reward and cards immediately, and the empty wallet is explained in full
           by HomeEmptyState below rather than twice over. */}
       <PageTitle eyebrow="My Nabaperks" title="Your cards" />
+      {needsPhoneLink ? <HomeWalletLinkPrompt /> : null}
 
       {cards.length === 0 ? (
         <HomeEmptyState />

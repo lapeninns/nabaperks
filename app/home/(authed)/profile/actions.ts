@@ -37,6 +37,8 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 const PROFILE_PATH = "/home/profile"
 
 export type ProfileEditState = {
+  walletLinked?: boolean
+  recovery?: "reauthenticate" | "requires_review"
   fields?: {
     fullName?: string
     dateOfBirth?: string
@@ -127,13 +129,34 @@ export async function verifyHomeProfileEmailAction(
 
   const confirmation = await confirmCustomerEmailCode(code, "profile")
   const errors = emailConfirmationErrors(confirmation)
-  if (errors) return { errors }
+  if (errors)
+    return {
+      errors,
+      recovery:
+        confirmation.status === "reauthenticate" ||
+        confirmation.status === "requires_review"
+          ? confirmation.status
+          : undefined,
+    }
 
   revalidatePath(PROFILE_PATH)
-  return { message: "Your email is confirmed." }
+  const walletLinked =
+    confirmation.status === "verified" && confirmation.walletLinked
+  if (walletLinked) {
+    revalidatePath("/home", "layout")
+    revalidatePath("/reward", "layout")
+  }
+  return {
+    ...(walletLinked ? { walletLinked: true } : {}),
+    message: walletLinked
+      ? "Your wallets are linked. You can sign in with your phone or email. Your stamps and rewards are together."
+      : "Your email is confirmed.",
+  }
 }
 
 export type EmailPromptState = {
+  readonly walletLinked?: boolean
+  readonly recovery?: "reauthenticate" | "requires_review"
   readonly step: "email" | "code" | "verified"
   readonly email?: string
   readonly errors?: {
@@ -246,13 +269,31 @@ async function verifyEmailPrompt(
   if (errors) {
     // A conflict ends this address: go back to the email step so the guest can
     // use another one. Anything else keeps the code step for another try.
+    if (
+      confirmation.status === "reauthenticate" ||
+      confirmation.status === "requires_review"
+    ) {
+      return { step: "email", errors, recovery: confirmation.status }
+    }
     return confirmation.status === "conflict"
       ? { step: "email", errors }
       : { step: "code", email, errors }
   }
 
   revalidatePath(PROFILE_PATH)
-  return { step: "verified", message: "Your email is confirmed." }
+  const walletLinked =
+    confirmation.status === "verified" && confirmation.walletLinked
+  if (walletLinked) {
+    revalidatePath("/home", "layout")
+    revalidatePath("/reward", "layout")
+  }
+  return {
+    step: "verified",
+    ...(walletLinked ? { walletLinked: true } : {}),
+    message: walletLinked
+      ? "Your wallets are linked. You can sign in with your phone or email. Your stamps and rewards are together."
+      : "Your email is confirmed.",
+  }
 }
 
 function promptSurface(formData: FormData): EmailPromptSurface {
