@@ -17,7 +17,7 @@ overrides:
   "@vercel/backends>path-to-regexp": 8.4.0
   "@vercel/express>path-to-regexp": 8.4.0
   "@vercel/hono>path-to-regexp": 8.4.0
-  "@vercel/node>undici": 6.28.0
+  "@vercel/node>undici": 6.28.1
   "@vercel/rust>smol-toml": 1.7.1
   "@vercel/static-config>ajv": ^8.18.0
   js-yaml@3.15.0: 3.15.2
@@ -29,11 +29,12 @@ overrides:
   sharp: ^0.35.0
   tmp: 0.2.7
   vercel>smol-toml: 1.7.1
-  vercel>undici: 6.28.0
+  vercel>undici: 6.28.1
   uuid: 11.1.1
-  ip-address: ^10.3.1
+  ip-address: ^10.5.1
   "@puppeteer/browsers": 3.2.1
-  "@vercel/sandbox>undici": ^7.29.0
+  "@vercel/sandbox>undici": ^7.29.1
+  shadcn>undici: ^7.29.1
 
 patchedDependencies:
   minimatch@3.1.5: patches/minimatch@3.1.5.patch

@@ -56,19 +56,23 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   // nesting and fragment-query advisories), nanoid -> 3.3.18, browserslist -> 4.28.8 and qs ->
   // 6.16.0. Puppeteer's browser helper moves to 3.2.1 because that release
   // removes the unpatched extract-zip path traversal dependency. Vercel's
-  // undici 6.27.0 -> 6.28.0, alongside pins for ip-address and the 7.x undici
-  // under @vercel/sandbox. Lowering any of them reintroduces the advisory, so
+  // undici 6.27.0 -> 6.28.0 -> 6.28.1 and the 7.x undici under @vercel/sandbox
+  // and shadcn -> 7.29.1 (GHSA-3wwx-pv8p-q78v, WebSocket permessage-deflate
+  // DoS); ip-address -> 10.5.1 (GHSA-rpw4-54j3-4h4q, GHSA-2vr4-cq9g-pvrc,
+  // link-local and NAT64 classification). Lowering any of them reintroduces the advisory, so
   // `pnpm security:audit` decides these numbers — not convenience.
   assert.equal(workspaceOverride("brace-expansion"), "5.0.9")
   assert.equal(workspaceOverride("browserslist"), "4.28.8")
   assert.equal(workspaceOverride("fast-uri"), "^3.1.7")
-  assert.equal(workspaceOverride("ip-address"), "^10.3.1")
+  assert.equal(workspaceOverride("ip-address"), "^10.5.1")
   assert.equal(workspaceOverride("nanoid"), "3.3.18")
   assert.equal(workspaceOverride("qs"), "6.16.0")
   assert.equal(workspaceOverride('"@puppeteer/browsers"'), "3.2.1")
   assert.equal(workspaceOverride('"@lhci/cli>proxy-agent"'), "^8.0.1")
-  assert.equal(workspaceOverride("vercel>undici"), "6.28.0")
-  assert.equal(workspaceOverride('"@vercel/sandbox>undici"'), "^7.29.0")
+  assert.equal(workspaceOverride("vercel>undici"), "6.28.1")
+  assert.equal(workspaceOverride('"@vercel/sandbox>undici"'), "^7.29.1")
+  assert.equal(workspaceOverride('"@vercel/node>undici"'), "6.28.1")
+  assert.equal(workspaceOverride("shadcn>undici"), "^7.29.1")
   assert.equal(workspaceOverride("hono@4.12.25"), "4.13.5")
   assert.match(
     read("pnpm-workspace.yaml"),
