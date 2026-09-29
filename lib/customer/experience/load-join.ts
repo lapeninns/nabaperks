@@ -154,9 +154,12 @@ export async function loadJoinExperienceContext(
   // Phone first: `step=email` is only the phone code's fallback, so the
   // server checks it is open (30 seconds after the latest code, a failed
   // send, or an email sign-in already under way). Asked for early, the
-  // visitor gets the phone step: the pending code if there is one.
+  // visitor gets the phone step: the pending code if there is one. While
+  // email sign-in is off there is no email step at all, so the gate never
+  // opens and `step=email` keeps showing the pending code (QA BUG-018).
   const emailFallback =
     emailStepAsked &&
+    emailSignInEnabled() &&
     emailFallbackOpen(
       {
         phoneCodeSentAt: phoneCode?.issuedAt ?? null,
