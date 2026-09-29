@@ -615,7 +615,7 @@ test(
           referred_membership_id, referrer_membership_id, referral_code_used,
           referrer_bonus_due_at, referrer_bonus_awarded_at)
         values (${m.id}::uuid, ${referrer.membership_id}::uuid, 'seed', now(),
-          (public.uk_business_date(now())::timestamp - interval '1 hour') at time zone 'Europe/London')`
+          (public.venue_trading_date(${qr.merchant_id}::uuid, now())::timestamp - interval '1 hour') at time zone 'Europe/London')`
       }
 
       const friendCustomer = await makeCustomer(tx)
