@@ -858,3 +858,24 @@ test("Given a spent handoff When it is re-issued Then only the new ID is usable,
     assert.equal(await mod.reissueVerifiedEmailHandoff(reissued), null)
   })
 })
+
+test("Given email identity is not configured When a challenge starts Then the guest gets the could-not-send answer, not an error (QA BUG-016)", async () => {
+  delete process.env.CUSTOMER_EMAIL_HMAC_SECRET
+  const mod = await loadModule()
+  const result = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  assert.equal(result.status, "delivery_failed")
+  assert.equal(result.maskedEmail, "g***@example.com")
+  assert.equal(mod.state.rpcCalls.length, 0)
+  assert.deepEqual(mod.state.sends, [])
+  assert.equal(mod.state.cookies.size, 0)
+  assert.deepEqual(mod.state.logs, [
+    {
+      level: "warn",
+      message: "customer_email_sign_in_unavailable",
+      context: { purpose: "wallet", category: "not_configured" },
+    },
+  ])
+})

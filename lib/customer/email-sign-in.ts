@@ -126,9 +126,12 @@ export async function startEmailSignInChallenge(
     return { status: "invalid_email" }
   }
 
-  const emailHmac = customerEmailHmac(email)
-  const secret = requiredCustomerSessionSecret()
   const now = nowSeconds()
+  const emailHmac = emailHmacOrNull(email, input.purpose)
+  if (!emailHmac) {
+    return deliveryFailed(email, now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS)
+  }
+  const secret = requiredCustomerSessionSecret()
   const existing = await readPendingChallenge(secret, now)
   const current =
     existing?.purpose === input.purpose && existing.emailHmac === emailHmac
@@ -620,6 +623,28 @@ async function admitSend(
     category: "admission_unavailable",
   })
   return "unavailable"
+}
+
+/**
+ * The address's HMAC, or null when email identity is not configured (no
+ * CUSTOMER_EMAIL_HMAC_SECRET). The deploy gate refuses email sign-in without
+ * it (scripts/check-env.mjs); if it still reaches runtime, the guest gets the
+ * usual "could not send" answer instead of an error page (QA BUG-016). The
+ * warning names only the purpose, never the address.
+ */
+function emailHmacOrNull(
+  email: string,
+  purpose: EmailSignInPurpose
+): string | null {
+  try {
+    return customerEmailHmac(email)
+  } catch {
+    logger.warn("customer_email_sign_in_unavailable", {
+      purpose,
+      category: "not_configured",
+    })
+    return null
+  }
 }
 
 function recordSendFailure(input: StartInput): void {
