@@ -176,7 +176,8 @@ an acceptable closure condition.
 
 A customer session no longer expires on the server. The `customer_sessions`
 row is open-ended (`expires_at = 'infinity'`) and ends only on log-out, "Log
-out on all devices", erasure, or retention anonymisation. The browser cookie
+out on all devices", a newer sign-in on the same browser, erasure, or
+retention anonymisation. There is no idle expiry. The browser cookie
 keeps a rolling one-year window, re-signed at most once a day on ordinary page
 loads, so a customer who uses Nabaperks within a year is never signed out.
 
@@ -201,6 +202,13 @@ masked contact details, and can start stamp or reward journeys.
   collection happens in person with a verified email.
 - The cookie is only ever renewed with a matching signed expiry; it is never
   stretched past what its signature allows.
+- The cookie is renewed only after the database confirms its session is
+  still active. A revoked, expired or deleted session's cookie is not
+  extended and lapses at its signed expiry.
+- Signing in again on a browser retires that browser's earlier sessions for
+  the same customer, so only the session in its current cookie stays live.
+- "Log out on all devices" also withdraws every device's sign-in trust, so a
+  logged-out device is not recognised on its next sign-in.
 
 ### Reconsider immediately when
 
