@@ -83,7 +83,7 @@ Independent security checks retain their existing provider contexts.
 
 ## Qualification before selection authority
 
-Policy installation and changes to selection, browser execution, test mapping
+On pull requests, policy installation and changes to selection, browser execution, test mapping
 or browser policy run the whole suite plus the bounded targeted comparison.
 `package.json` is included because it owns the full visual test command.
 The reviewed dependency graph also covers transitive runner, verifier and test
@@ -168,6 +168,13 @@ reviewed qualification.
 Every exact-main push continues to run the complete CI suite. Production
 preflight still requires successful exact-main CI and CodeQL. Selective PR
 success cannot stand in for this release evidence.
+
+The targeted/full activation comparison runs on PRs against their reviewed base.
+Main does not replay that comparison: its policy is already reviewed, all nine
+roots execute, and inert future proposals may intentionally differ from active
+inputs. Missing or uncertain impact information still requires all nine roots.
+The release gate rebinds the plan to the exact main SHA and requires each root
+to succeed. This does not relax PR qualification, security or code-owner review.
 
 After preflight, the existing protected Production baseline reader authenticates
 the live Vercel deployment, canonical project/team and full deployed SHA. The
