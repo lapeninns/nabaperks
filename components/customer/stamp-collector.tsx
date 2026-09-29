@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useReducer, useRef, useState } from "react"
+import { useEffect, useReducer, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 
 import {
@@ -62,6 +62,12 @@ export type StampCollectorProps = {
   /** The venue-code fallback submitter; injectable for the DB-free harness. */
   submitVenueCode?: StampSubmitter
   refreshCard?: () => void
+  /**
+   * Shown below the card once the server has confirmed a stamp on this visit
+   * (the compact "Add your email" prompt), never before it. Kept inside the
+   * collector so it stays mounted across the refreshes that follow a stamp.
+   */
+  afterStamp?: ReactNode
 }
 
 function markStampPhase(phase: string) {
@@ -119,6 +125,7 @@ export function StampCollector({
   submitStamp = selfStampAction,
   submitVenueCode = venueCodeStampAction,
   refreshCard,
+  afterStamp,
 }: StampCollectorProps) {
   const router = useRouter()
   const reduceMotion = useReducedMotionHook()
@@ -144,6 +151,9 @@ export function StampCollector({
   const [refusedWithoutFix, setRefusedWithoutFix] = useState(false)
   const recoveryCaptureRef = useRef<StampLocationCapture | null>(null)
   const refresh = refreshCard ?? router.refresh
+  // The server answered `issued` (or the readback found the stamp): only then
+  // does anything after the stamp appear.
+  const stampLanded = state.phase === "printing" || state.phase === "confirmed"
   const view = stampChoreographyView(state, {
     canStamp,
     current,
@@ -463,6 +473,9 @@ export function StampCollector({
           </div>
         }
       />
+      {afterStamp && stampLanded ? (
+        <div className="mt-5 short:mt-4">{afterStamp}</div>
+      ) : null}
     </div>
   )
 }
