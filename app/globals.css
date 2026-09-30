@@ -24,6 +24,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -39,6 +40,7 @@
 
   --color-stamp: var(--stamp);
   --color-stamp-foreground: var(--stamp-foreground);
+  --color-stamp-hover: var(--stamp-hover);
   --color-reward: var(--reward);
   --color-reward-foreground: var(--reward-foreground);
   --color-seal: var(--seal);
@@ -122,6 +124,10 @@
 
   --w-accent: #cf330a;
   --w-accent-ink: #ffffff;
+  /* Filled accent under the pointer. Darker, not a 90% wash: the wash
+     lightened the fill to #d34721 on card, 4.47:1 under white (QA BUG-057).
+     #b82d09 holds 6.1:1. */
+  --w-accent-hover: #b82d09;
   --w-cobalt: #2b43c8;
   --w-leaf: #16733c;
   --w-sun: #f5a623;
@@ -139,6 +145,7 @@
 
   --primary: var(--w-accent);
   --primary-foreground: var(--w-accent-ink);
+  --primary-hover: var(--w-accent-hover);
 
   --secondary: var(--w-paper-2);
   --secondary-foreground: var(--w-ink);
@@ -160,6 +167,7 @@
   /* Loyalty semantics */
   --stamp: var(--w-accent);
   --stamp-foreground: var(--w-accent-ink);
+  --stamp-hover: var(--w-accent-hover);
   --stamp-empty: var(--w-line);
 
   --seal: var(--w-sun);
@@ -215,6 +223,9 @@
 
   --w-accent: #ff5a26;
   --w-accent-ink: #211c16;
+  /* Night printing has dark ink on the accent, so hover lifts the fill
+     rather than darkening it (6.3:1 under the ink). */
+  --w-accent-hover: #ff7447;
   --w-cobalt: #7c90ec;
   --w-leaf: #3fae6e;
   --w-sun: #f5a623;

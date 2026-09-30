@@ -18,6 +18,7 @@ colors:
   foreground: "#211c16"
   primary: "#cf330a"
   on-primary: "#ffffff"
+  primary-hover: "#b82d09"
   stamp: "#cf330a"
   stamp-empty: "rgba(33, 28, 22, 0.18)"
   seal: "#f5a623"
@@ -380,6 +381,10 @@ every token, primitive, and loyalty state is the
 2px ink border, 10px radius, weight 700, hard 3px offset shadow. On press the
 button translates 2px toward its shadow and the shadow collapses to 1px.
 Ghost and link variants stay flat. Primary is vermillion with white text.
+Filled primary and stamp buttons hover to a solid `--w-accent-hover`
+(#b82d09, 6.1:1 under white; #ff7447 in night printing, 6.3:1 under its dark
+ink), never an alpha wash of the accent: the old 90% wash lightened the fill
+to 4.47:1 on card.
 
 **Destructive is outline danger, never a second filled red.** Primary
 (#cf330a) and destructive (#c0301c) sit ~1.1:1 apart, so a filled destructive
