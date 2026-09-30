@@ -27,9 +27,7 @@ function safePath(
   isBlockedPath: (path: string) => boolean
 ): string {
   if (CONTROL_OR_WHITESPACE.test(path)) return fallback
-  if (!path.startsWith("/")) return fallback
-  if (path.startsWith("//")) return fallback
-  if (path.startsWith("/\\")) return fallback
+  if (!isSingleSlashPath(path)) return fallback
 
   let parsed: URL
   try {
@@ -41,8 +39,16 @@ function safePath(
   if (parsed.origin !== SAFE_PATH_ORIGIN) return fallback
 
   const safePathname = `${parsed.pathname}${parsed.search}${parsed.hash}`
+  // URL parsing collapses dot segments, so `/..//host` becomes `//host`.
+  // Re-check the normalised result before a browser can read it as a host.
+  if (!isSingleSlashPath(safePathname)) return fallback
   if (isBlockedPath(safePathname)) return fallback
   return safePathname
+}
+
+/** A root-relative path: one `/` that is not followed by `/` or `\`. */
+function isSingleSlashPath(path: string): boolean {
+  return path.startsWith("/") && path[1] !== "/" && path[1] !== "\\"
 }
 
 function isCustomerAuthPath(path: string): boolean {
