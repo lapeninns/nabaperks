@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto"
+import { createHash, createHmac } from "node:crypto"
 
 export type AuthHookClaim =
   | { readonly status: "claimed"; readonly leaseId: string }
@@ -22,9 +22,50 @@ export function parseAuthHookClaim(value: unknown): AuthHookClaim | null {
   return null
 }
 
-export function authHookEmailIdempotencyKey(webhookId: string) {
+/**
+ * Delivery identity for one Supabase-generated email OTP.
+ *
+ * GoTrue's HTTP hook client mints a new `webhook-id` (and signs a new
+ * timestamp) on every retry attempt, but sends the same payload bytes. Keying
+ * the claim on the webhook id therefore treated each retry as a new delivery:
+ * after an ambiguous provider failure the retry minted a second alias code and
+ * superseded the one that may already have arrived. The key is instead derived
+ * from the payload fields that stay fixed across the retries of one OTP.
+ *
+ * It is an HMAC under the hook secret, never a bare hash: the payload carries a
+ * 6-digit OTP and the recipient, and a plain digest of those is brute-forceable.
+ * A replayed envelope maps to the same key, so replay consumption still holds.
+ */
+export function authHookEmailDeliveryKey(
+  secret: string,
+  {
+    action,
+    email,
+    token,
+    userId,
+  }: {
+    readonly action: string
+    readonly email: string
+    readonly token: string
+    readonly userId?: string
+  }
+) {
+  return `email-otp:${createHmac("sha256", secret)
+    .update(
+      JSON.stringify([
+        "send-email-delivery:v1",
+        userId ?? "",
+        email,
+        action,
+        token,
+      ])
+    )
+    .digest("hex")}`
+}
+
+export function authHookEmailIdempotencyKey(deliveryKey: string) {
   return `auth-hook-email:${createHash("sha256")
-    .update(webhookId)
+    .update(deliveryKey)
     .digest("hex")}`
 }
 

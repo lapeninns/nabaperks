@@ -59,7 +59,11 @@ test("storage uncertainty and busy claims cannot reach providers", () => {
 })
 
 test("email delivery has provider idempotency in addition to lease ownership", () => {
-  assert.match(email, /authHookEmailIdempotencyKey\(envelope\.webhookId\)/)
+  // Keyed on the OTP, not the webhook-id: GoTrue signs each retry with a new
+  // webhook-id (QA BUG-065).
+  assert.match(email, /authHookEmailDeliveryKey\(secret,/)
+  assert.match(email, /authHookEmailIdempotencyKey\(deliveryKey\)/)
+  assert.match(email, /claimAuthHookDelivery\("email", deliveryKey\)/)
 })
 
 test("DB-first deploys retain a fail-closed legacy wire contract", () => {

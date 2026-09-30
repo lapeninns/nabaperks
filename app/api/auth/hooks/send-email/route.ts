@@ -11,7 +11,10 @@ import {
   failAuthHookDelivery,
   markAuthHookDeliveryAttempted,
 } from "@/lib/auth/auth-hook-delivery"
-import { authHookEmailIdempotencyKey } from "@/lib/auth/auth-hook-delivery-core"
+import {
+  authHookEmailDeliveryKey,
+  authHookEmailIdempotencyKey,
+} from "@/lib/auth/auth-hook-delivery-core"
 import { recordMerchantFunnelEventSafely } from "@/lib/analytics/funnel-events"
 import {
   createMerchantEmailOtpAlias,
@@ -87,16 +90,26 @@ export async function POST(request: NextRequest) {
     return hookError(500, "Email hook is not configured.")
   }
 
+  // GoTrue signs every retry of one OTP with a fresh webhook-id, so the claim
+  // is keyed on the OTP itself (see authHookEmailDeliveryKey).
+  const deliveryKey = authHookEmailDeliveryKey(secret, {
+    action: payload.email_data?.email_action_type ?? "",
+    email: to,
+    token: code,
+    userId,
+  })
+
   let claim
   try {
-    claim = await claimAuthHookDelivery("email", envelope.webhookId)
+    claim = await claimAuthHookDelivery("email", deliveryKey)
   } catch {
     return hookRetryError("Email delivery could not be claimed.")
   }
+  // A completed or in-flight delivery of this OTP owns its one alias and its
+  // one provider request. A retry must not mint a second code that would
+  // supersede a code that may already be in the inbox.
   if (claim.status === "replay") return NextResponse.json({})
-  if (claim.status === "busy") {
-    return hookRetryError("Email delivery is already in progress.")
-  }
+  if (claim.status === "busy") return NextResponse.json({})
 
   let providerAttempted = false
 
@@ -124,11 +137,11 @@ export async function POST(request: NextRequest) {
           to,
           code: aliasCode,
           audience: action.audience,
-          idempotencyKey: authHookEmailIdempotencyKey(envelope.webhookId),
+          idempotencyKey: authHookEmailIdempotencyKey(deliveryKey),
           beforeProviderAttempt: async () => {
             await markAuthHookDeliveryAttempted(
               "email",
-              envelope.webhookId,
+              deliveryKey,
               claim.leaseId
             )
             providerAttempted = true
@@ -144,14 +157,12 @@ export async function POST(request: NextRequest) {
     const settle = definitelyUnsent
       ? failAuthHookDelivery
       : completeAuthHookDelivery
-    await settle("email", envelope.webhookId, claim.leaseId).catch(
-      () => undefined
-    )
+    await settle("email", deliveryKey, claim.leaseId).catch(() => undefined)
     return hookRetryError("Email could not be sent.")
   }
 
   try {
-    await completeAuthHookDelivery("email", envelope.webhookId, claim.leaseId)
+    await completeAuthHookDelivery("email", deliveryKey, claim.leaseId)
   } catch {
     return hookError(500, "Email delivery could not be recorded.")
   }
