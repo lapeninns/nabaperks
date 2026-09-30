@@ -54,18 +54,21 @@ test.describe("customer entry error boundaries", { tag: "@polish" }, () => {
     await dismissPwaInstall(page)
   })
 
-  test("unknown QR ids keep the branded unavailable recovery", async ({
+  // DB-free, a QR cannot be resolved, so the branded recovery is the retry
+  // state (QA BUG-041/042); the unavailable state is proven against a
+  // database in public-qr-router-live-db.spec.ts.
+  test("an unresolvable QR keeps a branded retry recovery", async ({
     page,
   }) => {
     const response = await page.goto("/q/polish-not-a-real-qr")
 
     expect(response?.status()).toBe(200)
     await expect(
-      page.getByRole("heading", { name: "This loyalty card is unavailable" })
+      page.getByRole("heading", { name: "We can't load this right now" })
     ).toBeVisible()
-    await expect(page.getByRole("link", { name: "Scan a QR" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Try again" })).toHaveAttribute(
       "href",
-      "/scan"
+      "/q/polish-not-a-real-qr"
     )
     await expect(
       page.getByRole("link", { name: "Open my cards" })

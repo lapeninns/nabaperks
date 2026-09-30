@@ -64,6 +64,8 @@ test.describe("@customer-flow public QR router live DB", () => {
       // keyed by merchant, and a direct SQL flip fires no revalidation tag.
       await expectUnavailableQr(page, fixture.pausedQrId)
       await expectUnavailableQr(page, fixture.lapsedBillingQrId)
+      // An id the database does not know is unavailable, not a load failure.
+      await expectUnavailableQr(page, `${fixture.inactiveQrId}-unknown`)
     } finally {
       await cleanupPublicQrRateLimitBuckets(sql, rateLimitBucketKeys)
       await cleanupPublicQrRouterFixture(sql, fixture)
