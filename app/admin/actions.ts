@@ -21,6 +21,7 @@ import {
 } from "@/lib/cache/tags"
 import { buildExportDownload } from "@/lib/admin/data-export"
 import { MARKETING_POLICY_VERSION } from "@/lib/customer/consent"
+import { expireJoinAvailability } from "@/lib/customer/join-lookup"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 /**
@@ -46,6 +47,7 @@ function rpcFailure(
 
 function revalidateMerchantControls(merchantId: string) {
   revalidateMerchantCacheTags(merchantId)
+  expireJoinAvailability(merchantId)
   revalidatePath("/admin/merchants")
   revalidatePath("/admin/audit")
   revalidatePath("/app", "layout")
@@ -326,6 +328,7 @@ export async function setQrActiveAction(
 
   revalidateCacheTag(qrImageContextCacheTag(qrCodeId))
   if (merchantId) revalidateMerchantCacheTags(merchantId)
+  if (merchantId) expireJoinAvailability(merchantId)
   revalidatePath("/admin/merchants")
   revalidatePath("/admin/audit")
   return adminActionSuccess(

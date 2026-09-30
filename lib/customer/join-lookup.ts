@@ -1,5 +1,7 @@
 import "server-only"
 
+import { revalidateTag } from "next/cache"
+
 import { cacheByScope, merchantCacheTag } from "@/lib/cache/tags"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -17,9 +19,21 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
  *    billing) under the merchant cache tag, which every merchant, admin and
  *    Stripe writer already revalidates via `revalidateMerchantLaunchSurfaces`.
  *
- * The 60s window bounds anything that bypasses the tag (ops-only SQL). Rate
- * limiting and scan analytics stay in `lib/customer/join.ts`, outside the
- * cache, so a cache hit can neither skip the limiter nor drop the event.
+ * The merchant tag is revalidated with the "max" profile, so the first read
+ * after a write is still served the previous row while it refreshes. That is
+ * fine for names and terms but not for availability, so (QA BUG-041):
+ *
+ *  - a cached row that says "unavailable" is never trusted on its own:
+ *    `lib/customer/join.ts` re-reads it live (`readQrJoinState`,
+ *    `readMerchantJoinState`) before turning a customer away. This also
+ *    covers writers that skip the tags (ops SQL) and the 60s time-based
+ *    refresh, which is stale-while-revalidate as well;
+ *  - writers that switch a QR or venue off or on also expire the
+ *    join-availability tag (`expireJoinAvailability`) so the next scan waits
+ *    for the new state instead of admitting one scan on the old one.
+ *
+ * Rate limiting and scan analytics stay in `lib/customer/join.ts`, outside
+ * the cache, so a cache hit can neither skip the limiter nor drop the event.
  *
  * Nothing here may touch request-scoped Next APIs (headers, cookies, the
  * post-response scheduler): the loaders run inside `unstable_cache`, where
@@ -30,9 +44,10 @@ export const JOIN_CONTEXT_CACHE_SECONDS = 60
 /**
  * Bump when the shape of a stage-B row changes: the key then misses the
  * entries a previous deploy wrote, instead of serving a row the new code
- * cannot read. Stage A holds only identity, so it never needs this.
+ * cannot read. Stage A holds only identity, so it never needs this. v5 adds
+ * the join-availability tag, which entries written before it do not carry.
  */
-export const JOIN_CONTEXT_SHAPE = "v4"
+export const JOIN_CONTEXT_SHAPE = "v5"
 
 export type QrIdentity = {
   qrCodeId: string
@@ -121,6 +136,26 @@ const MERCHANT_JOIN_STATE_SELECT = `id, business_name, business_slug, email, pho
 
 const cacheOptions = { revalidateSeconds: JOIN_CONTEXT_CACHE_SECONDS }
 
+export function joinAvailabilityCacheTag(merchantId: string) {
+  return `join-availability:${merchantId}`
+}
+
+/**
+ * Read-your-writes for a change to whether a venue's QR can be used (QR
+ * paused or resumed, venue suspended or reinstated). Call it after the write,
+ * beside the usual merchant revalidation. It expires only the stage-B join
+ * rows, with no stale window, so the next scan reads the new state; the
+ * merchant tag keeps its "max" profile for every other cached surface. A
+ * separate tag, because two profiles for one tag in one request race.
+ */
+export function expireJoinAvailability(merchantId: string) {
+  revalidateTag(joinAvailabilityCacheTag(merchantId), { expire: 0 })
+}
+
+function joinStateTags(merchantId: string) {
+  return [merchantCacheTag(merchantId), joinAvailabilityCacheTag(merchantId)]
+}
+
 /** Stage A: public QR id → immutable row identity. */
 export function loadQrIdentity(qrId: string): Promise<QrIdentity | null> {
   return cacheByScope(
@@ -151,25 +186,31 @@ export function loadQrJoinState(
   qrCodeId: string
 ): Promise<QrJoinStateRow | null> {
   return cacheByScope(
-    async () => {
-      const supabase = createSupabaseServiceRoleClient()
-      const { data, error } = await supabase
-        .from("qr_codes")
-        .select(QR_JOIN_STATE_SELECT)
-        .eq("id", qrCodeId)
-        .eq("merchant_id", merchantId)
-        .maybeSingle()
-
-      if (error) {
-        throw new Error(`Unable to resolve QR code: ${error.message}`)
-      }
-
-      return (data as QrJoinStateRow | null) ?? null
-    },
+    () => readQrJoinState(merchantId, qrCodeId),
     ["qr-join-context", JOIN_CONTEXT_SHAPE, merchantId, qrCodeId],
-    [merchantCacheTag(merchantId)],
+    joinStateTags(merchantId),
     cacheOptions
   )
+}
+
+/** Stage B read without the cache, to confirm a cached "unavailable". */
+export async function readQrJoinState(
+  merchantId: string,
+  qrCodeId: string
+): Promise<QrJoinStateRow | null> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("qr_codes")
+    .select(QR_JOIN_STATE_SELECT)
+    .eq("id", qrCodeId)
+    .eq("merchant_id", merchantId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to resolve QR code: ${error.message}`)
+  }
+
+  return (data as QrJoinStateRow | null) ?? null
 }
 
 /** Stage A′: public merchant slug → merchant id. */
@@ -203,23 +244,28 @@ export function loadMerchantJoinState(
   merchantId: string
 ): Promise<MerchantJoinStateRow | null> {
   return cacheByScope(
-    async () => {
-      const supabase = createSupabaseServiceRoleClient()
-      const { data, error } = await supabase
-        .from("merchants")
-        .select(MERCHANT_JOIN_STATE_SELECT)
-        .eq("id", merchantId)
-        .eq("loyalty_cards.is_active", true)
-        .maybeSingle()
-
-      if (error) {
-        throw new Error(`Unable to load merchant join page: ${error.message}`)
-      }
-
-      return (data as MerchantJoinStateRow | null) ?? null
-    },
+    () => readMerchantJoinState(merchantId),
     ["merchant-join-context", JOIN_CONTEXT_SHAPE, merchantId],
-    [merchantCacheTag(merchantId)],
+    joinStateTags(merchantId),
     cacheOptions
   )
+}
+
+/** Stage B′ read without the cache, to confirm a cached "unavailable". */
+export async function readMerchantJoinState(
+  merchantId: string
+): Promise<MerchantJoinStateRow | null> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("merchants")
+    .select(MERCHANT_JOIN_STATE_SELECT)
+    .eq("id", merchantId)
+    .eq("loyalty_cards.is_active", true)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to load merchant join page: ${error.message}`)
+  }
+
+  return (data as MerchantJoinStateRow | null) ?? null
 }

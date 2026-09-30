@@ -46,10 +46,11 @@ test("the join lookup is cached in two stages under the merchant tag, with no si
     /reward_pool_items!reward_pool_items_loyalty_card_id_fkey\(reward_name, reward_terms, requires_age_check, is_active, display_order, id, created_at\)/
   )
   assert.doesNotMatch(lookup, /[^!]reward_pool_items\(/)
-  assert.equal(
-    (lookup.match(/\[merchantCacheTag\(merchantId\)\]/g) ?? []).length,
-    2
+  assert.match(
+    lookup,
+    /return \[merchantCacheTag\(merchantId\), joinAvailabilityCacheTag\(merchantId\)\]/
   )
+  assert.equal((lookup.match(/joinStateTags\(merchantId\),/g) ?? []).length, 2)
   assert.match(lookup, /JOIN_CONTEXT_CACHE_SECONDS = 60/)
 })
 

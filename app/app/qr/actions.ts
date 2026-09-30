@@ -6,6 +6,7 @@ import { after } from "next/server"
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { scheduleMerchantActivationEvent } from "@/lib/analytics/merchant-activation-events"
 import { getCurrentUser } from "@/lib/auth/session"
+import { expireJoinAvailability } from "@/lib/customer/join-lookup"
 import { getServerEnv } from "@/lib/env/server"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import { getLaunchBillingReadiness } from "@/lib/merchant/launch-readiness"
@@ -84,6 +85,7 @@ export async function generateQrCodeAction(formData: FormData) {
   })
 
   revalidateMerchantLaunchSurfaces(merchant.id)
+  expireJoinAvailability(merchant.id)
 
   redirect(qrReturnHref(returnBase, "created=1"))
 }
@@ -151,6 +153,7 @@ export async function setQrActiveAction(formData: FormData) {
   })
 
   revalidateMerchantLaunchSurfaces(merchant.id)
+  expireJoinAvailability(merchant.id)
 
   after(() => drainQrStatusEmails(merchant.id))
   redirect(qrReturnHref(returnBase, "enabled=1"))
