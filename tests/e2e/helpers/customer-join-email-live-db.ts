@@ -303,27 +303,36 @@ export async function verifyFixtureCustomerEmail(
   return row.email
 }
 
+const EMAIL_SEND_PREFIX = "customer-email-sign-in:send"
+
+/** Send buckets every local email journey shares, before hashing. */
+export const EMAIL_SEND_SHARED_BUCKET_KEYS = [
+  `${EMAIL_SEND_PREFIX}:ip:unknown`,
+  `${EMAIL_SEND_PREFIX}:source:minute:unknown`,
+  `${EMAIL_SEND_PREFIX}:source:hour:unknown`,
+  `${EMAIL_SEND_PREFIX}:platform:minute`,
+  `${EMAIL_SEND_PREFIX}:platform:hour`,
+  "email-sign-in:verify:ip:unknown",
+] as const
+
 /**
  * Removes wallets, sessions and events for `emails`, plus the send, cooldown
- * and guess buckets their journeys spent (the shared IP and global send
- * buckets and the shared IP guess bucket too, so repeated local runs start
- * from the same limits).
+ * and guess buckets their journeys spent (the shared IP send bucket, the
+ * network-source minute and hour backstops, the platform-wide send caps and
+ * the shared IP guess bucket too, so repeated local runs start from the same
+ * limits). The browser sends no trusted client IP locally, so its IP and
+ * network source are both `unknown` (lib/customer/email-sign-in.ts admitSend;
+ * the platform keys are fixed in 20261009120000).
  */
 export async function cleanupEmailJoinRows(
   sql: Sql,
   emails: readonly string[]
 ): Promise<void> {
-  const prefix = "customer-email-sign-in:send"
-  const keys = [
-    `${prefix}:ip:unknown`,
-    `${prefix}:global:minute`,
-    `${prefix}:global:hour`,
-    "email-sign-in:verify:ip:unknown",
-  ]
+  const keys: string[] = [...EMAIL_SEND_SHARED_BUCKET_KEYS]
   for (const email of emails) {
     const hmac = customerEmailHmac(email)
     keys.push(
-      `${prefix}:recipient:${hmac}`,
+      `${EMAIL_SEND_PREFIX}:recipient:${hmac}`,
       `customer-email-otp:cooldown:${email}`,
       `email-sign-in:verify:email:${hmac}`
     )
