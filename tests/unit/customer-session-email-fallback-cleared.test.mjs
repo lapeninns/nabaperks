@@ -4,14 +4,17 @@ import { test } from "node:test"
 import { build } from "esbuild"
 
 /**
- * "Log out on all devices" when the app runs ahead of its migration
- * (QA BUG-012, 38c42a1..2c45031).
+ * QA BUG-053 (38c42a1..2c45031): the signed-out email fallback record
+ * (`nabaperks_email_fallback`) outlived an email sign-in and a log-out for up
+ * to ten minutes, so whoever used the browser next inherited "email already
+ * opened" at /home/login. Signing in and signing out now clear it with the
+ * other signed-out email cookies.
  *
  * The real `lib/customer/session.ts` runs with the cookie store, request
- * headers and the Supabase service client stubbed. The session cookie codec,
- * the cookie options and the missing-RPC classifier are the real ones, so the
- * test proves what the customer's browser and the session rows end up with.
+ * headers and the Supabase service client stubbed; the cookie codecs and the
+ * fallback cookie name are the real ones.
  */
+
 const REAL = new Set([
   "@/lib/customer/session-cookie",
   "@/lib/customer/session-cookie-core",
@@ -66,6 +69,7 @@ const STUBS = {
             return state.revokeAllError ? { data: null, error: state.revokeAllError } : { data: 2, error: null }
           }
           if (name === "revoke_customer_session") return { data: true, error: null }
+          if (name === "register_customer_session") return { data: null, error: null }
           throw new Error("unexpected rpc " + name)
         },
       }
@@ -127,56 +131,50 @@ async function loadSession() {
   return mod
 }
 
-const rpcNames = (state) => state.rpcs.map(([name]) => name)
+const FALLBACK_COOKIE = "nabaperks_email_fallback"
+const SIGNED_OUT_EMAIL_COOKIES = [
+  "nabaperks_pending_email_sign_in",
+  "nabaperks_email_handoff",
+  FALLBACK_COOKIE,
+]
 
-test("Given the revoke-all RPC is deployed When the customer logs out on all devices Then every session is revoked and this browser is signed out", async () => {
-  const { clearAllCustomerSessions, state, customerSessionCookieName } =
+function withSignedOutEmailCookies(state) {
+  for (const name of SIGNED_OUT_EMAIL_COOKIES) state.cookies.set(name, "x")
+}
+
+test("Given the email fallback was opened When the customer signs in Then no signed-out email cookie survives, the fallback record included", async () => {
+  const { setCustomerSession, state, customerSessionCookieName } =
     await loadSession()
+  withSignedOutEmailCookies(state)
 
-  const outcome = await clearAllCustomerSessions()
+  await setCustomerSession(CUSTOMER_ID, "verified_email")
 
-  assert.equal(outcome, "all_devices")
-  assert.deepEqual(state.rpcs.at(-1), [
-    "revoke_all_customer_sessions",
-    { p_customer_id: CUSTOMER_ID },
-  ])
-  assert.ok(!rpcNames(state).includes("revoke_customer_session"))
-  assert.ok(state.deleted.includes(customerSessionCookieName))
-  assert.equal(state.cookies.has(customerSessionCookieName), false)
-})
-
-test("Given the app runs ahead of the revoke-all migration When the customer logs out on all devices Then this device's session is still revoked and its cookie cleared, without an error", async () => {
-  const { clearAllCustomerSessions, state, customerSessionCookieName } =
-    await loadSession()
-  state.revokeAllError = {
-    code: "PGRST202",
-    message:
-      "Could not find the function public.revoke_all_customer_sessions(p_customer_id) in the schema cache",
-  }
-
-  const outcome = await clearAllCustomerSessions()
-
-  assert.equal(outcome, "this_device")
-  assert.deepEqual(state.rpcs.at(-1), [
-    "revoke_customer_session",
-    { p_customer_id: CUSTOMER_ID, p_session_id: SESSION_ID },
-  ])
-  assert.equal(state.cookies.has(customerSessionCookieName), false)
-  assert.deepEqual(
-    state.warnings.map(([message]) => message),
-    ["customer_log_out_all_devices_unavailable"]
-  )
-})
-
-test("Given any other revoke-all failure When the customer logs out on all devices Then it fails loudly and keeps the session, as before", async () => {
-  const { clearAllCustomerSessions, state, customerSessionCookieName } =
-    await loadSession()
-  state.revokeAllError = { code: "57014", message: "canceling statement" }
-
-  await assert.rejects(
-    () => clearAllCustomerSessions(),
-    /Unable to revoke customer sessions: canceling statement/
-  )
-  assert.ok(!rpcNames(state).includes("revoke_customer_session"))
   assert.equal(state.cookies.has(customerSessionCookieName), true)
+  for (const name of SIGNED_OUT_EMAIL_COOKIES) {
+    assert.equal(state.cookies.has(name), false, `${name} is cleared`)
+  }
+})
+
+test("Given the email fallback was opened When the customer logs out Then the next person on the browser does not inherit it", async () => {
+  const { clearCustomerSession, state, customerSessionCookieName } =
+    await loadSession()
+  withSignedOutEmailCookies(state)
+
+  await clearCustomerSession()
+
+  assert.equal(state.cookies.has(customerSessionCookieName), false)
+  for (const name of SIGNED_OUT_EMAIL_COOKIES) {
+    assert.equal(state.cookies.has(name), false, `${name} is cleared`)
+  }
+})
+
+test("Given the email fallback was opened When the customer logs out on all devices Then it is cleared too", async () => {
+  const { clearAllCustomerSessions, state } = await loadSession()
+  withSignedOutEmailCookies(state)
+
+  assert.equal(await clearAllCustomerSessions(), "all_devices")
+
+  for (const name of SIGNED_OUT_EMAIL_COOKIES) {
+    assert.equal(state.cookies.has(name), false, `${name} is cleared`)
+  }
 })

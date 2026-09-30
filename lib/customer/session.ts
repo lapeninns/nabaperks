@@ -6,6 +6,7 @@ import { cache } from "react"
 
 import { cookies, headers } from "next/headers"
 
+import { EMAIL_FALLBACK_COOKIE_NAME } from "@/lib/customer/email-fallback-core"
 import {
   PENDING_EMAIL_SIGN_IN_COOKIE_NAME,
   VERIFIED_EMAIL_HANDOFF_COOKIE_NAME,
@@ -239,6 +240,9 @@ function clearSignedOutEmailSignIn(
 ): void {
   cookieStore.delete(PENDING_EMAIL_SIGN_IN_COOKIE_NAME)
   cookieStore.delete(VERIFIED_EMAIL_HANDOFF_COOKIE_NAME)
+  // The fallback record says "email is already open on this browser"; left
+  // behind, it would open email early for the next person (QA BUG-053).
+  cookieStore.delete(EMAIL_FALLBACK_COOKIE_NAME)
 }
 
 export type ResolvedCustomerSession = {
