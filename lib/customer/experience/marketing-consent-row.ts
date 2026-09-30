@@ -16,8 +16,97 @@
  * A row only reacts to an action result addressed to its own channel; another
  * channel's result is ignored and the standing value holds. Empty message = say
  * nothing, so the live region is silent on mount and while a save is in flight.
+ *
+ * Which channels a wallet may choose is decided here too, so the profile shows
+ * only the toggles the server accepts: a verified phone for text and WhatsApp,
+ * a verified email for email, and a venue membership to record the choice
+ * against (QA BUG-033, BUG-034, BUG-035).
  */
 import type { MarketingChannel } from "@/lib/customer/consent"
+
+export type MarketingConsentEligibility = {
+  hasVerifiedPhone: boolean
+  hasVerifiedEmail: boolean
+  membershipCount: number
+}
+
+/** Why a marketing change was not recorded. */
+export type MarketingConsentRefusal =
+  "needs_verified_phone" | "needs_verified_email" | "no_memberships"
+
+export type DisplayMarketingChannel = Exclude<MarketingChannel, "push">
+
+/**
+ * The server rule for one toggle. Opting out of a channel is always allowed
+ * while the wallet has a venue; opting in needs the verified contact for that
+ * channel. Consent is recorded per venue membership, so a wallet with none has
+ * nowhere to record it.
+ */
+export function marketingConsentRefusal({
+  channel,
+  optedIn,
+  eligibility,
+}: {
+  channel: MarketingChannel
+  optedIn: boolean
+  eligibility: MarketingConsentEligibility
+}): MarketingConsentRefusal | null {
+  if (eligibility.membershipCount < 1) return "no_memberships"
+  if (!optedIn) return null
+  if (
+    (channel === "sms" || channel === "whatsapp") &&
+    !eligibility.hasVerifiedPhone
+  ) {
+    return "needs_verified_phone"
+  }
+  if (channel === "email" && !eligibility.hasVerifiedEmail) {
+    return "needs_verified_email"
+  }
+  return null
+}
+
+export const MARKETING_CONSENT_REFUSAL_NOTICE: Record<
+  MarketingConsentRefusal,
+  string
+> = {
+  needs_verified_phone:
+    "Add a phone number first to get offers by text or WhatsApp.",
+  needs_verified_email: "Confirm your email first to get offers by email.",
+  no_memberships:
+    "Join a venue first. You choose updates when you join and can change them here afterwards.",
+}
+
+/**
+ * The toggles the profile offers. Unknown eligibility (null fields) keeps the
+ * toggle, and the server still refuses what the wallet cannot choose.
+ */
+export function marketingConsentChannels({
+  hasVerifiedPhone,
+  hasVerifiedEmail,
+  membershipCount,
+}: {
+  hasVerifiedPhone: boolean
+  hasVerifiedEmail: boolean | null
+  membershipCount: number | null
+}): { channels: DisplayMarketingChannel[]; notice: string | null } {
+  if (membershipCount === 0) {
+    return {
+      channels: [],
+      notice: MARKETING_CONSENT_REFUSAL_NOTICE.no_memberships,
+    }
+  }
+  const channels: DisplayMarketingChannel[] = []
+  if (hasVerifiedEmail !== false) channels.push("email")
+  if (hasVerifiedPhone) channels.push("sms", "whatsapp")
+  if (channels.length === 0) {
+    return {
+      channels,
+      notice:
+        "Confirm your email or add a phone number to choose updates from your venues.",
+    }
+  }
+  return { channels, notice: null }
+}
 
 export type MarketingConsentRowState = {
   /** Whether this channel's action result is for me. */
@@ -35,6 +124,8 @@ export type MarketingConsentRowState = {
     channel?: MarketingChannel
     optedIn?: boolean
     error?: string
+    /** Why the change was not recorded. */
+    refusal?: MarketingConsentRefusal
   }
 }
 
@@ -59,6 +150,12 @@ export function marketingConsentRowState({
 
   if (pending || !isMine) return { checked, message: "" }
 
+  if (state.refusal) {
+    return {
+      checked,
+      message: MARKETING_CONSENT_REFUSAL_NOTICE[state.refusal] ?? "",
+    }
+  }
   if (state.error) return { checked, message: "Couldn't save — try again" }
   if (typeof state.optedIn === "boolean") return { checked, message: "Saved" }
   return { checked, message: "" }

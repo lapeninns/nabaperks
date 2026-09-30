@@ -115,8 +115,9 @@ test("Given the profile When the wallet has no phone Then it offers to add one a
   assert.match(page, /hasPhone=\{hasPhone\}/)
   assert.match(page, /\{hasPhone \? \(\s*<PhoneMessagingSettings/)
 
-  // Text and WhatsApp marketing need a phone, in the action and at the lib
-  // boundary, because the consent RPC accepts any channel.
+  // Text and WhatsApp marketing need a verified phone (QA BUG-033). The
+  // consent RPC accepts any channel, so the lib decides before calling it and
+  // the action reports the refusal instead of claiming the change was saved.
   const profileActions = read(
     "app",
     "home",
@@ -126,12 +127,13 @@ test("Given the profile When the wallet has no phone Then it offers to add one a
   )
   assert.match(
     profileActions,
-    /optedIn && PHONE_MARKETING_CHANNELS\.has\(channel\)[\s\S]{0,160}customer\?\.phoneLast4/
+    /refusal = await updateCustomerMarketingConsent\(\{ channel, optedIn \}\)[\s\S]{0,200}if \(refusal\) \{\s*return \{ channel, optedIn: !optedIn, refusal \}/
   )
   const consent = read("lib", "customer", "consent.ts")
+  assert.match(consent, /customerHasVerifiedPhone\(customer\.id\)/)
   assert.match(
     consent,
-    /optedIn &&\s*PHONE_MARKETING_CHANNELS\.has\(channel\) &&\s*!customer\.phoneLast4/
+    /const refusal = marketingConsentRefusal\([\s\S]{0,160}if \(refusal\) return refusal[\s\S]{0,120}record_customer_marketing_consent/
   )
 })
 
