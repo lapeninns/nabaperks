@@ -3,7 +3,7 @@
 import type { ComponentPropsWithoutRef } from "react"
 
 import {
-  normalizeOtpInput,
+  otpFieldDigits,
   otpFieldMaxLength,
 } from "@/lib/customer/experience/otp-field"
 
@@ -18,9 +18,13 @@ import {
  * there and silently rejected by the server on the other two (02#53).
  *
  * The normalisation is the whole point of the component, so it is not
- * optional. `maxLength` is the server-accepted cap from `otpFieldMaxLength`
- * rather than a hardcoded 6, and the truncation is applied to the normalised
- * digits so pasting a formatted code cannot lose its tail to a space.
+ * optional. The cap is the server-accepted length from `otpFieldMaxLength`
+ * rather than a hardcoded 6, and it is applied to the extracted digits, not
+ * as a `maxlength` attribute: the browser truncates pasted text to
+ * `maxlength` before `input` fires, so "Code: 123456" became "Code: 12" and
+ * a longer message became nothing (QA BUG-050). `otpFieldDigits` takes the
+ * code out of a pasted message with the same `normalizeOtpInput` the server
+ * applies, then caps it.
  *
  * Presentation stays with the caller: `className` carries whichever input
  * class that surface already uses, because the profile gate's field sits on a
@@ -46,13 +50,9 @@ export function CustomerOtpInput({
       {...rest}
       inputMode="numeric"
       autoComplete="one-time-code"
-      maxLength={maxLength}
       className={className}
       onInput={(event) => {
-        const digits = normalizeOtpInput(event.currentTarget.value).slice(
-          0,
-          maxLength
-        )
+        const digits = otpFieldDigits(event.currentTarget.value, maxLength)
         if (event.currentTarget.value !== digits) {
           event.currentTarget.value = digits
         }
