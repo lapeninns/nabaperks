@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 
 import {
   resendProfileEmailAction,
@@ -27,22 +27,72 @@ export function CustomerProfileGateForm({
   rewardId: string
   gate: ProfileGate
 }) {
-  if (collectionSetup(gate).stage === "phone") {
+  const stage = collectionSetup(gate).stage
+  // Owned here, not by the code step: a refused (conflict) confirmation
+  // releases the address, so the re-rendered gate returns to the details step
+  // and the code step unmounts. Its answer must outlive that (QA BUG-005).
+  const [verifyState, verifyAction, verifyPending] = useActionState(
+    verifyProfileEmailAction,
+    initialState
+  )
+  const freshVerifyState = useFreshVerifyState(verifyState, stage === "email")
+
+  if (stage === "phone") {
     return <CustomerProfileAddPhone action={rewardPhoneAction} />
   }
-  if (collectionSetup(gate).stage === "email") {
-    return <ProfileEmailStep rewardId={rewardId} email={gate.email} />
+  if (stage === "email") {
+    return (
+      <ProfileEmailStep
+        rewardId={rewardId}
+        email={gate.email}
+        verify={[freshVerifyState, verifyAction, verifyPending]}
+      />
+    )
   }
 
-  return <ProfileDetailsStep rewardId={rewardId} gate={gate} />
+  return (
+    <ProfileDetailsStep
+      rewardId={rewardId}
+      gate={gate}
+      emailNotConfirmed={freshVerifyState.errors?.form}
+    />
+  )
+}
+
+type VerifyActionState = [
+  ProfileGateActionState,
+  (payload: FormData) => void,
+  boolean,
+]
+
+/**
+ * The last confirmation answer, until a new code step opens: a code sent for
+ * another address must not show the previous address's refusal.
+ */
+function useFreshVerifyState(
+  state: ProfileGateActionState,
+  codeStepOpen: boolean
+): ProfileGateActionState {
+  const [staleState, setStaleState] = useState<ProfileGateActionState | null>(
+    null
+  )
+  const [prevCodeStepOpen, setPrevCodeStepOpen] = useState(codeStepOpen)
+  if (codeStepOpen !== prevCodeStepOpen) {
+    setPrevCodeStepOpen(codeStepOpen)
+    if (codeStepOpen) setStaleState(state)
+  }
+  return state === staleState ? initialState : state
 }
 
 function ProfileDetailsStep({
   rewardId,
   gate,
+  emailNotConfirmed,
 }: {
   rewardId: string
   gate: ProfileGate
+  /** Why the last emailed code did not confirm the address, if it did not. */
+  emailNotConfirmed?: string
 }) {
   const [state, action, pending] = useActionState(
     saveProfileForRedeemAction,
@@ -63,6 +113,12 @@ function ProfileDetailsStep({
           ? null
           : " A verified email is also required. We'll send a one-time code to confirm your address."}
       </p>
+
+      {emailNotConfirmed ? (
+        <StatusBanner tone="warning" title="Email not confirmed">
+          {emailNotConfirmed}
+        </StatusBanner>
+      ) : null}
 
       <Field
         label="Full name"
@@ -129,14 +185,13 @@ function ProfileDetailsStep({
 function ProfileEmailStep({
   rewardId,
   email,
+  verify,
 }: {
   rewardId: string
   email: string | null
+  verify: VerifyActionState
 }) {
-  const [state, action, pending] = useActionState(
-    verifyProfileEmailAction,
-    initialState
-  )
+  const [state, action, pending] = verify
   const [resendState, resendAction, resendPending] = useActionState(
     resendProfileEmailAction,
     initialState

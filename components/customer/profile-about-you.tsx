@@ -72,6 +72,17 @@ export function CustomerProfileAboutYou({
     saveHomeProfileAction,
     initialState
   )
+  // Owned here, not by the code step: a refused (conflict) confirmation
+  // releases the address, so the re-rendered card leaves verify and the code
+  // step unmounts. Its answer must outlive that (QA BUG-005).
+  const [verifyState, verifyAction, verifyPending] = useActionState(
+    verifyHomeProfileEmailAction,
+    initialState
+  )
+  const freshVerifyState = useFreshVerifyState(
+    verifyState,
+    serverMode === "verify"
+  )
 
   // Reconcile mode without effects, via the "compare to the previous render"
   // pattern (https://react.dev/reference/react/useState#storing-information-from-previous-renders).
@@ -112,7 +123,17 @@ export function CustomerProfileAboutYou({
         />
       ) : null}
 
-      {mode === "verify" ? <AboutYouEmailVerify email={profile.email} /> : null}
+      {mode !== "verify" && freshVerifyState.errors?.form ? (
+        <StatusBanner tone="warning" title="Email not confirmed">
+          {freshVerifyState.errors.form}
+        </StatusBanner>
+      ) : null}
+      {mode === "verify" ? (
+        <AboutYouEmailVerify
+          email={profile.email}
+          verify={[freshVerifyState, verifyAction, verifyPending]}
+        />
+      ) : null}
       {addPhone}
     </section>
   )
@@ -235,15 +256,41 @@ function AboutYouEditForm({
   )
 }
 
-function AboutYouEmailVerify({ email }: { email: string | null }) {
+type VerifyActionState = [
+  ProfileEditState,
+  (payload: FormData) => void,
+  boolean,
+]
+
+/**
+ * The last confirmation answer, until a new code step opens: a code sent for
+ * another address must not show the previous address's refusal.
+ */
+function useFreshVerifyState(
+  state: ProfileEditState,
+  codeStepOpen: boolean
+): ProfileEditState {
+  const [staleState, setStaleState] = useState<ProfileEditState | null>(null)
+  const [prevCodeStepOpen, setPrevCodeStepOpen] = useState(codeStepOpen)
+  if (codeStepOpen !== prevCodeStepOpen) {
+    setPrevCodeStepOpen(codeStepOpen)
+    if (codeStepOpen) setStaleState(state)
+  }
+  return state === staleState ? initialState : state
+}
+
+function AboutYouEmailVerify({
+  email,
+  verify,
+}: {
+  email: string | null
+  verify: VerifyActionState
+}) {
   const [resendState, resendAction, resendPending] = useActionState(
     resendHomeProfileEmailAction,
     initialState
   )
-  const [state, action, pending] = useActionState(
-    verifyHomeProfileEmailAction,
-    initialState
-  )
+  const [state, action, pending] = verify
 
   return (
     <div className="grid gap-3">
