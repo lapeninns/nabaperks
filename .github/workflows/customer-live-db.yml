@@ -102,6 +102,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ runner.temp }}/customer-live-db-full.json
         run: >-
           pnpm test:e2e
+          tests/e2e/customer-email-confirmation-states-live-db.spec.ts
           tests/e2e/customer-email-conflict-copy-live-db.spec.ts
           tests/e2e/customer-email-prompt-live-db.spec.ts
           tests/e2e/customer-join-direct-live-db.spec.ts
