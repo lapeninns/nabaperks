@@ -320,6 +320,13 @@ export async function signOutCustomerAction() {
 }
 
 export async function signOutAllCustomerDevicesAction() {
-  await clearAllCustomerSessions()
-  redirect("/home/login")
+  const scope = await clearAllCustomerSessions()
+  // Only this browser was signed out when the revoke-all migration is not
+  // live yet: the login page says so rather than implying every device was
+  // (QA BUG-012).
+  redirect(
+    scope === "this_device"
+      ? "/home/login?signed_out=this_device"
+      : "/home/login"
+  )
 }
