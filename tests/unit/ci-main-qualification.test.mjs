@@ -71,7 +71,7 @@ function evidenceFor(plan) {
   }
 }
 
-test("exact-main requires all nine roots without activating frozen future proposals; PRs still qualify selection changes", (t) => {
+test("exact-main requires all nine roots without activating frozen future proposals; PRs changing CI inputs run every workload", (t) => {
   const f = fixture(t)
   const paths = [
     "pnpm-lock.yaml",
@@ -110,7 +110,10 @@ test("exact-main requires all nine roots without activating frozen future propos
   git(["checkout", "--detach", "-q", baseSha], f)
   for (const repository of [env.CI_HEAD_REPOSITORY, "external/fork"]) {
     const pr = planChecks({ ...env, CI_HEAD_REPOSITORY: repository }, f)
-    assert.equal(pr.comparisonRequired, true)
+    // CI-input changes run every workload; they no longer demand an exact
+    // staged-tree comparison (docs/decisions/ci-qualification-replacement.md).
+    assert.equal(pr.comparisonRequired, false)
+    assert.equal(pr.qualificationPages, undefined)
     assert.equal(pr.profile, "full")
     assert.deepEqual(pr.required, FULL_WORKLOADS)
   }

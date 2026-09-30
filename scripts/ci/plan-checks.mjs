@@ -2,7 +2,6 @@ import { appendFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 import { calculateImpact } from "./change-impact.mjs"
 import { git, requireCommit } from "./impact-git.mjs"
-import { candidateQualificationPages } from "./impact-qualification-scope.mjs"
 import { comparisonDependencies } from "./impact-dependencies.mjs"
 import {
   expectedIdentity,
@@ -66,6 +65,15 @@ export function planChecks(env, { cwd } = {}) {
         "Pull request merge candidate does not match its base and head"
       )
   }
+  // A change to CI inputs (the workflow, selection policy, verifier closure,
+  // browser harness or dependency graph) always runs every workload. It no
+  // longer also requires a targeted/full comparison against an exact staged
+  // tree: that comparison bound only candidates that kept invoking it, never
+  // proved coverage equivalence (one agreement sample per PR), and could not
+  // be met by ordinary dependency PRs, which were then merged past a failed
+  // Release gate. Code-owner review (CODEOWNERS `*`, enforced by the main
+  // ruleset) is the binding control for CI-input changes. See
+  // docs/decisions/ci-qualification-replacement.md.
   let impact
   try {
     impact = calculateImpact(identity.baseSha, identity.candidateSha, { cwd })
@@ -73,21 +81,19 @@ export function planChecks(env, { cwd } = {}) {
     return fullPlan(
       identity,
       "Change inventory unavailable; all checks remain required",
-      identity.event === "pull_request"
+      false
     )
   }
-  let comparisonRequired
+  let ciInputsChanged
   try {
-    // Qualification grants future PR selection authority from a reviewed base.
-    // Main already executes all nine workloads from its reviewed revision;
-    // replaying inert future proposals there does not establish release proof.
-    comparisonRequired =
+    ciInputsChanged =
       identity.event === "pull_request" &&
       impact.changes.some((change) => needsSelectionComparison(change.path))
   } catch {
     return fullPlan(
       identity,
-      "Comparison dependencies unavailable; complete validation and comparison required"
+      "CI input dependencies unavailable; complete validation required",
+      false
     )
   }
   let profile = impact.profile
@@ -97,11 +103,11 @@ export function planChecks(env, { cwd } = {}) {
     reason = "Exact-main release qualification always runs every workload"
   } else if (
     env.CI_HEAD_REPOSITORY !== identity.repository ||
-    comparisonRequired
+    ciInputsChanged
   ) {
     profile = "full"
-    reason = comparisonRequired
-      ? "CI selection changes require full and targeted comparison"
+    reason = ciInputsChanged
+      ? "CI input changes require every workload and code-owner review"
       : "Fork changes retain full hosted validation"
   }
   const plan = {
@@ -110,15 +116,10 @@ export function planChecks(env, { cwd } = {}) {
     ...impact,
     profile,
     reason,
-    comparisonRequired,
+    comparisonRequired: false,
     pages: profile === "public-pages" ? impact.pages : [],
     required: profile === "full" ? [...FULL_WORKLOADS] : impact.required,
   }
-  if (comparisonRequired)
-    plan.qualificationPages = candidateQualificationPages(
-      identity.candidateSha,
-      { cwd }
-    )
   return validatePlan(plan, identity)
 }
 

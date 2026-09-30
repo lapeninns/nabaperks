@@ -379,7 +379,6 @@ test("Given hosted release configuration When release controls are inspected The
     commands.fast.map((command) => command.slice(0, 2)),
     [
       ["pnpm", "env:check:production"],
-      ["pnpm", "security:audit"],
       ["pnpm", "lint"],
       ["pnpm", "typecheck"],
       ["pnpm", "test:contracts"],
@@ -393,10 +392,17 @@ test("Given hosted release configuration When release controls are inspected The
     envCheckIndex < lintIndex,
     "CI must validate the environment before repository gates"
   )
-  assert.ok(
-    commands.fast.findIndex((command) => command[1] === "security:audit") <
-      lintIndex
+  // The full-inventory audit gates main releases, fail-closed, rather than
+  // every pull request (docs/operations/dependency-vulnerability-policy.md).
+  assert.deepEqual(commands.audit, [
+    ["node", "scripts/ci/dependency-audit.mjs"],
+  ])
+  const fastJob = ci.slice(ci.indexOf("\n  fast:"), ci.indexOf("\n  quality:"))
+  assert.match(
+    fastJob,
+    /- name: Audit the full dependency inventory before release\n        if: \$\{\{ github\.event_name == 'push' \}\}\n        run: node scripts\/ci\/run-workload\.mjs audit\n/
   )
+  assert.doesNotMatch(JSON.stringify(commands), /ignore-registry-errors/)
 })
 
 test("Given the CI fast job When VAPID fixtures are configured Then a generator runs before production validation", () => {
