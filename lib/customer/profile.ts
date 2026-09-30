@@ -155,14 +155,15 @@ type ServiceRoleClient = ReturnType<typeof createSupabaseServiceRoleClient>
  * email: when another customer already holds this verified email, this
  * customer ends up without it and the caller receives `conflict`.
  *
- * Three checks hold that rule until the database index does on its own: the
- * pre-check covers today's data, the unique-violation catch covers the index,
- * and a re-check after the write covers two confirmations of the same address
- * racing between the pre-check and the write (see
- * {@link withdrawRacedConfirmation}). On a conflict an unverified copy of the
- * address is also released from this profile (see
- * {@link releaseConflictingEmail}). A confirmation that stands is recorded in
- * `audit_logs` before this returns; a withdrawn one records none.
+ * The pre-check gives the common case its answer before any write. Two
+ * confirmations of the same address racing past it are separated by the
+ * verified-email unique indexes (20261006100000, guaranteed by its pre-flight):
+ * the losing write fails with 23505, mapped to `conflict` here. There is no
+ * post-write withdrawal: `prevent_verified_customer_contact_change` locks a
+ * verified email for every caller, so it could never succeed (QA BUG-014).
+ * On a conflict an unverified copy of the address is also released from this
+ * profile (see {@link releaseConflictingEmail}). A confirmation is recorded
+ * in `audit_logs` before this returns.
  */
 export async function markCustomerEmailVerified(
   email: string,
@@ -200,13 +201,12 @@ export async function markCustomerEmailVerified(
     return conflict()
   }
 
-  const verifiedAt = new Date().toISOString()
   const update = locked
     ? { email_hmac: emailHmac }
     : {
         email: verifiedEmail,
         email_hmac: emailHmac,
-        email_verified_at: verifiedAt,
+        email_verified_at: new Date().toISOString(),
       }
   const { error } = await supabase
     .from("customers")
@@ -215,19 +215,6 @@ export async function markCustomerEmailVerified(
 
   if (error?.code === UNIQUE_VIOLATION) return conflict()
   if (error) throw new Error(`Unable to confirm email: ${error.message}`)
-
-  if (
-    !locked &&
-    (await verifiedEmailHeldByAnotherCustomer(supabase, customer.id, emailHmac))
-  ) {
-    await withdrawRacedConfirmation(supabase, {
-      customerId: customer.id,
-      previousEmail: customer.email,
-      previousVerifiedAt: customer.emailVerifiedAt,
-      verifiedAt,
-    })
-    return conflict()
-  }
 
   await recordCustomerEmailAudit(supabase, {
     customerId: customer.id,
@@ -257,53 +244,6 @@ async function verifiedEmailHeldByAnotherCustomer(
 
   if (error) throw new Error(`Unable to check email: ${error.message}`)
   return (data ?? []).length > 0
-}
-
-/**
- * Undoes this call's own confirmation after the post-write re-check found
- * another verified holder of the same address.
- *
- * Why this is fail-closed without a transaction: every confirmation writes its
- * row first and re-checks second, each as its own committed statement. For two
- * racers A and B to both miss each other, A's re-check would have to run
- * before B's write and B's re-check before A's write, which cannot happen
- * because each writes before it re-checks. So at least one racer sees the
- * other. Both may see each other and both withdraw (both guests get
- * `conflict` and can try again); what cannot remain is two wallets holding the
- * same verified email. The unique index from the follow-up migration makes
- * this re-check redundant once it ships.
- *
- * Only what this call set is reverted: the guard on `email_verified_at` skips
- * the write if anything has replaced this confirmation since. No
- * `customer_email_verified` audit row was written, so none needs undoing. A
- * failed withdrawal is thrown rather than reported as a conflict, because the
- * duplicate would then still stand.
- */
-async function withdrawRacedConfirmation(
-  supabase: ServiceRoleClient,
-  input: {
-    readonly customerId: string
-    readonly previousEmail: string | null
-    readonly previousVerifiedAt: string | null
-    readonly verifiedAt: string
-  }
-): Promise<void> {
-  const { error } = await supabase
-    .from("customers")
-    .update({
-      email: input.previousEmail,
-      email_hmac: null,
-      email_verified_at: input.previousVerifiedAt,
-    })
-    .eq("id", input.customerId)
-    .eq("email_verified_at", input.verifiedAt)
-
-  if (error) {
-    logger.error("customer_email_confirmation_withdraw_failed", {
-      code: error.code,
-    })
-    throw new Error(`Unable to withdraw email confirmation: ${error.message}`)
-  }
 }
 
 /**

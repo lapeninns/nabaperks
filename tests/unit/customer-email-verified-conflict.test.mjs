@@ -6,9 +6,9 @@ import { build } from "esbuild"
  * One wallet per verified email. `markCustomerEmailVerified` refuses to confirm
  * an address another customer already holds as verified — by a pre-check on
  * the verified `email_hmac`, by catching the unique violation (23505) that the
- * database index raises, and by re-checking after its own write so two racing
- * confirmations cannot both stand. Either way this customer is left without
- * the address verified, and the caller receives `conflict`.
+ * database indexes raise, which is also what separates two racing
+ * confirmations. Either way this customer is left without the address
+ * verified, and the caller receives `conflict`.
  */
 // The guarded write that releases a refused, still-unverified address, and
 // only while the profile keeps a phone (customers_contact_present).
@@ -214,9 +214,8 @@ test("Given the email is free When the code is confirmed Then it is verified wit
   )
 
   assert.deepEqual(result, { status: "verified" })
-  // Pre-check and post-write re-check both ran and found no other holder.
-  assert.equal(profile.state.queries.length, 2)
-  assert.deepEqual(profile.state.queries[1], profile.state.queries[0])
+  // Only the pre-check runs; the unique indexes guard the write itself.
+  assert.equal(profile.state.queries.length, 1)
   assert.equal(profile.state.updates.length, 1)
   const [update, eq] = profile.state.updates[0]
   assert.equal(update[0], "update")
@@ -254,7 +253,7 @@ test("Given a locked email with a stale HMAC When it is re-confirmed Then only t
     "update",
     { email_hmac: "hmac:kept@example.test" },
   ])
-  // Nothing newly verified, so no post-write re-check.
+  // Nothing newly verified.
   assert.equal(profile.state.queries.length, 1)
   assert.equal(profile.state.afterCalls, 0)
   assert.deepEqual(profile.state.audits[0].metadata, {
@@ -366,79 +365,6 @@ test("Given a verified email When another address is offered Then the verified e
   )
 })
 
-test("Given a racing confirmation of the same address When the post-write re-check finds another holder Then this confirmation is withdrawn and the result is conflict", async () => {
-  const profile = await loadProfile()
-  profile.state.customer = {
-    id: "customer-a",
-    email: "guest@example.test",
-    emailVerifiedAt: null,
-  }
-  // Free at the pre-check; held by the other racer at the re-check.
-  profile.state.holderResults = [false, true]
-
-  const result = await profile.markCustomerEmailVerified(
-    "guest@example.test",
-    "home_prompt"
-  )
-
-  assert.deepEqual(result, { status: "conflict" })
-  assert.equal(profile.state.queries.length, 2)
-  const [confirm, withdraw, release] = profile.state.updates
-  const verifiedAt = confirm[0][1].email_verified_at
-  assert.match(verifiedAt, /^\d{4}-\d{2}-\d{2}T/)
-  // Only this call's own confirmation is undone, back to the earlier state.
-  assert.deepEqual(withdraw, [
-    [
-      "update",
-      {
-        email: "guest@example.test",
-        email_hmac: null,
-        email_verified_at: null,
-      },
-    ],
-    ["eq", "id", "customer-a"],
-    ["eq", "email_verified_at", verifiedAt],
-  ])
-  assert.deepEqual(release, RELEASE_OPS)
-  // No verified row for a withdrawn confirmation, and no invite attachment.
-  assert.deepEqual(profile.state.audits, [])
-  assert.equal(profile.state.afterCalls, 0)
-})
-
-test("Given the post-write re-check is clean When the code is confirmed Then it stays verified and is audited once", async () => {
-  const profile = await loadProfile()
-  profile.state.holderResults = [false, false]
-
-  const result = await profile.markCustomerEmailVerified(
-    "guest@example.test",
-    "stamp_prompt"
-  )
-
-  assert.deepEqual(result, { status: "verified" })
-  assert.equal(profile.state.queries.length, 2)
-  assert.equal(profile.state.updates.length, 1)
-  assert.deepEqual(
-    profile.state.audits.map((row) => [row.action, row.metadata]),
-    [["customer_email_verified", { surface: "stamp_prompt" }]]
-  )
-  assert.equal(profile.state.afterCalls, 1)
-})
-
-test("Given the withdrawal itself fails When the re-check finds another holder Then it throws rather than claim a conflict over a standing duplicate", async () => {
-  const profile = await loadProfile()
-  profile.state.holderResults = [false, true]
-  profile.state.laterUpdateErrors = [{ code: "57014", message: "timeout" }]
-
-  await assert.rejects(
-    profile.markCustomerEmailVerified("guest@example.test"),
-    /Unable to withdraw email confirmation/
-  )
-  assert.deepEqual(profile.state.audits, [])
-  assert.deepEqual(profile.state.logs, [
-    ["customer_email_confirmation_withdraw_failed", { code: "57014" }],
-  ])
-})
-
 test("Given a conflict and a profile that keeps a phone When the refused address is released Then the clearing is audited without contact data", async () => {
   const profile = await loadProfile()
   profile.state.customer = {
@@ -498,5 +424,63 @@ test("Given a locked email and another holder When it is re-confirmed Then the v
 
   assert.deepEqual(result, { status: "conflict" })
   assert.deepEqual(profile.state.updates, [])
+  assert.deepEqual(profile.state.audits, [])
+})
+
+// QA BUG-014 (38c42a1..2c45031): the verified-email unique indexes separate
+// two racing confirmations. A post-write re-check could only lead to a
+// withdrawal that `prevent_verified_customer_contact_change` always refuses,
+// so the app no longer re-checks or attempts a second write.
+test("Given the confirmation write succeeds When another holder appears only afterwards Then no re-check or withdrawal write is attempted", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "guest@example.test",
+    emailVerifiedAt: null,
+  }
+  profile.state.holderResults = [false, true]
+
+  const result = await profile.markCustomerEmailVerified(
+    "guest@example.test",
+    "profile"
+  )
+
+  assert.deepEqual(result, { status: "verified" })
+  assert.equal(profile.state.queries.length, 1)
+  assert.equal(profile.state.updates.length, 1)
+  assert.deepEqual(
+    profile.state.audits.map((row) => row.action),
+    ["customer_email_verified"]
+  )
+})
+
+test("Given the raced confirmation write raises 23505 When the code is confirmed Then it is a conflict and only the guarded release follows", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "guest@example.test",
+    emailVerifiedAt: null,
+  }
+  profile.state.updateError = {
+    code: "23505",
+    message:
+      'duplicate key value violates unique constraint "customers_verified_email_hmac_unique_idx"',
+  }
+
+  const result = await profile.markCustomerEmailVerified(
+    "guest@example.test",
+    "reward_gate"
+  )
+
+  assert.deepEqual(result, { status: "conflict" })
+  assert.equal(profile.state.queries.length, 1)
+  assert.equal(profile.state.updates.length, 2)
+  assert.deepEqual(profile.state.updates[1], RELEASE_OPS)
+  // Nothing ever writes email_verified_at back on a row this call verified.
+  for (const ops of profile.state.updates) {
+    assert.ok(
+      !ops.some(([op, column]) => op === "eq" && column === "email_verified_at")
+    )
+  }
   assert.deepEqual(profile.state.audits, [])
 })
