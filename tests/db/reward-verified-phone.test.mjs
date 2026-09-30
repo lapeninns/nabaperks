@@ -15,22 +15,30 @@ const skip = (await isLiveDbReady()) ? false : "local Supabase is not available"
 const PHONE_REASON = "Complete your profile before redeeming"
 
 test(
-  "Given the compatibility migration When the older app collects for an email-only wallet Then the database still permits collection",
+  "Given the activation migration When an older app mints for an email-only wallet Then the database refuses collection",
   { skip },
   async () => {
     await inVerificationTxn(async (tx) => {
       const [activation] =
         await tx`select private.reward_phone_verification_required() as enabled`
-      assert.equal(activation.enabled, false)
+      assert.equal(activation.enabled, true)
       const f = await createIdCheckFixture(tx, "stamp_cycle", "v2")
       await setPhoneState(tx, f, "missing")
       await tx`update public.reward_events set reward_policy_snapshot = reward_policy_snapshot || jsonb_build_object('age_check', false) where id = ${f.rewardEventId}::uuid`
       const [state] =
-        await tx`select state from private.reward_collection_state(${f.rewardEventId}::uuid)`
-      assert.equal(state.state, "ready")
-      await asPostgrestRole(tx, "service_role", {}, async () => {
-        await tx`select * from public.create_reward_scan_token(${f.rewardEventId}::uuid, ${f.customerId}::uuid)`
-      })
+        await tx`select state, reason from private.reward_collection_state(${f.rewardEventId}::uuid)`
+      assert.deepEqual(state, { state: "blocked", reason: PHONE_REASON })
+      await assert.rejects(
+        () =>
+          asPostgrestRole(
+            tx,
+            "service_role",
+            {},
+            (sp) =>
+              sp`select * from public.create_reward_scan_token(${f.rewardEventId}::uuid, ${f.customerId}::uuid)`
+          ),
+        { message: PHONE_REASON }
+      )
     })
   }
 )

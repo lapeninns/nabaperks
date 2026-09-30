@@ -71,6 +71,12 @@ export async function enforceCustomerOtpSendRateLimit({
  * rejection by either rolls back the other's debit. The limits live in the
  * migration; the constants imported here feed only the one-release fallback
  * and are pinned to the SQL by contract test.
+ *
+ * The debit is a reservation: only a rejected code keeps it. Once the
+ * provider approves the code, the caller hands it back with
+ * {@link releaseCustomerOtpVerifyAdmission}, so correct codes never use up the
+ * limit (QA BUG-030). Reserving first keeps concurrent wrong guesses from
+ * overshooting the limit.
  */
 export async function enforceCustomerOtpVerifyRateLimit({
   phone,
@@ -109,4 +115,36 @@ export async function enforceCustomerOtpVerifyRateLimit({
   throw new Error(
     `Unable to enforce customer OTP verify admission: ${error.message}`
   )
+}
+
+/**
+ * Give back the attempt {@link enforceCustomerOtpVerifyRateLimit} reserved,
+ * once the provider has APPROVED the code. Rejected codes and provider
+ * outages keep their debit. Best effort: a failed release never blocks the
+ * sign-in it follows (the attempt simply stays counted, as it did before), and
+ * a database without `release_customer_otp_verify` yet keeps that behaviour.
+ */
+export async function releaseCustomerOtpVerifyAdmission({
+  phone,
+  requestIdentity,
+}: CustomerOtpRateLimitInput): Promise<void> {
+  try {
+    const supabase = createSupabaseServiceRoleClient()
+    const { error } = await supabase.rpc("release_customer_otp_verify", {
+      p_phone_bucket: rateLimitBucketHash(
+        customerOtpVerifyPhoneRateLimitKey(phone)
+      ),
+      p_identity_bucket: rateLimitBucketHash(
+        customerOtpVerifyIdentityRateLimitKey(requestIdentity)
+      ),
+    })
+    if (!error || isMissingRpcError(error)) return
+    logger.warn("customer_otp_verify_release_failed", {
+      reason: "rpc_error",
+    })
+  } catch {
+    logger.warn("customer_otp_verify_release_failed", {
+      reason: "unavailable",
+    })
+  }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useReducer, useRef, useState } from "react"
+import { useEffect, useReducer, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 
 import {
@@ -62,6 +62,34 @@ export type StampCollectorProps = {
   /** The venue-code fallback submitter; injectable for the DB-free harness. */
   submitVenueCode?: StampSubmitter
   refreshCard?: () => void
+  /**
+   * Shown below the card once the server has confirmed a stamp on this visit
+   * (the compact "Add your email" prompt), never before it. Kept inside the
+   * collector so it stays mounted across the refreshes that follow a stamp.
+   */
+  afterStamp?: ReactNode
+}
+
+/**
+ * The stamp dates the card shows. Once a stamp has landed, the card is the
+ * one that stamp landed on: a card-completing stamp opens the next cycle on
+ * the server, and the refresh that follows hands this screen that new, empty
+ * cycle. Its dates must not replace the completed card's, or every slot is
+ * filled with today's label (QA BUG-046). The server's dates for the card,
+ * as they were when the request went out, are kept until the live ones cover
+ * at least as many stamps.
+ */
+export function datesForStampView({
+  liveDates,
+  requestDates,
+  landed,
+}: {
+  liveDates: string[]
+  requestDates: string[] | null
+  landed: boolean
+}): string[] {
+  if (!landed || requestDates === null) return liveDates
+  return liveDates.length >= requestDates.length ? liveDates : requestDates
 }
 
 function markStampPhase(phase: string) {
@@ -119,6 +147,7 @@ export function StampCollector({
   submitStamp = selfStampAction,
   submitVenueCode = venueCodeStampAction,
   refreshCard,
+  afterStamp,
 }: StampCollectorProps) {
   const router = useRouter()
   const reduceMotion = useReducedMotionHook()
@@ -127,6 +156,8 @@ export function StampCollector({
     initialStampChoreographyState
   )
   const initialCurrentRef = useRef(current)
+  // The server's stamp dates for the card this visit's request stamps.
+  const [requestDates, setRequestDates] = useState<string[] | null>(null)
   // Whether this visit must confirm location. Decided from the server's
   // lifetime visit number; `current + 1` is only the DB-free harness fallback.
   const verificationRequired =
@@ -144,11 +175,18 @@ export function StampCollector({
   const [refusedWithoutFix, setRefusedWithoutFix] = useState(false)
   const recoveryCaptureRef = useRef<StampLocationCapture | null>(null)
   const refresh = refreshCard ?? router.refresh
+  // The server answered `issued` (or the readback found the stamp): only then
+  // does anything after the stamp appear.
+  const stampLanded = state.phase === "printing" || state.phase === "confirmed"
   const view = stampChoreographyView(state, {
     canStamp,
     current,
     total,
-    stampDates,
+    stampDates: datesForStampView({
+      liveDates: stampDates,
+      requestDates,
+      landed: stampLanded,
+    }),
     todayLabel,
     rewardUnlocked: authoritativeRewardUnlocked,
     verificationRequired,
@@ -246,6 +284,7 @@ export function StampCollector({
   async function issueStamp(capture: StampLocationCapture | null) {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
+    setRequestDates(stampDates)
     dispatch({ type: "request_started", current })
     markStampPhase("checking")
 
@@ -295,6 +334,7 @@ export function StampCollector({
   async function issueWithCode(code: string) {
     if (requestInFlightRef.current || view.secured || !canStamp) return
     requestInFlightRef.current = true
+    setRequestDates(stampDates)
     dispatch({ type: "request_started", current })
     markStampPhase("checking")
 
@@ -463,6 +503,9 @@ export function StampCollector({
           </div>
         }
       />
+      {afterStamp && stampLanded ? (
+        <div className="mt-5 short:mt-4">{afterStamp}</div>
+      ) : null}
     </div>
   )
 }

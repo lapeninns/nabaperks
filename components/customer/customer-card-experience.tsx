@@ -59,6 +59,7 @@ import type { OfferClaimNotice } from "@/lib/customer/offer-pass-view"
 import type {
   CustomerExperience,
   CustomerExperienceKind,
+  StampEmailPrompt,
 } from "@/lib/customer/experience/types"
 
 /**
@@ -83,12 +84,18 @@ export function CustomerCardExperience({
   offerPasses,
   offerClaimNotice,
   qrSrc,
+  stampEmailPrompt = null,
 }: {
   experience: CustomerExperience
   offerPasses: readonly CustomerOfferPass[]
   offerClaimNotice: OfferClaimNotice | null
   /** Harness-only reward QR source override; production never passes it. */
   qrSrc?: string
+  /**
+   * The stamp screen's server-loaded "Add your email" ask (null when the
+   * customer is not asked), shown once a stamp lands on this visit.
+   */
+  stampEmailPrompt?: StampEmailPrompt | null
 }) {
   const vm = getCustomerExperienceViewModel(experience)
 
@@ -113,6 +120,7 @@ export function CustomerCardExperience({
           offerPasses={offerPasses}
           offerClaimNotice={offerClaimNotice}
           qrSrc={qrSrc}
+          stampEmailPrompt={stampEmailPrompt}
         />
       </CustomerFlowShell>
       <CustomerTabBar />
@@ -126,12 +134,14 @@ function ExperiencePanel({
   offerPasses,
   offerClaimNotice,
   qrSrc,
+  stampEmailPrompt,
 }: {
   experience: CustomerExperience
   vm: CustomerExperienceViewModel
   offerPasses: readonly CustomerOfferPass[]
   offerClaimNotice: OfferClaimNotice | null
   qrSrc?: string
+  stampEmailPrompt: StampEmailPrompt | null
 }) {
   switch (experience.kind) {
     case "card_collecting":
@@ -144,7 +154,9 @@ function ExperiencePanel({
       )
     case "card_stamped_today":
     case "stamp_confirm":
-      return <StampScreenPanel exp={experience} />
+      return (
+        <StampScreenPanel exp={experience} emailPrompt={stampEmailPrompt} />
+      )
     case "stamp_unmatched":
       return <StampUnmatchedPanel exp={experience} />
     case "reward_waiting":
@@ -551,11 +563,13 @@ function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
  */
 function StampScreenPanel({
   exp,
+  emailPrompt,
 }: {
   exp: Extract<
     CustomerExperience,
     { kind: "stamp_confirm" | "card_stamped_today" }
   >
+  emailPrompt: StampEmailPrompt | null
 }) {
   // Once the final stamp has unlocked a (not-yet-redeemable) reward, the screen
   // holds on the completed card and offers a calm tap-through to the reward,
@@ -578,6 +592,17 @@ function StampScreenPanel({
         rewardName={SEALED_REWARD_NAME}
         rewardUnlocked={Boolean(unlockedReward)}
         location={exp.location}
+        // The compact "Add your email" card straight after a stamp, as on the
+        // card after the join's first stamp (QA BUG-020). Always passed, with
+        // the server's reason or null, so an engaged prompt keeps its step
+        // when its action re-renders this screen.
+        afterStamp={
+          <HomeEmailPrompt
+            surface="stamp_prompt"
+            reason={null}
+            {...emailPrompt}
+          />
+        }
       />
       {unlockedReward ? (
         <Button asChild size="lg" variant="reward" className="w-full">

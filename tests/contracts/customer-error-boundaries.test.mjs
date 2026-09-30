@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url"
  * Runtime behaviour is covered by tests/e2e/ux-polish-boundaries.spec.ts
  * (@polish, DB-free). These structural assertions pin the parts `node --test`
  * can prove without a browser: the entry-segment error boundaries exist and
- * are wired to `reset()`, the `/q` membership lookup sits inside its guard,
+ * are wired to `reset()` through the shared stale-action recovery, the `/q` membership lookup sits inside its guard,
  * the join OTP resend surfaces its action state, and the scanner demotes its
  * exit links while the camera-error retry holds the only primary slot.
  */
@@ -68,10 +68,13 @@ test("Given the customer entry segments When their error boundaries are inspecte
       /reset\s*\}\s*:\s*\{|reset,/,
       `${label} boundary must accept the reset prop`
     )
+    // "Try again" goes through the shared recovery: reset() for ordinary
+    // errors, a single reload for a server action from an older deploy
+    // (QA BUG-062).
     assert.match(
       source,
-      /reset=\{reset\}/,
-      `${label} boundary must pass reset to CustomerErrorState`
+      /reset=\{\(\) => recoverFromBoundaryError\(error, reset\)\}/,
+      `${label} boundary must pass the shared recovery to CustomerErrorState`
     )
     assert.match(
       source,
@@ -93,21 +96,31 @@ test("Given the customer entry segments When their error boundaries are inspecte
   }
 })
 
-test("Given the /q entry page When the membership lookup runs Then it degrades inside the same guard as the QR resolve", () => {
+test("Given the /q entry page When the QR resolve or the membership lookup fails Then neither reaches the error boundary", () => {
   const page = readProjectFile("app", "q", "[qrId]", "page.tsx")
+  const entry = readProjectFile("app", "q", "[qrId]", "qr-entry.ts")
 
-  // The lookup must sit INSIDE the try block: a failed membership read
-  // degrades to the same branded unavailable state as a failed QR resolve.
+  // Both reads run inside ./qr-entry, each in its own guard: a failed resolve
+  // is a retry state and a failed membership lookup falls back to the join
+  // flow (QA BUG-041/042); neither falls through to the error boundary
+  // (CUS-P1-01), and each failure is reported rather than swallowed.
   assert.match(
     page,
-    /try \{[\s\S]*resolveQrForJoin\(qrId[\s\S]*getExistingMembershipForCurrentUser\([\s\S]*\} catch \(error\) \{/,
-    "membership lookup must be awaited inside the try/catch guard"
+    /decideQrEntry\(\{[\s\S]*resolveQrForJoin\(qrId[\s\S]*lookupMembership: getExistingMembershipForCurrentUser/
   )
-  // The redirects stay OUTSIDE the guard so NEXT_REDIRECT is never swallowed.
-  const catchIndex = page.indexOf("} catch (error) {")
-  const redirectIndex = page.indexOf("redirect(")
-  assert.ok(catchIndex !== -1 && redirectIndex > catchIndex,
-    "redirects must remain outside the try/catch guard"
+  assert.match(
+    entry,
+    /try \{\s*qrContext = await resolve\(\)\s*\} catch \(error\) \{[\s\S]*report\("resolve", error\)/
+  )
+  assert.match(
+    entry,
+    /try \{\s*membership = await lookupMembership\([\s\S]*\} catch \(error\) \{\s*report\("membership_lookup", error\)\s*return \{ kind: "join", qrContext \}/
+  )
+  // Redirects stay out of the guards so NEXT_REDIRECT is never swallowed.
+  assert.doesNotMatch(entry, /redirect\(/)
+  assert.ok(
+    page.indexOf("redirect(") > page.indexOf("await decideQrEntry("),
+    "redirects must run after the guarded decision"
   )
   // The e2e boundary probe is dev-only, mirroring the app/dev NODE_ENV gate.
   assert.match(
@@ -118,11 +131,7 @@ test("Given the /q entry page When the membership lookup runs Then it degrades i
 })
 
 test("Given the join OTP step When a resend settles Then its outcome renders inside the live-region card", () => {
-  const form = readProjectFile(
-    "components",
-    "customer",
-    "join-otp-form.tsx"
-  )
+  const form = readProjectFile("components", "customer", "join-otp-form.tsx")
 
   // The resend action state must be captured, not discarded.
   assert.match(
@@ -142,19 +151,12 @@ test("Given the join OTP step When a resend settles Then its outcome renders ins
     /requestState\.errors\?\.(form|contact)/,
     "resend errors must render"
   )
-  assert.match(
-    form,
-    /requestState\.message/,
-    "resend confirmation must render"
-  )
+  assert.match(form, /requestState\.message/, "resend confirmation must render")
   // The resend form identifies itself so the action can answer in place
   // instead of redirecting (behaviour-preserving additive field).
   assert.match(form, /name="resend"/)
   // Pending states go through the shared SubmitButton with real ellipses.
-  assert.match(
-    form,
-    /import \{ SubmitButton \} from "@\/components\/forms"/
-  )
+  assert.match(form, /import \{ SubmitButton \} from "@\/components\/forms"/)
   assert.match(form, /pendingLabel="Sending…"/)
   assert.match(form, /pendingLabel="Checking…"/)
   assert.doesNotMatch(
@@ -218,4 +220,45 @@ test("Given the scanner camera-error state When the action group renders Then re
     /guidance\.showRetry \? "secondary" : undefined/,
     "Open my cards must demote to secondary in the camera-error state"
   )
+})
+
+test("Given every error boundary in the app When Try again is pressed after a deploy changed the server-action IDs Then it uses the shared stale-action recovery (QA BUG-062)", () => {
+  const boundaries = [
+    ["app", "error.tsx"],
+    ["app", "global-error.tsx"],
+    ["app", "admin", "error.tsx"],
+    ["app", "app", "error.tsx"],
+    ["app", "card", "[membershipId]", "error.tsx"],
+    ["app", "home", "(authed)", "error.tsx"],
+    ["app", "home", "login", "error.tsx"],
+    ["app", "m", "[merchantSlug]", "error.tsx"],
+    ["app", "m", "[merchantSlug]", "join", "error.tsx"],
+    ["app", "q", "[qrId]", "error.tsx"],
+    ["app", "reward", "[rewardId]", "error.tsx"],
+    ["app", "scan", "error.tsx"],
+  ]
+  for (const segments of boundaries) {
+    const label = segments.join("/")
+    const source = readProjectFile(...segments)
+    assert.match(
+      source,
+      /import \{ recoverFromBoundaryError \} from "@\/lib\/navigation\/stale-server-action"/,
+      `${label} must import the shared recovery`
+    )
+    assert.match(
+      source,
+      /\(\{\s*error,\s*reset,\s*\}/,
+      `${label} must read the caught error to recognise a stale action`
+    )
+    assert.match(
+      source,
+      /recoverFromBoundaryError\(error, reset\)/,
+      `${label} must route its retry through the shared recovery`
+    )
+    assert.doesNotMatch(
+      source,
+      /(onClick|reset)=\{(reset|\(\) => reset\(\))\}/,
+      `${label} must not call reset() directly`
+    )
+  }
 })

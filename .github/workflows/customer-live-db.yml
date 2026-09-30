@@ -1,0 +1,190 @@
+name: Customer live-DB journeys
+run-name: "Customer live-DB journeys ${{ github.event.pull_request.head.sha || github.sha }}"
+
+# Browser proof of the customer journeys against a real database: server
+# actions, cookies, RPCs and RLS together. The hosted e2e and a11y roots are
+# the DB-free harness tier, and the only other live browser lane
+# (production-database.yml) runs after merge and covers ID-checked collection,
+# so these @customer-flow live specs had no hosted execution (QA BUG-051).
+#
+# This lane is advisory: it is not one of the nine required roots and is not
+# wired into the Release gate. Making it a required check is a branch
+# protection change and needs its own reviewed decision.
+#
+# It reuses the db root's isolated Supabase CLI stack and seed, and runs the
+# specs on mobile-safari against Playwright's loopback dev server with
+# generated local-only secrets: once with email sign-in in mode `full` (as in
+# production), once in mode `existing` for the spec that proves it, and then
+# the merchant collection and member readback specs as the seeded owner. Every
+# selected live test must run: a skipped test fails the lane, so a missing flag
+# cannot turn the proof into a green no-op. tests/contracts/customer-live-db-lane
+# keeps the spec lists here in step with the live specs in tests/e2e.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: customer-live-db-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  customer-live-db:
+    name: Customer live-DB journeys (mobile-safari)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Deliberate non-secret placeholders, as in ci.yml. The Twilio values are
+      # the synthetic ones the live phone fixtures require (they refuse to type
+      # a real-range mobile against anything else).
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3146
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_LAUNCH_PRICE_ID: price_launch_ci
+      STRIPE_GROWTH_PRICE_ID: price_ci
+      STRIPE_GROWTH_ANNUAL_PRICE_ID: price_annual_ci
+      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
+      RESEND_API_KEY: re_ci
+      TWILIO_ACCOUNT_SID: ACci
+      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
+      TWILIO_VERIFY_SERVICE_SID: VAci
+      SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email
+      SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3146
+      PLAYWRIGHT_WORKERS: "1"
+      CUSTOMER_DEV_OTP_CODE: "424242"
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.106.0
+      - name: Generate local-only secrets
+        run: |
+          export_fixture() {
+            printf '::add-mask::%s\n' "$2"
+            printf '%s=%s\n' "$1" "$2" >> "$GITHUB_ENV"
+          }
+          printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec dGVzdF9zdXBhYmFzZV9ob29rX3NlY3JldF8zMl9ieXRlcw== >> "$GITHUB_ENV"
+          export_fixture CUSTOMER_SESSION_SECRET "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_PHONE_HMAC_SECRET "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_PHONE_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_EMAIL_HMAC_SECRET "$(openssl rand -hex 32)"
+          export_fixture CUSTOMER_EMAIL_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+          export_fixture MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY "$(openssl rand -hex 32)"
+      - name: Start isolated Supabase and export its local API keys
+        run: |
+          supabase start
+          eval "$(supabase status -o env)"
+          test "$API_URL" = "$NEXT_PUBLIC_SUPABASE_URL"
+          test -n "$ANON_KEY"
+          test -n "$SERVICE_ROLE_KEY"
+          printf '::add-mask::%s\n' "$ANON_KEY" "$SERVICE_ROLE_KEY"
+          printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$ANON_KEY" >> "$GITHUB_ENV"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+      - run: pnpm db:seed
+      - uses: ./.github/actions/playwright
+        with:
+          project: mobile-safari
+      - name: Run customer live-DB journeys (email sign-in mode full)
+        env:
+          CUSTOMER_FLOW_E2E: "1"
+          CUSTOMER_EMAIL_AUTH_MODE: full
+          MERCHANT_ONBOARDING_LIVE_DB_E2E: "1"
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ runner.temp }}/customer-live-db-full.json
+        run: >-
+          pnpm test:e2e
+          tests/e2e/customer-email-confirmation-states-live-db.spec.ts
+          tests/e2e/customer-email-conflict-copy-live-db.spec.ts
+          tests/e2e/customer-email-prompt-live-db.spec.ts
+          tests/e2e/customer-join-direct-live-db.spec.ts
+          tests/e2e/customer-join-email-live-db.spec.ts
+          tests/e2e/customer-join-existing-member-live-db.spec.ts
+          tests/e2e/customer-join-live-db.spec.ts
+          tests/e2e/customer-join-terms-live-db.spec.ts
+          tests/e2e/customer-login-email-live-db.spec.ts
+          tests/e2e/customer-login-unrecognised-device-live-db.spec.ts
+          tests/e2e/customer-profile-add-phone-live-db.spec.ts
+          tests/e2e/customer-session-renewal-live-db.spec.ts
+          tests/e2e/customer-stamp-email-prompt-live-db.spec.ts
+          tests/e2e/public-qr-router-live-db.spec.ts
+          tests/e2e/reward-gate-email-code-pending-bug-036-live-db.spec.ts
+          tests/e2e/welcome-offer-live-db.spec.ts
+          --project=mobile-safari --reporter=list,json
+      - name: Require every selected mode-full journey to run
+        if: ${{ !cancelled() }}
+        env:
+          REPORT: ${{ runner.temp }}/customer-live-db-full.json
+        run: |
+          node --input-type=module -e '
+          import { readFileSync } from "node:fs"
+          const { stats } = JSON.parse(readFileSync(process.env.REPORT, "utf8"))
+          console.log(JSON.stringify(stats))
+          if (!(stats.expected > 0)) throw new Error("no live journey ran")
+          if (stats.skipped !== 0) throw new Error(stats.skipped + " selected live test(s) skipped")
+          if (stats.unexpected !== 0 || stats.flaky !== 0) throw new Error("a live journey failed or was flaky")
+          '
+      - name: Run customer live-DB journeys (email sign-in mode existing)
+        if: ${{ !cancelled() }}
+        env:
+          CUSTOMER_FLOW_E2E: "1"
+          CUSTOMER_EMAIL_AUTH_MODE: existing
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ runner.temp }}/customer-live-db-existing.json
+        run: >-
+          pnpm test:e2e
+          tests/e2e/customer-join-email-existing-mode-live-db.spec.ts
+          --project=mobile-safari --reporter=list,json
+      - name: Require every selected mode-existing journey to run
+        if: ${{ !cancelled() }}
+        env:
+          REPORT: ${{ runner.temp }}/customer-live-db-existing.json
+        run: |
+          node --input-type=module -e '
+          import { readFileSync } from "node:fs"
+          const { stats } = JSON.parse(readFileSync(process.env.REPORT, "utf8"))
+          console.log(JSON.stringify(stats))
+          if (!(stats.expected > 0)) throw new Error("no live journey ran")
+          if (stats.skipped !== 0) throw new Error(stats.skipped + " selected live test(s) skipped")
+          if (stats.unexpected !== 0 || stats.flaky !== 0) throw new Error("a live journey failed or was flaky")
+          '
+      - name: Run merchant live-DB collection and member readback
+        if: ${{ !cancelled() }}
+        env:
+          ADMIN_LIVE_DB_E2E: "1"
+          CUSTOMER_FLOW_E2E: "1"
+          CUSTOMER_EMAIL_AUTH_MODE: full
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ runner.temp }}/merchant-live-db.json
+        run: >-
+          pnpm test:e2e
+          tests/e2e/merchant-reward-scan.spec.ts
+          tests/e2e/merchant-customer-readback.spec.ts
+          --grep @admin-live-db --project=mobile-safari --reporter=list,json
+      - name: Require every selected merchant journey to run
+        if: ${{ !cancelled() }}
+        env:
+          REPORT: ${{ runner.temp }}/merchant-live-db.json
+        run: |
+          node --input-type=module -e '
+          import { readFileSync } from "node:fs"
+          const { stats } = JSON.parse(readFileSync(process.env.REPORT, "utf8"))
+          console.log(JSON.stringify(stats))
+          if (!(stats.expected > 0)) throw new Error("no live journey ran")
+          if (stats.skipped !== 0) throw new Error(stats.skipped + " selected live test(s) skipped")
+          if (stats.unexpected !== 0 || stats.flaky !== 0) throw new Error("a live journey failed or was flaky")
+          '
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: ${{ failure() }}
+        with:
+          name: customer-live-db-report
+          path: test-results/
+          retention-days: 7
+      - run: supabase stop --no-backup
+        if: always()

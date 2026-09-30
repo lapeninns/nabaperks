@@ -10,6 +10,7 @@ import {
   inRolledBackTxn,
   isLiveDbReady,
 } from "./helpers/db.mjs"
+import { currentTradingDay } from "./helpers/trading-day.mjs"
 
 /**
  * referral bonus stamp — live-DB invariant tier (primary proof).
@@ -106,8 +107,8 @@ const PICK_QR = /* sql */ `
 
 async function makeCustomer(tx) {
   const [c] = await tx`
-    insert into public.customers (email, email_verified_at, created_at, updated_at)
-    values (${`bonus-${randomUUID()}@test.local`}, now(), now(), now())
+    insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+    values (${`bonus-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now())
     returning id`
   return c.id
 }
@@ -604,6 +605,11 @@ test(
         qr.qr_id
       )
       const code = await codeFor(tx, referrer.membership_id)
+      // An hour before the current trading day began: the previous trading day.
+      const { startsAt: tradingDayStart } = await currentTradingDay(
+        tx,
+        qr.merchant_id
+      )
 
       for (let i = 0; i < 2; i++) {
         const c = await makeCustomer(tx)
@@ -615,7 +621,7 @@ test(
           referred_membership_id, referrer_membership_id, referral_code_used,
           referrer_bonus_due_at, referrer_bonus_awarded_at)
         values (${m.id}::uuid, ${referrer.membership_id}::uuid, 'seed', now(),
-          (public.venue_trading_date(${qr.merchant_id}::uuid, now())::timestamp - interval '1 hour') at time zone 'Europe/London')`
+          ${tradingDayStart}::timestamptz - interval '1 hour')`
       }
 
       const friendCustomer = await makeCustomer(tx)
@@ -659,8 +665,8 @@ test(
       // stamp is inserted DIRECTLY (not via the hook) so the bonus is owed but
       // unawarded — the exact state two award calls can race on.
       const [referrerCustomer] = await setup`
-        insert into public.customers (email, email_verified_at, created_at, updated_at)
-        values (${`race-ref-${randomUUID()}@test.local`}, now(), now(), now())
+        insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+        values (${`race-ref-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now())
         returning id`
       committedCustomerIds.add(referrerCustomer.id)
       const [referrer] = await setup`
@@ -670,8 +676,8 @@ test(
       committedMembershipIds.add(referrer.id)
 
       const [friendCustomer] = await setup`
-        insert into public.customers (email, email_verified_at, created_at, updated_at)
-        values (${`race-friend-${randomUUID()}@test.local`}, now(), now(), now())
+        insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+        values (${`race-friend-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now())
         returning id`
       committedCustomerIds.add(friendCustomer.id)
       const [friend] = await setup`

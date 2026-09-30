@@ -99,8 +99,8 @@ const PICK_QR_REWARDS = /* sql */ `
 
 async function makeCustomer(tx) {
   const [c] = await tx`
-    insert into public.customers (email, email_verified_at, created_at, updated_at)
-    values (${`settle-${randomUUID()}@test.local`}, now(), now(), now()) returning id`
+    insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+    values (${`settle-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now()) returning id`
   return c.id
 }
 
@@ -728,16 +728,16 @@ test(
       order by created_at asc limit 1`
 
       const [referrerCustomer] = await setup`
-      insert into public.customers (email, email_verified_at, created_at, updated_at)
-      values (${`settle-race-ref-${randomUUID()}@test.local`}, now(), now(), now()) returning id`
+      insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+      values (${`settle-race-ref-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now()) returning id`
       committedCustomerIds.add(referrerCustomer.id)
       const [referrer] = await setup`
       insert into public.customer_memberships (merchant_id, customer_id)
       values (${qr.merchant_id}::uuid, ${referrerCustomer.id}::uuid) returning id, referral_code`
       committedMembershipIds.add(referrer.id)
       const [friendCustomer] = await setup`
-      insert into public.customers (email, email_verified_at, created_at, updated_at)
-      values (${`settle-race-friend-${randomUUID()}@test.local`}, now(), now(), now()) returning id`
+      insert into public.customers (email, email_verified_at, phone_hmac, phone_last4, phone_verified_at, created_at, updated_at)
+      values (${`settle-race-friend-${randomUUID()}@test.local`}, now(), encode(extensions.gen_random_bytes(32), 'hex'), '0123', now(), now(), now()) returning id`
       committedCustomerIds.add(friendCustomer.id)
       const [friend] = await setup`
       insert into public.customer_memberships (merchant_id, customer_id)

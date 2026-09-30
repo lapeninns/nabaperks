@@ -27,6 +27,7 @@ async function loadActions() {
     "@/lib/customer/identity":
       'import { state } from "fixture-state"; export async function getCurrentCustomer() { return state.customer }',
     "@/lib/customer/profile": `import { state } from "fixture-state";
+      export class CustomerContactLockedError extends Error {}
       export function clearCustomerEmail() {}
       export function updateCustomerProfile() {}
       export async function markCustomerEmailVerified() { return state.mark }

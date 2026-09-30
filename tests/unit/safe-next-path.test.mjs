@@ -113,3 +113,38 @@ test("merchant auth hrefs replace hostile next values with safe fallbacks", () =
     "/login?next=%2Fapp"
   )
 })
+
+test("rejects dot-segment inputs that normalise to a protocol-relative target (QA BUG-039)", () => {
+  for (const payload of [
+    "/..//evil.example",
+    "/.//evil.example",
+    "/%2e%2e//evil.example",
+    "/%2E%2E//evil.example",
+    "/a/..//evil.example",
+    "/a/b/../..//evil.example/path?x=1#y",
+    "/./\\evil.example",
+    "/..\\/evil.example",
+    "/..\\\\evil.example",
+    "/%2e/\\evil.example",
+  ]) {
+    const customer = safeNextPath(payload)
+    const merchant = safeMerchantNextPath(payload)
+    assert.equal(customer, "/home", payload)
+    assert.equal(merchant, "/app", payload)
+    for (const result of [customer, merchant]) {
+      assert.equal(
+        new URL(result, "https://nabaperks.test").origin,
+        "https://nabaperks.test",
+        `${payload} -> ${result}`
+      )
+    }
+  }
+})
+
+test("keeps same-origin dot-segment paths that stay on the site", () => {
+  assert.equal(safeNextPath("/home/../home/rewards"), "/home/rewards")
+  assert.equal(
+    safeMerchantNextPath("/app/./launch?tab=qr"),
+    "/app/launch?tab=qr"
+  )
+})

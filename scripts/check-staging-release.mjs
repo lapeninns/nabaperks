@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { createHmac, randomUUID } from "node:crypto"
+import { readFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 
 import postgres from "postgres"
@@ -24,6 +25,7 @@ export async function runStagingReleaseProof(env) {
 
   try {
     await proveDatabaseTarget(sql, config)
+    await proveCustomerTermsSnapshot(sql, readCustomerLegalVersion())
     await proveStagingProbes(config)
     await proveRolledBackLoyaltyJourney(sql, config)
     await proveStripeWebhookReplay(sql, config)
@@ -164,6 +166,56 @@ async function proveDatabaseTarget(sql, config) {
   )
 }
 
+// Every join records the build's CUSTOMER_LEGAL_VERSION. Without that
+// version's snapshot trigger the database stores the join function's older
+// built-in terms snapshot under it, silently (QA BUG-006). The trigger name
+// follows the rule the database guard uses: the version with '-' removed and
+// '.' replaced by '_' (2026-09-28.1 -> customer_terms_apply_v20260928_1_snapshot).
+export function readCustomerLegalVersion(
+  source = readFileSync(
+    new URL("../lib/legal/content.ts", import.meta.url),
+    "utf8"
+  )
+) {
+  const match = source.match(
+    /^export const CUSTOMER_LEGAL_VERSION = "([^"]+)"$/m
+  )
+  assert.ok(
+    match,
+    "CUSTOMER_LEGAL_VERSION is missing from lib/legal/content.ts"
+  )
+  return match[1]
+}
+
+export function customerTermsSnapshotTriggerName(version) {
+  assert.match(
+    version,
+    /^\d{4}-\d{2}-\d{2}(?:\.[1-9]\d*)?$/,
+    "customer terms version must be a dated version"
+  )
+  return `customer_terms_apply_v${version.replaceAll("-", "").replaceAll(".", "_")}_snapshot`
+}
+
+export async function proveCustomerTermsSnapshot(sql, legalVersion) {
+  const triggerName = customerTermsSnapshotTriggerName(legalVersion)
+  const [row] = await sql`
+    select exists (
+      select 1
+      from pg_catalog.pg_trigger trg
+      where trg.tgrelid = 'public.customer_loyalty_terms_acceptances'::regclass
+        and not trg.tgisinternal
+        and trg.tgenabled <> 'D'
+        and trg.tgname = ${triggerName}
+    ) as installed
+  `
+  assert.equal(
+    row?.installed,
+    true,
+    `staging database has no terms snapshot trigger ${triggerName} for ${legalVersion}; apply its migration before the build`
+  )
+  console.log(`Terms snapshot trigger for ${legalVersion} is installed.`)
+}
+
 async function proveStagingProbes(config) {
   const expectedRevision = config.revision.slice(0, 12)
   const bypassHeaders = protectionHeaders(config)
@@ -199,6 +251,11 @@ async function proveStagingProbes(config) {
     readiness.checks?.database,
     "ok",
     "staging app cannot reach its database"
+  )
+  assert.equal(
+    readiness.checks?.legalTerms,
+    "ok",
+    "staging app's terms version has no snapshot in its database"
   )
   assert.equal(
     readiness.revision,
@@ -538,13 +595,27 @@ export async function proveRolledBackLoyaltyJourney(sql, config) {
   )
 }
 
-async function ageEarnedStamps(tx, membershipId) {
-  await tx`
-    update public.stamp_events
-    set earned_business_date = earned_business_date - 2
+// Moves every earned stamp of the rolled-back synthetic membership two UK
+// business days back. stamp_events_one_earned_per_business_day_idx is not
+// deferrable and is checked row by row, so one set-based UPDATE collides when
+// it meets a newer row before an older one two days earlier. Moving the rows
+// one at a time, oldest first, always targets a free date.
+export async function ageEarnedStamps(tx, membershipId) {
+  const rows = await tx`
+    select id
+    from public.stamp_events
     where membership_id = ${membershipId}::uuid
       and event_type = 'earned'
+      and earned_business_date is not null
+    order by earned_business_date, id
   `
+  for (const row of rows) {
+    await tx`
+      update public.stamp_events
+      set earned_business_date = earned_business_date - 2
+      where id = ${row.id}::uuid
+    `
+  }
 }
 
 async function proveStripeWebhookReplay(sql, config) {

@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic"
 
 async function noopSignOutAction() {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
 }
 
 const FULL: MoreRowsInput = {

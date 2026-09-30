@@ -19,7 +19,7 @@ import {
 
 const MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260925100000_reward_pool_item_age_check.sql"
+  "supabase/migrations/20261009100000_reward_preset_batch_age_check_payload.sql"
 )
 const LOCAL_DB_HOSTS = new Set(["127.0.0.1", "localhost"])
 const localDbUrl = resolveLocalDbUrl()

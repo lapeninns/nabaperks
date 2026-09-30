@@ -70,6 +70,8 @@ export type UpdateCustomerProfileInput = {
   fullName: string
   dateOfBirth: string
   email?: string | null
+  /** Where the details were saved, for the email audit row. */
+  surface?: ContactEventSurface
 }
 
 export type UpdateCustomerProfileResult = {
@@ -95,7 +97,8 @@ export class CustomerContactLockedError extends Error {
  * Persists the redeem-time profile fields. Introducing a *new* email resets its
  * verified state (forcing re-confirmation); an unchanged, already-verified email
  * keeps its standing. A blank email is cleared — phone-first identity keeps the
- * contact-present invariant satisfied via the verified phone.
+ * contact-present invariant satisfied via the verified phone. A changed
+ * address is recorded in `audit_logs`, as the prompts record theirs.
  */
 export async function updateCustomerProfile(
   input: UpdateCustomerProfileInput
@@ -135,6 +138,13 @@ export async function updateCustomerProfile(
     .eq("id", customer.id)
 
   if (error) throw new Error(`Unable to update profile: ${error.message}`)
+  if (!emailLocked && email !== normalizedEmail(previousEmail)) {
+    await recordCustomerEmailAudit(supabase, {
+      customerId: customer.id,
+      action: email ? "customer_email_submitted" : "customer_email_cleared",
+      surface: input.surface ?? "profile",
+    })
+  }
 
   return {
     emailVerificationRequired,
@@ -144,7 +154,10 @@ export async function updateCustomerProfile(
 }
 
 export type MarkCustomerEmailVerifiedResult =
-  { status: "verified" } | { status: "conflict" }
+  | { status: "verified" }
+  | { status: "conflict" }
+  /** The profile no longer holds this address unverified: the code is stale. */
+  | { status: "expired" }
 
 const UNIQUE_VIOLATION = "23505"
 
@@ -155,14 +168,20 @@ type ServiceRoleClient = ReturnType<typeof createSupabaseServiceRoleClient>
  * email: when another customer already holds this verified email, this
  * customer ends up without it and the caller receives `conflict`.
  *
- * Three checks hold that rule until the database index does on its own: the
- * pre-check covers today's data, the unique-violation catch covers the index,
- * and a re-check after the write covers two confirmations of the same address
- * racing between the pre-check and the write (see
- * {@link withdrawRacedConfirmation}). On a conflict an unverified copy of the
- * address is also released from this profile (see
- * {@link releaseConflictingEmail}). A confirmation that stands is recorded in
- * `audit_logs` before this returns; a withdrawn one records none.
+ * The pre-check gives the common case its answer before any write. Two
+ * confirmations of the same address racing past it are separated by the
+ * verified-email unique indexes (20261006100000, guaranteed by its pre-flight):
+ * the losing write fails with 23505, mapped to `conflict` here. There is no
+ * post-write withdrawal: `prevent_verified_customer_contact_change` locks a
+ * verified email for every caller, so it could never succeed (QA BUG-014).
+ * On a conflict an unverified copy of the address is also released from this
+ * profile (see {@link releaseConflictingEmail}). A confirmation is recorded
+ * in `audit_logs` before this returns.
+ *
+ * A code confirms only the address the profile still holds, unverified: one
+ * wallet on two devices may have saved a newer address (or cleared it) since
+ * this code was sent. That is checked before any write and again by the
+ * guarded write itself; either way the answer is `expired` (QA BUG-032).
  */
 export async function markCustomerEmailVerified(
   email: string,
@@ -181,6 +200,7 @@ export async function markCustomerEmailVerified(
   if (locked && verifiedEmail !== currentEmail) {
     throw new CustomerContactLockedError("Verified email is locked.")
   }
+  if (verifiedEmail !== currentEmail) return { status: "expired" }
 
   const conflict = async (): Promise<MarkCustomerEmailVerifiedResult> => {
     // A locked email is verified here already; only an unverified copy goes.
@@ -200,33 +220,29 @@ export async function markCustomerEmailVerified(
     return conflict()
   }
 
-  const verifiedAt = new Date().toISOString()
-  const update = locked
-    ? { email_hmac: emailHmac }
-    : {
+  if (locked) {
+    const { error } = await supabase
+      .from("customers")
+      .update({ email_hmac: emailHmac })
+      .eq("id", customer.id)
+    if (error?.code === UNIQUE_VIOLATION) return conflict()
+    if (error) throw new Error(`Unable to confirm email: ${error.message}`)
+  } else {
+    // Only while the stored address (as stored) is still this one, unverified.
+    const { data, error } = await supabase
+      .from("customers")
+      .update({
         email: verifiedEmail,
         email_hmac: emailHmac,
-        email_verified_at: verifiedAt,
-      }
-  const { error } = await supabase
-    .from("customers")
-    .update(update)
-    .eq("id", customer.id)
-
-  if (error?.code === UNIQUE_VIOLATION) return conflict()
-  if (error) throw new Error(`Unable to confirm email: ${error.message}`)
-
-  if (
-    !locked &&
-    (await verifiedEmailHeldByAnotherCustomer(supabase, customer.id, emailHmac))
-  ) {
-    await withdrawRacedConfirmation(supabase, {
-      customerId: customer.id,
-      previousEmail: customer.email,
-      previousVerifiedAt: customer.emailVerifiedAt,
-      verifiedAt,
-    })
-    return conflict()
+        email_verified_at: new Date().toISOString(),
+      })
+      .eq("id", customer.id)
+      .eq("email", customer.email ?? "")
+      .is("email_verified_at", null)
+      .select("id")
+    if (error?.code === UNIQUE_VIOLATION) return conflict()
+    if (error) throw new Error(`Unable to confirm email: ${error.message}`)
+    if ((data ?? []).length === 0) return { status: "expired" }
   }
 
   await recordCustomerEmailAudit(supabase, {
@@ -257,53 +273,6 @@ async function verifiedEmailHeldByAnotherCustomer(
 
   if (error) throw new Error(`Unable to check email: ${error.message}`)
   return (data ?? []).length > 0
-}
-
-/**
- * Undoes this call's own confirmation after the post-write re-check found
- * another verified holder of the same address.
- *
- * Why this is fail-closed without a transaction: every confirmation writes its
- * row first and re-checks second, each as its own committed statement. For two
- * racers A and B to both miss each other, A's re-check would have to run
- * before B's write and B's re-check before A's write, which cannot happen
- * because each writes before it re-checks. So at least one racer sees the
- * other. Both may see each other and both withdraw (both guests get
- * `conflict` and can try again); what cannot remain is two wallets holding the
- * same verified email. The unique index from the follow-up migration makes
- * this re-check redundant once it ships.
- *
- * Only what this call set is reverted: the guard on `email_verified_at` skips
- * the write if anything has replaced this confirmation since. No
- * `customer_email_verified` audit row was written, so none needs undoing. A
- * failed withdrawal is thrown rather than reported as a conflict, because the
- * duplicate would then still stand.
- */
-async function withdrawRacedConfirmation(
-  supabase: ServiceRoleClient,
-  input: {
-    readonly customerId: string
-    readonly previousEmail: string | null
-    readonly previousVerifiedAt: string | null
-    readonly verifiedAt: string
-  }
-): Promise<void> {
-  const { error } = await supabase
-    .from("customers")
-    .update({
-      email: input.previousEmail,
-      email_hmac: null,
-      email_verified_at: input.previousVerifiedAt,
-    })
-    .eq("id", input.customerId)
-    .eq("email_verified_at", input.verifiedAt)
-
-  if (error) {
-    logger.error("customer_email_confirmation_withdraw_failed", {
-      code: error.code,
-    })
-    throw new Error(`Unable to withdraw email confirmation: ${error.message}`)
-  }
 }
 
 /**
@@ -393,7 +362,10 @@ export function customerHasVerifiedEmail(customer: {
   return hasLockedVerifiedEmail(customer)
 }
 
-export async function clearCustomerEmail(): Promise<ClearCustomerEmailResult> {
+/** Removes an unverified address ("Continue without email"), audited. */
+export async function clearCustomerEmail(
+  surface: ContactEventSurface = "profile"
+): Promise<ClearCustomerEmailResult> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")
 
@@ -408,6 +380,13 @@ export async function clearCustomerEmail(): Promise<ClearCustomerEmailResult> {
     .eq("id", customer.id)
 
   if (error) throw new Error(`Unable to update profile: ${error.message}`)
+  if (normalizedEmail(customer.email)) {
+    await recordCustomerEmailAudit(supabase, {
+      customerId: customer.id,
+      action: "customer_email_cleared",
+      surface,
+    })
+  }
 
   return { cleared: true, emailLocked: false }
 }

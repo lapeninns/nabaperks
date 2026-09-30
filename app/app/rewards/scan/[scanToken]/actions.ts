@@ -7,7 +7,10 @@ import {
   merchantActivitySummaryCacheTag,
   revalidateCacheTag,
 } from "@/lib/cache/tags"
-import { collectMerchantScannedReward } from "@/lib/merchant/reward-collection"
+import {
+  collectMerchantScannedReward,
+  merchantCollectionRefusalClosesReward,
+} from "@/lib/merchant/reward-collection"
 import { verifyAndCollectMerchantReward } from "@/lib/merchant/reward-id-verification"
 
 export type MerchantRewardCollectionActionState = {
@@ -40,6 +43,11 @@ export async function confirmMerchantRewardCollectionAction(
       : await collectMerchantScannedReward(scanToken)
 
   if (result.status === "blocked") {
+    // Collected on another device (or otherwise closed): re-render the page from
+    // server state so the stale ready ticket and collect button go (BUG-047).
+    if (merchantCollectionRefusalClosesReward(result.reason)) {
+      revalidatePath(`/app/rewards/scan/${scanToken}`)
+    }
     return { errors: { form: result.reason } }
   }
 

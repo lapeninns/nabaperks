@@ -3,6 +3,7 @@ import "server-only"
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto"
 
 import { enforceCustomerEmailOtpAdmission } from "@/lib/customer/email-otp-cooldown"
+import { normalizeEmail } from "@/lib/customer/email-pii-core"
 import { sendEmailOtp } from "@/lib/notifications/resend"
 import {
   clearPendingEmailVerification,
@@ -15,7 +16,9 @@ import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-s
 
 type EmailVerificationStartResult = { status: "sent" }
 type EmailVerificationCheckResult =
-  { status: "approved"; email: string } | { status: "rejected" }
+  | { status: "approved"; email: string }
+  | { status: "rejected" }
+  | { status: "expired" }
 
 /**
  * Email verification for the reward-collection profile gate. Email is optional,
@@ -62,7 +65,9 @@ export async function checkCustomerEmailVerification(
   code: string
 ): Promise<EmailVerificationCheckResult> {
   const pending = await getPendingEmailVerification()
-  if (!pending) return { status: "rejected" }
+  // No pending code for this browser: it lapsed (10 minutes) or was used or
+  // withdrawn. The code on screen can never match, so say so (QA BUG-066).
+  if (!pending) return { status: "expired" }
   const customerSession = await getCustomerSession()
   if (!customerSession || pending.customerId !== customerSession.customerId) {
     await clearPendingEmailVerification()
@@ -83,10 +88,15 @@ export async function checkCustomerEmailVerification(
   return { status: "rejected" }
 }
 
-/** Deterministic HMAC binding a code to its address, signed with the cookie secret. */
+/**
+ * Deterministic HMAC binding a code to its address, signed with the cookie
+ * secret. The address is normalised as stored addresses are (trim, lower
+ * case, NFC); for ASCII that is the plain trim and lower case of earlier
+ * pending cookies, so those still verify.
+ */
 export function emailCodeHmac(email: string, code: string): string {
   return createHmac("sha256", requiredCustomerSessionSecret())
-    .update(`${email.trim().toLowerCase()}:${code}`)
+    .update(`${normalizeEmail(email)}:${code}`)
     .digest("hex")
 }
 
@@ -108,10 +118,6 @@ function codeMatches(
 
 function generateCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0")
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase()
 }
 
 function isApprovedDevOtp(code: string): boolean {

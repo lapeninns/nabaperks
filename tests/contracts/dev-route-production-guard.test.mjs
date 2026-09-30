@@ -97,3 +97,21 @@ test("Given dev and QA routes are not product surfaces When the /dev tree is inv
     assert.match(devPage, /^app\/dev\//)
   }
 })
+
+test("Given the /dev tree 404s in production When the build decides what to prerender Then no /dev page becomes a cacheable static 404 (QA BUG-061)", () => {
+  // The /dev layout 404s before it reads the request, so without this Next
+  // prerenders pages such as /dev/customer-login and /dev/design-system as
+  // static 404s with s-maxage=31536000, while the Proxy (kept for the
+  // harness's request-path header) adds a fresh device Set-Cookie.
+  const devLayout = readProjectFile("app", "dev", "layout.tsx")
+  assert.match(devLayout, /^export const dynamic = "force-dynamic"$/m)
+
+  for (const devPage of listPageFiles(path.join(projectRoot, "app", "dev"))) {
+    const source = readFileSync(devPage, "utf8")
+    assert.doesNotMatch(
+      source,
+      /export const (dynamic = "(force-static|error)"|revalidate\b)/,
+      `${relativeProjectPath(devPage)} must not opt back into static rendering`
+    )
+  }
+})

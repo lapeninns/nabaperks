@@ -407,8 +407,8 @@ test(
       const phoneWithEmail = await phoneCustomer(tx, {
         email: `phone-email-${randomUUID()}@example.test`,
       })
+      // QA BUG-034: an email saved but never confirmed gets no email row.
       assert.deepEqual(await joinConsentChannels(tx, phoneWithEmail, slug), [
-        "email",
         "sms",
         "whatsapp",
       ])

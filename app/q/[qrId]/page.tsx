@@ -25,6 +25,11 @@ import {
   getExistingMembershipForCurrentUser,
   resolveQrForJoin,
 } from "@/lib/customer/join"
+import { logger } from "@/lib/observability/logger"
+import {
+  normalizeRequestId,
+  REQUEST_ID_HEADER,
+} from "@/lib/observability/request-id"
 import { parseQrShareChannel } from "@/lib/qr/nfc-card-share-url"
 import {
   RateLimitError,
@@ -32,6 +37,10 @@ import {
 } from "@/lib/security/rate-limit"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
+
+import { CustomerLoadFailed } from "@/app/m/[merchantSlug]/join/join-load-failed"
+
+import { decideQrEntry, qrEntryFailureReason } from "./qr-entry"
 
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
@@ -62,40 +71,46 @@ export default async function PublicQrPage({
     throw new Error("Customer entry boundary probe")
   }
 
-  let qrContext: Awaited<ReturnType<typeof resolveQrForJoin>>
-  let membership: Awaited<
-    ReturnType<typeof getExistingMembershipForCurrentUser>
-  > = null
+  const requestHeaders = await headers()
+  // Failures never fall through to the error boundary (CUS-P1-01), and none
+  // is swallowed: each is logged with the request id, and a resolve that
+  // could not load is told apart from a QR that is unavailable, while a
+  // failed membership lookup carries on to the join flow (QA BUG-041/042).
+  const entry = await decideQrEntry({
+    resolve: () =>
+      resolveQrForJoin(qrId, {
+        scanRateLimitIdentity:
+          customerRateLimitIdentityFromHeaders(requestHeaders),
+        scanSource,
+      }),
+    lookupMembership: getExistingMembershipForCurrentUser,
+    // A rate-limited scan is a transient retry, not a dead QR — give it
+    // distinct calm copy so the customer waits and re-scans.
+    isRateLimited: (error) => error instanceof RateLimitError,
+    report: (stage, error) => {
+      logger.error("customer_qr_entry_failed", {
+        requestId:
+          normalizeRequestId(requestHeaders.get(REQUEST_ID_HEADER)) ??
+          "unavailable",
+        stage,
+        reason: qrEntryFailureReason(error),
+      })
+    },
+  })
 
-  try {
-    qrContext = await resolveQrForJoin(qrId, {
-      scanRateLimitIdentity: customerRateLimitIdentityFromHeaders(
-        await headers()
-      ),
-      scanSource,
-    })
-
-    // The membership lookup stays inside the guard: a failed lookup on a
-    // valid QR must degrade to the same branded unavailable state as a failed
-    // QR resolve, never fall through to the error boundary (CUS-P1-01).
-    if (qrContext?.available) {
-      membership = await getExistingMembershipForCurrentUser(
-        qrContext.merchant.id
-      )
-    }
-  } catch (error) {
-    // A rate-limited scan is a transient retry, not a dead QR — give it distinct
-    // calm copy so the customer waits and re-scans instead of giving up.
-    if (error instanceof RateLimitError) {
-      return <RateLimitedQr />
-    }
-
-    return <UnavailableQr />
+  if (entry.kind === "rate_limited") return <RateLimitedQr />
+  if (entry.kind === "load_failed") {
+    return (
+      <CustomerLoadFailed
+        retryHref={`/q/${encodeURIComponent(qrId)}`}
+        screenLabel="QR could not load"
+      />
+    )
   }
+  if (entry.kind === "unavailable") return <UnavailableQr />
 
-  if (!qrContext || !qrContext.available) {
-    return <UnavailableQr />
-  }
+  const { qrContext } = entry
+  const membership = entry.kind === "member" ? entry.membership : null
 
   const encodedQrId = encodeURIComponent(qrContext.qrId ?? qrId)
   const joinUrl = buildCustomerJoinHref(qrContext.merchant.business_slug, {

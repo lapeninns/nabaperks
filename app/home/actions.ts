@@ -28,6 +28,7 @@ import {
 import {
   enforceCustomerOtpSendRateLimit,
   enforceCustomerOtpVerifyRateLimit,
+  releaseCustomerOtpVerifyAdmission,
 } from "@/lib/customer/otp-rate-limit"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import {
@@ -249,6 +250,11 @@ export async function verifyCustomerLoginOtpAction(
   }
 
   const verification = await checkCustomerPhoneVerification(contact, otp)
+  // Only a rejected code counts towards the limit (QA BUG-030): an approved
+  // one gives back the attempt the admission above reserved.
+  if (verification.status === "approved") {
+    await releaseCustomerOtpVerifyAdmission({ phone: contact, requestIdentity })
+  }
 
   if (verification.status === "unavailable") {
     return {
@@ -320,6 +326,13 @@ export async function signOutCustomerAction() {
 }
 
 export async function signOutAllCustomerDevicesAction() {
-  await clearAllCustomerSessions()
-  redirect("/home/login")
+  const scope = await clearAllCustomerSessions()
+  // Only this browser was signed out when the revoke-all migration is not
+  // live yet: the login page says so rather than implying every device was
+  // (QA BUG-012).
+  redirect(
+    scope === "this_device"
+      ? "/home/login?signed_out=this_device"
+      : "/home/login"
+  )
 }

@@ -11,6 +11,7 @@ import {
 
 import type { Sql } from "./admin-live-db"
 import type { BrowserCustomerSession } from "./customer-readback-live-db"
+import { assertDisposablePhoneSafe } from "./disposable-phone-guard"
 import {
   publicQrPath,
   type PublicQrRouterFixture,
@@ -160,7 +161,15 @@ export async function installCustomerSession(
   ])
 }
 
-export function disposableUkMobile(): DisposablePhone {
+/**
+ * A unique, valid GB mobile for one live journey. It comes from the real 074
+ * range because the app rejects the drama range, so it refuses to run unless
+ * nothing could text it (see disposable-phone-guard.ts).
+ */
+export function disposableUkMobile(
+  env: Record<string, string | undefined> = process.env
+): DisposablePhone {
+  assertDisposablePhoneSafe(env)
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const digits = randomUUID().replace(/\D/g, "").padEnd(8, "0").slice(0, 8)
     const national = `074${digits}`

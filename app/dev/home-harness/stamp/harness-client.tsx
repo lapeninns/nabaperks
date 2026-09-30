@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react"
 import Link from "next/link"
 
+import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
 import { StampCollector } from "@/components/customer/stamp-collector"
 import { Button } from "@/components/ui/button"
 import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
@@ -289,6 +290,13 @@ export function StampHarnessClient({
         submitStamp={submitStamp}
         submitVenueCode={submitVenueCode}
         refreshCard={refreshCard}
+        // As StampScreenPanel passes it for a signed-in member without a
+        // verified email; the prompt's own actions are never submitted here.
+        afterStamp={
+          mode === "email-prompt" ? (
+            <HomeEmailPrompt surface="stamp_prompt" reason="rewards" />
+          ) : undefined
+        }
       />
       {rewardReady ? (
         <Button asChild size="lg" variant="reward" className="w-full">

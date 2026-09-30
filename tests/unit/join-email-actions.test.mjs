@@ -21,7 +21,7 @@ const STUBS = {
   "fixture-state": `export const state = {
     calls: [],
     events: [],
-    start: { status: "code_sent", maskedEmail: "g***@example.com", resendAvailableAt: 1060 },
+    start: { status: "code_sent", maskedEmail: "g***@example.com", resendAvailableAt: 1060, admission: "admitted" },
     pending: null,
     check: {
       status: "verified",
@@ -236,6 +236,42 @@ test("Given mode existing When an email code is requested Then the join challeng
   ])
 })
 
+test("Given a held or repeated send When an email code is requested or resent Then the guest sees a sent code but no code request is counted", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { requestCustomerEmailIdentityAction, state } = await loadActions()
+  state.pending = { purpose: "join", email: "guest@example.com" }
+
+  for (const admission of ["held", "repeat"]) {
+    // Admission refused the send (held), or a double submit kept the live
+    // challenge (repeat): the answer is the sent-code one either way (D8).
+    state.start = {
+      status: "code_sent",
+      maskedEmail: "g***@example.com",
+      resendAvailableAt: 1060,
+      admission,
+    }
+    assert.equal(
+      await redirectOf(
+        requestCustomerEmailIdentityAction(
+          {},
+          form({ email: "guest@example.com", qrId: "venue-qr" })
+        )
+      ),
+      "/m/old-crown/join?qr=venue-qr&step=otp"
+    )
+    const resent = await requestCustomerEmailIdentityAction(
+      {},
+      form({ resend: "1", qrId: "venue-qr" })
+    )
+    assert.equal(resent.message, "Use the latest code we sent.")
+    assert.equal(resent.fields.emailOtpSent, true)
+  }
+
+  // A held send is tracked by the sign-in module as join_code_send_failed
+  // (admission_refused); a repeat is the request already counted (QA BUG-026).
+  assert.deepEqual(state.events, [])
+})
+
 test("Given the server has not opened email When a code is requested Then it goes back to the phone step and nothing is sent", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const { requestCustomerEmailIdentityAction, state } = await loadActions()
@@ -438,7 +474,14 @@ test("Given mode full and a bound handoff When a new wallet is started Then it i
     ["session", "customer-new", true],
     ["clearHandoff"],
   ])
-  assert.equal(state.events[0].eventName, "join_new_email_wallet_confirmed")
+  // Choosing email is what makes it this journey's verification (QA BUG-028).
+  assert.deepEqual(
+    state.events.map((event) => [event.eventName, event.method]),
+    [
+      ["join_otp_verified", "email"],
+      ["join_new_email_wallet_confirmed", "email"],
+    ]
+  )
 })
 
 test("Given a handoff already used When a copy of it is replayed Then no wallet is created or signed in", async () => {
@@ -456,11 +499,10 @@ test("Given a handoff already used When a copy of it is replayed Then no wallet 
   const replay = await startEmailWalletAction({}, form({ qrId: "venue-qr" }))
 
   assert.match(replay.errors.form, /confirmation has expired/)
-  assert.deepEqual(callNames(state), [
-    "readHandoff",
-    "consumeHandoff",
-    "clearHandoff",
-  ])
+  // The refusal changes no cookie (QA BUG-017): deleting the spent handoff
+  // here re-rendered the page to the welcome step and lost this message. The
+  // copy stays on the choice screen with the message; it can never be spent.
+  assert.deepEqual(callNames(state), ["readHandoff", "consumeHandoff"])
 })
 
 test("Given no handoff for this device and venue When a new wallet is started Then nothing is created", async () => {
@@ -610,7 +652,12 @@ test("Given a spent handoff When creating the wallet or its session fails Then a
     ["session", "customer-new", false],
     ["clearHandoff"],
   ])
-  assert.deepEqual(state.events, [])
+  // No second wallet confirmation. The verification is sent again, but the
+  // funnel stores one per journey (join-funnel-verification-method.test.mjs).
+  assert.deepEqual(
+    state.events.map((event) => event.eventName),
+    ["join_otp_verified"]
+  )
 
   // A copy of any spent handoff is still refused.
   for (const spent of [
@@ -621,11 +668,7 @@ test("Given a spent handoff When creating the wallet or its session fails Then a
     state.calls = []
     const replay = await startEmailWalletAction({}, form({}))
     assert.match(replay.errors.form, /confirmation has expired/)
-    assert.deepEqual(callNames(state), [
-      "readHandoff",
-      "consumeHandoff",
-      "clearHandoff",
-    ])
+    assert.deepEqual(callNames(state), ["readHandoff", "consumeHandoff"])
   }
 })
 

@@ -35,7 +35,7 @@ export async function insertCustomerReadbackStampEvents(
         'earned',
         1,
         public.uk_business_date(now()) - 4,
-        2,
+        5,
         jsonb_build_object('source', 'customer-home-dashboard-e2e'),
         now() - interval '4 days'
       ),
@@ -48,7 +48,7 @@ export async function insertCustomerReadbackStampEvents(
         'earned',
         1,
         public.uk_business_date(now()) - 3,
-        2,
+        5,
         jsonb_build_object('source', 'customer-home-dashboard-e2e'),
         now() - interval '3 days'
       ),
@@ -61,7 +61,7 @@ export async function insertCustomerReadbackStampEvents(
         'earned',
         1,
         public.uk_business_date(now()) - 2,
-        2,
+        5,
         jsonb_build_object('source', 'customer-home-dashboard-e2e'),
         now() - interval '2 days'
       ),

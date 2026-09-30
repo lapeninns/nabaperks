@@ -10,12 +10,16 @@ import { createHmac } from "node:crypto"
 const hmacSecretName = "CUSTOMER_EMAIL_HMAC_SECRET"
 
 /**
- * Normalize for matching: trim + lowercase only. Deliberately NO plus-address
- * folding — a false-positive attach (gifting the wrong inbox) is worse than a
- * miss, and the claim link covers a genuine miss.
+ * Normalize for matching: trim every Unicode edge whitespace (`trim()` covers
+ * tab, no-break space, U+3000 and the rest), lowercase, then Unicode NFC so a
+ * composed and a decomposed accent are one address. The verified-address
+ * unique index keys on the same expression
+ * (20261009110100_verified_email_address_unicode_index.sql). Deliberately NO
+ * plus-address folding — a false-positive attach (gifting the wrong inbox) is
+ * worse than a miss, and the claim link covers a genuine miss.
  */
 export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase()
+  return email.trim().toLowerCase().normalize("NFC")
 }
 
 export function customerEmailHmac(email: string): string {

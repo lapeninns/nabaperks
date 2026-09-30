@@ -158,7 +158,9 @@ test("Given public offer campaigns stay phone-only When an email-only wallet cla
     gate.indexOf("await clearOfferCookie()") <
       gate.indexOf("This offer needs a confirmed phone number")
   )
-  assert.match(join, /customer\.phoneLast4 !== null/)
+  // A stored but unconfirmed number is not a confirmed phone (QA BUG-044).
+  assert.match(branch, /await customerHasVerifiedPhone\(customerId\)/)
+  assert.doesNotMatch(join, /customer\.phoneLast4 !== null/)
 
   const pendingOffer = read("lib", "customer", "pending-join-offer.ts")
   const available = pendingOffer.slice(

@@ -138,6 +138,17 @@ async function isInviteEmailSuppressed(
   return shouldSuppressRewardInviteEmail(globalSuppression)
 }
 
+async function markInviteEmailSendStatus(
+  inviteId: string | undefined,
+  status: "sent" | "failed"
+) {
+  if (!inviteId) return
+  await createSupabaseServiceRoleClient()
+    .from("pending_reward_invites")
+    .update({ email_send_status: status })
+    .eq("id", inviteId)
+}
+
 /**
  * A typed contact that matches no existing member becomes a pending invite. The
  * contact is hashed (never stored raw); an email invite additionally gets one
@@ -224,7 +235,11 @@ async function createRewardInviteForUnmatchedContact(
     })
   } catch (error) {
     if (error instanceof RateLimitError) return { ok: true }
-    throw error
+    // The invite row already exists and still attaches on join. Fail closed on
+    // the email, record why it was not sent, and keep the uniform response.
+    console.error("Reward invite email rate limit check failed.")
+    await markInviteEmailSendStatus(inviteId, "failed")
+    return { ok: true }
   }
 
   const appUrl =
@@ -241,7 +256,6 @@ async function createRewardInviteForUnmatchedContact(
   })
 
   after(async () => {
-    const service = createSupabaseServiceRoleClient()
     try {
       await sendTransactionalEmail({
         to: raw,
@@ -251,19 +265,9 @@ async function createRewardInviteForUnmatchedContact(
         category: "marketing",
         headers: inviteUnsubscribeHeaders(appUrl, "claim", unsubscribeToken),
       })
-      if (inviteId) {
-        await service
-          .from("pending_reward_invites")
-          .update({ email_send_status: "sent" })
-          .eq("id", inviteId)
-      }
+      await markInviteEmailSendStatus(inviteId, "sent")
     } catch {
-      if (inviteId) {
-        await service
-          .from("pending_reward_invites")
-          .update({ email_send_status: "failed" })
-          .eq("id", inviteId)
-      }
+      await markInviteEmailSendStatus(inviteId, "failed")
     }
   })
 

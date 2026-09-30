@@ -204,13 +204,15 @@ export async function loadCardExperienceContext(
 
 /**
  * The compact "Add your email" card after a stamp, only for a customer with no
- * verified email. It reads the already-cached session customer and the
- * pending-code cookie, and opens exactly where the /home prompt would: at the
+ * verified email: on the card after the join's first stamp, and on the stamp
+ * screen after a later one (QA BUG-020). It reads the already-cached session
+ * customer and the pending-code cookie, and opens exactly where the /home
+ * prompt would: at the
  * code step when a code for the saved address is on its way to this customer,
  * otherwise at the email step with that address prefilled. It must never cost
  * the stamp screen: any failure simply leaves the card out.
  */
-async function stampEmailPrompt(): Promise<StampEmailPrompt | null> {
+export async function stampEmailPrompt(): Promise<StampEmailPrompt | null> {
   try {
     const customer = await getCurrentCustomer()
     if (!customer || customerHasVerifiedEmail(customer)) return null

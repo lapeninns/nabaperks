@@ -4,6 +4,7 @@ import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import { recoverFromBoundaryError } from "@/lib/navigation/stale-server-action"
 
 /**
  * Segment boundary for render/read failures. Server actions return structured
@@ -35,7 +36,10 @@ export default function AdminError({
           </>
         }
         actions={
-          <Button type="button" onClick={reset}>
+          <Button
+            type="button"
+            onClick={() => recoverFromBoundaryError(error, reset)}
+          >
             Retry
           </Button>
         }

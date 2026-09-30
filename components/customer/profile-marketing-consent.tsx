@@ -1,73 +1,60 @@
-"use client"
-
-import { useActionState, useState } from "react"
-
+import { SectionHeader } from "@/components/brand"
+import { CustomerProfileMarketingRows } from "@/components/customer/profile-marketing-consent-rows"
 import {
-  updateHomeMarketingConsentAction,
-  type MarketingConsentState,
-} from "@/app/home/(authed)/profile/actions"
-import { Eyebrow, SectionHeader } from "@/components/brand"
-import { marketingConsentRowState } from "@/lib/customer/experience/marketing-consent-row"
+  getMarketingConsentEligibility,
+  type MarketingConsentEligibility,
+} from "@/lib/customer/consent"
+import {
+  marketingConsentOffer,
+  type DisplayMarketingChannel,
+} from "@/lib/customer/experience/marketing-consent-row"
 
 type MarketingConsent = {
   channel: "email" | "sms" | "whatsapp" | "push"
   optedIn: boolean
 }
 
-type DisplayMarketingChannel = Exclude<MarketingConsent["channel"], "push">
-
-const CHANNELS = [
-  {
-    channel: "email",
-    label: "Email",
-    helper: "Reward updates and offers by email.",
-  },
-  {
-    channel: "sms",
-    label: "SMS",
-    helper: "Occasional offers by text message.",
-  },
-  {
-    channel: "whatsapp",
-    label: "WhatsApp",
-    helper: "Updates and offers on WhatsApp.",
-  },
-] as const satisfies readonly {
-  channel: DisplayMarketingChannel
-  label: string
-  helper: string
-}[]
-
-const initialState: MarketingConsentState = {}
-
 /**
  * Global marketing preferences for the signed-in customer. One toggle per channel
- * applies across every venue; each posts on change (no Save button). The page
- * revalidates after a save, and each row is keyed by the server's standing value
- * so a successful change re-renders the toggle from server truth. Each row gives a
- * quiet, polite confirmation and reflects the switch from server truth so a failed
- * save snaps the toggle back instead of leaving it contradicting the message.
+ * applies across every venue. Only the channels the wallet can choose are
+ * offered: text and WhatsApp need a verified phone, email needs a verified
+ * email, and a wallet with no venue yet is told it chooses updates when it
+ * joins (the server refuses the same changes). A channel already opted in
+ * without its verified contact stays offered so it can be turned off, with a
+ * note that it cannot be turned back on until the contact is verified.
  */
-export function CustomerProfileMarketing({
+export async function CustomerProfileMarketing({
   consents,
   hasPhone = true,
+  eligibility,
 }: {
   consents: readonly MarketingConsent[]
   /**
-   * False for a wallet started with an email and no phone yet: text and
-   * WhatsApp need a phone, so only email is offered (the server refuses the
-   * others too).
+   * False for a wallet with no verified phone (for example one started with
+   * an email): text and WhatsApp need a phone, so they are not offered.
    */
   hasPhone?: boolean
+  /** Loaded for the signed-in wallet when not given. */
+  eligibility?: MarketingConsentEligibility | null
 }) {
-  const optedInByChannel = new Map(
-    consents.map((consent) => [consent.channel, consent.optedIn])
-  )
-  const channels = hasPhone
-    ? CHANNELS
-    : CHANNELS.filter((entry) => entry.channel === "email")
-  const hasAnyConsent = channels.some((entry) =>
-    optedInByChannel.has(entry.channel)
+  const wallet =
+    eligibility === undefined
+      ? await getMarketingConsentEligibility()
+      : eligibility
+  const optedInByChannel: Partial<Record<DisplayMarketingChannel, boolean>> = {}
+  for (const consent of consents) {
+    if (consent.channel !== "push") {
+      optedInByChannel[consent.channel] = consent.optedIn
+    }
+  }
+  const { channels, notice, notices } = marketingConsentOffer({
+    hasVerifiedPhone: hasPhone && (wallet?.hasVerifiedPhone ?? true),
+    hasVerifiedEmail: wallet?.hasVerifiedEmail ?? null,
+    membershipCount: wallet?.membershipCount ?? null,
+    optedInByChannel,
+  })
+  const hasAnyConsent = channels.some(
+    (channel) => optedInByChannel[channel] !== undefined
   )
 
   return (
@@ -77,93 +64,29 @@ export function CustomerProfileMarketing({
         Optional. Turning these off won&apos;t affect stamps or rewards.
       </p>
 
-      <ul className="grid gap-3">
-        {channels.map((entry) => {
-          const optedIn = optedInByChannel.get(entry.channel) ?? false
-          return (
-            <li key={`${entry.channel}:${optedIn}`}>
-              <MarketingChannelRow
-                channel={entry.channel}
-                label={entry.label}
-                helper={entry.helper}
-                optedIn={optedIn}
-              />
-            </li>
-          )
-        })}
-      </ul>
+      {notice ? (
+        <p className="text-sm leading-6 text-foreground">{notice}</p>
+      ) : (
+        <CustomerProfileMarketingRows
+          channels={channels}
+          optedInByChannel={optedInByChannel}
+        />
+      )}
 
-      {!hasAnyConsent ? (
+      {notices.map((withdrawOnlyNotice) => (
+        <p
+          key={withdrawOnlyNotice}
+          className="text-xs leading-5 text-muted-foreground"
+        >
+          {withdrawOnlyNotice}
+        </p>
+      ))}
+
+      {!notice && !hasAnyConsent ? (
         <p className="text-xs leading-5 text-muted-foreground">
           You choose this when you join a venue — change it here any time.
         </p>
       ) : null}
     </section>
-  )
-}
-
-function MarketingChannelRow({
-  channel,
-  label,
-  helper,
-  optedIn,
-}: {
-  channel: DisplayMarketingChannel
-  label: string
-  helper: string
-  optedIn: boolean
-}) {
-  const [state, action, pending] = useActionState(
-    updateHomeMarketingConsentAction,
-    initialState
-  )
-  // The value the customer just chose, shown while the save is in flight so the
-  // switch stays responsive; the server result (success or reverted failure)
-  // takes over once the action resolves.
-  const [optimistic, setOptimistic] = useState(optedIn)
-
-  const { checked, message } = marketingConsentRowState({
-    channel,
-    optedIn,
-    pending,
-    state,
-  })
-  const displayChecked = pending ? optimistic : checked
-
-  return (
-    <form action={action} className="flex items-start justify-between gap-4">
-      <input type="hidden" name="channel" value={channel} />
-      <div className="grid gap-1">
-        <Eyebrow>{label}</Eyebrow>
-        <p className="text-sm leading-6 text-muted-foreground">{helper}</p>
-        <p
-          role="status"
-          aria-live="polite"
-          className={
-            !message
-              ? "sr-only"
-              : state.error
-                ? "text-sm font-bold text-destructive"
-                : "text-sm font-bold text-foreground"
-          }
-        >
-          {message}
-        </p>
-      </div>
-      <label className="-m-3 mt-0.5 inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center p-3">
-        <span className="sr-only">Receive {label} updates</span>
-        <input
-          type="checkbox"
-          name="optedIn"
-          checked={displayChecked}
-          disabled={pending}
-          onChange={(event) => {
-            setOptimistic(event.currentTarget.checked)
-            event.currentTarget.form?.requestSubmit()
-          }}
-          className="size-5 shrink-0 accent-primary disabled:opacity-60"
-        />
-      </label>
-    </form>
   )
 }

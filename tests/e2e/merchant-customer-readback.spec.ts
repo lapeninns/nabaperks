@@ -14,12 +14,13 @@ import {
   type CustomerReadbackSeed,
 } from "./helpers/customer-readback-seed"
 import { dismissPwaInstall } from "./helpers/harness"
+import { installRewardOwnerSession } from "./helpers/reward-id-check-sessions"
 
 const SEED_MERCHANT_SLUG = "old-crown-girton"
-const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
 type MerchantCustomerReadbackFixture = CustomerReadbackSeed & {
   readonly maskedIdentifier: string
+  readonly waitingMaskedIdentifier: string
   readonly totalMembers: number
 }
 
@@ -34,6 +35,7 @@ test.describe("@admin-live-db merchant customer readback", () => {
 
   test("renders masked member rows from the signed-in merchant scope", async ({
     page,
+    baseURL,
   }) => {
     const sql = connectLocalDb()
     test.skip(!sql, "local Supabase DB is not configured")
@@ -46,16 +48,16 @@ test.describe("@admin-live-db merchant customer readback", () => {
       test.skip(!fixture, "merchant customer readback fixture is not available")
       if (!fixture) return
 
-      const merchantEmail = await seedMerchantOwnerEmail(sql, SEED_MERCHANT_SLUG)
+      const merchantEmail = await seedMerchantOwnerEmail(
+        sql,
+        SEED_MERCHANT_SLUG
+      )
       test.skip(!merchantEmail, "seed merchant owner email is not available")
       if (!merchantEmail) return
 
-      await signInAsSeededMerchant(
-        page,
-        `/app/customers?highlight=${fixture.membershipId}`,
-        fixture.membershipId,
-        merchantEmail
-      )
+      // /login is passwordless; install the seeded owner's session directly.
+      await installRewardOwnerSession(sql, page.context(), baseURL ?? "")
+      await page.goto(`/app/customers?highlight=${fixture.membershipId}`)
 
       await expect(page).toHaveURL((url) => {
         return (
@@ -74,7 +76,9 @@ test.describe("@admin-live-db merchant customer readback", () => {
 
       await expect(highlightedMember).toBeVisible()
       await expect(highlightedMember).toContainText("Reward ready")
-      await expect(page.getByRole("link", { name: "Open scanner" })).toBeVisible()
+      await expect(
+        page.getByRole("link", { name: "Open scanner" })
+      ).toBeVisible()
 
       const memberStat = page
         .locator(".surface-card")
@@ -98,6 +102,21 @@ test.describe("@admin-live-db merchant customer readback", () => {
       await search.fill(fixture.maskedIdentifier)
       await expect(highlightedMember).toBeVisible()
       await expectNoHorizontalOverflow(page)
+
+      // Collection needs a verified phone: the phone-less wallet's reward,
+      // once due, reads as unavailable to staff rather than ready.
+      await sql`
+        update public.reward_events
+        set redeemable_from = public.uk_business_date(now())
+        where membership_id = ${fixture.waitingMembershipId}::uuid`
+      await page.goto(`/app/customers?highlight=${fixture.waitingMembershipId}`)
+      const phonelessMember = page
+        .locator('[data-customer-highlight="true"]')
+        .filter({ hasText: fixture.waitingMaskedIdentifier })
+        .first()
+      await expect(phonelessMember).toBeVisible()
+      await expect(phonelessMember).toContainText("Reward unavailable")
+      await expect(phonelessMember).not.toContainText("Reward ready")
     } finally {
       await cleanupCustomerReadbackRows(sql, fixture)
       await sql.end()
@@ -123,31 +142,15 @@ async function createMerchantCustomerReadbackFixture(
     return {
       ...seed,
       maskedIdentifier: expectedMaskedEmail(seed.rawPrivateEmail),
+      waitingMaskedIdentifier: expectedMaskedEmail(
+        `waiting-readback-${runId}@example.test`
+      ),
       totalMembers: rows.at(0)?.count ?? 0,
     }
   } catch (error) {
     await cleanupCustomerReadbackRows(sql, seed)
     throw error
   }
-}
-
-async function signInAsSeededMerchant(
-  page: Page,
-  next: string,
-  rateLimitNonce: string,
-  merchantEmail: string
-): Promise<void> {
-  await page.setExtraHTTPHeaders({
-    "x-vercel-forwarded-for": localLoopbackIp(rateLimitNonce),
-  })
-  await page.goto(`/login?next=${encodeURIComponent(next)}`)
-  await expect(
-    page.getByRole("heading", { name: "Back to the counter" })
-  ).toBeVisible()
-
-  await page.locator("#email").fill(merchantEmail)
-  await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
-  await page.getByRole("button", { name: "Log in" }).click()
 }
 
 function expectedMaskedEmail(email: string): string {
@@ -160,16 +163,12 @@ function expectedMaskedEmail(email: string): string {
     .toLowerCase()}`
 }
 
-function localLoopbackIp(nonce: string): string {
-  const first = Number.parseInt(nonce.slice(0, 2), 16) || 1
-  const second = Number.parseInt(nonce.slice(2, 4), 16) || 1
-  return `127.${first}.${second}.1`
-}
-
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const hasOverflow = await page.evaluate(() => {
-    return document.documentElement.scrollWidth >
+    return (
+      document.documentElement.scrollWidth >
       document.documentElement.clientWidth + 1
+    )
   })
 
   expect(hasOverflow).toBe(false)

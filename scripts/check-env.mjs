@@ -300,6 +300,17 @@ if (!["off", "existing", "full"].includes(customerEmailAuthMode)) {
   invalid.push("CUSTOMER_EMAIL_AUTH_MODE must be off, existing or full")
 }
 
+// Email sign-in hashes every address with the email HMAC secret, so a mode
+// that turns it on cannot work without one (QA BUG-016).
+if (
+  ["existing", "full"].includes(customerEmailAuthMode) &&
+  !values.CUSTOMER_EMAIL_HMAC_SECRET?.trim()
+) {
+  missing.push(
+    "CUSTOMER_EMAIL_HMAC_SECRET (required when customer email sign-in is on)"
+  )
+}
+
 if (customerMessagingBypassMode && customerMessagingBypassMode !== "log") {
   invalid.push("CUSTOMER_MESSAGING_BYPASS_MODE must be log or blank")
 }

@@ -59,6 +59,8 @@ async function loadControls() {
                 "export function buildExportDownload() {}",
               "@/lib/customer/consent":
                 'export const MARKETING_POLICY_VERSION = "test";',
+              "@/lib/customer/join-lookup": `import {state} from "fixture-state";
+              export function expireJoinAvailability(id) {state.refreshes.push("join-availability:" + id)}`,
             }
             assert.ok(path in modules, `Unrecognised boundary: ${path}`)
             return { contents: modules[path] }
@@ -143,6 +145,7 @@ test("Given an admin messaging change When enabled or disabled Then only that me
     ])
     assert.deepEqual(controls.state.refreshes, [
       `merchant:${MERCHANT_ID}`,
+      `join-availability:${MERCHANT_ID}`,
       "/admin/merchants",
       "/admin/audit",
       "/app",
@@ -173,6 +176,10 @@ test("Given suspension and reinstatement When submitted Then the session RPC rec
     assert.deepEqual(controls.state.gates, ["admin", "session"])
     assert.deepEqual(controls.state.writes, [{ name, args }])
     assert.ok(controls.state.refreshes.includes("/admin/audit"))
+    // QA BUG-041: the next scan must not be served the pre-change venue state.
+    assert.ok(
+      controls.state.refreshes.includes(`join-availability:${MERCHANT_ID}`)
+    )
   }
 })
 

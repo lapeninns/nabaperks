@@ -5,7 +5,10 @@ import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
 import { emailSignInEnabled } from "@/lib/customer/email-auth-mode"
 import { checkCustomerEmailVerification } from "@/lib/customer/email-verification"
 import { getCurrentCustomer } from "@/lib/customer/identity"
-import { markCustomerEmailVerified } from "@/lib/customer/profile"
+import {
+  CustomerContactLockedError,
+  markCustomerEmailVerified,
+} from "@/lib/customer/profile"
 import {
   linkWalletAfterContactVerification,
   walletLinkFailureMessage,
@@ -15,6 +18,8 @@ export type EmailCodeConfirmation =
   | { readonly status: "verified"; readonly walletLinked?: boolean }
   | { readonly status: "conflict" }
   | { readonly status: "rejected" }
+  | { readonly status: "expired" }
+  | { readonly status: "already_verified" }
   | { readonly status: "check_failed" }
   | { readonly status: "confirm_failed" }
   | { readonly status: "reauthenticate" | "requires_review" }
@@ -38,14 +43,21 @@ export async function confirmCustomerEmailCode(
   } catch {
     return { status: "check_failed" }
   }
+  if (checked.status === "expired") return { status: "expired" }
   if (checked.status !== "approved") return { status: "rejected" }
 
   let marked: Awaited<ReturnType<typeof markCustomerEmailVerified>>
   try {
     marked = await markCustomerEmailVerified(checked.email, surface)
-  } catch {
-    return { status: "confirm_failed" }
+  } catch (error) {
+    // Another code already confirmed a different address for this wallet,
+    // and a verified email is locked (QA BUG-032).
+    return error instanceof CustomerContactLockedError
+      ? { status: "already_verified" }
+      : { status: "confirm_failed" }
   }
+  // The profile no longer holds this address unverified (QA BUG-032).
+  if (marked.status === "expired") return marked
 
   if (marked.status === "conflict") {
     try {
@@ -106,6 +118,10 @@ export function emailConfirmationErrors(
       return { form: "We couldn't check that code. Try again." }
     case "rejected":
       return { otp: "That code didn't match. Check your email and try again." }
+    case "expired":
+      return { otp: "That code has expired. Email me a new code." }
+    case "already_verified":
+      return { form: "Your email is already confirmed." }
     case "confirm_failed":
       return { form: "We couldn't confirm your email. Try again." }
     case "conflict":

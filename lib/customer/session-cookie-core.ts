@@ -335,12 +335,21 @@ function parseCustomerSessionPayload(
   const expiresAt = value.expiresAt
 
   if (version !== 2) return null
-  if (typeof sessionId !== "string") return null
-  if (typeof customerId !== "string") return null
+  // Both ids are Postgres uuids. A signed payload that is not one is treated
+  // as no session, rather than failing the database cast with a 500.
+  if (!isUuid(sessionId)) return null
+  if (!isUuid(customerId)) return null
   if (typeof issuedAt !== "number") return null
   if (typeof expiresAt !== "number") return null
 
   return { version, sessionId, customerId, issuedAt, expiresAt }
+}
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_PATTERN.test(value)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

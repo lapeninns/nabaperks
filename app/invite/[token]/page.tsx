@@ -1,12 +1,14 @@
 import { after } from "next/server"
 
 import { InviteClaimPanel } from "@/components/customer/invite-claim-panel"
+import { customerEmailAuthMode } from "@/lib/customer/email-auth-mode"
 import {
   markInviteOpened,
   resolveInviteClaimContext,
 } from "@/lib/loyalty-invites/claim-context"
 
 import { startInviteClaimAction } from "./actions"
+import { inviteNextStepCopy } from "./invite-copy"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -31,6 +33,7 @@ export default async function InviteClaimPage({
       status={context.status}
       businessName={context.businessName}
       token={token}
+      nextStep={inviteNextStepCopy(customerEmailAuthMode())}
       startAction={startInviteClaimAction}
     />
   )

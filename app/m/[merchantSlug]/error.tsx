@@ -3,8 +3,10 @@
 import { CustomerErrorState } from "@/components/customer/customer-error-state"
 import { CustomerShell } from "@/components/layout"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
+import { recoverFromBoundaryError } from "@/lib/navigation/stale-server-action"
 
 export default function CustomerVenueError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string }
@@ -15,7 +17,7 @@ export default function CustomerVenueError({
       <CustomerErrorState
         title="Venue unavailable"
         description="This venue page could not be loaded safely. Try again, or ask a team member for the current loyalty QR."
-        reset={reset}
+        reset={() => recoverFromBoundaryError(error, reset)}
         secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />
     </CustomerShell>

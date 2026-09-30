@@ -58,7 +58,11 @@ async function loadVerification() {
         setup(build) {
           build.onResolve(
             { filter: /^(fixture-state|server-only|@\/lib\/)/ },
-            ({ path }) => ({ path, namespace: "fixture" })
+            ({ path }) =>
+              // The real address normaliser (pure), as stored addresses use.
+              path === "@/lib/customer/email-pii-core"
+                ? { path: `${process.cwd()}/lib/customer/email-pii-core.ts` }
+                : { path, namespace: "fixture" }
           )
           build.onLoad({ filter: /.*/, namespace: "fixture" }, ({ path }) => {
             assert.ok(path in modules, `Unrecognised boundary: ${path}`)

@@ -20,14 +20,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+// Never prerender the /dev tree. In production the layout 404s before it
+// reads a request, so Next would otherwise prerender that 404 as a static
+// page (s-maxage=31536000) while the Proxy, which the harness needs for the
+// request path, still mints a device cookie on the same response (QA BUG-061).
+export const dynamic = "force-dynamic"
+
 const MIN_WIDTH = 240
 const MAX_WIDTH = 3840
 
-export default async function DevLayout({
-  children,
-}: {
-  children: ReactNode
-}) {
+export default async function DevLayout({ children }: { children: ReactNode }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }

@@ -10,8 +10,12 @@ import {
   loadMerchantJoinState,
   loadQrIdentity,
   loadQrJoinState,
+  readMerchantJoinState,
+  readQrJoinState,
   type JoinLoyaltyCardRow,
   type JoinLocationRow,
+  type MerchantJoinStateRow,
+  type QrJoinStateRow,
 } from "@/lib/customer/join-lookup"
 import { rewardExamplesFromPool } from "@/lib/customer/reward-examples"
 import { enforceQrScanRateLimit } from "@/lib/customer/qr-rate-limit"
@@ -82,23 +86,18 @@ export async function resolveQrForJoin(
   const identity = await loadQrIdentity(qrId)
   if (!identity) return null
 
-  const qrCode = await loadQrJoinState(identity.merchantId, identity.qrCodeId)
+  let qrCode = await loadQrJoinState(identity.merchantId, identity.qrCodeId)
+  // A cached "unavailable" may predate the QR or venue coming back on (QA
+  // BUG-041): confirm it live before turning the customer away. Available
+  // rows keep the cache; only unavailable scans pay for the extra read.
+  if (!qrCode || !qrJoinAvailable(qrCode)) {
+    qrCode = await readQrJoinState(identity.merchantId, identity.qrCodeId)
+  }
   if (!qrCode) return null
 
   const merchant = first(qrCode.merchants)
   const loyaltyCard = first(qrCode.loyalty_cards)
-  const billingStatus =
-    firstNullable(merchant.billing_customers)?.status ?? null
-  const availability = loyaltyAvailability({
-    merchantStatus: merchant.status,
-    cardActive: loyaltyCard.is_active,
-    billingStatus,
-    requiresBilling: merchant.requires_billing,
-  })
-  const available =
-    qrCode.destination_type === "join" &&
-    qrCode.is_active &&
-    availability.available
+  const available = qrJoinAvailable(qrCode)
 
   if (recordScan) {
     // Defer the scan-analytics write off the critical path. `/q/[qrId]` is the
@@ -161,22 +160,19 @@ export async function getMerchantJoinContext(
   const identity = await loadMerchantIdBySlug(merchantSlug)
   if (!identity) return null
 
-  const data = await loadMerchantJoinState(identity.merchantId)
+  let data = await loadMerchantJoinState(identity.merchantId)
+  // As for QR scans: never refuse on a cached "unavailable" alone (QA BUG-041).
+  if (!merchantJoinAvailable(data)) {
+    data = await readMerchantJoinState(identity.merchantId)
+  }
   if (!data) return null
   if (data.business_slug !== merchantSlug) return null
 
   const loyaltyCard = first(data.loyalty_cards)
   if (!loyaltyCard?.is_active) return null
-  const billingStatus = firstNullable(data.billing_customers)?.status ?? null
-  const availability = loyaltyAvailability({
-    merchantStatus: data.status,
-    cardActive: loyaltyCard.is_active,
-    billingStatus,
-    requiresBilling: data.requires_billing,
-  })
 
   return {
-    available: availability.available,
+    available: merchantJoinAvailable(data),
     merchant: {
       id: data.id,
       business_name: data.business_name,
@@ -302,6 +298,32 @@ export async function getStampQrContextForMembership(
   if (!membership || membership.id !== membershipId) return null
 
   return qrContext
+}
+
+function qrJoinAvailable(qrCode: QrJoinStateRow): boolean {
+  const merchant = first(qrCode.merchants)
+  const loyaltyCard = first(qrCode.loyalty_cards)
+  return (
+    qrCode.destination_type === "join" &&
+    qrCode.is_active &&
+    loyaltyAvailability({
+      merchantStatus: merchant.status,
+      cardActive: loyaltyCard.is_active,
+      billingStatus: firstNullable(merchant.billing_customers)?.status ?? null,
+      requiresBilling: merchant.requires_billing,
+    }).available
+  )
+}
+
+function merchantJoinAvailable(data: MerchantJoinStateRow | null): boolean {
+  const loyaltyCard = data ? first(data.loyalty_cards) : null
+  if (!data || !loyaltyCard?.is_active) return false
+  return loyaltyAvailability({
+    merchantStatus: data.status,
+    cardActive: loyaltyCard.is_active,
+    billingStatus: firstNullable(data.billing_customers)?.status ?? null,
+    requiresBilling: data.requires_billing,
+  }).available
 }
 
 function first<T>(value: T | T[]) {

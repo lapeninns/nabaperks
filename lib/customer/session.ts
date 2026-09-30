@@ -6,6 +6,7 @@ import { cache } from "react"
 
 import { cookies, headers } from "next/headers"
 
+import { EMAIL_FALLBACK_COOKIE_NAME } from "@/lib/customer/email-fallback-core"
 import {
   PENDING_EMAIL_SIGN_IN_COOKIE_NAME,
   VERIFIED_EMAIL_HANDOFF_COOKIE_NAME,
@@ -27,10 +28,12 @@ import {
   type PendingPhonePayload,
   type PendingPhonePurpose,
 } from "@/lib/customer/session-cookie"
+import { fixedExpiryCookieOptions } from "@/lib/customer/session-cookie-options"
 import {
   parseCustomerSessionLoadRow,
   type CustomerSessionLoadRow,
 } from "@/lib/customer/session-load-row"
+import { logger } from "@/lib/observability/logger"
 import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import {
@@ -224,7 +227,7 @@ export async function setCustomerSession(
   cookieStore.set(
     customerSessionCookieName,
     createCustomerSessionCookieValue(payload, requiredCustomerSessionSecret()),
-    persistentCookieOptions(customerSessionTtlSeconds)
+    fixedExpiryCookieOptions(customerSessionTtlSeconds)
   )
   // Signed in: no signed-out email challenge or handoff may outlive this, or
   // it could resurface for whoever uses the browser after a log-out.
@@ -238,6 +241,9 @@ function clearSignedOutEmailSignIn(
 ): void {
   cookieStore.delete(PENDING_EMAIL_SIGN_IN_COOKIE_NAME)
   cookieStore.delete(VERIFIED_EMAIL_HANDOFF_COOKIE_NAME)
+  // The fallback record says "email is already open on this browser"; left
+  // behind, it would open email early for the next person (QA BUG-053).
+  cookieStore.delete(EMAIL_FALLBACK_COOKIE_NAME)
 }
 
 export type ResolvedCustomerSession = {
@@ -307,11 +313,18 @@ export async function getCustomerSession(): Promise<CustomerSessionPayload | nul
 }
 
 /**
+ * Which sessions a "Log out on all devices" request actually ended:
+ * `all_devices` normally, or `this_device` when the app runs ahead of the
+ * migration that adds revoke-all and only this browser could be signed out.
+ */
+export type CustomerLogoutScope = "all_devices" | "this_device"
+
+/**
  * Log out on every device: revokes all of the signed-in customer's sessions
  * server-side, then clears this browser's cookie. Other devices are rejected
  * on their next request because every request re-checks the session row.
  */
-export async function clearAllCustomerSessions(): Promise<void> {
+export async function clearAllCustomerSessions(): Promise<CustomerLogoutScope> {
   const session = await getCustomerSession()
   if (session) {
     const supabase = createSupabaseServiceRoleClient()
@@ -319,12 +332,22 @@ export async function clearAllCustomerSessions(): Promise<void> {
       p_customer_id: session.customerId,
     })
     if (error) {
-      throw new Error(`Unable to revoke customer sessions: ${error.message}`)
+      if (!isMissingRpcError(error)) {
+        throw new Error(`Unable to revoke customer sessions: ${error.message}`)
+      }
+      // App deployed ahead of 20261005100600: still sign this device out
+      // (revoking its own session) rather than failing with nothing revoked.
+      logger.warn("customer_log_out_all_devices_unavailable", {
+        reason: "revoke_all_customer_sessions_missing",
+      })
+      await clearCustomerSession()
+      return "this_device"
     }
   }
   const cookieStore = await cookies()
   cookieStore.delete(customerSessionCookieName)
   clearSignedOutEmailSignIn(cookieStore)
+  return "all_devices"
 }
 
 export async function clearCustomerSession(): Promise<void> {

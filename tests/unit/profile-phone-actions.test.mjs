@@ -48,7 +48,8 @@ const STUBS = {
   "@/lib/customer/otp-rate-limit": `import { state } from "fixture-state";
     import { RateLimitError } from "@/lib/security/rate-limit";
     export async function enforceCustomerOtpSendRateLimit(input) { state.calls.push(["admit", input.scope, input.phone]); return state.admitted }
-    export async function enforceCustomerOtpVerifyRateLimit(input) { state.calls.push(["verifyLimit", input.phone]); if (state.verifyLimited) throw new RateLimitError() }`,
+    export async function enforceCustomerOtpVerifyRateLimit(input) { state.calls.push(["verifyLimit", input.phone]); if (state.verifyLimited) throw new RateLimitError() }
+    export async function releaseCustomerOtpVerifyAdmission(input) { state.calls.push(["verifyRelease", input.phone]) }`,
   "@/lib/customer/phone": `export function defaultCountryFromHeaders() { return "GB" }
     export function normalizePhone(raw) {
       const digits = raw.replace(/\\s/g, "")
@@ -248,6 +249,7 @@ test("Given a code for this wallet When it is confirmed Then the phone is attach
   assert.deepEqual(state.calls, [
     ["verifyLimit", "+447700900123"],
     ["check", "+447700900123", "123456"],
+    ["verifyRelease", "+447700900123"],
     [
       "attach",
       {
@@ -466,6 +468,25 @@ test("Given another wallet's pending code When a resend is posted Then the poste
   // The stubbed normaliser takes national numbers only.
   assert.deepEqual(result.errors, { phone: "Enter a valid phone number." })
   assert.ok(!state.calls.some(([name]) => name === "send"))
+})
+
+test("Given the wallet is erased while the code is checked When it is confirmed Then nothing is added and the customer is asked to sign in (QA BUG-002)", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = WHATSAPP_PENDING
+  state.attach = { status: "wallet_unavailable" }
+
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+
+  assert.deepEqual(result, {
+    step: "phone",
+    errors: { form: "Sign in to add a phone number." },
+  })
+  assert.equal(state.pending, null)
+  assert.deepEqual(state.revalidated, [])
+  assert.deepEqual(state.events, [])
 })
 
 test("Given a wrong code on a WhatsApp code step When it is refused Then the step still knows the channel", async () => {

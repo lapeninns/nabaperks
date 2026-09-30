@@ -7,7 +7,7 @@ import { OfferPassScanPanel } from "@/components/merchant/offer-pass-scan"
 import { StatusBanner } from "@/components/loyalty"
 import { OfferPassScanContentSkeleton } from "@/components/merchant/loading-skeletons"
 import { Button } from "@/components/ui/button"
-import { getCurrentMerchant } from "@/lib/auth/session"
+import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
 import { loadMerchantOfferPassScanContext } from "@/lib/merchant/offer-pass-redemption"
 import { merchantLoginHref } from "@/lib/navigation/safe-next-path"
 import { offerPassScanBanner } from "@/lib/offers/redeem-core"
@@ -72,7 +72,10 @@ async function PassScanStream({
   )
 
   if (!merchant) {
-    redirect(loginHref)
+    // Signed in but owning no venue is not signed out: /login would bounce the
+    // user straight back here (QA BUG-060). Send them where /app does, without
+    // the pass token.
+    redirect((await getCurrentUser()) ? "/app/onboarding" : loginHref)
   }
 
   // Venue ownership is proved by the loader, from the merchant's own session

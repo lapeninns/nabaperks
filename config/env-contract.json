@@ -226,7 +226,7 @@
     "name": "CUSTOMER_EMAIL_HMAC_SECRET",
     "visibility": "server",
     "kind": "string",
-    "description": "High-entropy secret for deterministic HMAC matching of pending reward-invite email addresses (never stored raw). Optional at the env level so the rest of the app runs without it; required only to send/match email invites, enforced at call time in lib/customer/email-pii-core.ts.",
+    "description": "High-entropy secret for deterministic HMAC matching of customer email addresses (never stored raw): email sign-in and email join, verified-email lookup and reward-invite matching. Required by pnpm env:check whenever CUSTOMER_EMAIL_AUTH_MODE is existing or full; otherwise optional at the env level so the rest of the app runs without it (email features then fail softly at call time, lib/customer/email-pii-core.ts).",
     "optional": true
   },
   {
@@ -302,7 +302,7 @@
     "name": "CUSTOMER_EMAIL_AUTH_MODE",
     "visibility": "server",
     "kind": "string",
-    "description": "Customer email sign-in rollout mode: off, existing (email opens wallets that already hold that verified email) or full (email can also start a new wallet on the join page). Defaults to off. Keep it off in every environment until the build with the email sign-in and email join flows is live there; see the production runbook.",
+    "description": "Customer email sign-in rollout mode: off, existing (email opens wallets that already hold that verified email) or full (email can also start a new wallet on the join page). Defaults to off; an unrecognised value runs as off and fails pnpm env:check. existing and full require CUSTOMER_EMAIL_HMAC_SECRET. Keep it off in every environment until the build with the email sign-in and email join flows is live there; see the production runbook.",
     "optional": true
   },
   {

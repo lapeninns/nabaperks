@@ -169,6 +169,12 @@ export type ProfileGate = {
   dateOfBirthVerified: boolean
   /** Email entered but unconfirmed — show the inline "enter your code" step. */
   needsEmailVerification: boolean
+  /**
+   * A code for the unconfirmed email is pending for this customer, so the
+   * email step may ask for it. False offers to send one instead (a failed
+   * send, a lapsed code, another browser; QA BUG-036). Omitted: pending.
+   */
+  emailCodePending?: boolean
   fullName: string | null
   dateOfBirth: string | null
   email: string | null

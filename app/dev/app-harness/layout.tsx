@@ -35,6 +35,7 @@ export const metadata: Metadata = {
 // and both the setup and full shells wrap it in <form action={…}>.
 async function noopSignOutAction() {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
 }
 
 const SETUP_LANES = new Set(["onboarding"])

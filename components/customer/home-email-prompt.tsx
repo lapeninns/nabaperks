@@ -276,7 +276,8 @@ function EmailStep({
         ) : null}
       </div>
       {state.errors?.form ? (
-        <StatusBanner tone="warning" title="Email not added">
+        // A failed send keeps the address, unconfirmed (QA BUG-036).
+        <StatusBanner tone="warning" title="Email not confirmed">
           {state.errors.form}
         </StatusBanner>
       ) : null}

@@ -160,13 +160,18 @@ export async function requestCustomerEmailIdentityAction(
     }
   }
 
-  await captureJoinFunnelEvent({
-    eventName: "join_email_requested",
-    merchantId,
-    entry: entryFor(request),
-    step: "email",
-    method: "email",
-  })
+  // Counted only when a new code was admitted. A refused (held) send looks
+  // the same to the guest (D8) and the sign-in module tracks it as a failed
+  // send; a repeat is the request already counted (QA BUG-026).
+  if (result.admission === "admitted") {
+    await captureJoinFunnelEvent({
+      eventName: "join_email_requested",
+      merchantId,
+      entry: entryFor(request),
+      step: "email",
+      method: "email",
+    })
+  }
 
   // A resend from the code step answers in place, like the phone resend.
   if (isResend) {
@@ -291,8 +296,11 @@ export async function startEmailWalletAction(
 
   // Single use on the server, not only in this browser: a replayed copy of
   // the cookie must not sign in to the wallet the first use created.
+  // The refusal leaves the cookie alone: deleting it here refreshes the page
+  // to the welcome step and the guest never sees why (QA BUG-017). The spent
+  // copy keeps the choice screen, which shows this message and offers a
+  // different email or the phone, and it can never be spent again.
   if (!(await consumeVerifiedEmailHandoff(handoff))) {
-    await clearVerifiedEmailHandoff()
     return { errors: { form: HANDOFF_EXPIRED } }
   }
 
@@ -315,6 +323,21 @@ export async function startEmailWalletAction(
     })
     return { errors: { form: EMAIL_HELD_ELSEWHERE } }
   }
+
+  // A new email counts as the journey's verification only now, once the
+  // guest has chosen it: the code step proved the address, but the guest may
+  // still take "Open my existing wallet with my phone", and that phone code
+  // is then the verification. The funnel's event ID is one per journey and
+  // step, so recording email at the code step would drop the phone one (QA
+  // BUG-028). A retry after a failed session is deduplicated the same way.
+  await captureJoinFunnelEvent({
+    eventName: "join_otp_verified",
+    customerId: wallet.customer.id,
+    scopeKey: request.merchantSlug,
+    entry: entryFor(request),
+    step: "otp",
+    method: "email",
+  })
 
   const created = wallet.status === "created"
   if (created) {

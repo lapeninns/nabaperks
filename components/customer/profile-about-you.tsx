@@ -59,19 +59,39 @@ const EMAIL_HINT: Record<EmailPromptReason, string> = {
 
 export function CustomerProfileAboutYou({
   profile,
+  emailCodeSentAt,
   emailReason = "rewards",
   addPhone,
 }: {
   profile: AboutYouProfile
+  /**
+   * When the pending code for the saved email was sent, or null when none is
+   * pending (a failed send, a lapsed code, another browser): then the card
+   * offers to send one rather than asking for it (QA BUG-036). Omitted, a
+   * code is taken to be pending.
+   */
+  emailCodeSentAt?: number | null
   /** Chosen on the server from the email sign-in mode. */
   emailReason?: EmailPromptReason
   addPhone?: ReactNode
 }) {
   const serverMode = initialModeFor(profile)
+  const codeSent = emailCodeSentAt !== null
   const [mode, setMode] = useState<Mode>(serverMode)
   const [saveState, saveAction, savePending] = useActionState(
     saveHomeProfileAction,
     initialState
+  )
+  // Owned here, not by the code step: a refused (conflict) confirmation
+  // releases the address, so the re-rendered card leaves verify and the code
+  // step unmounts. Its answer must outlive that (QA BUG-005).
+  const [verifyState, verifyAction, verifyPending] = useActionState(
+    verifyHomeProfileEmailAction,
+    initialState
+  )
+  const [freshVerifyState, dismissVerifyAnswer] = useFreshVerifyState(
+    verifyState,
+    serverMode === "verify" && codeSent ? (emailCodeSentAt ?? "sent") : null
   )
 
   // Reconcile mode without effects, via the "compare to the previous render"
@@ -91,15 +111,27 @@ export function CustomerProfileAboutYou({
     setSeenSaveMessage(saveState.message)
     if (saveState.message) {
       setMode(/code/i.test(saveState.message) ? "verify" : "view")
+      dismissVerifyAnswer()
     }
   }
+  // Only a refused (conflict) address is answered below the card: it is the
+  // one refusal that removes the address, so the code step has gone. Other
+  // refusals stay with the code step (QA BUG-005).
+  const conflictAnswer =
+    mode !== "verify" && !profile.email ? freshVerifyState.errors?.form : null
 
   return (
     <section className="surface-card grid gap-4 p-5">
       <SectionHeader eyebrow="About you" title="Your contact details" />
 
       {mode === "view" ? (
-        <AboutYouView profile={profile} onEdit={() => setMode("edit")} />
+        <AboutYouView
+          profile={profile}
+          onEdit={() => {
+            dismissVerifyAnswer()
+            setMode("edit")
+          }}
+        />
       ) : null}
 
       {mode === "edit" ? (
@@ -113,11 +145,32 @@ export function CustomerProfileAboutYou({
         />
       ) : null}
 
-      <AboutYouEmailVerify
-        key={profile.email}
-        email={profile.email}
-        active={mode === "verify"}
-      />
+      {freshVerifyState.message ? (
+        // A confirmation that linked two wallets (PR #410) leaves verify at
+        // once, so its answer is shown here, like the conflict below.
+        <div className="grid gap-3">
+          <p role="status" className="text-sm leading-6">
+            {freshVerifyState.message}
+          </p>
+          <WalletLinkNextStep linked={freshVerifyState.walletLinked} />
+        </div>
+      ) : null}
+      {conflictAnswer ? (
+        <div className="grid gap-3">
+          <StatusBanner tone="warning" title="Email not confirmed">
+            {conflictAnswer}
+          </StatusBanner>
+          <WalletLinkNextStep recovery={freshVerifyState.recovery} />
+        </div>
+      ) : null}
+      {mode === "verify" && !freshVerifyState.message ? (
+        <AboutYouEmailVerify
+          email={profile.email}
+          codeSent={codeSent}
+          verify={[freshVerifyState, verifyAction, verifyPending]}
+          onContinueWithoutEmail={dismissVerifyAnswer}
+        />
+      ) : null}
       {addPhone}
     </section>
   )
@@ -240,34 +293,91 @@ function AboutYouEditForm({
   )
 }
 
+type VerifyActionState = [
+  ProfileEditState,
+  (payload: FormData) => void,
+  boolean,
+]
+
+/**
+ * The last confirmation answer, until a new code is sent (`codeStep` names
+ * the pending code) or the customer dismisses it by editing their details:
+ * a new code, or a new address, must not show the previous refusal.
+ */
+function useFreshVerifyState(
+  state: ProfileEditState,
+  codeStep: number | string | null
+): [ProfileEditState, () => void] {
+  const [staleState, setStaleState] = useState<ProfileEditState | null>(null)
+  const [prevCodeStep, setPrevCodeStep] = useState(codeStep)
+  if (codeStep !== prevCodeStep) {
+    setPrevCodeStep(codeStep)
+    if (codeStep !== null) setStaleState(state)
+  }
+  return [
+    state === staleState ? initialState : state,
+    () => setStaleState(state),
+  ]
+}
+
 function AboutYouEmailVerify({
   email,
-  active,
+  codeSent,
+  verify,
+  onContinueWithoutEmail,
 }: {
   email: string | null
-  active: boolean
+  codeSent: boolean
+  verify: VerifyActionState
+  onContinueWithoutEmail: () => void
 }) {
   const [resendState, resendAction, resendPending] = useActionState(
     resendHomeProfileEmailAction,
     initialState
   )
-  const [state, action, pending] = useActionState(
-    verifyHomeProfileEmailAction,
-    initialState
-  )
+  const [state, action, pending] = verify
 
-  if (state.message) {
+  if (!codeSent) {
     return (
       <div className="grid gap-3">
-        <p role="status" className="text-sm leading-6">
-          {state.message}
+        <StatusBanner title="Confirm your email" tone="neutral">
+          {email ?? "Your email"} is not confirmed yet. We&apos;ll email you a
+          code to confirm it.
+        </StatusBanner>
+        {state.errors?.otp ? (
+          <p className="text-sm text-destructive">{state.errors.otp}</p>
+        ) : null}
+        {state.errors?.form ? (
+          <StatusBanner tone="warning" title="Email not confirmed">
+            {state.errors.form}
+          </StatusBanner>
+        ) : null}
+        <form action={resendAction}>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={resendPending}
+            className="w-full"
+          >
+            {resendPending ? "Sending…" : "Send me a code"}
+          </Button>
+        </form>
+        <form action={clearHomeProfileEmailAction}>
+          <Button
+            type="submit"
+            variant="link"
+            size="sm"
+            onClick={onContinueWithoutEmail}
+          >
+            Continue without email
+          </Button>
+        </form>
+        <p role="status" className="text-sm text-muted-foreground">
+          {resendState.errors?.form ?? resendState.message}
         </p>
-        <WalletLinkNextStep linked={state.walletLinked} />
       </div>
     )
   }
-
-  if (!active) return null
 
   return (
     <div className="grid gap-3">
@@ -328,7 +438,12 @@ function AboutYouEmailVerify({
           </Button>
         </form>
         <form action={clearHomeProfileEmailAction}>
-          <Button type="submit" variant="link" size="sm">
+          <Button
+            type="submit"
+            variant="link"
+            size="sm"
+            onClick={onContinueWithoutEmail}
+          >
             Continue without email
           </Button>
         </form>

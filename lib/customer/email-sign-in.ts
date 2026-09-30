@@ -74,11 +74,23 @@ export const EMAIL_SIGN_IN_IP_GUESS_LIMIT = 60
 const CHALLENGE_WINDOW_MS = 15 * 60_000
 const HOUR_MS = 60 * 60_000
 
+/**
+ * What admission did with a `code_sent` answer. Internal to the server, for
+ * tracking only: the guest's answer is identical for all three (D8), so a
+ * caller must never let it reach the page.
+ *
+ * - `admitted`: a new code was admitted and sent.
+ * - `held`: admission refused the send; no new code went out.
+ * - `repeat`: a double submit or early resend kept the challenge already live.
+ */
+export type EmailSignInAdmission = "admitted" | "held" | "repeat"
+
 export type EmailSignInStartResult =
   | {
       readonly status: "code_sent"
       readonly maskedEmail: string
       readonly resendAvailableAt: number
+      readonly admission: EmailSignInAdmission
     }
   | { readonly status: "invalid_email" }
   | {
@@ -126,9 +138,12 @@ export async function startEmailSignInChallenge(
     return { status: "invalid_email" }
   }
 
-  const emailHmac = customerEmailHmac(email)
-  const secret = requiredCustomerSessionSecret()
   const now = nowSeconds()
+  const emailHmac = emailHmacOrNull(email, input.purpose)
+  if (!emailHmac) {
+    return deliveryFailed(email, now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS)
+  }
+  const secret = requiredCustomerSessionSecret()
   const existing = await readPendingChallenge(secret, now)
   const current =
     existing?.purpose === input.purpose && existing.emailHmac === emailHmac
@@ -140,12 +155,12 @@ export async function startEmailSignInChallenge(
   // challenge with no delivered code keeps saying so until it may be resent.
   if (current && now < current.resendAvailableAt) {
     await writeChallenge(current, secret)
-    return answerFor(current)
+    return answerFor(current, "repeat")
   }
 
-  const admission = await admitSend(email, emailHmac)
+  const admission = await admitSend(email, emailHmac, input.purpose)
   if (admission === "unavailable") {
-    recordSendFailure(input)
+    recordSendFailure(input, "provider_unavailable")
     return deliveryFailed(email, now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS)
   }
 
@@ -159,7 +174,9 @@ export async function startEmailSignInChallenge(
         }
       : mintChallenge({ email, emailHmac, purpose: input.purpose, now, secret })
     await makeOnlyLiveChallenge(held, secret)
-    return answerFor(held)
+    // Tracked as a send that did not go out, never as a code requested.
+    recordSendFailure(input, "admission_refused")
+    return answerFor(held, "held")
   }
 
   const code = generateEmailSignInCode()
@@ -184,7 +201,7 @@ export async function startEmailSignInChallenge(
         purpose: input.purpose,
         category: sendFailureCategory(error),
       })
-      recordSendFailure(input)
+      recordSendFailure(input, "provider_unavailable")
       const resendAvailableAt = now + EMAIL_SIGN_IN_RESEND_AFTER_SECONDS
       await makeOnlyLiveChallenge(
         keptAfterFailedSend(current, payload, resendAvailableAt),
@@ -196,7 +213,7 @@ export async function startEmailSignInChallenge(
   }
 
   await makeOnlyLiveChallenge(payload, secret)
-  return codeSent(payload)
+  return codeSent(payload, "admitted")
 }
 
 export async function checkEmailSignInChallenge({
@@ -250,7 +267,11 @@ export async function checkEmailSignInChallenge({
     })
   } catch (error) {
     if (!(error instanceof RateLimitError)) throw error
-    await clearPendingEmailSignIn()
+    // A copy of a spent challenge (a copied browser, a second tab). The
+    // cookie is left alone: deleting it here refreshes the join page to the
+    // welcome step and the guest never sees why (QA BUG-017). The code step
+    // stays and says the code has expired; this challenge can never be spent
+    // again, and the next code request replaces it.
     return { status: "expired" }
   }
 
@@ -583,23 +604,31 @@ async function makeOnlyLiveChallenge(
 /**
  * All six buckets commit together in one RPC (PR 2); a refusal by any of them
  * spends none. Keys are hashed before they leave the process.
+ *
+ * The minute and hour backstops are keyed by the client's network source
+ * (IPv4 /24, IPv6 /48), not by one constant shared by every send: with a
+ * constant key, one actor making ~150 requests an hour from three IPs refused
+ * every customer's email code platform-wide (QA BUG-003). The RPC keeps its
+ * own much higher platform-wide cap (20261009120000). The parameter names
+ * stay `p_global_*` so the deployed function and this call stay compatible.
  */
 async function admitSend(
   email: string,
-  emailHmac: string
+  emailHmac: string,
+  purpose: EmailSignInPurpose
 ): Promise<AdmissionOutcome> {
   const requestHeaders = await headers()
   const device =
     customerDeviceHashFromHeaders(requestHeaders) ??
     `identity:${customerRateLimitIdentityFromHeaders(requestHeaders)}`
   const prefix = "customer-email-sign-in:send"
+  const clientIp = trustedClientIp(requestHeaders).toLowerCase()
+  const source = networkSource(clientIp)
   const { error } = await createSupabaseServiceRoleClient().rpc(
     "admit_anonymous_customer_email_otp_send",
     {
       p_device_bucket: rateLimitBucketHash(`${prefix}:device:${device}`),
-      p_ip_bucket: rateLimitBucketHash(
-        `${prefix}:ip:${trustedClientIp(requestHeaders).toLowerCase()}`
-      ),
+      p_ip_bucket: rateLimitBucketHash(`${prefix}:ip:${clientIp}`),
       p_recipient_bucket: rateLimitBucketHash(
         `${prefix}:recipient:${emailHmac}`
       ),
@@ -607,13 +636,17 @@ async function admitSend(
       p_cooldown_bucket: rateLimitBucketHash(
         `customer-email-otp:cooldown:${email}`
       ),
-      p_global_minute_bucket: rateLimitBucketHash(`${prefix}:global:minute`),
-      p_global_hour_bucket: rateLimitBucketHash(`${prefix}:global:hour`),
+      p_global_minute_bucket: rateLimitBucketHash(
+        `${prefix}:source:minute:${source}`
+      ),
+      p_global_hour_bucket: rateLimitBucketHash(
+        `${prefix}:source:hour:${source}`
+      ),
     }
   )
   if (!error) return "admitted"
   if (/rate limit exceeded/i.test(error.message)) {
-    logger.warn("customer_email_sign_in_admission_refused", {})
+    logger.warn("customer_email_sign_in_admission_refused", { purpose })
     return "refused"
   }
   logger.error("customer_email_sign_in_admission_failed", {
@@ -622,7 +655,68 @@ async function admitSend(
   return "unavailable"
 }
 
-function recordSendFailure(input: StartInput): void {
+/**
+ * The address's HMAC, or null when email identity is not configured (no
+ * CUSTOMER_EMAIL_HMAC_SECRET). The deploy gate refuses email sign-in without
+ * it (scripts/check-env.mjs); if it still reaches runtime, the guest gets the
+ * usual "could not send" answer instead of an error page (QA BUG-016). The
+ * warning names only the purpose, never the address.
+ */
+function emailHmacOrNull(
+  email: string,
+  purpose: EmailSignInPurpose
+): string | null {
+  try {
+    return customerEmailHmac(email)
+  } catch {
+    logger.warn("customer_email_sign_in_unavailable", {
+      purpose,
+      category: "not_configured",
+    })
+    return null
+  }
+}
+
+/**
+ * The coarse network a client IP belongs to: its IPv4 /24 (IPv4-mapped IPv6
+ * included) or IPv6 /48, the block one household, venue or single operator
+ * usually holds. Anything unparseable shares the `unknown` source, as it
+ * already shares the per-IP `unknown` bucket.
+ */
+function networkSource(ip: string): string {
+  const address = ip.trim().toLowerCase().split("%")[0] ?? ""
+  const ipv4 = /^(?:::ffff:)?(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(
+    address
+  )
+  if (ipv4) {
+    const octets = ipv4.slice(1, 4).map(Number)
+    const last = Number(ipv4[4])
+    return [...octets, last].every((octet) => octet <= 255)
+      ? `${octets.join(".")}.0/24`
+      : "unknown"
+  }
+  const groups = ipv6Groups(address)
+  return groups ? `${groups.slice(0, 3).join(":")}::/48` : "unknown"
+}
+
+/** The eight groups of an IPv6 address, without leading zeros, or null. */
+function ipv6Groups(address: string): string[] | null {
+  const halves = address.split("::")
+  if (halves.length > 2) return null
+  const split = (half: string | undefined) => (half ? half.split(":") : [])
+  const head = split(halves[0])
+  const tail = split(halves[1])
+  const missing = 8 - head.length - tail.length
+  if (halves.length === 1 ? missing !== 0 : missing < 1) return null
+  const groups = [...head, ...Array<string>(missing).fill("0"), ...tail]
+  if (!groups.every((group) => /^[0-9a-f]{1,4}$/.test(group))) return null
+  return groups.map((group) => Number.parseInt(group, 16).toString(16))
+}
+
+function recordSendFailure(
+  input: StartInput,
+  reason: "provider_unavailable" | "admission_refused"
+): void {
   const join = input.purpose === "join"
   recordCustomerContactEvent({
     eventName: join
@@ -632,7 +726,7 @@ function recordSendFailure(input: StartInput): void {
     metadata: {
       method: "email",
       surface: join ? "join" : "home_login",
-      reason: "provider_unavailable",
+      reason,
     },
   })
 }
@@ -649,11 +743,15 @@ function sendFailureCategory(error: unknown): string {
   return "provider_unavailable"
 }
 
-function codeSent(payload: PendingEmailSignInPayload) {
+function codeSent(
+  payload: PendingEmailSignInPayload,
+  admission: EmailSignInAdmission
+) {
   return {
     status: "code_sent" as const,
     maskedEmail: maskEmail(payload.email) ?? "",
     resendAvailableAt: payload.resendAvailableAt,
+    admission,
   }
 }
 
@@ -666,10 +764,13 @@ function deliveryFailed(email: string, resendAvailableAt: number) {
 }
 
 /** A `held` challenge answers as sent (D8); one never delivered never does. */
-function answerFor(payload: PendingEmailSignInPayload): EmailSignInStartResult {
+function answerFor(
+  payload: PendingEmailSignInPayload,
+  admission: Exclude<EmailSignInAdmission, "admitted">
+): EmailSignInStartResult {
   return payload.delivery === "fail"
     ? deliveryFailed(payload.email, payload.resendAvailableAt)
-    : codeSent(payload)
+    : codeSent(payload, admission)
 }
 
 function nowSeconds(): number {

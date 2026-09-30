@@ -22,6 +22,7 @@ import {
 import {
   enforceCustomerOtpSendRateLimit,
   enforceCustomerOtpVerifyRateLimit,
+  releaseCustomerOtpVerifyAdmission,
 } from "@/lib/customer/otp-rate-limit"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
@@ -228,6 +229,9 @@ async function verifyAttachPhone(
     surface,
   })
   await clearPendingPhoneVerification()
+  if (result.status === "wallet_unavailable") {
+    return { step: "phone", errors: { form: SIGN_IN_FIRST } }
+  }
 
   // The phone was taken off again because its audit row could not be
   // written; the code is spent, so the customer starts over.
@@ -277,16 +281,18 @@ async function verifyAttachPhone(
   }
 }
 
-/** Guess limits, then the provider check. Returns the errors to show, if any. */
+/**
+ * Guess limits, then the provider check. Returns the errors to show, if any.
+ * Only a rejected code keeps its reserved attempt: an approved one hands it
+ * back, as join and sign-in do (QA BUG-030).
+ */
 async function checkAttachCode(
   phone: string,
   otp: string
 ): Promise<ProfilePhoneState["errors"] | null> {
+  const requestIdentity = customerRateLimitIdentityFromHeaders(await headers())
   try {
-    await enforceCustomerOtpVerifyRateLimit({
-      phone,
-      requestIdentity: customerRateLimitIdentityFromHeaders(await headers()),
-    })
+    await enforceCustomerOtpVerifyRateLimit({ phone, requestIdentity })
   } catch (error) {
     if (error instanceof RateLimitError) {
       return { form: "Too many code attempts. Request a new code shortly." }
@@ -303,6 +309,7 @@ async function checkAttachCode(
   if (verification.status === "rejected") {
     return { otp: "That code was not accepted." }
   }
+  await releaseCustomerOtpVerifyAdmission({ phone, requestIdentity })
   return null
 }
 

@@ -109,10 +109,15 @@ export async function requestCustomerLoginEmailAction(
     }
   }
 
-  recordCustomerContactEvent({
-    eventName: "customer_login_code_requested",
-    metadata: { method: "email", surface: "home_login" },
-  })
+  // Counted only when a new code was admitted. A refused (held) send looks
+  // the same to the guest (D8) and is tracked by the sign-in module as a
+  // failed send; a repeat is the request already counted.
+  if (result.admission === "admitted") {
+    recordCustomerContactEvent({
+      eventName: "customer_login_code_requested",
+      metadata: { method: "email", surface: "home_login" },
+    })
+  }
   return {
     fields: codeFields,
     message: isResend ? RESEND_MESSAGE : REQUEST_MESSAGE,

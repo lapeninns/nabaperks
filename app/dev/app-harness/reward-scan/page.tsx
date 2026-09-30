@@ -26,11 +26,15 @@ const HARNESS_SCAN_TOKEN = "00000000-0000-4000-8000-000000000000"
  *     the collection form.
  *   - ?collected=1       : ticket state="redeemed" + "Reward collected" banner,
  *     mirroring the post-collect / server-redeemed render.
+ *   - ?state=unauthorized: another venue's reward code (QA BUG-045). The real
+ *     stream renders only the "Reward not matched" banner: no ticket, member
+ *     details or collection form. (A signed-in user without a venue is sent to
+ *     /app/onboarding, which is a redirect, not a screen, so it has no lane.)
  */
 export default async function RewardScanHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ collected?: string }>
+  searchParams?: Promise<{ collected?: string; state?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -38,6 +42,23 @@ export default async function RewardScanHarnessPage({
 
   const params = searchParams ? await searchParams : {}
   const collected = params.collected === "1"
+
+  if (params.state === "unauthorized") {
+    return (
+      <div className="mx-auto grid max-w-xl gap-6">
+        <PageTitle
+          eyebrow="Reward collection"
+          title="Check and collect reward"
+          description="Confirm the member is at the counter before marking the reward collected."
+        />
+        <section className="grid gap-4">
+          <StatusBanner title="Reward not matched" tone="warning">
+            This reward belongs to another venue.
+          </StatusBanner>
+        </section>
+      </div>
+    )
+  }
 
   const rewardName = "Free hot drink"
   const rewardTerms = "On the house, redeemable from the next UK business day."

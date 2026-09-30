@@ -70,11 +70,23 @@ test("Given a verified phone When it is attached Then it never overwrites a phon
     identity.indexOf("export async function attachVerifiedPhoneToCustomer"),
     identity.indexOf("export function firstOf")
   )
-  assert.match(attach, /findCustomerByVerifiedPhone\(phone\)/)
-  assert.match(attach, /status: "contact_conflict"/)
-  assert.match(attach, /\.is\("phone_verified_at", null\)/)
-  assert.match(attach, /error\.code === UNIQUE_VIOLATION/)
+  // One locked transaction decides and writes the attach (QA BUG-002,
+  // BUG-013); the app makes no write of its own.
+  assert.match(attach, /\.rpc\("attach_verified_customer_phone"/)
+  assert.doesNotMatch(attach, /\.update\(|\.insert\(/)
+  assert.match(attach, /case "contact_conflict":/)
+  assert.match(attach, /case "wallet_unavailable":/)
   assert.match(attach, /customerPhonePii\(phone\.e164\)/)
+  const migration = read(
+    "supabase",
+    "migrations",
+    "20261009110000_atomic_customer_phone_attach.sql"
+  )
+  assert.match(migration, /for update;[\s\S]*'wallet_unavailable'/)
+  assert.match(
+    migration,
+    /grant execute on function public\.attach_verified_customer_phone\([^)]*\)\s+to service_role;/
+  )
   assert.match(
     attach,
     /after\(\(\) => attachRewardInvitesForCustomer\(customer\.id\)\)/
@@ -103,8 +115,9 @@ test("Given the profile When the wallet has no phone Then it offers to add one a
   assert.match(page, /hasPhone=\{hasPhone\}/)
   assert.match(page, /\{hasPhone \? \(\s*<PhoneMessagingSettings/)
 
-  // Text and WhatsApp marketing need a phone, in the action and at the lib
-  // boundary, because the consent RPC accepts any channel.
+  // Text and WhatsApp marketing need a verified phone (QA BUG-033). The
+  // consent RPC accepts any channel, so the lib decides before calling it and
+  // the action reports the refusal instead of claiming the change was saved.
   const profileActions = read(
     "app",
     "home",
@@ -114,12 +127,13 @@ test("Given the profile When the wallet has no phone Then it offers to add one a
   )
   assert.match(
     profileActions,
-    /optedIn && PHONE_MARKETING_CHANNELS\.has\(channel\)[\s\S]{0,160}customer\?\.phoneLast4/
+    /refusal = await updateCustomerMarketingConsent\(\{ channel, optedIn \}\)[\s\S]{0,200}if \(refusal\) \{\s*return \{ channel, optedIn: !optedIn, refusal \}/
   )
   const consent = read("lib", "customer", "consent.ts")
+  assert.match(consent, /customerHasVerifiedPhone\(customer\.id\)/)
   assert.match(
     consent,
-    /optedIn &&\s*PHONE_MARKETING_CHANNELS\.has\(channel\) &&\s*!customer\.phoneLast4/
+    /const refusal = marketingConsentRefusal\([\s\S]{0,160}if \(refusal\) return refusal[\s\S]{0,120}record_customer_marketing_consent/
   )
 })
 

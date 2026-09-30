@@ -40,6 +40,7 @@ const STATE = `export const state = {
   events: [],
   buckets: new Map(),
   limits: [],
+  ip: "203.0.113.9",
 };`
 
 const STUBS = {
@@ -77,7 +78,7 @@ const STUBS = {
       return device ? createHash("sha256").update("customer-device:" + device).digest("hex") : null
     }
     export function customerRateLimitIdentityFromHeaders() { return "identity-1" }
-    export function trustedClientIp() { return "203.0.113.9" }
+    export function trustedClientIp() { return state.ip }
     export async function enforceRateLimit({ key, limit, windowMs }) {
       state.limits.push({ key, limit, windowMs });
       const used = state.buckets.get(key) ?? 0;
@@ -225,7 +226,18 @@ test("Given admission refuses When a challenge starts Then the answer and cookie
   assert.equal(pendingCookie(mod).email, "guest@example.com")
   assert.equal(pendingCookie(mod).delivery, "held")
   assert.deepEqual(mod.state.sends, [])
-  assert.deepEqual(mod.state.events, [])
+  // Only the server's own tracking says the send was refused (QA BUG-026).
+  assert.deepEqual(mod.state.events, [
+    {
+      eventName: "join_code_send_failed",
+      merchantId: null,
+      metadata: {
+        method: "email",
+        surface: "join",
+        reason: "admission_refused",
+      },
+    },
+  ])
 
   // Same size as the cookie an admitted send sets for the same address.
   const admitted = await loadModule()
@@ -608,6 +620,56 @@ test("Given wrong guesses When the code is checked Then single use is spent only
   )
 })
 
+test("Given a spent code When a copy of its cookie is replayed Then it is refused without touching the cookie, so the code step can say why (QA BUG-017)", async () => {
+  const mod = await loadModule()
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  const copied = mod.state.cookies.get(mod.pendingEmailSignInCookieName)
+  const code = mod.state.sends[0].code
+  assert.equal(
+    (await mod.checkEmailSignInChallenge({ code, purpose: "join" })).status,
+    "verified"
+  )
+
+  // The copied browser still holds the challenge the first browser spent.
+  mod.state.cookies.set(mod.pendingEmailSignInCookieName, copied)
+  mod.state.cleared.length = 0
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    assert.deepEqual(
+      await mod.checkEmailSignInChallenge({ code, purpose: "join" }),
+      { status: "expired" }
+    )
+  }
+  // No cookie change, so the page is not refreshed to the welcome step and
+  // the code step shows "That code has expired. Request a new one."
+  assert.deepEqual(mod.state.cleared, [])
+  assert.equal(mod.state.cookies.get(mod.pendingEmailSignInCookieName), copied)
+  // Single use stays enforced on the server.
+  assert.equal(
+    mod.state.buckets.get(
+      `email-sign-in:consumed:${pendingCookie(mod).challengeId}`
+    ),
+    1
+  )
+
+  // Once the resend wait is over, a new code replaces the spent challenge.
+  await withClockAhead(61, async () => {
+    const restarted = await mod.startEmailSignInChallenge({
+      email: "guest@example.com",
+      purpose: "join",
+    })
+    assert.equal(restarted.admission, "admitted")
+    const fresh = mod.state.sends.at(-1).code
+    assert.equal(
+      (await mod.checkEmailSignInChallenge({ code: fresh, purpose: "join" }))
+        .status,
+      "verified"
+    )
+  })
+})
+
 test("Given the per-challenge limit When a sixth guess arrives Then it is rate limited", async () => {
   const mod = await loadModule()
   await mod.startEmailSignInChallenge({
@@ -857,4 +919,135 @@ test("Given a spent handoff When it is re-issued Then only the new ID is usable,
   await withClockAhead(11 * 60, async () => {
     assert.equal(await mod.reissueVerifiedEmailHandoff(reissued), null)
   })
+})
+
+test("Given email identity is not configured When a challenge starts Then the guest gets the could-not-send answer, not an error (QA BUG-016)", async () => {
+  delete process.env.CUSTOMER_EMAIL_HMAC_SECRET
+  const mod = await loadModule()
+  const result = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  assert.equal(result.status, "delivery_failed")
+  assert.equal(result.maskedEmail, "g***@example.com")
+  assert.equal(mod.state.rpcCalls.length, 0)
+  assert.deepEqual(mod.state.sends, [])
+  assert.equal(mod.state.cookies.size, 0)
+  assert.deepEqual(mod.state.logs, [
+    {
+      level: "warn",
+      message: "customer_email_sign_in_unavailable",
+      context: { purpose: "wallet", category: "not_configured" },
+    },
+  ])
+})
+
+const sha256 = (value) => createHash("sha256").update(value).digest("hex")
+
+async function sendBucketsFrom(ip) {
+  const mod = await loadModule()
+  mod.state.ip = ip
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  const [rpc] = mod.state.rpcCalls
+  return rpc.args
+}
+
+test("Given sends from different networks When admitted Then each network has its own minute and hour windows, never one platform-wide pair (QA BUG-003)", async () => {
+  const prefix = "customer-email-sign-in:send"
+  const constant = [
+    sha256(`${prefix}:global:minute`),
+    sha256(`${prefix}:global:hour`),
+  ]
+  const first = await sendBucketsFrom("203.0.113.9")
+  assert.equal(
+    first.p_global_minute_bucket,
+    sha256(`${prefix}:source:minute:203.0.113.0/24`)
+  )
+  assert.equal(
+    first.p_global_hour_bucket,
+    sha256(`${prefix}:source:hour:203.0.113.0/24`)
+  )
+  for (const bucket of constant) {
+    assert.ok(!Object.values(first).includes(bucket), "no constant bucket")
+  }
+
+  // The same /24 shares its windows (a venue's Wi-Fi or one attacker's
+  // block); another network does not.
+  const neighbour = await sendBucketsFrom("203.0.113.77")
+  assert.equal(neighbour.p_global_hour_bucket, first.p_global_hour_bucket)
+  assert.notEqual(neighbour.p_ip_bucket, first.p_ip_bucket)
+  const elsewhere = await sendBucketsFrom("198.51.100.4")
+  assert.notEqual(
+    elsewhere.p_global_minute_bucket,
+    first.p_global_minute_bucket
+  )
+  assert.notEqual(elsewhere.p_global_hour_bucket, first.p_global_hour_bucket)
+})
+
+test("Given IPv6 and mapped IPv4 clients When admitted Then the source is the /48 or the IPv4 /24", async () => {
+  const prefix = "customer-email-sign-in:send:source:hour"
+  const cases = [
+    ["2001:db8:abcd:12::1", "2001:db8:abcd::/48"],
+    ["2001:0DB8:ABCD:0012:0000:0000:0000:0099", "2001:db8:abcd::/48"],
+    ["2001:db8::1", "2001:db8:0::/48"],
+    ["::ffff:203.0.113.5", "203.0.113.0/24"],
+    ["fe80::1%en0", "fe80:0:0::/48"],
+    ["unknown", "unknown"],
+    ["not an address", "unknown"],
+  ]
+  for (const [ip, source] of cases) {
+    const args = await sendBucketsFrom(ip)
+    assert.equal(args.p_global_hour_bucket, sha256(`${prefix}:${source}`), ip)
+  }
+})
+
+test("Given admitted, repeated and refused sends When a challenge starts Then the guest's answer is the same and only the internal admission differs (QA BUG-026)", async () => {
+  const mod = await loadModule()
+  const admitted = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  const repeat = await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  assert.equal(admitted.admission, "admitted")
+  assert.equal(repeat.admission, "repeat")
+  assert.deepEqual(mod.state.events, [])
+
+  const refused = await loadModule()
+  refused.state.admission = { message: "rate limit exceeded" }
+  const held = await refused.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "wallet",
+  })
+  assert.equal(held.admission, "held")
+  const guestView = ({ status, maskedEmail }) => ({ status, maskedEmail })
+  assert.deepEqual(guestView(held), guestView(admitted))
+  assert.deepEqual(guestView(repeat), guestView(admitted))
+
+  assert.deepEqual(refused.state.events, [
+    {
+      eventName: "customer_login_code_send_failed",
+      merchantId: null,
+      metadata: {
+        method: "email",
+        surface: "home_login",
+        reason: "admission_refused",
+      },
+    },
+  ])
+  assert.deepEqual(
+    refused.state.logs.filter((log) => log.level === "warn"),
+    [
+      {
+        level: "warn",
+        message: "customer_email_sign_in_admission_refused",
+        context: { purpose: "wallet" },
+      },
+    ]
+  )
 })

@@ -4,6 +4,7 @@ import { randomInt } from "node:crypto"
 import { after } from "next/server"
 
 import { getCurrentUser, getCurrentMerchant } from "@/lib/auth/session"
+import { expireJoinAvailability } from "@/lib/customer/join-lookup"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import {
   isQrPauseComplete,
@@ -117,6 +118,7 @@ export async function verifyQrPauseCode(
       // Follow-through failure must never turn a committed pause into an error.
       try {
         revalidateMerchantLaunchSurfaces(merchant.id)
+        expireJoinAvailability(merchant.id)
         after(() => drainQrStatusEmails(merchant.id))
       } catch {
         // The durable outbox is still drained by cron.

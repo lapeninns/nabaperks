@@ -4,7 +4,6 @@ import { cache } from "react"
 import { after } from "next/server"
 
 import type { ContactEventSurface } from "@/lib/customer/contact-event-core"
-import { recordCustomerPhoneAttachedAudit } from "@/lib/customer/email-audit"
 import {
   customerEmailHmac,
   normalizeEmail,
@@ -15,9 +14,9 @@ import {
   maskedPhoneFromLast4,
 } from "@/lib/customer/phone-pii"
 import type { NormalizedPhone } from "@/lib/customer/phone"
-import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
 import { resolveCustomerSession } from "@/lib/customer/session"
+import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CurrentCustomer = {
@@ -69,14 +68,35 @@ async function loadCustomerById(
   return data ? toCurrentCustomer(data) : null
 }
 
+/** The surfaces that open a wallet by a phone the person has just proven. */
+type ProvenPhoneSurface = Extract<ContactEventSurface, "home_login" | "join">
+
+/**
+ * The wallet phone sign-in and join open for a phone the caller has JUST
+ * PROVEN with a code, or null. Call it only after the code was accepted.
+ *
+ * It matches any live wallet that holds the phone, verified or not: whoever
+ * proves the number gets the wallet that holds it (the attach conflict check
+ * applies the same rule). A holder whose phone was never marked verified (a
+ * legacy row, or an attach that stopped half way) has its phone marked
+ * verified here, with an audit row, because the person has just proven
+ * possession (QA BUG-031). If that step fails the wallet still opens and the
+ * failure is logged, so sign-in keeps working while the database function is
+ * rolled out.
+ *
+ * An erased wallet is never returned: erasure is final even if a row still
+ * holds the phone, for example one left by an attach that raced an erasure
+ * before the attach was made atomic (QA BUG-002).
+ */
 export async function findCustomerByVerifiedPhone(
-  phone: NormalizedPhone
+  phone: NormalizedPhone,
+  surface: ProvenPhoneSurface = "home_login"
 ): Promise<CurrentCustomer | null> {
   const supabase = createSupabaseServiceRoleClient()
   const phoneHmac = customerPhoneHmac(phone.e164)
   const { data, error } = await supabase
     .from("customers")
-    .select(CUSTOMER_COLUMNS)
+    .select(`${CUSTOMER_COLUMNS}, phone_verified_at`)
     .eq("phone_hmac", phoneHmac)
     .maybeSingle()
 
@@ -84,13 +104,62 @@ export async function findCustomerByVerifiedPhone(
     throw new Error(`Unable to load customer: ${error.message}`)
   }
 
-  return data ? toCurrentCustomer(data) : null
+  const customer = data ? toCurrentCustomer(data) : null
+  if (!customer || isErasedCustomerEmail(customer.email)) return null
+  if (!isRecord(data) || data.phone_verified_at !== null) return customer
+
+  return (await verifyProvenPhone(customer.id, phoneHmac, surface))
+    ? customer
+    : null
+}
+
+/**
+ * Marks the holder's phone verified after a proven sign-in
+ * (`verify_customer_phone_on_sign_in`, 20261009110300). False only when the
+ * wallet was erased or lost this phone since it was read, so it must not open.
+ */
+async function verifyProvenPhone(
+  customerId: string,
+  phoneHmac: string,
+  surface: ProvenPhoneSurface
+): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "verify_customer_phone_on_sign_in",
+    {
+      p_customer_id: customerId,
+      p_phone_hmac: phoneHmac,
+      p_surface: surface,
+    }
+  )
+
+  switch (error ? null : data) {
+    case "verified":
+    case "already_verified":
+      return true
+    case "phone_changed":
+    case "wallet_unavailable":
+      return false
+    default:
+      logger.error("customer_phone_sign_in_verify_failed", {
+        surface,
+        reason: error ? (error.code ?? "rpc_error") : "unexpected_outcome",
+      })
+      return true
+  }
+}
+
+/** The placeholder address every erasure path writes in place of the email. */
+const ERASED_EMAIL = /^erased\+[^@]*@privacy\.invalid$/
+
+function isErasedCustomerEmail(email: string | null): boolean {
+  return email !== null && ERASED_EMAIL.test(email)
 }
 
 export async function getOrCreateCustomerByVerifiedPhone(
   phone: NormalizedPhone
 ): Promise<{ customer: CurrentCustomer; created: boolean }> {
-  const existing = await findCustomerByVerifiedPhone(phone)
+  const existing = await findCustomerByVerifiedPhone(phone, "join")
   if (existing) return { customer: existing, created: false }
 
   const supabase = createSupabaseServiceRoleClient()
@@ -111,7 +180,7 @@ export async function getOrCreateCustomerByVerifiedPhone(
 
   if (error) {
     if (/duplicate|unique/i.test(error.message)) {
-      const raced = await findCustomerByVerifiedPhone(phone)
+      const raced = await findCustomerByVerifiedPhone(phone, "join")
       if (raced) return { customer: raced, created: false }
     }
 
@@ -215,7 +284,8 @@ export async function createCustomerByVerifiedEmail(
  * The one wallet whose VERIFIED email is exactly this normalised address, or
  * null. Exact equality, never a pattern, so an address holding `%` or `_`
  * cannot match another. This app writes verified emails in the normalised
- * form that `lower(btrim(email))` indexes; an older row stored otherwise is
+ * form the address index keys on (`normalizeEmail`: Unicode edge whitespace
+ * trimmed, lower case, NFC; 20261009110100); an older row stored otherwise is
  * not matched, and the caller treats the address as held elsewhere.
  */
 async function findCustomerByVerifiedAddress(
@@ -243,27 +313,24 @@ export type AttachVerifiedPhoneResult =
   | { readonly status: "contact_conflict" }
   /** This wallet already has a phone, so there is nothing to add. */
   | { readonly status: "already_has_phone" }
-  /** The audit row could not be written, so the phone was taken off again. */
+  /** The audit row could not be written, so nothing was written. */
   | { readonly status: "audit_failed" }
+  /** The wallet was erased or removed while the code was being checked. */
+  | { readonly status: "wallet_unavailable" }
 
 /**
  * Adds a phone the signed-in customer has just proven to their wallet, which
- * must not have a verified phone yet. A phone another wallet holds
- * is a conflict and nothing changes. The first write is guarded by
- * `phone_verified_at is null`, allowing interrupted staging to recover while
- * preventing a concurrent attach from overwriting a verified phone. The
- * unique `phone_hmac` index turns a race with another wallet into a
- * conflict too.
+ * must not have a verified phone yet. A phone another wallet holds is a
+ * conflict and nothing changes.
  *
- * The phone is never acknowledged without its `audit_logs` row. PostgREST
- * cannot put both writes in one transaction, and once `phone_verified_at` is
- * set `prevent_verified_customer_contact_change` refuses to clear the phone,
- * even for the service role. So the phone is written first WITHOUT its
- * verified timestamp, then audited, and only then marked verified. If the
- * audit write fails, this call's own staged phone is released (the database
- * allows that while the timestamp is null) and `audit_failed` is returned.
- * If the release or the final step fails, this throws rather than report an
- * attach it cannot stand behind.
+ * `attach_verified_customer_phone` (20261009110000) does it in one
+ * transaction under the customer row lock: it re-checks that the wallet is
+ * live and has no verified phone, writes the phone with its verified
+ * timestamp, and inserts the one `customer_phone_attached` audit row. The
+ * phone is therefore never acknowledged without its audit row, an erasure
+ * that lands while the code is checked wins (`wallet_unavailable`), and an
+ * overlapping confirmation on the same wallet gets `already_has_phone`
+ * instead of a second audit row (QA BUG-002, BUG-013).
  */
 export async function attachVerifiedPhoneToCustomer({
   customerId,
@@ -274,106 +341,49 @@ export async function attachVerifiedPhoneToCustomer({
   phone: NormalizedPhone
   surface: ContactEventSurface
 }): Promise<AttachVerifiedPhoneResult> {
-  const holder = await findCustomerByVerifiedPhone(phone)
-  if (holder && holder.id !== customerId) {
-    return { status: "contact_conflict" }
-  }
-  if (await customerHasVerifiedPhone(customerId)) {
-    return { status: "already_has_phone" }
-  }
-
   const pii = customerPhonePii(phone.e164)
   const supabase = createSupabaseServiceRoleClient()
-  const { data: staged, error } = await supabase
-    .from("customers")
-    .update({
-      phone_hmac: pii.phoneHmac,
-      phone_ciphertext: pii.phoneCiphertext,
-      phone_last4: pii.phoneLast4,
-      phone_country: phone.country,
-    })
-    .eq("id", customerId)
-    .is("phone_verified_at", null)
-    .select("id")
-    .maybeSingle()
+  const { data, error } = await supabase.rpc("attach_verified_customer_phone", {
+    p_customer_id: customerId,
+    p_phone_hmac: pii.phoneHmac,
+    p_phone_ciphertext: pii.phoneCiphertext,
+    p_phone_last4: pii.phoneLast4,
+    p_phone_country: phone.country,
+    p_surface: surface,
+  })
 
   if (error) {
-    if (error.code === UNIQUE_VIOLATION) return { status: "contact_conflict" }
     throw new Error(`Unable to add customer phone: ${error.message}`)
   }
-  // No row matched: the wallet verified a phone since the check above.
-  if (!staged) return { status: "already_has_phone" }
 
-  const staging = { supabase, customerId, phoneHmac: pii.phoneHmac }
-  const audited = await recordCustomerPhoneAttachedAudit(supabase, {
-    customerId,
-    surface,
-  })
-  if (!audited) {
-    await releaseStagedPhone(staging)
-    return { status: "audit_failed" }
+  switch (data) {
+    case "attached":
+      return {
+        status: "attached",
+        customer: await attachedCustomer(customerId),
+      }
+    case "audit_failed":
+      logger.error("customer_phone_audit_failed", {
+        action: "customer_phone_attached",
+      })
+      return { status: "audit_failed" }
+    case "already_has_phone":
+    case "contact_conflict":
+    case "wallet_unavailable":
+      return { status: data }
+    default:
+      throw new Error("Unable to add customer phone: unexpected outcome")
   }
+}
 
-  const customer = await markStagedPhoneVerified(staging)
+async function attachedCustomer(customerId: string): Promise<CurrentCustomer> {
+  const customer = await loadCustomerById(customerId)
+  if (!customer) {
+    throw new Error("Unable to load customer after adding a phone.")
+  }
   // A merchant may have sent this phone a reward invite before it was added.
   after(() => attachRewardInvitesForCustomer(customer.id))
-
-  return { status: "attached", customer }
-}
-
-type StagedPhone = {
-  readonly supabase: ReturnType<typeof createSupabaseServiceRoleClient>
-  readonly customerId: string
-  readonly phoneHmac: string
-}
-
-/** Sets the verified timestamp on the phone this call staged, and only that. */
-async function markStagedPhoneVerified(
-  staged: StagedPhone
-): Promise<CurrentCustomer> {
-  const { data, error } = await staged.supabase
-    .from("customers")
-    .update({ phone_verified_at: new Date().toISOString() })
-    .eq("id", staged.customerId)
-    .eq("phone_hmac", staged.phoneHmac)
-    .is("phone_verified_at", null)
-    .select(CUSTOMER_COLUMNS)
-    .maybeSingle()
-
-  const customer = error ? null : toCurrentCustomer(data)
-  if (customer) return customer
-
-  // The audit row already says added, but an unverified phone must not stay.
-  await releaseStagedPhone(staged)
-  throw new Error(
-    `Unable to confirm customer phone: ${error?.message ?? "row not found"}`
-  )
-}
-
-/**
- * Takes off the phone this call staged: only while the row still holds this
- * call's phone and no verified timestamp, so nothing else is ever cleared.
- */
-async function releaseStagedPhone(staged: StagedPhone): Promise<void> {
-  const { data, error } = await staged.supabase
-    .from("customers")
-    .update({
-      phone_hmac: null,
-      phone_ciphertext: null,
-      phone_last4: null,
-      phone_country: null,
-    })
-    .eq("id", staged.customerId)
-    .eq("phone_hmac", staged.phoneHmac)
-    .is("phone_verified_at", null)
-    .select("id")
-    .maybeSingle()
-
-  if (error || !data) {
-    throw new Error(
-      `Unable to release unaudited customer phone: ${error?.message ?? "row not found"}`
-    )
-  }
+  return customer
 }
 
 export function firstOf<T>(value: T | T[] | null): T | null {

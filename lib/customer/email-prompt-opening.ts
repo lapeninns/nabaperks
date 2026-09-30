@@ -1,3 +1,5 @@
+import { normalizeEmail } from "@/lib/customer/email-pii-core"
+
 /**
  * Where an "add your email" prompt opens, shared by the home dashboard and the
  * card after a stamp so both treat a pending code the same way. Pure: the
@@ -24,7 +26,7 @@ export function emailPromptOpening(
     pending &&
     initialEmail &&
     pending.customerId === customer.id &&
-    pending.email === initialEmail.toLowerCase()
+    normalizeEmail(pending.email) === normalizeEmail(initialEmail)
   )
   return { initialEmail, codePending }
 }

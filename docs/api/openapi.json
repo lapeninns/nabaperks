@@ -503,6 +503,14 @@
             "properties": {
               "database": {
                 "enum": ["ok", "error"]
+              },
+              "legalTerms": {
+                "enum": ["ok", "snapshot_missing", "error"],
+                "description": "Whether the terms snapshot trigger for the build's CUSTOMER_LEGAL_VERSION is installed."
+              },
+              "configuration": {
+                "enum": ["ok", "customer_email_hmac_missing"],
+                "description": "Release-critical configuration: customer_email_hmac_missing when email sign-in is on without CUSTOMER_EMAIL_HMAC_SECRET."
               }
             }
           },

@@ -4,10 +4,12 @@ import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import { recoverFromBoundaryError } from "@/lib/navigation/stale-server-action"
 
 // Sits inside MerchantAppShell, so the header and nav survive while one section
 // recovers. Mirrors the admin console's error boundary (app/admin/error.tsx).
 export default function MerchantError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string }
@@ -21,7 +23,10 @@ export default function MerchantError({
         title="That didn't load"
         description="Something interrupted your workspace. Try again. Your card, members, and rewards are safe on the server."
         actions={
-          <Button type="button" onClick={reset}>
+          <Button
+            type="button"
+            onClick={() => recoverFromBoundaryError(error, reset)}
+          >
             Try again
           </Button>
         }

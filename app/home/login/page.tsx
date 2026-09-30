@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { CustomerLoginForm } from "@/components/customer/customer-login-form"
 import { CustomerShell } from "@/components/layout"
+import { StatusBanner } from "@/components/loyalty"
 import { customerEmailAuthMode } from "@/lib/customer/email-auth-mode"
 import type { CustomerLoginOtpState } from "@/app/home/actions"
 import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
@@ -10,6 +11,7 @@ import {
   getCustomerSession,
   getPendingPhoneVerification,
 } from "@/lib/customer/session"
+import { signedOutNotice } from "@/lib/customer/session-signed-out-notice"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
@@ -21,6 +23,7 @@ export const metadata: Metadata = {
 type HomeLoginPageProps = {
   searchParams: Promise<{
     next?: string | string[] | undefined
+    signed_out?: string | string[] | undefined
   }>
 }
 
@@ -36,8 +39,13 @@ export default async function HomeLoginPage({
     redirect(next)
   }
 
+  const notice = signedOutNotice(params.signed_out)
+
   return (
     <CustomerShell>
+      {notice ? (
+        <StatusBanner tone="warning" title={notice} className="mb-4" />
+      ) : null}
       <CustomerLoginForm
         next={next}
         emailMode={customerEmailAuthMode()}

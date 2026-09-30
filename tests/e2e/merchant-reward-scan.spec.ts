@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test"
-import type { Page } from "@playwright/test"
 
 import {
   adminLiveDbSkipReason,
@@ -13,35 +12,9 @@ import {
   readRewardCollectionState,
   type RewardCollectionFixture,
 } from "./helpers/reward-collection-live-db"
+import { installRewardOwnerSession } from "./helpers/reward-id-check-sessions"
 
 const SEED_MERCHANT_SLUG = "old-crown-girton"
-const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
-
-async function signInAsSeededMerchant(
-  page: Page,
-  next: string,
-  rateLimitNonce: string,
-  merchantEmail: string
-): Promise<void> {
-  await page.setExtraHTTPHeaders({
-    "x-vercel-forwarded-for": localLoopbackIp(rateLimitNonce),
-  })
-  await page.goto(`/login?next=${encodeURIComponent(next)}`)
-  await expect(
-    page.getByRole("heading", { name: "Back to the counter" })
-  ).toBeVisible()
-
-  await page.locator("#email").fill(merchantEmail)
-  await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
-  await page.getByRole("button", { name: "Log in" }).click()
-  await expect(page).toHaveURL((url) => url.pathname.startsWith("/app"))
-}
-
-function localLoopbackIp(nonce: string): string {
-  const first = Number.parseInt(nonce.slice(0, 2), 16) || 1
-  const second = Number.parseInt(nonce.slice(2, 4), 16) || 1
-  return `127.${first}.${second}.1`
-}
 
 /**
  * merchant scan pos — DB-free harness tier.
@@ -99,6 +72,7 @@ test.describe("merchant reward scan — collection surface", () => {
 
     test("seeded merchant collects a minted reward scan token through /r", async ({
       page,
+      baseURL,
     }) => {
       const sql = connectLocalDb()
       test.skip(!sql, "local Supabase DB is not configured")
@@ -118,12 +92,10 @@ test.describe("merchant reward scan — collection surface", () => {
         test.skip(!merchantEmail, "seed merchant owner email is not available")
         if (!merchantEmail) return
 
-        await signInAsSeededMerchant(
-          page,
-          `/r/${fixture.scanToken}`,
-          fixture.scanToken,
-          merchantEmail
-        )
+        // /login is passwordless; install the seeded owner's session the way
+        // the ID-verification journeys do, then open the customer's QR link.
+        await installRewardOwnerSession(sql, page.context(), baseURL ?? "")
+        await page.goto(`/r/${fixture.scanToken}`)
         const collectedBanner = page
           .getByRole("alert")
           .filter({ hasText: "Reward collected" })
@@ -138,7 +110,9 @@ test.describe("merchant reward scan — collection surface", () => {
         await expect(page.getByText("Ready to collect")).toBeVisible()
         await expect(collectedBanner).toHaveCount(0)
 
-        await page.getByRole("button", { name: "Mark reward collected" }).click()
+        await page
+          .getByRole("button", { name: "Mark reward collected" })
+          .click()
 
         await expect(page).toHaveURL((url) => {
           return (

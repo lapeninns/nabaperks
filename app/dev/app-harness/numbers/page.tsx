@@ -108,4 +108,5 @@ export default async function NumbersHarnessPage({
 
 async function noopRetry() {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
 }

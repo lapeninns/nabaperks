@@ -77,6 +77,7 @@ async function saveHarnessBirthdayReward(
   formData: FormData
 ): Promise<BirthdayRewardActionState> {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
   const enabled = formData.get("enabled") === "on"
   return {
     fields: {
@@ -96,6 +97,7 @@ async function saveHarnessCollectionWindows(
   _formData: FormData
 ): Promise<CollectionWindowActionState> {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
   void _state
   void _formData
   return {}
@@ -106,6 +108,7 @@ async function addHarnessVenueClosure(
   formData: FormData
 ): Promise<VenueClosureActionState> {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
   return {
     fields: {
       locationId: String(formData.get("locationId") ?? ""),
@@ -121,6 +124,7 @@ async function endHarnessVenueClosure(
   _formData: FormData
 ): Promise<CollectionWindowActionState> {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
   void _state
   void _formData
   return {}

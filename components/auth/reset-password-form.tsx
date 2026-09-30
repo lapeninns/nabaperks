@@ -5,7 +5,10 @@ import { useActionState, useEffect, useState } from "react"
 
 import { passwordResetAction } from "@/app/(auth)/actions"
 import { AuthField } from "@/components/auth/auth-field"
-import { OtpResendControl } from "@/components/auth/otp-resend-control"
+import {
+  OtpResendControl,
+  useOtpRetryCountdown,
+} from "@/components/auth/otp-resend-control"
 import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { merchantOtpInitialState } from "@/lib/auth/merchant-auth-action-state"
@@ -47,6 +50,16 @@ export function ResetPasswordForm({
   )
   const otpSent = state.context.step === "verify"
   const currentEmail = otpSent ? state.context.email : email
+  const resendRetryAt = state.retryAt ?? initialRetryAt
+  // A failed send on the email step keeps the server's resend wait for that
+  // email; show it on the request button instead of pointing at a timer that
+  // is not there. Another email is not held back by it.
+  const requestCountdown = useOtpRetryCountdown(
+    !otpSent && email.trim().toLowerCase() === state.context.email
+      ? state.retryAt
+      : undefined
+  )
+  const requestWaiting = !otpSent && requestCountdown.active
 
   useEffect(() => {
     if (state.outcome === "sent") {
@@ -101,8 +114,16 @@ export function ResetPasswordForm({
             <AlertDescription>{state.message}</AlertDescription>
           </Alert>
         ) : null}
-        <SubmitButton pendingLabel="Checking…" className="w-full">
-          {otpSent ? "Open console" : "Email me a sign-in code"}
+        <SubmitButton
+          pendingLabel="Checking…"
+          className="w-full"
+          disabled={requestWaiting}
+        >
+          {otpSent
+            ? "Open console"
+            : requestWaiting && requestCountdown.ready
+              ? `Email me a sign-in code in ${requestCountdown.remainingSeconds}s`
+              : "Email me a sign-in code"}
         </SubmitButton>
       </form>
 
@@ -112,7 +133,7 @@ export function ResetPasswordForm({
           <input type="hidden" name="email" value={currentEmail} />
           <input type="hidden" name="next" value={state.context.next} />
           <OtpResendControl
-            retryAt={state.retryAt ?? initialRetryAt}
+            retryAt={resendRetryAt}
             disabled={pending}
             buttonLabel="Send another code"
             helpText="No email? Check spam or junk, then try again when the timer ends."

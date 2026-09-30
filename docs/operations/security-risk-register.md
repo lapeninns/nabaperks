@@ -42,7 +42,9 @@ are unaffected.
 - Existing-customer phone login and QR join still share one pre-session
   continuity boundary, so the control is restored in one place.
 - Session registration still records the verified device and rejects later
-  touches from another device, so a copied cookie still cannot move.
+  touches from another device, so a copied session cookie alone cannot move to
+  another browser. The device identity is itself a signed bearer cookie, so a
+  copied cookie jar (device and session cookies together) can; see SEC-RISK-003.
 - Sessions minted this way are recorded with the `verified_phone` continuity
   source, which is excluded from device trust, so restoring the control does
   not inherit trust that phone possession alone created.
@@ -78,9 +80,27 @@ cookies, never from an address, so a refused request reveals nothing.
   refuses still answers "code sent" and sets a challenge cookie, but that
   challenge holds no code and can never be verified, so refused sends cannot
   be farmed for guesses. There is no global guess limit: guesses need a
-  challenge whose code was actually emailed, and sends are capped globally
-  (150 an hour), so a global guess bucket would add a way to lock everyone
-  out without adding protection.
+  challenge whose code was actually emailed, and sends are capped (see the
+  next point), so a global guess bucket would add a way to lock everyone out
+  without adding protection.
+- Send admission no longer uses one platform-wide counter. The 30-a-minute
+  and 150-an-hour backstops are keyed by the client's network source (IPv4
+  /24, IPv6 /48), so one actor can use up only their own network's allowance
+  and cannot refuse email codes to customers elsewhere (migration
+  `20261009120000`, `admitSend` in `lib/customer/email-sign-in.ts`).
+  `admit_anonymous_customer_email_otp_send` also enforces its own
+  server-keyed platform cap of 120 a minute (about the email provider's
+  default send rate) and 1000 an hour. That cap is a cost and abuse limit,
+  far above real volume.
+- Accepted residual risk: an attacker spread across several networks can
+  still reach the platform cap. The minute cap needs 4 network sources at 30
+  a minute each; each source's hourly allowance of 150 sustains that for
+  about 5 minutes, so 4 sources can block email codes for about 5 minutes an
+  hour and more sources for longer. The hour cap needs 7 sources at 150 an
+  hour each. While a cap is reached, email codes are refused for everyone
+  until its fixed window resets, and guests still see the usual "code sent"
+  answer. Phone sign-in is unaffected. Follow-up: alert when the platform
+  send cap saturates.
 - Accepted trade-off: the per-address limit can be spent by someone else.
   Anyone can have codes sent to an address (3 per 15 minutes) and submit wrong
   guesses, locking that address out of email sign-in for up to an hour. The
@@ -176,7 +196,8 @@ an acceptable closure condition.
 
 A customer session no longer expires on the server. The `customer_sessions`
 row is open-ended (`expires_at = 'infinity'`) and ends only on log-out, "Log
-out on all devices", erasure, or retention anonymisation. The browser cookie
+out on all devices", a newer sign-in on the same browser, erasure, or
+retention anonymisation. There is no idle expiry. The browser cookie
 keeps a rolling one-year window, re-signed at most once a day on ordinary page
 loads, so a customer who uses Nabaperks within a year is never signed out.
 
@@ -190,17 +211,40 @@ A lost, stolen, or shared phone stays signed in to the wallet until someone
 logs it out. Whoever holds it can see the customer's cards, balances, and
 masked contact details, and can start stamp or reward journeys.
 
+The same applies to a copied cookie jar. Anyone who can read the browser's
+cookies (a shared computer profile, malware, or an unencrypted backup) and
+copies both the device and session cookies can open the wallet from another
+browser. Device binding stops a copied session cookie on its own, not a copy
+of both. Because sessions no longer expire, such a copy stays usable until
+the customer logs out on that browser or uses "Log out on all devices". Both
+cookies are `HttpOnly`, so page scripts cannot read them; the exposure needs
+access to the device or its data. The wallet holds no stored value, so the risk remains accepted at the
+same level, and it feeds the review triggers below.
+
 ### Existing safeguards
 
 - Every request re-checks the session row: revocation, "Log out on all
   devices", and erasure take effect on the next request, whatever the cookie
   says.
-- Sessions stay bound to their device, so a copied cookie still cannot move to
-  another browser.
+- Sessions stay bound to their device cookie, so a copied session cookie alone
+  cannot move to another browser: it is rejected without the matching device
+  cookie. This is not hardware binding. The device cookie is itself a signed
+  bearer token, so a copied cookie jar (device and session cookies together)
+  opens the wallet in another browser until the session is logged out (QA
+  BUG-040, 30 September 2026). See the residual risk above.
 - Stamps still require the location check or the staff venue code, and reward
   collection happens in person with a verified email.
 - The cookie is only ever renewed with a matching signed expiry; it is never
   stretched past what its signature allows.
+- The cookie is renewed only after the database confirms its session is
+  still active. When the database says a session is revoked, expired, deleted
+  or bound to another device, the cookie is cleared on that response rather
+  than extended, so the browser stops presenting it. If the check cannot be
+  answered, the cookie is left unchanged and checked again on the next visit.
+- Signing in again on a browser retires that browser's earlier sessions for
+  the same customer, so only the session in its current cookie stays live.
+- "Log out on all devices" also withdraws every device's sign-in trust, so a
+  logged-out device is not recognised on its next sign-in.
 
 ### Reconsider immediately when
 

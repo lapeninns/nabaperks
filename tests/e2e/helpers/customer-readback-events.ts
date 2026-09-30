@@ -1,8 +1,16 @@
 import { randomUUID } from "node:crypto"
 
 import type { Sql } from "./admin-live-db"
-import type { CustomerReadbackSeed, SeedCustomerSetupRow } from "./customer-readback-seed"
+import type {
+  CustomerReadbackSeed,
+  SeedCustomerSetupRow,
+} from "./customer-readback-seed"
 
+/**
+ * One stamp-cycle reward per cycle (reward_events_one_cycle_reward_idx): the
+ * populated wallet's expired, redeemed, ready and upcoming rewards close
+ * cycles 1 to 4, and it is collecting cycle 5 (see insertMembership).
+ */
 export async function insertCustomerReadbackRewards(
   sql: Sql,
   seed: CustomerReadbackSeed,
@@ -41,7 +49,7 @@ export async function insertCustomerReadbackRewards(
         now() + interval '14 days',
         null,
         null,
-        1,
+        3,
         jsonb_build_object('source', 'customer-home-readback-e2e'),
         now() - interval '4 days',
         now()
@@ -59,7 +67,7 @@ export async function insertCustomerReadbackRewards(
         now() + interval '15 days',
         null,
         null,
-        1,
+        4,
         jsonb_build_object('source', 'customer-home-readback-e2e'),
         now() - interval '3 days',
         now()
@@ -77,7 +85,7 @@ export async function insertCustomerReadbackRewards(
         now() + interval '12 days',
         null,
         now() - interval '1 day',
-        1,
+        2,
         jsonb_build_object('source', 'customer-home-readback-e2e'),
         now() - interval '2 days',
         now()

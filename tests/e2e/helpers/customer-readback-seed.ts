@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 
 import type { Sql } from "./admin-live-db"
 import {
@@ -128,6 +128,12 @@ export async function cleanupCustomerReadbackRows(
     )`
 }
 
+/**
+ * The populated wallet has a verified phone as well as a verified email: reward
+ * collection requires both (20261009100300), so without it the ready reward
+ * reads as "Reward unavailable" to staff. Only a hash and last four digits are
+ * stored, derived from the run id, so no real number is involved.
+ */
 async function insertCustomers(
   sql: Sql,
   seed: CustomerReadbackSeed,
@@ -139,7 +145,10 @@ async function insertCustomers(
       email,
       full_name,
       date_of_birth,
-      email_verified_at
+      email_verified_at,
+      phone_hmac,
+      phone_last4,
+      phone_verified_at
     )
     values
       (
@@ -147,6 +156,9 @@ async function insertCustomers(
         ${seed.rawPrivateEmail},
         'Customer Readback Browser',
         date '1990-01-01',
+        now(),
+        ${createHash("sha256").update(`readback-phone-${runId}`).digest("hex")},
+        '0123',
         now()
       ),
       (
@@ -154,14 +166,20 @@ async function insertCustomers(
         ${`empty-readback-${runId}@example.test`},
         'Empty Readback Browser',
         date '1990-01-01',
-        now()
+        now(),
+        null,
+        null,
+        null
       ),
       (
         ${seed.waitingCustomerId}::uuid,
         ${`waiting-readback-${runId}@example.test`},
         'Waiting Readback Browser',
         date '1990-01-01',
-        now()
+        now(),
+        null,
+        null,
+        null
       )`
 }
 
@@ -188,7 +206,7 @@ async function insertMembership(
         3,
         5,
         1,
-        2
+        5
       ),
       (
         ${seed.waitingMembershipId}::uuid,
@@ -201,9 +219,10 @@ async function insertMembership(
       )`
 }
 
-export function createCustomerReadbackSeed(
-  setup: SeedCustomerSetupRow
-): { readonly seed: CustomerReadbackSeed; readonly runId: string } {
+export function createCustomerReadbackSeed(setup: SeedCustomerSetupRow): {
+  readonly seed: CustomerReadbackSeed
+  readonly runId: string
+} {
   const runId = randomUUID().replaceAll("-", "").slice(0, 12)
 
   return {

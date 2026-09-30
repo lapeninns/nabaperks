@@ -8,7 +8,9 @@ import type {
 
 export const dynamic = "force-dynamic"
 
-const GATES = new Set(["details", "email-code", "ready"])
+// `email-send`: the saved email has no code pending, so the email step offers
+// to send one instead of asking for it (QA BUG-036).
+const GATES = new Set(["details", "email-code", "email-send", "ready"])
 
 const BASE_REWARD = {
   rewardId: "00000000-0000-4000-8000-000000000001",
@@ -29,11 +31,12 @@ const BASE_REWARD = {
 } as const
 
 function profileGate(gate: string): ProfileGate {
-  if (gate === "email-code") {
+  if (gate === "email-code" || gate === "email-send") {
     return {
       complete: false,
       dateOfBirthVerified: false,
       needsEmailVerification: true,
+      emailCodePending: gate === "email-code",
       fullName: "Alex Regular",
       dateOfBirth: "1990-01-01",
       email: "alex@example.test",

@@ -186,6 +186,12 @@ test(
         returning id`
 
       const seeded = await seedRelatedRecords(tx, customer.id, v.merchant_id)
+      // Still live but last used before the cutoff: a session used since the
+      // cutoff means an active customer, whom the purge skips (QA BUG-059).
+      await tx`
+        update public.customer_sessions
+        set last_seen_at = now() - interval '400 days'
+        where id = ${seeded.sessionId}::uuid`
 
       // inRolledBackTxn already sets request.jwt.claim.role = service_role, so
       // the self-guard passes; use the default cutoff.

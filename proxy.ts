@@ -28,7 +28,12 @@ import {
   CUSTOMER_SESSION_TTL_SECONDS,
   persistentCookieOptions,
 } from "@/lib/http/persistent-cookie-options"
-import { renewCustomerSessionCookieValue } from "@/lib/customer/session-renewal-core"
+import { fixedExpiryCookieOptions } from "@/lib/customer/session-cookie-options"
+import { customerSessionActivityCheck } from "@/lib/customer/session-renewal"
+import {
+  confirmCustomerSessionRenewal,
+  renewCustomerSessionCookieValue,
+} from "@/lib/customer/session-renewal-core"
 import { CUSTOMER_DEVICE_HEADER } from "@/lib/security/rate-limit-core"
 import {
   issueCustomerDeviceToken,
@@ -95,30 +100,54 @@ export async function proxy(request: NextRequest) {
     response.cookies.set(
       CUSTOMER_DEVICE_COOKIE,
       customerDevice.token,
-      persistentCookieOptions(CUSTOMER_DEVICE_TTL_SECONDS)
+      fixedExpiryCookieOptions(CUSTOMER_DEVICE_TTL_SECONDS)
     )
   }
 
   // A session is bound to its device, so only renew it alongside a device
   // cookie that was already valid; a freshly minted device cannot use it.
-  const renewedSession =
+  const sessionSecret = process.env.CUSTOMER_SESSION_SECRET?.trim()
+  const nowSeconds = Math.floor(Date.now() / 1_000)
+  const dueSessionRenewal =
     customerDevice &&
     !customerDevice.isNew &&
     canPersistFirstPartyCookies(request)
       ? renewCustomerSessionCookieValue({
           value: request.cookies.get(CUSTOMER_SESSION_COOKIE)?.value,
-          secret: process.env.CUSTOMER_SESSION_SECRET?.trim(),
-          nowSeconds: Math.floor(Date.now() / 1_000),
+          secret: sessionSecret,
+          nowSeconds,
           ttlSeconds: CUSTOMER_SESSION_TTL_SECONDS,
           renewAfterSeconds: CUSTOMER_SESSION_RENEW_AFTER_SECONDS,
         })
       : null
-  if (renewedSession) {
+  // Only a session the database still accepts is extended. A revoked,
+  // expired, deleted or other-device session's cookie is cleared on this
+  // response, so the browser stops presenting it and the proxy stops asking
+  // about it. If the database cannot answer, the cookie is left as it is. The
+  // check runs only when a renewal is due (at most daily).
+  const sessionRenewal =
+    dueSessionRenewal && customerDevice
+      ? await confirmCustomerSessionRenewal({
+          renewed: dueSessionRenewal,
+          secret: sessionSecret,
+          nowSeconds,
+          isSessionActive: customerSessionActivityCheck(customerDevice.id),
+        })
+      : null
+  if (sessionRenewal?.action === "renew") {
+    const renewedSession = sessionRenewal.value
     response.cookies.set(
       CUSTOMER_SESSION_COOKIE,
       renewedSession,
-      persistentCookieOptions(CUSTOMER_SESSION_TTL_SECONDS)
+      fixedExpiryCookieOptions(CUSTOMER_SESSION_TTL_SECONDS)
     )
+  } else if (sessionRenewal?.action === "clear") {
+    // Same name, path and attributes as the cookie being retired, expired
+    // outright so no browser keeps it for even a second.
+    response.cookies.set(CUSTOMER_SESSION_COOKIE, "", {
+      ...persistentCookieOptions(0),
+      expires: new Date(0),
+    })
   }
 
   if (isAdminPath(request.nextUrl.pathname)) {
@@ -225,7 +254,9 @@ function resolveJoinJourney(
 export const config = {
   // Run only on stateful surfaces. Public brochure pages stay outside Proxy so
   // they can be served from the framework/CDN cache without an auth refresh,
-  // request nonce, or device cookie making the response private.
+  // request nonce, or device cookie making the response private. That includes
+  // the prerendered /demo: its build-time HTML carries no per-request nonce,
+  // so the Proxy CSP would block its inline scripts (QA BUG-061).
   matcher: [
     "/api/:path*",
     "/app/:path*",
@@ -233,7 +264,6 @@ export const config = {
     "/auth/:path*",
     "/card/:path*",
     "/claim/:path*",
-    "/demo/:path*",
     "/dev/:path*",
     "/home/:path*",
     "/login",

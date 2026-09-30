@@ -2,7 +2,11 @@ import { expect, test } from "@playwright/test"
 
 export function describePublicQrRouter() {
   test.describe("public QR router", () => {
-    test("shows the unavailable QR state without CSP errors or layout overflow", async ({
+    // Without a database (the DB-free tiers) a QR cannot be resolved, which is
+    // a load failure, not an unavailable card (QA BUG-041/042). The genuinely
+    // unavailable state needs a database and is asserted in
+    // public-qr-router-live-db.spec.ts.
+    test("shows the QR load-failed state without CSP errors or layout overflow", async ({
       page,
     }) => {
       const cspMessages: string[] = []
@@ -25,14 +29,11 @@ export function describePublicQrRouter() {
 
       expect(response?.status()).toBe(200)
       await expect(
-        page.getByRole("heading", {
-          name: "This loyalty card is unavailable",
-        })
+        page.getByRole("heading", { name: "We can't load this right now" })
       ).toBeVisible()
-      await expect(page.getByRole("link", { name: "Scan a QR" })).toHaveAttribute(
-        "href",
-        "/scan"
-      )
+      await expect(
+        page.getByRole("link", { name: "Try again" })
+      ).toHaveAttribute("href", "/q/not-a-real-qr")
       await expect(
         page.getByRole("link", { name: "Open my cards" })
       ).toHaveAttribute("href", "/home")

@@ -1,8 +1,18 @@
 import "server-only"
 
+import { cache } from "react"
+
+import {
+  marketingConsentRefusal,
+  type MarketingConsentEligibility,
+  type MarketingConsentRefusal,
+} from "@/lib/customer/experience/marketing-consent-row"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
 import { CUSTOMER_LEGAL_VERSION } from "@/lib/legal/content"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+
+export type { MarketingConsentEligibility, MarketingConsentRefusal }
 
 export type MarketingChannel = "email" | "sms" | "whatsapp" | "push"
 
@@ -29,11 +39,51 @@ export function isMarketingChannel(value: string): value is MarketingChannel {
   return (MARKETING_CHANNELS as readonly string[]).includes(value)
 }
 
+async function loadMarketingConsentEligibility(customer: {
+  id: string
+  emailVerifiedAt: string | null
+}): Promise<MarketingConsentEligibility> {
+  const supabase = createSupabaseServiceRoleClient()
+  const [hasVerifiedPhone, memberships] = await Promise.all([
+    customerHasVerifiedPhone(customer.id),
+    supabase
+      .from("customer_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("customer_id", customer.id),
+  ])
+  if (memberships.error) {
+    throw new Error(`Unable to load memberships: ${memberships.error.message}`)
+  }
+  return {
+    hasVerifiedPhone,
+    hasVerifiedEmail: Boolean(customer.emailVerifiedAt),
+    membershipCount: memberships.count ?? 0,
+  }
+}
+
+/**
+ * Which marketing channels the signed-in wallet can choose: a verified phone
+ * for text and WhatsApp, a verified email for email, and at least one venue
+ * membership to record the choice against. Null when nobody is signed in.
+ */
+export const getMarketingConsentEligibility = cache(
+  async (): Promise<MarketingConsentEligibility | null> => {
+    const customer = await getCurrentCustomer()
+    return customer ? loadMarketingConsentEligibility(customer) : null
+  }
+)
+
 /**
  * Records a global marketing preference for the signed-in customer. The RPC writes
  * one append-only `consent_records` row per membership, so the per-merchant audit
  * trail is preserved while the customer manages a single toggle per channel. Reads
  * stay in `getCustomerProfile` (latest row per channel).
+ *
+ * Returns why nothing was recorded, or null once the RPC has written the rows.
+ * record_customer_marketing_consent accepts any channel and silently writes
+ * nothing without a membership, so an opt-in needs the verified contact for
+ * its channel (an unverified or staged contact counts as absent) and any
+ * change needs a membership.
  */
 export async function updateCustomerMarketingConsent({
   channel,
@@ -41,18 +91,16 @@ export async function updateCustomerMarketingConsent({
 }: {
   channel: MarketingChannel
   optedIn: boolean
-}): Promise<void> {
+}): Promise<MarketingConsentRefusal | null> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")
-  // record_customer_marketing_consent accepts any channel, so the phone
-  // channels are refused here for a wallet with no phone (email-only).
-  if (
-    optedIn &&
-    PHONE_MARKETING_CHANNELS.has(channel) &&
-    !customer.phoneLast4
-  ) {
-    throw new Error("Phone marketing needs a phone number on the wallet.")
-  }
+
+  const refusal = marketingConsentRefusal({
+    channel,
+    optedIn,
+    eligibility: await loadMarketingConsentEligibility(customer),
+  })
+  if (refusal) return refusal
 
   const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase.rpc("record_customer_marketing_consent", {
@@ -65,4 +113,5 @@ export async function updateCustomerMarketingConsent({
   if (error) {
     throw new Error(`Unable to update marketing consent: ${error.message}`)
   }
+  return null
 }

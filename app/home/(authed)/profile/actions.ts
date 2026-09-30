@@ -6,9 +6,9 @@ import { after } from "next/server"
 import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
 import {
   isMarketingChannel,
-  PHONE_MARKETING_CHANNELS,
   updateCustomerMarketingConsent,
   type MarketingChannel,
+  type MarketingConsentRefusal,
 } from "@/lib/customer/consent"
 import {
   isEmailPromptSurface,
@@ -132,11 +132,10 @@ export async function verifyHomeProfileEmailAction(
   if (errors)
     return {
       errors,
-      recovery:
-        confirmation.status === "reauthenticate" ||
-        confirmation.status === "requires_review"
-          ? confirmation.status
-          : undefined,
+      ...(confirmation.status === "reauthenticate" ||
+      confirmation.status === "requires_review"
+        ? { recovery: confirmation.status }
+        : {}),
     }
 
   revalidatePath(PROFILE_PATH)
@@ -316,12 +315,19 @@ export type MarketingConsentState = {
   channel?: MarketingChannel
   optedIn?: boolean
   error?: string
+  /** Nothing was recorded, and why (shown in the customer's words). */
+  refusal?: MarketingConsentRefusal
 }
 
 /**
  * Toggles one global marketing channel for the signed-in customer. Each profile
  * toggle posts here on change (no Save button); the RPC writes an append-only
  * record per membership and the page revalidates to reflect the new standing.
+ *
+ * The consent module decides what can be recorded: text and WhatsApp need a
+ * verified phone, email needs a verified email, and any change needs a venue
+ * membership. A refused change reports why and keeps the standing value, so
+ * the toggle never says Saved when nothing was stored.
  */
 export async function updateHomeMarketingConsentAction(
   _state: MarketingConsentState,
@@ -334,28 +340,19 @@ export async function updateHomeMarketingConsentAction(
 
   const optedIn = formData.get("optedIn") === "on"
 
-  // Text and WhatsApp offers need a phone. A wallet started with an email has
-  // none until one is added, so it cannot opt in to either; opting out is
-  // always allowed.
-  if (optedIn && PHONE_MARKETING_CHANNELS.has(channel)) {
-    const customer = await getCurrentCustomer()
-    if (!customer?.phoneLast4) {
-      return {
-        channel,
-        optedIn: false,
-        error: "Add a phone number first to get offers by text or WhatsApp.",
-      }
-    }
-  }
-
+  let refusal: MarketingConsentRefusal | null | undefined
   try {
-    await updateCustomerMarketingConsent({ channel, optedIn })
+    refusal = await updateCustomerMarketingConsent({ channel, optedIn })
   } catch {
     return {
       channel,
       optedIn: !optedIn,
       error: "We couldn't save that preference. Try again.",
     }
+  }
+
+  if (refusal) {
+    return { channel, optedIn: !optedIn, refusal }
   }
 
   revalidatePath(PROFILE_PATH)
