@@ -8,7 +8,8 @@ const { confirmCustomerSessionRenewal, renewCustomerSessionCookieValue } =
 
 /**
  * QA BUG-009 (38c42a1..2c45031): a due renewal is set only when the database
- * still accepts the session. The HTTP proof is
+ * still accepts the session; a session it rejects has its cookie cleared, and
+ * an unanswered check changes nothing. The HTTP proof is
  * tests/e2e/customer-session-renewal-live-db.spec.ts.
  */
 
@@ -54,14 +55,16 @@ test("Given the database still accepts the session When a renewal is due Then th
     return true
   })
 
-  assert.equal(result, renewed)
+  assert.deepEqual(result, { action: "renew", value: renewed })
   assert.deepEqual(asked, [
     { customerId: SESSION.customerId, sessionId: SESSION.sessionId },
   ])
 })
 
-test("Given the session was revoked, expired or deleted server-side When a renewal is due Then nothing is re-signed", async () => {
-  assert.equal(await confirm(dueRenewal(), async () => false), null)
+test("Given the session was revoked, expired, deleted or bound to another device When a renewal is due Then nothing is re-signed and the cookie is cleared", async () => {
+  assert.deepEqual(await confirm(dueRenewal(), async () => false), {
+    action: "clear",
+  })
 })
 
 test("Given the database cannot answer When a renewal is due Then nothing is renewed and the current cookie stands", async () => {
@@ -69,7 +72,7 @@ test("Given the database cannot answer When a renewal is due Then nothing is ren
     throw new Error("database unavailable")
   })
 
-  assert.equal(result, null)
+  assert.deepEqual(result, { action: "keep" })
 })
 
 test("Given no due renewal or a forged value When confirming Then the database is never asked", async () => {
@@ -79,16 +82,17 @@ test("Given no due renewal or a forged value When confirming Then the database i
     return true
   }
 
-  assert.equal(await confirm(null, isSessionActive), null)
-  assert.equal(await confirm(`${dueRenewal()}x`, isSessionActive), null)
-  assert.equal(
+  const keep = { action: "keep" }
+  assert.deepEqual(await confirm(null, isSessionActive), keep)
+  assert.deepEqual(await confirm(`${dueRenewal()}x`, isSessionActive), keep)
+  assert.deepEqual(
     await confirmCustomerSessionRenewal({
       renewed: dueRenewal(),
       secret: undefined,
       nowSeconds: NOW,
       isSessionActive,
     }),
-    null
+    keep
   )
   assert.equal(asked, 0)
 })

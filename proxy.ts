@@ -119,10 +119,12 @@ export async function proxy(request: NextRequest) {
           renewAfterSeconds: CUSTOMER_SESSION_RENEW_AFTER_SECONDS,
         })
       : null
-  // Only a session the database still accepts is extended. A revoked, expired
-  // or deleted session's cookie is left to lapse rather than re-signed for
-  // another year. The check runs only when a renewal is due (at most daily).
-  const renewedSession =
+  // Only a session the database still accepts is extended. A revoked,
+  // expired, deleted or other-device session's cookie is cleared on this
+  // response, so the browser stops presenting it and the proxy stops asking
+  // about it. If the database cannot answer, the cookie is left as it is. The
+  // check runs only when a renewal is due (at most daily).
+  const sessionRenewal =
     dueSessionRenewal && customerDevice
       ? await confirmCustomerSessionRenewal({
           renewed: dueSessionRenewal,
@@ -131,12 +133,20 @@ export async function proxy(request: NextRequest) {
           isSessionActive: customerSessionActivityCheck(customerDevice.id),
         })
       : null
-  if (renewedSession) {
+  if (sessionRenewal?.action === "renew") {
+    const renewedSession = sessionRenewal.value
     response.cookies.set(
       CUSTOMER_SESSION_COOKIE,
       renewedSession,
       persistentCookieOptions(CUSTOMER_SESSION_TTL_SECONDS)
     )
+  } else if (sessionRenewal?.action === "clear") {
+    // Same name, path and attributes as the cookie being retired, expired
+    // outright so no browser keeps it for even a second.
+    response.cookies.set(CUSTOMER_SESSION_COOKIE, "", {
+      ...persistentCookieOptions(0),
+      expires: new Date(0),
+    })
   }
 
   if (isAdminPath(request.nextUrl.pathname)) {

@@ -54,14 +54,29 @@ export type CustomerSessionActivityCheck = (
 ) => Promise<boolean>
 
 /**
- * Gate a due renewal on the server-side session. A revoked, expired or
- * deleted session keeps its current cookie, which then lapses at its signed
- * expiry, instead of being re-signed for another full window on every visit.
+ * What the proxy does with the session cookie once a due renewal is checked:
+ * re-sign it, clear it, or leave it as presented.
+ */
+export type CustomerSessionRenewalOutcome =
+  | { readonly action: "renew"; readonly value: string }
+  | { readonly action: "clear" }
+  | { readonly action: "keep" }
+
+const KEEP: CustomerSessionRenewalOutcome = { action: "keep" }
+
+/**
+ * Gate a due renewal on the server-side session.
+ *
+ * - Active: the re-signed cookie is set for another full window.
+ * - Not active (revoked, expired, deleted or bound to another device): the
+ *   cookie is cleared, so the browser stops presenting a session that can
+ *   never be used again and the proxy stops asking the database about it.
+ * - Unanswered (network, 5xx, missing configuration): nothing changes. The
+ *   cookie stays valid for the rest of its window and the next due request
+ *   asks again.
  *
  * The check runs only for a renewal that is already due, so a signed-in
- * browser pays for it at most once a day. If it cannot be answered, nothing is
- * renewed: the cookie stays valid for the rest of its window and the next due
- * request asks again.
+ * browser pays for it at most once a day.
  */
 export async function confirmCustomerSessionRenewal({
   renewed,
@@ -73,15 +88,17 @@ export async function confirmCustomerSessionRenewal({
   secret: string | undefined
   nowSeconds: number
   isSessionActive: CustomerSessionActivityCheck
-}): Promise<string | null> {
-  if (!renewed || !secret) return null
+}): Promise<CustomerSessionRenewalOutcome> {
+  if (!renewed || !secret) return KEEP
 
   const session = readCustomerSessionCookieValue(renewed, secret, nowSeconds)
-  if (!session.ok) return null
+  if (!session.ok) return KEEP
 
+  let active: boolean
   try {
-    return (await isSessionActive(session.payload)) ? renewed : null
+    active = await isSessionActive(session.payload)
   } catch {
-    return null
+    return KEEP
   }
+  return active ? { action: "renew", value: renewed } : { action: "clear" }
 }

@@ -203,8 +203,10 @@ masked contact details, and can start stamp or reward journeys.
 - The cookie is only ever renewed with a matching signed expiry; it is never
   stretched past what its signature allows.
 - The cookie is renewed only after the database confirms its session is
-  still active. A revoked, expired or deleted session's cookie is not
-  extended and lapses at its signed expiry.
+  still active. When the database says a session is revoked, expired, deleted
+  or bound to another device, the cookie is cleared on that response rather
+  than extended, so the browser stops presenting it. If the check cannot be
+  answered, the cookie is left unchanged and checked again on the next visit.
 - Signing in again on a browser retires that browser's earlier sessions for
   the same customer, so only the session in its current cookie stays live.
 - "Log out on all devices" also withdraws every device's sign-in trust, so a

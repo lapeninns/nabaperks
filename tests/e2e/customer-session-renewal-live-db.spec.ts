@@ -1,6 +1,11 @@
 import { createHash, randomUUID } from "node:crypto"
 
-import { expect, test, type APIResponse } from "@playwright/test"
+import {
+  expect,
+  request as playwrightRequest,
+  test,
+  type APIResponse,
+} from "@playwright/test"
 
 import {
   createCustomerSessionCookieValue,
@@ -14,8 +19,10 @@ import { customerReadbackLiveDbSkipReason } from "./helpers/customer-readback-li
 /**
  * QA BUG-009 (38c42a1..2c45031): the proxy re-signed a revoked, server-expired
  * or deleted session's cookie for another year on the redirect to sign-in.
- * Only a session the database still accepts may be renewed; a dead one keeps
- * its current cookie, which lapses at its signed expiry.
+ * Only a session the database still accepts may be renewed. A dead one is
+ * cleared on that response (BUG-009 follow-up), so the browser stops
+ * presenting it and the proxy stops asking the database about it on every
+ * request until it lapses.
  *
  * Plain HTTP with redirects off, so the proof is the response that carries
  * (or does not carry) the renewal, not whatever the browser follows next.
@@ -104,6 +111,31 @@ function renewedSessionDays(response: APIResponse): number | null {
   return read.ok ? Math.round((read.payload.expiresAt - nowSeconds()) / DAY) : 0
 }
 
+/**
+ * The response deletes the session cookie outright: every Set-Cookie for it
+ * is empty, on path /, and already expired. (Next repeats a proxy cookie on a
+ * redirect without its Max-Age, so Expires is what both copies share.)
+ */
+function clearsSessionCookie(response: APIResponse): boolean {
+  const headers = response
+    .headersArray()
+    .filter(({ name }) => name.toLowerCase() === "set-cookie")
+    .map(({ value }) => value)
+    .filter((value) => value.startsWith(`${SESSION_COOKIE}=`))
+  return (
+    headers.length > 0 &&
+    headers.every((header) => {
+      const expires = /;\s*Expires=([^;]+)/i.exec(header)?.[1]
+      return (
+        header.startsWith(`${SESSION_COOKIE}=;`) &&
+        /;\s*Path=\/(;|$)/i.test(header) &&
+        expires !== undefined &&
+        Date.parse(expires) < Date.now() - 1_000
+      )
+    })
+  )
+}
+
 test.describe("@customer-flow customer session cookie renewal", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
@@ -138,7 +170,7 @@ test.describe("@customer-flow customer session cookie renewal", () => {
   })
 
   for (const state of ["revoked", "expired", "deleted"] as const) {
-    test(`does not re-sign the cookie of a session that is ${state}`, async ({
+    test(`clears, rather than re-signs, the cookie of a session that is ${state}`, async ({
       request,
     }) => {
       test.skip(!sql || !customerId, "local Supabase DB is not configured")
@@ -151,14 +183,69 @@ test.describe("@customer-flow customer session cookie renewal", () => {
       })
       expect(home.status()).toBe(307)
       expect(home.headers().location).toMatch(/^\/home\/login/)
-      expect(renewedSessionDays(home)).toBeNull()
+      expect(renewedSessionDays(home) ?? 0).toBe(0)
+      expect(clearsSessionCookie(home)).toBe(true)
 
       const login = await request.get("/home/login", {
         headers: { cookie },
         maxRedirects: 0,
       })
       expect(login.status()).toBe(200)
-      expect(renewedSessionDays(login)).toBeNull()
+      expect(renewedSessionDays(login) ?? 0).toBe(0)
+      expect(clearsSessionCookie(login)).toBe(true)
     })
   }
+
+  test("a browser jar drops a revoked cookie after one request, so later requests do not present it", async ({
+    baseURL,
+  }) => {
+    test.skip(!sql || !customerId, "local Supabase DB is not configured")
+    if (!sql || !customerId || !baseURL) return
+
+    const cookieHeader = await agedBrowserSession(sql, customerId, "revoked")
+    const { hostname } = new URL(baseURL)
+    const jar = await playwrightRequest.newContext({
+      baseURL,
+      storageState: {
+        cookies: cookieHeader.split("; ").map((pair) => {
+          const at = pair.indexOf("=")
+          return {
+            name: pair.slice(0, at),
+            value: pair.slice(at + 1),
+            domain: hostname,
+            path: "/",
+            expires: nowSeconds() + YEAR,
+            httpOnly: true,
+            secure: false,
+            sameSite: "Lax" as const,
+          }
+        }),
+        origins: [],
+      },
+    })
+    try {
+      const first = await jar.get("/home", { maxRedirects: 0 })
+      expect(clearsSessionCookie(first)).toBe(true)
+
+      const remaining = (await jar.storageState()).cookies.map(
+        ({ name }) => name
+      )
+      expect(remaining).toContain(DEVICE_COOKIE)
+      expect(remaining).not.toContain(SESSION_COOKIE)
+
+      const second = await jar.get("/home", { maxRedirects: 0 })
+      expect(second.status()).toBe(307)
+      expect(
+        second
+          .headersArray()
+          .some(
+            ({ name, value }) =>
+              name.toLowerCase() === "set-cookie" &&
+              value.startsWith(`${SESSION_COOKIE}=`)
+          )
+      ).toBe(false)
+    } finally {
+      await jar.dispose()
+    }
+  })
 })

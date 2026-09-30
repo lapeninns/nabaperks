@@ -14,6 +14,10 @@ import {
  *
  * Kept free of `server-only` and request APIs so Proxy can import it. It is
  * called only for a renewal that is already due, never on every request.
+ *
+ * `false` clears the browser's cookie, so it is returned only for the
+ * database's own answer. Missing configuration or a failed call throws, which
+ * leaves the cookie untouched.
  */
 export function customerSessionActivityCheck(
   deviceId: string
@@ -24,7 +28,9 @@ export function customerSessionActivityCheck(
     const deviceHash = customerDeviceHashFromHeaders(
       new Headers({ [CUSTOMER_DEVICE_HEADER]: deviceId })
     )
-    if (!url || !serviceRoleKey || !deviceHash) return false
+    if (!url || !serviceRoleKey || !deviceHash) {
+      throw new Error("Customer session renewal check is not configured.")
+    }
 
     const supabase = createClient(url, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
