@@ -1,5 +1,8 @@
 # Visual baseline classification prerequisite
 
+> Historical: the staged-input mechanism described here was removed on
+> 30 September 2026 (`docs/decisions/ci-qualification-replacement.md`).
+
 PR #326 changes the welcome-offer application and its reviewed PNG baselines.
 All nine hosted workload roots passed in CI run `34699110959`, but the final
 comparison rejected the candidate's changed application inputs. The planner

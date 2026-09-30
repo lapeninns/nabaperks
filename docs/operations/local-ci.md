@@ -39,7 +39,8 @@ has been updated.
 - `Release gate` retains its name and is plan-driven. Its `needs` list is the
   nine hosted roots (`fast`, `quality`, `build`, `e2e`, `a11y`, `visual`,
   `lighthouse`, `zap-baseline`, `db`) plus the `selection`, `documentation`,
-  `targeted-browser`, `targeted-visual` and `selection-comparison` jobs. Eligible
+  `targeted-browser` and `targeted-visual` jobs (`selection-comparison` was
+  removed on 30 September 2026). Eligible
   documentation and literal public-page PRs select their checks; unselected
   roots are reported as not required. Full-profile PRs and exact-main CI still
   require all nine hosted roots. No test coverage is routed locally.

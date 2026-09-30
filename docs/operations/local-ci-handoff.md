@@ -39,7 +39,8 @@ a legitimate way to change that — see "Scope discipline".
 `Release gate` in `.github/workflows/ci.yml` is plan-driven. It needs the nine
 hosted roots (`fast`, `quality`, `build`, `e2e`, `a11y`, `visual`,
 `lighthouse`, `zap-baseline`, `db`) plus the `selection`, `documentation`,
-`targeted-browser`, `targeted-visual` and `selection-comparison` jobs, and
+`targeted-browser` and `targeted-visual` jobs (the `selection-comparison` job
+was removed on 30 September 2026), and
 enforces exactly the checks the [change-aware plan](change-aware-ci.md)
 selects. Eligible documentation and literal public-page PRs select a subset
 and report unselected roots as not required; full-profile PRs and exact-main

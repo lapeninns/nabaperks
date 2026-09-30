@@ -103,5 +103,9 @@ than a ruleset swap:
    `compare-targeted-evidence.mjs`, `reviewed-documentation.mjs`, the staged
    inputs and the workflow copy, and update the verifier's expected job set.
 
-Rollback of step 2 is a reviewed revert, which re-enables the comparison
-requirement; it does not require re-staging.
+Rollback: step 3 removed the comparison job, its verifier and the staged
+inputs, so reverting step 2 alone would re-require a comparison that no job can
+produce and leave `Release gate` permanently failing. To restore the old
+policy, revert step 3 (#424) first, then step 2 (#418), each as its own
+reviewed PR. #423 can stay: it accepts the comparison job whether present or
+absent.
