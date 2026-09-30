@@ -177,4 +177,5 @@ export default async function CounterHarnessPage({
 // A no-op for the mounted fallback: the harness has nothing to refetch.
 async function noopRetry() {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
 }

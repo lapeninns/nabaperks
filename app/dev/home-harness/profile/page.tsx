@@ -17,6 +17,7 @@ import { harnessProfilePhoneAction } from "./actions"
  */
 async function noopSignOutAction() {
   "use server"
+  if (process.env.NODE_ENV === "production") notFound()
 }
 
 /**
