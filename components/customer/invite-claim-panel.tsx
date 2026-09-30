@@ -8,11 +8,14 @@ export function InviteClaimPanel({
   status,
   businessName,
   token,
+  nextStep,
   startAction,
 }: {
   status: InviteClaimStatus
   businessName: string | null
   token: string
+  /** What happens after "Collect", chosen by the page from the sign-in mode. */
+  nextStep?: string
   startAction: (formData: FormData) => void | Promise<void>
 }) {
   return (
@@ -22,6 +25,7 @@ export function InviteClaimPanel({
           <InviteAvailable
             businessName={businessName}
             token={token}
+            nextStep={nextStep}
             startAction={startAction}
           />
         ) : (
@@ -35,10 +39,12 @@ export function InviteClaimPanel({
 function InviteAvailable({
   businessName,
   token,
+  nextStep,
   startAction,
 }: {
   businessName: string | null
   token: string
+  nextStep?: string
   startAction: (formData: FormData) => void | Promise<void>
 }) {
   const venue = businessName?.trim() || "A local venue"
@@ -52,8 +58,8 @@ function InviteAvailable({
       </h1>
       <p className="mt-3 text-ink-soft">
         {venue} has invited you to their loyalty card. Collect two welcome
-        stamps — there&apos;s no app to download. You&apos;ll verify your phone,
-        then you&apos;re in.
+        stamps — there&apos;s no app to download.
+        {nextStep ? ` ${nextStep}` : null}
       </p>
       <form action={startAction} className="mt-5">
         <input type="hidden" name="token" value={token} />
