@@ -15,6 +15,10 @@ import { cn } from "@/lib/utils"
  * `order-last` places the bar last in the column's layout (so `sticky` holds
  * it at the bottom until the content ends) while the JSX keeps the action
  * ahead of supporting detail in source and reading order.
+ *
+ * `data-join-action-bar` lets globals.css reserve the bar's height as
+ * scroll padding, so a control that takes keyboard focus is scrolled clear
+ * of the pinned bar instead of under it (WCAG 2.4.11, QA BUG-049).
  */
 export function JoinActionBar({
   children,
@@ -28,6 +32,7 @@ export function JoinActionBar({
 }) {
   return (
     <div
+      data-join-action-bar=""
       className={cn(
         "sticky bottom-0 z-10 order-last -mx-4 grid gap-2 bg-gradient-to-t from-background from-70% to-background/0 px-4 pt-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6",
         className

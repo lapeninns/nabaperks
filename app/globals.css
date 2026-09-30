@@ -267,6 +267,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  /* A join screen pins its action bar (JoinActionBar, about 7rem tall) to
+     the bottom of the viewport. Reserve that height when the browser scrolls
+     a focused control into view, or a short viewport leaves the focused
+     legal link or checkbox under the bar (WCAG 2.4.11, QA BUG-049). */
+  html:has([data-join-action-bar]) {
+    scroll-padding-bottom: 8rem;
+  }
   body {
     @apply bg-background text-foreground;
     min-height: 100%;
