@@ -23,16 +23,20 @@ async function noopSignOutAction() {
 /**
  * `?wallet=email-only` is a wallet started with an email: no phone, so no
  * phone messages or phone marketing, and the account area offers to add one.
+ * `?email=no-code` is the saved, unverified email with no code pending (a
+ * failed send, a lapsed code, another browser): the card offers to send one
+ * (QA BUG-036). The default lane has a code pending.
  */
 export default async function CustomerProfileHarnessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ wallet?: string }>
+  searchParams: Promise<{ wallet?: string; email?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
-  if ((await searchParams).wallet === "email-only") {
+  const query = await searchParams
+  if (query.wallet === "email-only") {
     return <EmailOnlyProfile />
   }
 
@@ -53,6 +57,8 @@ export default async function CustomerProfileHarnessPage({
           emailLocked: false,
           needsEmailVerification: true,
         }}
+        // A fixed literal time keeps the lane deterministic.
+        emailCodeSentAt={query.email === "no-code" ? null : 1_790_000_000}
       />
       <PhoneMessagingSettings
         preferences={{
