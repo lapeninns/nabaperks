@@ -245,6 +245,7 @@ export async function requestCustomerIdentityAction(
     merchantId: joinContext.merchant.id,
     entry: joinEntry({ qrId, referralCode: ref }),
     step: "phone",
+    method: "phone",
   })
 
   // A resend from the OTP step answers in place instead of redirecting, so
@@ -363,6 +364,7 @@ export async function verifyCustomerOtpAction(
     scopeKey: merchantSlug,
     entry: joinEntry({ qrId, referralCode: ref }),
     step: "otp",
+    method: "phone",
   })
 
   let access: "authenticated" | "recovery"

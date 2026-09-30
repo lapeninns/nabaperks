@@ -319,6 +319,21 @@ export async function startEmailWalletAction(
     return { errors: { form: EMAIL_HELD_ELSEWHERE } }
   }
 
+  // A new email counts as the journey's verification only now, once the
+  // guest has chosen it: the code step proved the address, but the guest may
+  // still take "Open my existing wallet with my phone", and that phone code
+  // is then the verification. The funnel's event ID is one per journey and
+  // step, so recording email at the code step would drop the phone one (QA
+  // BUG-028). A retry after a failed session is deduplicated the same way.
+  await captureJoinFunnelEvent({
+    eventName: "join_otp_verified",
+    customerId: wallet.customer.id,
+    scopeKey: request.merchantSlug,
+    entry: entryFor(request),
+    step: "otp",
+    method: "email",
+  })
+
   const created = wallet.status === "created"
   if (created) {
     await captureJoinFunnelEvent({

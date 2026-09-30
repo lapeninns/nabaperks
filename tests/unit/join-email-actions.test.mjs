@@ -438,7 +438,14 @@ test("Given mode full and a bound handoff When a new wallet is started Then it i
     ["session", "customer-new", true],
     ["clearHandoff"],
   ])
-  assert.equal(state.events[0].eventName, "join_new_email_wallet_confirmed")
+  // Choosing email is what makes it this journey's verification (QA BUG-028).
+  assert.deepEqual(
+    state.events.map((event) => [event.eventName, event.method]),
+    [
+      ["join_otp_verified", "email"],
+      ["join_new_email_wallet_confirmed", "email"],
+    ]
+  )
 })
 
 test("Given a handoff already used When a copy of it is replayed Then no wallet is created or signed in", async () => {
@@ -609,7 +616,12 @@ test("Given a spent handoff When creating the wallet or its session fails Then a
     ["session", "customer-new", false],
     ["clearHandoff"],
   ])
-  assert.deepEqual(state.events, [])
+  // No second wallet confirmation. The verification is sent again, but the
+  // funnel stores one per journey (join-funnel-verification-method.test.mjs).
+  assert.deepEqual(
+    state.events.map((event) => event.eventName),
+    ["join_otp_verified"]
+  )
 
   // A copy of any spent handoff is still refused.
   for (const spent of [
