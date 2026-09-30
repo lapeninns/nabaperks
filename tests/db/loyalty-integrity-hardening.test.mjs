@@ -75,7 +75,7 @@ const ageStamps = async (tx, membershipId) => {
   )
   update public.stamp_events se
   set earned_business_date =
-    (timezone('Europe/London', now()))::date - aged.day_offset
+    public.venue_trading_date(se.merchant_id, now()) - aged.day_offset
   from aged
   where se.id = aged.id`
 }
@@ -661,7 +661,7 @@ async function seedFixtureCycle(tx, fixture) {
            ${fixture.cardId}::uuid,
            ${fixture.locationId}::uuid,
            'earned', 1,
-           public.uk_business_date(now()) - series.day_offset,
+           public.venue_trading_date(${fixture.merchantId}::uuid, now()) - series.day_offset,
            1,
            jsonb_build_object('source', 'isolation_test')
     from generate_series(1, 3) as series(day_offset)`

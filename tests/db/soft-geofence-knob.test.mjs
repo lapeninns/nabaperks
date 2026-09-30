@@ -50,7 +50,7 @@ async function joinAndBackdateFirstStamp(tx, venue) {
   // One-stamp-per-business-day: age the first stamp so the next one lands.
   await tx`
     update public.stamp_events
-    set earned_business_date = (now() at time zone 'Europe/London')::date - 1
+    set earned_business_date = public.venue_trading_date(merchant_id, now()) - 1
     where membership_id = ${joined.membership_id}::uuid`
 
   return { customerId: customer.id, membershipId: joined.membership_id }

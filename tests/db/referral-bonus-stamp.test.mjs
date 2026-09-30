@@ -10,6 +10,7 @@ import {
   inRolledBackTxn,
   isLiveDbReady,
 } from "./helpers/db.mjs"
+import { currentTradingDay } from "./helpers/trading-day.mjs"
 
 /**
  * referral bonus stamp — live-DB invariant tier (primary proof).
@@ -604,6 +605,11 @@ test(
         qr.qr_id
       )
       const code = await codeFor(tx, referrer.membership_id)
+      // An hour before the current trading day began: the previous trading day.
+      const { startsAt: tradingDayStart } = await currentTradingDay(
+        tx,
+        qr.merchant_id
+      )
 
       for (let i = 0; i < 2; i++) {
         const c = await makeCustomer(tx)
@@ -615,7 +621,7 @@ test(
           referred_membership_id, referrer_membership_id, referral_code_used,
           referrer_bonus_due_at, referrer_bonus_awarded_at)
         values (${m.id}::uuid, ${referrer.membership_id}::uuid, 'seed', now(),
-          (public.uk_business_date(now())::timestamp - interval '1 hour') at time zone 'Europe/London')`
+          ${tradingDayStart}::timestamptz - interval '1 hour')`
       }
 
       const friendCustomer = await makeCustomer(tx)

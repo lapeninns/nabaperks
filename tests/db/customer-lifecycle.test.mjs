@@ -176,11 +176,11 @@ test(
       const reward = rewards[0]
       assert.equal(reward.status, "unlocked", "STEP 3: reward is unlocked")
       assert.equal(reward.cycle_number, 1, "STEP 3: reward belongs to cycle 1")
-      const ukToday = (
-        await tx`select (now() at time zone 'Europe/London')::date as d`
+      const tradingToday = (
+        await tx`select public.venue_trading_date(${v.merchant_id}::uuid, now()) as d`
       )[0].d
       assert.ok(
-        reward.redeemable_from > ukToday,
+        reward.redeemable_from > tradingToday,
         "STEP 3: reward opens on a later trading day, not same-day"
       )
 
@@ -204,7 +204,7 @@ test(
       // ---- STEP 4: the next business day arrives → REDEEM via scan token.
       await tx`
         update public.reward_events
-        set redeemable_from = ${ukToday}, available_from = now() - interval '1 minute'
+        set redeemable_from = ${tradingToday}, available_from = now() - interval '1 minute'
         where id = ${reward.id}`
       const [minted] = await tx`
         select * from public.create_reward_scan_token(

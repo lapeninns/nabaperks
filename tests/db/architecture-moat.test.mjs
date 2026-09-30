@@ -60,7 +60,7 @@ test("Given two QR stamp attempts When they race for one membership Then only on
             from public.stamp_events
             where membership_id = ${fixture.membershipId}
               and event_type = 'earned'
-              and earned_business_date = public.uk_business_date(now())
+              and earned_business_date = public.venue_trading_date(${fixture.merchantId}::uuid, now())
           ) as stamp_count,
           (
             select current_stamp_count
