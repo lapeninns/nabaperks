@@ -34,6 +34,8 @@ import {
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { joinEntry } from "@/lib/customer/join-observability-contract"
 import { isOfferClaimAvailable } from "@/lib/customer/pending-join-offer"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
+import { emailSignInEnabled } from "@/lib/customer/email-auth-mode"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redirect"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
@@ -486,7 +488,9 @@ async function claimLoyaltyInviteIfPresent(
   if (status === "email_conflict") {
     return {
       errors: {
-        form: "This invitation was sent to a different email than your account uses, so no welcome stamps were added.",
+        form: inviteEmailConflictCopy(
+          typeof row?.conflict_reason === "string" ? row.conflict_reason : null
+        ),
       },
     }
   }
@@ -507,6 +511,24 @@ async function claimLoyaltyInviteIfPresent(
 
   // 'invalid' / consumed elsewhere — fall through to a normal join.
   return null
+}
+
+/**
+ * The claim refuses an invitation as 'email_conflict' when the wallet already
+ * holds a different verified email, or when another wallet holds the invited
+ * address (`conflict_reason` 'email_held_elsewhere'). The second must not tell
+ * a wallet, which may have no email at all, that it "uses" a different one
+ * (QA BUG-048). A database without the reason keeps the original sentence.
+ */
+function inviteEmailConflictCopy(conflictReason: string | null): string {
+  if (conflictReason !== "email_held_elsewhere") {
+    return "This invitation was sent to a different email than your account uses, so no welcome stamps were added."
+  }
+  const heldElsewhere =
+    "This invitation's email address already belongs to another Nabaperks wallet, so no welcome stamps were added here."
+  return emailSignInEnabled()
+    ? `${heldElsewhere} Sign in with that email and open the invitation again, or ask the venue team.`
+    : `${heldElsewhere} Ask the venue team for help.`
 }
 
 /**
@@ -557,11 +579,26 @@ async function offerNeedsConfirmedPhone(
 async function claimOfferCampaignIfPresent(
   customerId: string,
   merchantSlug: string,
-  marketingOptIn: boolean,
-  hasVerifiedPhone: boolean
+  marketingOptIn: boolean
 ): Promise<CustomerJoinState | null> {
   const cookie = await readOfferCookie()
   if (!cookie || cookie.merchantSlug !== merchantSlug) return null
+
+  // The claim needs a CONFIRMED phone (phone_hmac and phone_verified_at), the
+  // same check the collection gate uses. A stored but unconfirmed number
+  // (phone_last4 set) must get the explanation too, not a silent 'invalid'
+  // (QA BUG-044).
+  let hasVerifiedPhone: boolean
+  try {
+    hasVerifiedPhone = await customerHasVerifiedPhone(customerId)
+  } catch {
+    // Unknown: keep the handoff so the retry this asks for still carries it.
+    return {
+      errors: {
+        form: "We couldn't add this offer. Try again or ask the venue team.",
+      },
+    }
+  }
 
   if (!hasVerifiedPhone) {
     const phoneRequired = await offerNeedsConfirmedPhone(
@@ -698,12 +735,7 @@ export async function joinRewardsAction(
     invite: () =>
       claimLoyaltyInviteIfPresent(customer.id, merchantSlug, marketingOptIn),
     offer: () =>
-      claimOfferCampaignIfPresent(
-        customer.id,
-        merchantSlug,
-        marketingOptIn,
-        customer.phoneLast4 !== null
-      ),
+      claimOfferCampaignIfPresent(customer.id, merchantSlug, marketingOptIn),
   } as const
   const [firstHandoff, secondHandoff] = claimHandoffOrder({
     invite:
