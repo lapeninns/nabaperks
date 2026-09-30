@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process"
 import { readFileSync, writeFileSync, mkdtempSync, realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { stripVTControlCharacters } from "node:util"
 
 // The provisioner owns only a random blank Supabase project. No repository
 // config, seed, provider key, or host database environment enters its children.
@@ -15,6 +16,10 @@ export function provisionDisposablePlatform() {
   const project = `upgrade-${marker.replaceAll("-", "")}`
   const database = `codex_upgrade_${marker.replaceAll("-", "")}`
   const env = { PATH: process.env.PATH, HOME: root, CI: "1", DO_NOT_TRACK: "1" }
+  // Preserve the hosted image source without inheriting credentials or an
+  // arbitrary registry endpoint from the operator's environment.
+  if (process.env.SUPABASE_INTERNAL_IMAGE_REGISTRY === "ghcr.io")
+    env.SUPABASE_INTERNAL_IMAGE_REGISTRY = "ghcr.io"
   function execute(command, args, input) {
     const result = spawnSync(command, args, {
       env,
@@ -23,10 +28,17 @@ export function provisionDisposablePlatform() {
       timeout: 600_000,
       maxBuffer: 64 * 1024 * 1024,
     })
-    assert.ok(
-      !result.error && !result.signal && result.status === 0,
-      `Disposable platform ${command} failed`
-    )
+    if (result.error || result.signal || result.status !== 0) {
+      // Never emit stdout: docker pg_dump returns a binary database archive.
+      const detail = stripVTControlCharacters(result.stderr?.toString() ?? "")
+        .replace(/([a-z][a-z\d+.-]*:\/\/)[^\s/]+@/gi, "$1[redacted]@")
+        .slice(-2048)
+      throw new Error(
+        `Disposable platform ${command} ${args[0]} failed ` +
+          `(exit=${result.status}, signal=${result.signal ?? "none"}, ` +
+          `code=${result.error?.code ?? "none"}): ${detail}`
+      )
+    }
     return result.stdout
   }
   execute("supabase", ["init", "--workdir", root])
@@ -114,7 +126,7 @@ export function provisionDisposablePlatform() {
     } catch (cleanupError) {
       throw new AggregateError(
         [error, cleanupError],
-        "Platform startup and cleanup failed"
+        `Platform startup and cleanup failed: ${error.message}; ${cleanupError.message}`
       )
     }
     throw error
