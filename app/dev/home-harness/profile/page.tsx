@@ -101,6 +101,12 @@ function EmailOnlyProfile() {
       <CustomerProfileMarketing
         consents={[{ channel: "email", optedIn: true }]}
         hasPhone={false}
+        // Literal, so the DB-free lane never loads eligibility from a session.
+        eligibility={{
+          hasVerifiedPhone: false,
+          hasVerifiedEmail: true,
+          membershipCount: 1,
+        }}
       />
       <CustomerProfileAccountSection
         memberSinceLabel="September 2026"

@@ -22,6 +22,9 @@ export const STAMP_HARNESS_MODES = [
   "verify-rate-limited",
   "verify-code-locked",
   "verify-code-throttled",
+  // A phone-only member: once the stamp lands, the compact "Add your email"
+  // card appears below the card (QA BUG-020), never before.
+  "email-prompt",
 ] as const
 
 export type HarnessMode = (typeof STAMP_HARNESS_MODES)[number]
