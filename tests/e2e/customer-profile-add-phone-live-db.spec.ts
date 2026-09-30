@@ -76,8 +76,14 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
         context,
         await createBrowserCustomerSession(sql, customerId)
       )
-      // The collect-reward precondition before the phone is added.
-      await expectRewardQrServed(page, wallet.rewardId)
+      const blockedReward = await page.request.get(
+        `/reward/${wallet.rewardId}/qr.png`
+      )
+      expect(blockedReward.status()).toBe(409)
+      expect(await blockedReward.json()).toMatchObject({
+        state: "blocked",
+        reason: "Complete your profile before collecting this reward.",
+      })
 
       await addPhoneFromProfile(page, phone)
       await expect(
