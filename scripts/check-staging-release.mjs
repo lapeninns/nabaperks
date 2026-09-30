@@ -538,13 +538,27 @@ export async function proveRolledBackLoyaltyJourney(sql, config) {
   )
 }
 
-async function ageEarnedStamps(tx, membershipId) {
-  await tx`
-    update public.stamp_events
-    set earned_business_date = earned_business_date - 2
+// Moves every earned stamp of the rolled-back synthetic membership two UK
+// business days back. stamp_events_one_earned_per_business_day_idx is not
+// deferrable and is checked row by row, so one set-based UPDATE collides when
+// it meets a newer row before an older one two days earlier. Moving the rows
+// one at a time, oldest first, always targets a free date.
+export async function ageEarnedStamps(tx, membershipId) {
+  const rows = await tx`
+    select id
+    from public.stamp_events
     where membership_id = ${membershipId}::uuid
       and event_type = 'earned'
+      and earned_business_date is not null
+    order by earned_business_date, id
   `
+  for (const row of rows) {
+    await tx`
+      update public.stamp_events
+      set earned_business_date = earned_business_date - 2
+      where id = ${row.id}::uuid
+    `
+  }
 }
 
 async function proveStripeWebhookReplay(sql, config) {
