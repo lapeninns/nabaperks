@@ -160,13 +160,18 @@ export async function requestCustomerEmailIdentityAction(
     }
   }
 
-  await captureJoinFunnelEvent({
-    eventName: "join_email_requested",
-    merchantId,
-    entry: entryFor(request),
-    step: "email",
-    method: "email",
-  })
+  // Counted only when a new code was admitted. A refused (held) send looks
+  // the same to the guest (D8) and the sign-in module tracks it as a failed
+  // send; a repeat is the request already counted (QA BUG-026).
+  if (result.admission === "admitted") {
+    await captureJoinFunnelEvent({
+      eventName: "join_email_requested",
+      merchantId,
+      entry: entryFor(request),
+      step: "email",
+      method: "email",
+    })
+  }
 
   // A resend from the code step answers in place, like the phone resend.
   if (isResend) {

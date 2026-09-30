@@ -21,7 +21,7 @@ const STUBS = {
   "fixture-state": `export const state = {
     calls: [],
     events: [],
-    start: { status: "code_sent", maskedEmail: "g***@example.com", resendAvailableAt: 1060 },
+    start: { status: "code_sent", maskedEmail: "g***@example.com", resendAvailableAt: 1060, admission: "admitted" },
     pending: null,
     check: {
       status: "verified",
@@ -234,6 +234,42 @@ test("Given mode existing When an email code is requested Then the join challeng
       method: "email",
     },
   ])
+})
+
+test("Given a held or repeated send When an email code is requested or resent Then the guest sees a sent code but no code request is counted", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { requestCustomerEmailIdentityAction, state } = await loadActions()
+  state.pending = { purpose: "join", email: "guest@example.com" }
+
+  for (const admission of ["held", "repeat"]) {
+    // Admission refused the send (held), or a double submit kept the live
+    // challenge (repeat): the answer is the sent-code one either way (D8).
+    state.start = {
+      status: "code_sent",
+      maskedEmail: "g***@example.com",
+      resendAvailableAt: 1060,
+      admission,
+    }
+    assert.equal(
+      await redirectOf(
+        requestCustomerEmailIdentityAction(
+          {},
+          form({ email: "guest@example.com", qrId: "venue-qr" })
+        )
+      ),
+      "/m/old-crown/join?qr=venue-qr&step=otp"
+    )
+    const resent = await requestCustomerEmailIdentityAction(
+      {},
+      form({ resend: "1", qrId: "venue-qr" })
+    )
+    assert.equal(resent.message, "Use the latest code we sent.")
+    assert.equal(resent.fields.emailOtpSent, true)
+  }
+
+  // A held send is tracked by the sign-in module as join_code_send_failed
+  // (admission_refused); a repeat is the request already counted (QA BUG-026).
+  assert.deepEqual(state.events, [])
 })
 
 test("Given the server has not opened email When a code is requested Then it goes back to the phone step and nothing is sent", async () => {
