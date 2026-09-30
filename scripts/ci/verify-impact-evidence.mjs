@@ -14,13 +14,14 @@ export function summarizeImpactEvidence(evidence, identity) {
     evidence && typeof evidence === "object" && !Array.isArray(evidence),
     "Missing job evidence"
   )
-  const expected = [
-    "selection",
-    ...ALL_WORKLOADS,
-    "selection-comparison",
-  ].sort()
+  // `selection-comparison` is being retired: plans no longer require it
+  // (docs/decisions/ci-qualification-replacement.md), so a workflow may omit
+  // the job. Every other job must be present exactly once.
+  const expected = ["selection", ...ALL_WORKLOADS].sort()
   assert.deepEqual(
-    Object.keys(evidence).sort(),
+    Object.keys(evidence)
+      .filter((name) => name !== "selection-comparison")
+      .sort(),
     expected,
     "Unexpected or missing CI jobs"
   )
@@ -47,11 +48,18 @@ export function summarizeImpactEvidence(evidence, identity) {
     )
     rows.push(`${name}: ${required ? "passed" : "not required (not executed)"}`)
   }
-  assert.equal(
-    evidence["selection-comparison"]?.result,
-    plan.comparisonRequired ? "success" : "skipped",
-    "Selection comparison is missing or unexpected"
-  )
+  if (Object.hasOwn(evidence, "selection-comparison"))
+    assert.equal(
+      evidence["selection-comparison"]?.result,
+      plan.comparisonRequired ? "success" : "skipped",
+      "Selection comparison is missing or unexpected"
+    )
+  else
+    assert.equal(
+      plan.comparisonRequired,
+      false,
+      "Selection comparison is required but its job is missing"
+    )
   return `Profile: ${plan.profile}\n${plan.reason}\n${rows.join("\n")}`
 }
 
