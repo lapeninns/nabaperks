@@ -196,7 +196,13 @@ test("Given an active session past its renewal point When the proxy checks it Th
   assert.ok(header)
   const value = header.split(";")[0].slice(SESSION_COOKIE.length + 1)
   assert.ok(value && value !== presented, "a freshly signed value")
-  assert.match(header, new RegExp(`Max-Age=${YEAR}`))
+  // One absolute Expires a year out, and no Max-Age for Next to recompute
+  // Expires from on a redirect (QA BUG-067).
+  assert.doesNotMatch(header, /Max-Age=/i)
+  const expires = /;\s*Expires=([^;]+)/i.exec(header)?.[1]
+  assert.ok(expires)
+  const days = (Date.parse(expires) - Date.now()) / 1_000 / DAY
+  assert.ok(days > 364 && days <= 365, `expires in a year, got ${days} days`)
 })
 
 test("Given the proxy runtime lacks the service-role configuration When a renewal is due Then the session cookie is left alone", async () => {

@@ -28,6 +28,7 @@ import {
   CUSTOMER_SESSION_TTL_SECONDS,
   persistentCookieOptions,
 } from "@/lib/http/persistent-cookie-options"
+import { fixedExpiryCookieOptions } from "@/lib/customer/session-cookie-options"
 import { customerSessionActivityCheck } from "@/lib/customer/session-renewal"
 import {
   confirmCustomerSessionRenewal,
@@ -99,7 +100,7 @@ export async function proxy(request: NextRequest) {
     response.cookies.set(
       CUSTOMER_DEVICE_COOKIE,
       customerDevice.token,
-      persistentCookieOptions(CUSTOMER_DEVICE_TTL_SECONDS)
+      fixedExpiryCookieOptions(CUSTOMER_DEVICE_TTL_SECONDS)
     )
   }
 
@@ -138,7 +139,7 @@ export async function proxy(request: NextRequest) {
     response.cookies.set(
       CUSTOMER_SESSION_COOKIE,
       renewedSession,
-      persistentCookieOptions(CUSTOMER_SESSION_TTL_SECONDS)
+      fixedExpiryCookieOptions(CUSTOMER_SESSION_TTL_SECONDS)
     )
   } else if (sessionRenewal?.action === "clear") {
     // Same name, path and attributes as the cookie being retired, expired

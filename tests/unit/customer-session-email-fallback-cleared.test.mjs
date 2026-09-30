@@ -25,6 +25,7 @@ const REAL = new Set([
   "@/lib/supabase/missing-rpc",
   "@/lib/http/persistent-cookie-options",
   "@/lib/customer/email-fallback-core",
+  "@/lib/customer/session-cookie-options",
 ])
 
 const SECRET = "unit-test-customer-session-secret-0123456789"

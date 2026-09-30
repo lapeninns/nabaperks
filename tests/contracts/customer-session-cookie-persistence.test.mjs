@@ -10,14 +10,26 @@ function read(...segments) {
   return readFileSync(path.join(root, ...segments), "utf8")
 }
 
-test("Given Safari discards Max-Age-only cookies When customer cookies are set Then they also carry an absolute Expires date", () => {
+test("Given Safari discards Max-Age-only cookies When customer cookies are set Then they carry an absolute Expires date", () => {
   const cookie = read("lib", "http", "persistent-cookie-options.ts")
+  const fixedExpiry = read("lib", "customer", "session-cookie-options.ts")
   const session = read("lib", "customer", "session.ts")
   const proxy = read("proxy.ts")
 
   assert.match(cookie, /expires: new Date\(nowMs \+ maxAge \* 1_000\)/)
-  assert.match(session, /persistentCookieOptions\(customerSessionTtlSeconds\)/)
-  assert.match(proxy, /persistentCookieOptions\(CUSTOMER_DEVICE_TTL_SECONDS\)/)
+  // The device and session cookies keep that Expires and drop
+  // Max-Age, so Next cannot recompute Expires when a redirect re-serialises
+  // them (QA BUG-067). Expires alone still persists across Safari restarts.
+  assert.match(
+    fixedExpiry,
+    /const \{ httpOnly, sameSite, secure, path, expires \} = persistentCookieOptions\(/
+  )
+  assert.match(
+    fixedExpiry,
+    /return \{ httpOnly, sameSite, secure, path, expires \}/
+  )
+  assert.match(session, /fixedExpiryCookieOptions\(customerSessionTtlSeconds\)/)
+  assert.match(proxy, /fixedExpiryCookieOptions\(CUSTOMER_DEVICE_TTL_SECONDS\)/)
 })
 
 test("Given a returning Safari visit When the proxy runs Then it refreshes the verified device cookie on GET and keeps cookieless requests unscoped", () => {
@@ -54,14 +66,14 @@ test("Given sessions last until log-out When the proxy renews a session cookie T
   assert.match(proxy, /renewCustomerSessionCookieValue\(\{/)
   assert.match(
     proxy,
-    /CUSTOMER_SESSION_COOKIE,\s*renewedSession,\s*persistentCookieOptions\(CUSTOMER_SESSION_TTL_SECONDS\)/
+    /CUSTOMER_SESSION_COOKIE,\s*renewedSession,\s*fixedExpiryCookieOptions\(CUSTOMER_SESSION_TTL_SECONDS\)/
   )
   // The 12 September rule still holds: the cookie is never stretched past its
   // signed expiry, because renewal signs a new expiry rather than re-setting
   // the presented value.
   assert.doesNotMatch(
     proxy,
-    /request\.cookies\.get\(CUSTOMER_SESSION_COOKIE\)\?\.value,\s*persistentCookieOptions/
+    /request\.cookies\.get\(CUSTOMER_SESSION_COOKIE\)\?\.value,\s*(persistentCookieOptions|fixedExpiryCookieOptions)/
   )
   assert.match(
     renewal,

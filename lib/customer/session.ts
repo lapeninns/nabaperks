@@ -28,6 +28,7 @@ import {
   type PendingPhonePayload,
   type PendingPhonePurpose,
 } from "@/lib/customer/session-cookie"
+import { fixedExpiryCookieOptions } from "@/lib/customer/session-cookie-options"
 import {
   parseCustomerSessionLoadRow,
   type CustomerSessionLoadRow,
@@ -226,7 +227,7 @@ export async function setCustomerSession(
   cookieStore.set(
     customerSessionCookieName,
     createCustomerSessionCookieValue(payload, requiredCustomerSessionSecret()),
-    persistentCookieOptions(customerSessionTtlSeconds)
+    fixedExpiryCookieOptions(customerSessionTtlSeconds)
   )
   // Signed in: no signed-out email challenge or handoff may outlive this, or
   // it could resurface for whoever uses the browser after a log-out.
