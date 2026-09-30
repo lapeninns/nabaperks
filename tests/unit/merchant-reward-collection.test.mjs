@@ -38,7 +38,7 @@ async function loadCollection() {
                 : path === "fixture-state"
                   ? `export const state = { merchant: null, responses: {}, calls: [] };`
                   : path.endsWith("session")
-                    ? `import {state} from "fixture-state"; export async function getCurrentMerchant() { return state.merchant; }`
+                    ? `import {state} from "fixture-state"; export async function getCurrentMerchant() { return state.merchant; } export async function getCurrentUser() { return state.merchant ? { id: "owner-1" } : null; }`
                     : `import {state} from "fixture-state";
 function client(kind) {
   return {

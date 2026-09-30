@@ -62,6 +62,12 @@ async function RewardScanStream({
     )
   }
 
+  // Signed in but owning no venue: /login would bounce straight back here, so
+  // send the user where /app does. The scan token is not carried along.
+  if (context.status === "no_merchant") {
+    redirect("/app/onboarding")
+  }
+
   if (context.status === "not_found") {
     notFound()
   }

@@ -1,6 +1,6 @@
 import "server-only"
 
-import { getCurrentMerchant } from "@/lib/auth/session"
+import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import {
   createSupabaseServerClient,
@@ -10,7 +10,14 @@ import { LOYALTY_PROGRAMME_UNAVAILABLE } from "@/lib/copy/product-copy"
 import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 
 export type MerchantRewardScanContext =
-  | { status: "unauthenticated" | "not_found" | "unauthorized" | "expired" }
+  | {
+      status:
+        | "unauthenticated"
+        | "no_merchant"
+        | "not_found"
+        | "unauthorized"
+        | "expired"
+    }
   | {
       status: "ready" | "redeemed" | "blocked" | "verification_required"
       scanToken: string
@@ -43,7 +50,13 @@ export async function loadMerchantRewardScanContext(
   scanToken: string
 ): Promise<MerchantRewardScanContext> {
   const merchant = await getCurrentMerchant()
-  if (!merchant) return { status: "unauthenticated" }
+  if (!merchant) {
+    // Signed in without a venue is not signed out: /login would send the user
+    // straight back here (QA BUG-060). Both reads are request-cached.
+    return (await getCurrentUser())
+      ? { status: "no_merchant" }
+      : { status: "unauthenticated" }
+  }
 
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.rpc("get_owner_reward_scan_context", {
@@ -51,6 +64,7 @@ export async function loadMerchantRewardScanContext(
   })
 
   if (error) {
+    if (isOtherMerchantRewardScanError(error)) return { status: "unauthorized" }
     if (error.code === "42501") return { status: "not_found" }
     // Log only the failure code; provider messages can contain identity fields.
     console.error("get_owner_reward_scan_context failed", { code: error.code })
@@ -137,6 +151,41 @@ async function collectAsOwner(
   )
 }
 
+// The owner scan RPC refuses another venue's token with the same SQLSTATE and
+// message as a token that does not exist, and adds this hint only when the
+// token exists elsewhere (QA BUG-045). Anything else stays not-found.
+const OTHER_MERCHANT_REWARD_SCAN_HINT = "reward_scan_other_merchant"
+
+function isOtherMerchantRewardScanError(error: {
+  code?: string
+  message?: string
+  hint?: string | null
+}): boolean {
+  return (
+    error.code === "42501" &&
+    error.message === "Reward not available to this merchant" &&
+    error.hint === OTHER_MERCHANT_REWARD_SCAN_HINT
+  )
+}
+
+const REWARD_ALREADY_COLLECTED_COPY = "This reward has already been collected."
+const REWARD_NO_LONGER_AVAILABLE_COPY =
+  "This reward is no longer available to collect."
+const REWARD_EXPIRED_COPY = "This reward has expired and cannot be collected."
+
+/**
+ * True when a refused collection means the reward is closed (collected on
+ * another device, expired or no longer collectable), so the ready form on the
+ * scan page is stale and the page must re-read server state (QA BUG-047).
+ */
+export function merchantCollectionRefusalClosesReward(reason: string): boolean {
+  return (
+    reason === REWARD_ALREADY_COLLECTED_COPY ||
+    reason === REWARD_NO_LONGER_AVAILABLE_COPY ||
+    reason === REWARD_EXPIRED_COPY
+  )
+}
+
 export function merchantCollectionBlockedCopy(message: string): string {
   const rules: ReadonlyArray<readonly [readonly string[], string]> = [
     [
@@ -158,21 +207,21 @@ export function merchantCollectionBlockedCopy(message: string): string {
       ["Verified adult date of birth required"],
       "Check the customer's photo ID before collecting this reward. Refresh to open the ID check.",
     ],
-    [["Reward expired"], "This reward has expired and cannot be collected."],
+    [["Reward expired"], REWARD_EXPIRED_COPY],
     [
       ["belongs to a different merchant"],
       "This reward belongs to a different merchant.",
     ],
-    [["scan token already used"], "This reward has already been collected."],
+    [["scan token already used"], REWARD_ALREADY_COLLECTED_COPY],
     [
       ["reward already collected", "Reward already collected"],
-      "This reward has already been collected.",
+      REWARD_ALREADY_COLLECTED_COPY,
     ],
     [
       ["scan token expired", "scan token not found", "scan token superseded"],
       "This reward could not be collected. Refresh and try again.",
     ],
-    [["Reward already redeemed"], "This reward has already been collected."],
+    [["Reward already redeemed"], REWARD_ALREADY_COLLECTED_COPY],
     [
       ["not redeemable until the next UK business day"],
       "This reward cannot be collected until the next opening day.",
@@ -200,7 +249,7 @@ export function merchantCollectionBlockedCopy(message: string): string {
     ],
     [
       ["Reward is not redeemable", "Reward is not ready to collect"],
-      "This reward is no longer available to collect.",
+      REWARD_NO_LONGER_AVAILABLE_COPY,
     ],
     [["not active", "unavailable"], LOYALTY_PROGRAMME_UNAVAILABLE],
     [
