@@ -64,6 +64,7 @@ export async function saveProfileForRedeemAction(
       fullName,
       dateOfBirth,
       email: email || null,
+      surface: "reward_gate",
     })
     emailVerificationRequired = result.emailVerificationRequired
     savedEmail = result.email
@@ -144,7 +145,7 @@ export async function clearProfileEmailAction(
   formData: FormData
 ): Promise<void> {
   const rewardId = value(formData, "rewardId")
-  const result = await clearCustomerEmail()
+  const result = await clearCustomerEmail("reward_gate")
   await clearPendingEmailVerification()
 
   if (!result.cleared && rewardId) {

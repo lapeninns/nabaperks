@@ -70,6 +70,8 @@ export type UpdateCustomerProfileInput = {
   fullName: string
   dateOfBirth: string
   email?: string | null
+  /** Where the details were saved, for the email audit row. */
+  surface?: ContactEventSurface
 }
 
 export type UpdateCustomerProfileResult = {
@@ -95,7 +97,8 @@ export class CustomerContactLockedError extends Error {
  * Persists the redeem-time profile fields. Introducing a *new* email resets its
  * verified state (forcing re-confirmation); an unchanged, already-verified email
  * keeps its standing. A blank email is cleared — phone-first identity keeps the
- * contact-present invariant satisfied via the verified phone.
+ * contact-present invariant satisfied via the verified phone. A changed
+ * address is recorded in `audit_logs`, as the prompts record theirs.
  */
 export async function updateCustomerProfile(
   input: UpdateCustomerProfileInput
@@ -135,6 +138,13 @@ export async function updateCustomerProfile(
     .eq("id", customer.id)
 
   if (error) throw new Error(`Unable to update profile: ${error.message}`)
+  if (!emailLocked && email !== normalizedEmail(previousEmail)) {
+    await recordCustomerEmailAudit(supabase, {
+      customerId: customer.id,
+      action: email ? "customer_email_submitted" : "customer_email_cleared",
+      surface: input.surface ?? "profile",
+    })
+  }
 
   return {
     emailVerificationRequired,
@@ -333,7 +343,10 @@ export function customerHasVerifiedEmail(customer: {
   return hasLockedVerifiedEmail(customer)
 }
 
-export async function clearCustomerEmail(): Promise<ClearCustomerEmailResult> {
+/** Removes an unverified address ("Continue without email"), audited. */
+export async function clearCustomerEmail(
+  surface: ContactEventSurface = "profile"
+): Promise<ClearCustomerEmailResult> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")
 
@@ -348,6 +361,13 @@ export async function clearCustomerEmail(): Promise<ClearCustomerEmailResult> {
     .eq("id", customer.id)
 
   if (error) throw new Error(`Unable to update profile: ${error.message}`)
+  if (normalizedEmail(customer.email)) {
+    await recordCustomerEmailAudit(supabase, {
+      customerId: customer.id,
+      action: "customer_email_cleared",
+      surface,
+    })
+  }
 
   return { cleared: true, emailLocked: false }
 }

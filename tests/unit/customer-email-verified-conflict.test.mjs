@@ -484,3 +484,126 @@ test("Given the raced confirmation write raises 23505 When the code is confirmed
   }
   assert.deepEqual(profile.state.audits, [])
 })
+
+// QA BUG-023 (38c42a1..2c45031): the profile editor and the reward gate save
+// and clear addresses through updateCustomerProfile and clearCustomerEmail.
+// A changed address is audited there too, as the prompts' path already is.
+const profileAudit = (action, surface) => ({
+  actor_type: "customer",
+  actor_id: "customer-a",
+  customer_id: "customer-a",
+  target_table: "customers",
+  target_id: "customer-a",
+  action,
+  metadata: { surface },
+})
+
+const DETAILS = { fullName: "Guest", dateOfBirth: "1990-01-01" }
+
+test("Given a new address in the profile editor When the details are saved Then the submission is audited for the profile", async () => {
+  const profile = await loadProfile()
+
+  const result = await profile.updateCustomerProfile({
+    ...DETAILS,
+    email: " New@Example.test ",
+  })
+
+  assert.equal(result.emailVerificationRequired, true)
+  assert.deepEqual(profile.state.audits, [
+    profileAudit("customer_email_submitted", "profile"),
+  ])
+})
+
+test("Given the reward gate When a changed address is saved Then the submission names the reward gate", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "old@example.test",
+    emailVerifiedAt: null,
+  }
+
+  await profile.updateCustomerProfile({
+    ...DETAILS,
+    email: "new@example.test",
+    surface: "reward_gate",
+  })
+
+  assert.deepEqual(profile.state.audits, [
+    profileAudit("customer_email_submitted", "reward_gate"),
+  ])
+})
+
+test("Given the editor empties an unverified address When the details are saved Then the clearing is audited", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "old@example.test",
+    emailVerifiedAt: null,
+  }
+
+  await profile.updateCustomerProfile({ ...DETAILS, email: "" })
+
+  assert.deepEqual(profile.state.audits, [
+    profileAudit("customer_email_cleared", "profile"),
+  ])
+})
+
+test("Given the address is unchanged or locked When the details are saved Then no email audit is written", async () => {
+  for (const customer of [
+    { id: "customer-a", email: "same@example.test", emailVerifiedAt: null },
+    {
+      id: "customer-a",
+      email: "kept@example.test",
+      emailVerifiedAt: "2026-09-01T00:00:00.000Z",
+    },
+    { id: "customer-a", email: null, emailVerifiedAt: null },
+  ]) {
+    const profile = await loadProfile()
+    profile.state.customer = customer
+    await profile.updateCustomerProfile({
+      ...DETAILS,
+      email: customer.email === null ? "" : "Same@Example.test ",
+    })
+    assert.deepEqual(profile.state.audits, [], JSON.stringify(customer))
+  }
+})
+
+test("Given an unverified address When the guest continues without email Then the clearing is audited for the surface", async () => {
+  const profile = await loadProfile()
+  profile.state.customer = {
+    id: "customer-a",
+    email: "old@example.test",
+    emailVerifiedAt: null,
+  }
+
+  assert.deepEqual(await profile.clearCustomerEmail(), {
+    cleared: true,
+    emailLocked: false,
+  })
+  assert.deepEqual(profile.state.audits, [
+    profileAudit("customer_email_cleared", "profile"),
+  ])
+
+  const gate = await loadProfile()
+  gate.state.customer = { ...profile.state.customer }
+  await gate.clearCustomerEmail("reward_gate")
+  assert.deepEqual(gate.state.audits, [
+    profileAudit("customer_email_cleared", "reward_gate"),
+  ])
+})
+
+test("Given no address or a locked one When the guest continues without email Then nothing is audited", async () => {
+  for (const customer of [
+    { id: "customer-a", email: null, emailVerifiedAt: null },
+    {
+      id: "customer-a",
+      email: "kept@example.test",
+      emailVerifiedAt: "2026-09-01T00:00:00.000Z",
+    },
+  ]) {
+    const profile = await loadProfile()
+    profile.state.customer = customer
+    await profile.clearCustomerEmail()
+    assert.deepEqual(profile.state.audits, [], JSON.stringify(customer))
+  }
+})

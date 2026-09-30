@@ -86,6 +86,8 @@ test("Given a new email When reward details are saved Then the address awaits th
   const result = await save({}, details("adult@example.test"))
   assert.equal(result.errors, undefined)
   assert.equal(state.saves[0].email, "adult@example.test")
+  // The address change is audited as a reward-gate submission (QA BUG-023).
+  assert.equal(state.saves[0].surface, "reward_gate")
   assert.deepEqual(state.sends, ["adult@example.test"])
   assert.deepEqual(state.events, [
     {
