@@ -1,3 +1,4 @@
+import { CARD_LOAD_FAILED_DESCRIPTION } from "@/lib/copy/product-copy"
 import type { OtpChannel } from "@/lib/customer/otp-channel-core"
 import { pickByPriority } from "./priorities"
 import {
@@ -137,7 +138,14 @@ export type RewardContext =
     }
 
 export type JoinContext =
-  | { unavailable: true }
+  | {
+      unavailable: true
+      /**
+       * The join context could not be loaded (a dependency failed or ran out
+       * of time), as opposed to a venue or card that is not live (QA BUG-042).
+       */
+      loadFailed?: boolean
+    }
   | {
       unavailable?: false
       merchantId: string
@@ -486,7 +494,9 @@ function deriveJoin(context: JoinContext): CustomerExperience {
   if (context.unavailable) {
     return {
       kind: "unavailable",
-      reason: "This loyalty card is unavailable.",
+      reason: context.loadFailed
+        ? CARD_LOAD_FAILED_DESCRIPTION
+        : "This loyalty card is unavailable.",
     }
   }
 

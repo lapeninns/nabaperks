@@ -93,21 +93,31 @@ test("Given the customer entry segments When their error boundaries are inspecte
   }
 })
 
-test("Given the /q entry page When the membership lookup runs Then it degrades inside the same guard as the QR resolve", () => {
+test("Given the /q entry page When the QR resolve or the membership lookup fails Then neither reaches the error boundary", () => {
   const page = readProjectFile("app", "q", "[qrId]", "page.tsx")
+  const entry = readProjectFile("app", "q", "[qrId]", "qr-entry.ts")
 
-  // The lookup must sit INSIDE the try block: a failed membership read
-  // degrades to the same branded unavailable state as a failed QR resolve.
+  // Both reads run inside ./qr-entry, each in its own guard: a failed resolve
+  // is a retry state and a failed membership lookup falls back to the join
+  // flow (QA BUG-041/042); neither falls through to the error boundary
+  // (CUS-P1-01), and each failure is reported rather than swallowed.
   assert.match(
     page,
-    /try \{[\s\S]*resolveQrForJoin\(qrId[\s\S]*getExistingMembershipForCurrentUser\([\s\S]*\} catch \(error\) \{/,
-    "membership lookup must be awaited inside the try/catch guard"
+    /decideQrEntry\(\{[\s\S]*resolveQrForJoin\(qrId[\s\S]*lookupMembership: getExistingMembershipForCurrentUser/
   )
-  // The redirects stay OUTSIDE the guard so NEXT_REDIRECT is never swallowed.
-  const catchIndex = page.indexOf("} catch (error) {")
-  const redirectIndex = page.indexOf("redirect(")
-  assert.ok(catchIndex !== -1 && redirectIndex > catchIndex,
-    "redirects must remain outside the try/catch guard"
+  assert.match(
+    entry,
+    /try \{\s*qrContext = await resolve\(\)\s*\} catch \(error\) \{[\s\S]*report\("resolve", error\)/
+  )
+  assert.match(
+    entry,
+    /try \{\s*membership = await lookupMembership\([\s\S]*\} catch \(error\) \{\s*report\("membership_lookup", error\)\s*return \{ kind: "join", qrContext \}/
+  )
+  // Redirects stay out of the guards so NEXT_REDIRECT is never swallowed.
+  assert.doesNotMatch(entry, /redirect\(/)
+  assert.ok(
+    page.indexOf("redirect(") > page.indexOf("await decideQrEntry("),
+    "redirects must run after the guarded decision"
   )
   // The e2e boundary probe is dev-only, mirroring the app/dev NODE_ENV gate.
   assert.match(
@@ -118,11 +128,7 @@ test("Given the /q entry page When the membership lookup runs Then it degrades i
 })
 
 test("Given the join OTP step When a resend settles Then its outcome renders inside the live-region card", () => {
-  const form = readProjectFile(
-    "components",
-    "customer",
-    "join-otp-form.tsx"
-  )
+  const form = readProjectFile("components", "customer", "join-otp-form.tsx")
 
   // The resend action state must be captured, not discarded.
   assert.match(
@@ -142,19 +148,12 @@ test("Given the join OTP step When a resend settles Then its outcome renders ins
     /requestState\.errors\?\.(form|contact)/,
     "resend errors must render"
   )
-  assert.match(
-    form,
-    /requestState\.message/,
-    "resend confirmation must render"
-  )
+  assert.match(form, /requestState\.message/, "resend confirmation must render")
   // The resend form identifies itself so the action can answer in place
   // instead of redirecting (behaviour-preserving additive field).
   assert.match(form, /name="resend"/)
   // Pending states go through the shared SubmitButton with real ellipses.
-  assert.match(
-    form,
-    /import \{ SubmitButton \} from "@\/components\/forms"/
-  )
+  assert.match(form, /import \{ SubmitButton \} from "@\/components\/forms"/)
   assert.match(form, /pendingLabel="Sending…"/)
   assert.match(form, /pendingLabel="Checking…"/)
   assert.doesNotMatch(

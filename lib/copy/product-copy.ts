@@ -35,3 +35,14 @@ export const CARD_UNAVAILABLE_TITLE = "This loyalty card is unavailable"
 
 /** Recovery helper paired with an unavailable card/QR — points to venue staff. */
 export const ASK_TEAM_FOR_QR = "Ask a team member for the current loyalty QR."
+
+/**
+ * Title and helper shown when a join page or venue QR could not be loaded
+ * because a service it depends on failed, as opposed to a card or QR that is
+ * genuinely unavailable (QA BUG-042). Nothing about the card is wrong, so the
+ * copy asks for a retry rather than a different QR.
+ */
+export const CARD_LOAD_FAILED_TITLE = "We can't load this right now"
+
+export const CARD_LOAD_FAILED_DESCRIPTION =
+  "Your cards and stamps are safe. Try again in a moment."

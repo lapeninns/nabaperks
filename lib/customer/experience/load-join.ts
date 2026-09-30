@@ -42,6 +42,38 @@ type JoinSearchParams = {
 }
 
 /**
+ * How long the join page waits for its venue and card before it shows the
+ * retry state. A healthy read answers in milliseconds from the data cache or
+ * Postgres; an unreachable database otherwise holds the page for about seven
+ * seconds while the PostgREST client retries a failed read (1 s, 2 s, 4 s)
+ * before it says anything (QA BUG-042). A read still running when this
+ * lapses carries on and fills the cache for the retry.
+ */
+export const JOIN_CONTEXT_BUDGET_MS = 3_000
+
+class JoinContextTimeoutError extends Error {
+  constructor() {
+    super("Join context read exceeded its time budget")
+    this.name = "JoinContextTimeoutError"
+  }
+}
+
+async function withinJoinContextBudget<T>(work: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const lapse = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new JoinContextTimeoutError()),
+      JOIN_CONTEXT_BUDGET_MS
+    )
+  })
+  try {
+    return await Promise.race([work, lapse])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
  * Impure loader for the join route. Resolves merchant availability, the current
  * session, an existing membership, and a pending OTP — then hands pure facts to
  * {@link deriveCustomerExperience}. The pending-OTP lookup is skipped once a
@@ -57,7 +89,9 @@ export async function loadJoinExperienceContext(
   const requestHeaders = await headers()
 
   try {
-    context = await getMerchantJoinContext(merchantSlug, searchParams.qr)
+    context = await withinJoinContextBudget(
+      getMerchantJoinContext(merchantSlug, searchParams.qr)
+    )
   } catch (error) {
     if (!(error instanceof Error)) throw error
     logger.error("customer_join_context_failed", {
@@ -65,9 +99,14 @@ export async function loadJoinExperienceContext(
         normalizeRequestId(requestHeaders.get(REQUEST_ID_HEADER)) ??
         "unavailable",
       operation: "join_context_load",
-      reason: "database_unavailable",
+      reason:
+        error instanceof JoinContextTimeoutError
+          ? "timeout"
+          : "database_unavailable",
     })
-    return { unavailable: true }
+    // Could not load is not "unavailable": nothing is known to be wrong with
+    // the venue, the card or the QR (QA BUG-042).
+    return { unavailable: true, loadFailed: true }
   }
 
   if (!context?.available) {

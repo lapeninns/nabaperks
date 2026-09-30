@@ -12,6 +12,8 @@ import {
 } from "@/lib/customer/join-observability-contract"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
+import { CustomerLoadFailed } from "./join-load-failed"
+
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
   title: "Keep your card",
@@ -48,6 +50,21 @@ export default async function MerchantJoinPage({
   ) {
     redirect(
       `/card/${context.membership.id}/stamp?qr=${encodeURIComponent(context.qrId)}`
+    )
+  }
+
+  if (context.unavailable && context.loadFailed) {
+    // The venue could not be loaded, which says nothing about the card or the
+    // QR: offer a retry of this same page (QA BUG-042).
+    const retry = new URLSearchParams()
+    if (resolvedSearchParams.qr) retry.set("qr", resolvedSearchParams.qr)
+    if (resolvedSearchParams.ref) retry.set("ref", resolvedSearchParams.ref)
+    const query = retry.toString()
+    return (
+      <CustomerLoadFailed
+        retryHref={`/m/${encodeURIComponent(merchantSlug)}/join${query ? `?${query}` : ""}`}
+        screenLabel="Join could not load"
+      />
     )
   }
 

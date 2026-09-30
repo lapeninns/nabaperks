@@ -19,22 +19,36 @@ test("Given a public QR route is scanned When source is inspected Then it resolv
   assert.match(page, /export const dynamic = "force-dynamic"/)
   assert.match(page, /const \{ qrId \} = await params/)
   assert.match(page, /resolveQrForJoin\(qrId, \{[\s\S]*scanRateLimitIdentity:/)
+  assert.match(page, /const requestHeaders = await headers\(\)/)
   assert.match(
     page,
-    /customerRateLimitIdentityFromHeaders\(\s*await headers\(\)\s*\)/
+    /customerRateLimitIdentityFromHeaders\(\s*requestHeaders\s*\)/
+  )
+  // Outcomes are decided in ./qr-entry (QA BUG-041/042): a rate limit, a
+  // resolve that could not load, an unavailable QR, a member, or the join flow.
+  assert.match(
+    page,
+    /isRateLimited: \(error\) => error instanceof RateLimitError/
   )
   assert.match(
     page,
-    /catch \(error\) \{[\s\S]*error instanceof RateLimitError[\s\S]*return <RateLimitedQr \/>/
+    /entry\.kind === "rate_limited"\) return <RateLimitedQr \/>/
   )
   assert.match(
     page,
-    /if \(!qrContext \|\| !qrContext\.available\) \{[\s\S]*return <UnavailableQr \/>/
+    /entry\.kind === "load_failed"\) \{\s*return \(\s*<CustomerLoadFailed/
   )
   assert.match(
     page,
-    /getExistingMembershipForCurrentUser\(\s*qrContext\.merchant\.id\s*\)/
+    /entry\.kind === "unavailable"\) return <UnavailableQr \/>/
   )
+  assert.match(page, /lookupMembership: getExistingMembershipForCurrentUser/)
+  const entry = readProjectFile("app", "q", "[qrId]", "qr-entry.ts")
+  assert.match(
+    entry,
+    /if \(!qrContext \|\| !qrContext\.available\) return \{ kind: "unavailable" \}/
+  )
+  assert.match(entry, /lookupMembership\(qrContext\.merchant\.id\)/)
 })
 
 test("Given a public QR route redirects customers When QR ids cross into URLs Then QR query values are encoded", () => {
