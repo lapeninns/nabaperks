@@ -168,7 +168,7 @@ test(
       )
 
       // Exactly one reward, earned (not hand-inserted), scoped to cycle 1, and
-      // NOT same-day redeemable (redeemable_from = next UK business day).
+      // NOT same-day redeemable (redeemable_from = next venue trading day).
       const rewards = await tx`
         select id, status, cycle_number, redeemable_from, reward_name
         from public.reward_events where membership_id = ${membershipId}`

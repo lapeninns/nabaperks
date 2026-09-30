@@ -116,8 +116,16 @@ test(
       const [{ pid }] = await second`select pg_backend_pid() as pid`
 
       // The second insert blocks on the uncommitted first row.
+      // Distinct raw addresses isolate the HMAC guard. Wallet linking also
+      // enforces verified raw-address uniqueness, whose index may otherwise
+      // reject the duplicate first depending on physical index ordering.
       const loser = second
-        .begin((tx) => insertEmailWallet(tx, { email, emailHmac }))
+        .begin((tx) =>
+          insertEmailWallet(tx, {
+            email: `race-other-${randomUUID()}@example.test`,
+            emailHmac,
+          })
+        )
         .then(
           () => null,
           (error) => error

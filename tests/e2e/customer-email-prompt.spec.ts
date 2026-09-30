@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
+import { expectNoAxeViolations } from "./helpers/axe"
 
 /**
  * Email sign-in Step 0 — the add-your-email prompt on the customer dashboard,
@@ -14,6 +15,36 @@ const EMAIL_HEADING = "Add your email"
 const BIRTHDAY_HEADING = "Add your birthday for a treat on us"
 
 test.describe("@customer-flow customer email prompt", () => {
+  test("email verification explains and confirms a wallet link", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(page, `${HOME}?email=pending&wallet=link-email`)
+    const prompt = page.getByTestId("email-prompt")
+    await expect(prompt).toContainText("Used this email for another wallet?")
+    await prompt.getByLabel("Email code").fill("000000")
+    await prompt.getByRole("button", { name: "Confirm email" }).click()
+    await expect(prompt).toContainText("That code was not accepted.")
+    await expect(
+      prompt.getByRole("link", { name: "View my stamps and rewards" })
+    ).toHaveCount(0)
+    await prompt.getByLabel("Email code").fill("424242")
+    await prompt.getByRole("button", { name: "Confirm email" }).click()
+    await expect(
+      prompt.getByRole("heading", { name: "Wallets linked" })
+    ).toBeVisible()
+    await expect(prompt.getByRole("status")).toContainText(
+      "Your stamps and rewards are together"
+    )
+    await expect(
+      prompt.getByRole("link", { name: "View my stamps and rewards" })
+    ).toHaveAttribute("href", "/home")
+    await expectNoAxeViolations(page, "email wallet linked")
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.screenshot({
+      path: ".omo/evidence/wallet-link-ux-email-success.png",
+      fullPage: true,
+    })
+  })
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
   })
@@ -52,7 +83,7 @@ test.describe("@customer-flow customer email prompt", () => {
 
     await expect(
       page.getByText(
-        "Add your email so you can sign in over Wi-Fi when there's no signal."
+        "Add your email so you can sign in over Wi-Fi when there's no signal. Confirm it here to open this same wallet, with your existing stamps and rewards."
       )
     ).toBeVisible()
   })

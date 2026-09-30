@@ -30,6 +30,7 @@ export const productEventNames = [
   "customer_email_verification_started",
   "customer_email_verified",
   "customer_contact_conflict",
+  "customer_wallets_linked",
   "customer_login_code_requested",
   "customer_login_code_send_failed",
   "customer_login_verified",

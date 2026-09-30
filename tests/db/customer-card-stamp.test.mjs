@@ -106,7 +106,7 @@ test(
         select count(*)::int as n from public.stamp_events
         where membership_id = ${m.membership_id}
           and event_type = 'earned'
-          and earned_business_date = public.venue_trading_date(merchant_id, now())`
+          and earned_business_date = public.venue_trading_date(stamp_events.merchant_id, now())`
       assert.equal(n, 1, "exactly one earned stamp for this UK business day")
     })
   }

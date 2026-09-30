@@ -14,6 +14,13 @@ const REAL = [
 ]
 
 const STUBS = {
+  "@/lib/customer/wallet-link": `import { state } from "fixture-state";
+    export async function linkWalletAfterContactVerification(method,contact) {
+      state.calls.push(["link",method,contact]); return state.link ?? {status:"conflict"};
+    }
+    export function walletLinkFailureMessage() {
+      return "This phone number is already used by another Nabaperks wallet. Sign in with that number, or ask the venue for help.";
+    }`,
   "fixture-state": `export const state = {
     calls: [],
     events: [],
@@ -313,6 +320,31 @@ test("Given another wallet holds the phone When the code is confirmed Then nothi
   ])
   assert.deepEqual(state.revalidated, [])
   assert.equal(state.pending, null)
+})
+
+test("Given a complementary phone wallet When its code is verified Then linking replaces the conflict and refreshes all cards", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = {
+    purpose: "attach",
+    phone: "+447700900123",
+    country: "GB",
+    customerId: "customer-1",
+  }
+  state.attach = { status: "contact_conflict" }
+  state.link = { status: "linked", customerId: "customer-2" }
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+  assert.equal(result.step, "attached")
+  assert.ok(
+    state.calls.some(
+      (call) =>
+        call[0] === "link" && call[1] === "phone" && call[2] === "+447700900123"
+    )
+  )
+  assert.deepEqual(state.revalidated, ["/home", "/reward"])
+  assert.deepEqual(state.events, [])
 })
 
 test("Given a wrong, malformed or over-limit code When it is checked Then nothing is attached", async () => {

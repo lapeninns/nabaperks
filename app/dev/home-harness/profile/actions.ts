@@ -39,6 +39,28 @@ export async function harnessProfilePhoneAction(
         },
       }
     }
+    if (state.phone === "07700900997") {
+      return {
+        step: "attached",
+        walletLinked: true,
+        message:
+          "Your wallets are linked. You can sign in with your phone or email. Your stamps and rewards are together.",
+      }
+    }
+    if (state.phone === "07700900996" || state.phone === "07700900995") {
+      const recovery =
+        state.phone === "07700900996" ? "reauthenticate" : "requires_review"
+      return {
+        step: "phone",
+        recovery,
+        errors: {
+          form:
+            recovery === "reauthenticate"
+              ? "Sign in again before linking your wallets."
+              : "We couldn't link these wallets automatically. Ask the venue for help. Your stamps and rewards are unchanged.",
+        },
+      }
+    }
     return state.phone === HELD_PHONE
       ? {
           step: "phone",

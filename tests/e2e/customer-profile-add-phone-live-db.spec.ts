@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test"
 
 import { customerEmailHmac } from "@/lib/customer/email-pii-core"
 import { customerOtpVerifyPhoneRateLimitKey } from "@/lib/customer/otp-rate-limit-core"
+import { encryptCustomerPhone } from "@/lib/customer/phone-pii-core"
 
 import type { Sql } from "./helpers/admin-live-db"
 import {
@@ -131,6 +132,74 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
       await expect(page.locator("[data-add-phone]")).toHaveCount(0)
     } finally {
       await deleteWallets(sql, [customerId])
+      await cleanupCustomerJoinRows(sql, undefined, phone)
+      await sql.end()
+    }
+  })
+
+  test("verified complementary wallets link and their stamps and existing reward survive", async ({
+    context,
+    page,
+  }, testInfo) => {
+    const sql = connectCustomerReadbackDb()
+    if (!sql) throw new Error("Local wallet linking database is required")
+    const guestId = randomUUID()
+    const holderId = randomUUID()
+    const phone = disposableUkMobile()
+    try {
+      const wallet = await seedEmailOnlyWallet(sql, guestId)
+      if (!wallet) throw new Error("Local seed merchant is required")
+      await sql`update public.customers set date_of_birth_verified_at=null,date_of_birth_verification_source=null,date_of_birth_verified_by=null where id=${guestId}::uuid`
+      await seedPhoneHolder(sql, { holderId, phone })
+      await sql`update public.customers set phone_verified_at=now(),phone_ciphertext=${encryptCustomerPhone(phone.e164)} where id=${holderId}::uuid`
+      const [source] =
+        await sql`select merchant_id,loyalty_card_id from public.reward_events where id=${wallet.rewardId}::uuid`
+      const holderMembership = randomUUID()
+      await sql`insert into public.customer_memberships(id,merchant_id,customer_id,current_stamp_count,total_stamps_earned) values(${holderMembership}::uuid,${source.merchant_id}::uuid,${holderId}::uuid,2,2)`
+      await sql`update public.customer_memberships set active_cycle_number=2,current_stamp_count=1,total_stamps_earned=9 where id=${wallet.membershipId}::uuid`
+      const [card] =
+        await sql`select location_id,stamps_required from public.loyalty_cards where id=${source.loyalty_card_id}::uuid`
+      for (const [owner, membership, cycle, day] of [
+        [holderId, holderMembership, 1, 8],
+        [holderId, holderMembership, 1, 7],
+        [guestId, wallet.membershipId, 2, 6],
+      ] as const) {
+        await sql`insert into public.stamp_events(merchant_id,customer_id,membership_id,loyalty_card_id,location_id,event_type,stamps_delta,cycle_number,earned_business_date) values(${source.merchant_id}::uuid,${owner}::uuid,${membership}::uuid,${source.loyalty_card_id}::uuid,${card.location_id}::uuid,'earned',1,${cycle},current_date-${day}::integer)`
+      }
+      await installCustomerSession(
+        context,
+        await createBrowserCustomerSession(sql, guestId)
+      )
+      await addPhoneFromProfile(page, phone)
+      await expect(
+        page.locator("[data-add-phone]").getByRole("status")
+      ).toContainText("Your wallets are linked.")
+      await page.screenshot({
+        path: testInfo.outputPath("wallet-linked.png"),
+        fullPage: true,
+      })
+      const [membership] =
+        await sql`select current_stamp_count from public.customer_memberships where id=${holderMembership}::uuid`
+      expect(membership.current_stamp_count).toBe(3 % card.stamps_required)
+      const [ledger] =
+        await sql`select count(*)::integer n from public.stamp_events where membership_id=${holderMembership}::uuid and event_type='earned'`
+      expect(ledger.n).toBe(3)
+      const [rewards] =
+        await sql`select count(*)::integer n from public.reward_events where customer_id=${holderId}::uuid`
+      expect(rewards.n).toBe(1 + Math.floor(3 / card.stamps_required))
+      const [reward] =
+        await sql`select customer_id,status from public.reward_events where id=${wallet.rewardId}::uuid`
+      expect(reward).toEqual({ customer_id: holderId, status: "unlocked" })
+      await expectRewardQrServed(page, wallet.rewardId)
+      await page.reload()
+      await expect(
+        page.getByRole("heading", { name: "Add a phone number" })
+      ).toHaveCount(0)
+      const [sessions] =
+        await sql`select count(*)::integer n from public.customer_sessions where customer_id=${holderId}::uuid and revoked_at is null`
+      expect(sessions.n).toBe(1)
+    } finally {
+      await deleteWallets(sql, [guestId, holderId])
       await cleanupCustomerJoinRows(sql, undefined, phone)
       await sql.end()
     }

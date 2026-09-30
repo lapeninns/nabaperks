@@ -15,6 +15,7 @@ import {
 } from "@/app/home/(authed)/profile/actions"
 import { MonoTag, ReceiptCard } from "@/components/brand"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
+import { WalletLinkNextStep } from "@/components/customer/wallet-link-next-step"
 import { profileInputClass } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -35,7 +36,7 @@ const SUPPORT_COPY: Record<EmailPromptReason, string> = {
   rewards:
     "A confirmed email is needed before you collect a reward. Add it now and it's ready when you are.",
   wifi_sign_in:
-    "Add your email so you can sign in over Wi-Fi when there's no signal.",
+    "Add your email so you can sign in over Wi-Fi when there's no signal. Confirm it here to open this same wallet, with your existing stamps and rewards.",
 }
 
 // A tiny external store over the localStorage dismissal flag, as in
@@ -85,12 +86,14 @@ function serverSnapshot() {
  * "Email confirmed" answer are actually seen.
  */
 export function HomeEmailPrompt({
+  action: promptAction = emailPromptAction,
   reason,
   surface = "home_prompt",
   initialEmail = null,
   codePending = false,
   fallback = null,
 }: {
+  action?: typeof emailPromptAction
   /** Why the server asks, or null when it is not asking. */
   reason: EmailPromptReason | null
   surface?: EmailPromptSurface
@@ -106,10 +109,7 @@ export function HomeEmailPrompt({
       ? { step: "code", email: initialEmail }
       : { step: "email", email: initialEmail ?? undefined }
   )
-  const [state, action, pending] = useActionState(
-    emailPromptAction,
-    initialState
-  )
+  const [state, action, pending] = useActionState(promptAction, initialState)
   // The last reason the server gave, so an engaged prompt keeps its copy after
   // the server stops asking (the compare-to-previous-render pattern).
   const [shownReason, setShownReason] = useState(reason)
@@ -185,12 +185,23 @@ function EmailPromptCard({
     >
       <MonoTag tone="cobalt">Your email</MonoTag>
       <h2 className="text-base leading-tight font-extrabold">
-        {step === "verified" ? "Email confirmed" : "Add your email"}
+        {step === "verified"
+          ? state.walletLinked
+            ? "Wallets linked"
+            : "Email confirmed"
+          : "Add your email"}
       </h2>
 
       {step === "verified" ? (
         <p role="status" className="text-sm leading-6 text-muted-foreground">
           {state.message ?? "Your email is confirmed."}
+        </p>
+      ) : null}
+      {step !== "verified" ? (
+        <p className="text-sm leading-6 text-muted-foreground">
+          Used this email for another wallet? After verification, we can bring
+          your stamps and rewards together. If we need help checking the
+          wallets, we will tell you and keep your stamps and rewards unchanged.
         </p>
       ) : null}
 
@@ -214,6 +225,10 @@ function EmailPromptCard({
           onChangeEmail={() => setEditing(true)}
         />
       ) : null}
+      <WalletLinkNextStep
+        linked={state.walletLinked}
+        recovery={state.recovery}
+      />
     </ReceiptCard>
   )
 }

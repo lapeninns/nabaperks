@@ -9,15 +9,20 @@ import {
   CustomerContactLockedError,
   markCustomerEmailVerified,
 } from "@/lib/customer/profile"
+import {
+  linkWalletAfterContactVerification,
+  walletLinkFailureMessage,
+} from "@/lib/customer/wallet-link"
 
 export type EmailCodeConfirmation =
-  | { readonly status: "verified" }
+  | { readonly status: "verified"; readonly walletLinked?: boolean }
   | { readonly status: "conflict" }
   | { readonly status: "rejected" }
   | { readonly status: "expired" }
   | { readonly status: "already_verified" }
   | { readonly status: "check_failed" }
   | { readonly status: "confirm_failed" }
+  | { readonly status: "reauthenticate" | "requires_review" }
 
 /**
  * Checks an emailed code for the signed-in customer and, when it matches,
@@ -53,6 +58,21 @@ export async function confirmCustomerEmailCode(
   }
   // The profile no longer holds this address unverified (QA BUG-032).
   if (marked.status === "expired") return marked
+
+  if (marked.status === "conflict") {
+    try {
+      const link = await linkWalletAfterContactVerification(
+        "email",
+        checked.email
+      )
+      if (link.status === "linked")
+        return { status: "verified", walletLinked: true }
+      if (link.status !== "conflict") return { status: link.status }
+    } catch (error) {
+      if (error instanceof Error) return { status: "confirm_failed" }
+      throw error
+    }
+  }
 
   const customer = await getCurrentCustomer()
   recordCustomerContactEvent({
@@ -106,6 +126,9 @@ export function emailConfirmationErrors(
       return { form: "We couldn't confirm your email. Try again." }
     case "conflict":
       return { form: customerEmailConflictMessage(env) }
+    case "reauthenticate":
+    case "requires_review":
+      return { form: walletLinkFailureMessage(confirmation.status) }
     case "verified":
       return null
   }

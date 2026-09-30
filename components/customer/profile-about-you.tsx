@@ -17,6 +17,7 @@ import {
   profileInputClass,
 } from "@/components/customer/profile-form-parts"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
+import { WalletLinkNextStep } from "@/components/customer/wallet-link-next-step"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import type { EmailPromptReason } from "@/lib/customer/experience/types"
@@ -53,7 +54,7 @@ const EMAIL_HINT: Record<EmailPromptReason, string> = {
   rewards:
     "A verified email is required before reward collection. We'll send a code to confirm it.",
   wifi_sign_in:
-    "A verified email is required before reward collection, and lets you sign in over Wi-Fi when there's no signal. We'll send a code to confirm it.",
+    "A verified email is required before reward collection, and lets you sign in over Wi-Fi when there's no signal. Confirm it here to open this same wallet with your stamps and rewards. We'll send a code to confirm it.",
 }
 
 export function CustomerProfileAboutYou({
@@ -144,12 +145,25 @@ export function CustomerProfileAboutYou({
         />
       ) : null}
 
-      {conflictAnswer ? (
-        <StatusBanner tone="warning" title="Email not confirmed">
-          {conflictAnswer}
-        </StatusBanner>
+      {freshVerifyState.message ? (
+        // A confirmation that linked two wallets (PR #410) leaves verify at
+        // once, so its answer is shown here, like the conflict below.
+        <div className="grid gap-3">
+          <p role="status" className="text-sm leading-6">
+            {freshVerifyState.message}
+          </p>
+          <WalletLinkNextStep linked={freshVerifyState.walletLinked} />
+        </div>
       ) : null}
-      {mode === "verify" ? (
+      {conflictAnswer ? (
+        <div className="grid gap-3">
+          <StatusBanner tone="warning" title="Email not confirmed">
+            {conflictAnswer}
+          </StatusBanner>
+          <WalletLinkNextStep recovery={freshVerifyState.recovery} />
+        </div>
+      ) : null}
+      {mode === "verify" && !freshVerifyState.message ? (
         <AboutYouEmailVerify
           email={profile.email}
           codeSent={codeSent}
@@ -370,6 +384,11 @@ function AboutYouEmailVerify({
       <StatusBanner title="Confirm your email" tone="neutral">
         Enter the code we sent{email ? ` to ${email}` : ""} to verify it.
       </StatusBanner>
+      <p className="text-sm leading-6 text-muted-foreground">
+        Used this email for another wallet? After verification, we can bring
+        your stamps and rewards together. If we need help checking the wallets,
+        we will tell you and keep your stamps and rewards unchanged.
+      </p>
 
       <form action={action} className="grid gap-3">
         <div className="grid gap-2">
@@ -432,6 +451,7 @@ function AboutYouEmailVerify({
       <p role="status" className="text-sm text-muted-foreground">
         {resendState.errors?.form ?? resendState.message}
       </p>
+      <WalletLinkNextStep recovery={state.recovery} />
     </div>
   )
 }

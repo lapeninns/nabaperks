@@ -14,6 +14,7 @@ async function loadActions() {
       saved: [], savedSurfaces: [], sends: [], events: [], revalidated: [],
       sendFailure: null, check: { status: "approved", email: "guest@example.test" },
       mark: { status: "verified" }, alreadyVerified: false,
+      link: { status: "conflict" }, links: [],
     };`,
     "server-only": "",
     "next/cache":
@@ -38,6 +39,8 @@ async function loadActions() {
       }`,
     "@/lib/customer/session":
       "export function clearPendingEmailVerification() {}",
+    "@/lib/customer/wallet-link":
+      'import { state } from "fixture-state"; export async function linkWalletAfterContactVerification(method,contact) { state.links.push({method,contact}); return state.link } export function walletLinkFailureMessage() { return "Sign in again to link your wallets." }',
     "@/lib/security/rate-limit": "export class RateLimitError extends Error {}",
     "@/lib/supabase/server":
       "export function createSupabaseServiceRoleClient() {}",
@@ -227,6 +230,57 @@ test("Given a code is pending for one address When a different address cannot be
   assert.equal(forged.step, "email")
   assert.deepEqual(state.sends, [])
 })
+
+test("Given proven complementary wallets When the email code is confirmed Then the prompt succeeds after linking", async () => {
+  const { state, emailPromptAction } = await loadActions()
+  state.mark = { status: "conflict" }
+  state.link = { status: "linked", customerId: "canonical" }
+  const next = await emailPromptAction(
+    { step: "code", email: "guest@example.test" },
+    form({ intent: "verify", otp: "123456" })
+  )
+  assert.equal(next.step, "verified")
+  assert.equal(next.walletLinked, true)
+  assert.match(next.message, /Your wallets are linked/)
+  assert.deepEqual(state.links, [
+    { method: "email", contact: "guest@example.test" },
+  ])
+  assert.deepEqual(state.events, [])
+})
+
+test("Given linked wallets When profile email verification completes Then its confirmation names the merge and refreshes loyalty", async () => {
+  const { state, verifyHomeProfileEmailAction } = await loadActions()
+  state.mark = { status: "conflict" }
+  state.link = { status: "linked", customerId: "canonical" }
+  const next = await verifyHomeProfileEmailAction({}, form({ otp: "123456" }))
+  assert.equal(next.walletLinked, true)
+  assert.match(next.message, /stamps and rewards are together/)
+  assert.deepEqual(state.revalidated, ["/home/profile", "/home", "/reward"])
+})
+
+for (const recovery of ["reauthenticate", "requires_review"]) {
+  test(`Given linking needs ${recovery} When an email code is confirmed Then both surfaces offer recovery without claiming success`, async () => {
+    const { state, emailPromptAction, verifyHomeProfileEmailAction } =
+      await loadActions()
+    state.mark = { status: "conflict" }
+    state.link = { status: recovery }
+    const prompt = await emailPromptAction(
+      { step: "code", email: "guest@example.test" },
+      form({ intent: "verify", otp: "123456" })
+    )
+    const profile = await verifyHomeProfileEmailAction(
+      {},
+      form({ otp: "123456" })
+    )
+    assert.equal(prompt.step, "email")
+    for (const result of [prompt, profile]) {
+      assert.equal(result.recovery, recovery)
+      assert.equal(result.walletLinked, undefined)
+      assert.ok(result.errors.form)
+    }
+    assert.deepEqual(state.revalidated, [])
+  })
+}
 
 test("Given another wallet holds the email When the prompt code is confirmed Then the conflict copy shows and the conflict is tracked", async () => {
   const { state, emailPromptAction } = await loadActions()
