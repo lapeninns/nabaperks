@@ -75,6 +75,12 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   failOnFlakyTests: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
+  // Playwright's default ("missing") writes the actual image as a new
+  // baseline when one is absent. The test still fails, but the written file can
+  // then be blessed by a later run or copy. Verification must only compare, so
+  // CI never writes; reviewed rebaselines pass --update-snapshots explicitly,
+  // which overrides this setting.
+  updateSnapshots: process.env.CI ? "none" : "missing",
   workers: localWorkers,
   expect: {
     timeout: 15_000,

@@ -111,8 +111,11 @@ Before handoff, follow the existing
   unit tests.
 - Run `pnpm quality:check` for configuration, dependencies, documentation,
   flags or maintainability changes. It includes `quality:fast`, dead code,
-  duplication, issue-linked debt, generated API docs and agent-guide checks;
-  a successful full run covers the fast gate too.
+  duplication, issue-linked debt, generated API docs, agent-guide, design-token
+  and banned-claim checks; a successful full run covers the fast gate too.
+  Hosted CI additionally runs the production env profile, coverage thresholds,
+  print-kit PDFs, bundle and JSON-LD checks, and a full dependency audit on
+  main; local runs do not reproduce hosted authorisation.
 - Run `pnpm build` for build/runtime changes and before release. Database or
   browser changes also need the corresponding service-backed proof below.
 - For Markdown edits, check changed files with the installed Prettier binary,

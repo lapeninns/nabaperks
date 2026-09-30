@@ -94,7 +94,6 @@ test("Given CI runs on branches When shared workloads are inspected Then lint, t
     commands.fast.map((command) => command.slice(0, 2)),
     [
       ["pnpm", "env:check:production"],
-      ["pnpm", "security:audit"],
       ["pnpm", "lint"],
       ["pnpm", "typecheck"],
       ["pnpm", "test:contracts"],

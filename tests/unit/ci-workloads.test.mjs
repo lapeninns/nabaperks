@@ -214,7 +214,6 @@ test("Playwright listing preserves identities without inventing runtime proof", 
 test("shared command manifest retains each hosted safety command in order", () => {
   assert.deepEqual(workloads.commands.fast, [
     ["pnpm", "env:check:production"],
-    ["pnpm", "security:audit", "--ignore-registry-errors"],
     ["pnpm", "lint"],
     ["pnpm", "typecheck"],
     ["pnpm", "test:contracts"],
