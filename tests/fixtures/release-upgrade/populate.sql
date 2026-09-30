@@ -23,8 +23,11 @@ insert into public.merchant_locations(id,merchant_id,name) values
 ('ee300000-0000-4000-8000-000000000001','ee100000-0000-4000-8000-000000000001','Synthetic fixture location');
 insert into public.loyalty_cards(id,merchant_id,location_id,card_name,stamps_required,reward_name,reward_terms) values
 ('ee400000-0000-4000-8000-000000000001','ee100000-0000-4000-8000-000000000001','ee300000-0000-4000-8000-000000000001','Synthetic fixture card',3,'Synthetic fixture reward','Synthetic upgrade only');
-insert into public.customers(id,auth_user_id,email) values
-('ee500000-0000-4000-8000-000000000001','ee000000-0000-4000-8000-000000000002','upgrade-customer@example.test');
+-- Both deployed and candidate schemas support verified phones. The real
+-- reward probe must remain eligible when the candidate activates that gate;
+-- this reserved synthetic contact never enters a delivery provider.
+insert into public.customers(id,auth_user_id,email,phone_hmac,phone_last4,phone_verified_at) values
+('ee500000-0000-4000-8000-000000000001','ee000000-0000-4000-8000-000000000002','upgrade-customer@example.test',repeat('f',64),'0000','2026-08-01T00:00:00Z');
 insert into public.customer_memberships(id,merchant_id,customer_id,current_stamp_count,total_stamps_earned) values
 ('ee600000-0000-4000-8000-000000000001','ee100000-0000-4000-8000-000000000001','ee500000-0000-4000-8000-000000000001',3,3);
 insert into public.stamp_events(id,merchant_id,customer_id,membership_id,loyalty_card_id,location_id,event_type,stamps_delta,earned_business_date,cycle_number,created_at,metadata) values
