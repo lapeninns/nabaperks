@@ -333,6 +333,11 @@ function AboutYouEmailVerify({
         {state.errors?.otp ? (
           <p className="text-sm text-destructive">{state.errors.otp}</p>
         ) : null}
+        {state.errors?.form ? (
+          <StatusBanner tone="warning" title="Email not confirmed">
+            {state.errors.form}
+          </StatusBanner>
+        ) : null}
         <form action={resendAction}>
           <Button
             type="submit"
