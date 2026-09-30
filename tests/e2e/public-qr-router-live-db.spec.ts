@@ -167,13 +167,12 @@ async function expectUnavailableQr(page: Page, qrId: string): Promise<void> {
   expect(response?.status()).toBe(200)
   await expect(
     page.getByRole("heading", {
-      name: "This loyalty card is unavailable",
+      name: "This QR isn't working",
     })
   ).toBeVisible()
-  await expect(page.getByRole("link", { name: "Scan a QR" })).toHaveAttribute(
-    "href",
-    "/scan"
-  )
+  await expect(
+    page.getByRole("link", { name: "Scan a venue QR" })
+  ).toHaveAttribute("href", "/scan")
   await expect(
     page.getByRole("link", { name: "Open my cards" })
   ).toHaveAttribute("href", "/home")
@@ -272,7 +271,7 @@ async function reactivatedQrRound(
       )
     })
     await expect(
-      page.getByRole("heading", { name: "Stamp it here" })
+      page.getByRole("heading", { level: 1, name: "Today's stamp" })
     ).toBeVisible()
   } finally {
     await cleanupPublicQrRateLimitBuckets(sql, bucketKeys)

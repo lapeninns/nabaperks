@@ -41,7 +41,9 @@ test.describe("session revocation", () => {
       await installCustomerSession(context, session)
       await dismissPwaInstall(page)
       await page.goto("/home", { waitUntil: "commit" })
-      await expect(page.getByRole("heading", { name: "Your cards" })).toBeVisible()
+      await expect(
+        page.getByRole("heading", { name: "Your cards" })
+      ).toBeVisible()
 
       await sql`
         update public.customer_sessions

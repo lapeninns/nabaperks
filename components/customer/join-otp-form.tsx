@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState } from "react"
+import { useActionState, useEffect, useRef } from "react"
 
 import {
   requestCustomerIdentityAction,
@@ -14,11 +14,20 @@ import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { useEmailFallbackReady } from "@/hooks/use-email-fallback-ready"
-import { PHONE_CODE_EMAIL_FALLBACK_LABEL } from "@/lib/customer/experience/copy"
+import { useOtpRetryCountdown } from "@/hooks/use-otp-retry-countdown"
+import {
+  PHONE_CODE_EMAIL_FALLBACK_LABEL,
+  PHONE_CODE_EMAIL_FALLBACK_PENDING,
+} from "@/lib/customer/experience/copy"
 import {
   OTP_TEXT_FALLBACK_LABEL,
   type OtpChannel,
 } from "@/lib/customer/otp-channel-core"
+import {
+  phoneCodeResendAt,
+  resendWaiting,
+  sendNewCodeLabel,
+} from "@/lib/customer/otp-resend"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const identityInitialState: CustomerIdentityState = {}
@@ -27,8 +36,7 @@ export type CustomerOtpFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
-  contactLast4: string
-  /** Channel that carried the code — the row says so and offers the other. */
+  /** Channel that carried the code: the step says so and offers the other. */
   channel?: OtpChannel
   /**
    * Seconds, by the server's clock, before email may be offered instead,
@@ -49,7 +57,6 @@ export function CustomerOtpForm({
   merchantSlug,
   qrId,
   referralCode,
-  contactLast4,
   channel = "sms",
   emailFallbackInSeconds,
   phoneCodeSentAt,
@@ -65,10 +72,10 @@ export function CustomerOtpForm({
   )
   const state = verifyState
   // A failed or rate-limited resend returns errors; a successful one returns
-  // a confirmation message. Both surface inside the aria-live card below so
-  // the customer at the counter hears and sees the outcome (CUS-P1-02). While
-  // a fresh resend is in flight the previous outcome clears, so settling
-  // re-announces through the live region.
+  // a confirmation message. Both surface in one status line that stays
+  // mounted, so the customer at the counter hears and sees the outcome
+  // (CUS-P1-02). While a fresh resend is in flight the previous outcome
+  // clears, so settling re-announces.
   const resendError = requestPending
     ? undefined
     : (requestState.errors?.form ?? requestState.errors?.contact)
@@ -82,6 +89,18 @@ export function CustomerOtpForm({
   const freshCodeError =
     state.errors?.contact ?? requestState.errors?.contact ?? undefined
   const needsFreshCode = Boolean(freshCodeError)
+  // The expired-code answer replaces the focused form: focus moves to the one
+  // way on, so it is not lost to the page.
+  const freshCodeLinkRef = useRef<HTMLAnchorElement>(null)
+  useEffect(() => {
+    if (needsFreshCode) freshCodeLinkRef.current?.focus()
+  }, [needsFreshCode])
+  // A new code is offered after a short wait from the latest send, counted
+  // on screen as on the email step. The server still admits each send.
+  const resendCountdown = useOtpRetryCountdown(
+    phoneCodeResendAt(requestState.fields?.phoneCodeSentAt ?? phoneCodeSentAt)
+  )
+  const resendStatus = resendError ?? resendMessage
   // A text is offered only when the code went out on WhatsApp; if it already
   // went by text, that is because WhatsApp refused the number.
   const offersText = channel === "whatsapp"
@@ -98,7 +117,9 @@ export function CustomerOtpForm({
         <>
           <StatusBanner tone="error" title={freshCodeError} />
           <Button asChild size="lg" className="w-full">
-            <Link href={phoneStepHref}>Request a new code</Link>
+            <Link ref={freshCodeLinkRef} href={phoneStepHref}>
+              Send a new code
+            </Link>
           </Button>
         </>
       ) : (
@@ -143,79 +164,71 @@ export function CustomerOtpForm({
               <StatusBanner tone="error" title={state.errors.form} />
             ) : null}
             <SubmitButton size="lg" className="w-full" pendingLabel="Checking…">
-              Check code
+              Continue
             </SubmitButton>
           </form>
 
-          <form action={requestAction} className="grid gap-3">
-            <input type="hidden" name="merchantSlug" value={merchantSlug} />
-            <input type="hidden" name="qrId" value={qrId ?? ""} />
-            <input type="hidden" name="ref" value={referralCode ?? ""} />
-            {/* Marks this submission as a resend so the action answers in place
-                (returned state) instead of redirecting the phone step forward. */}
-            <input type="hidden" name="resend" value="1" />
-            <input type="hidden" name="channel" value={channel} />
-            {/* One compact row instead of a second card: where the code went,
-                the resend, and the way out, all inside one live region so a
-                resend outcome is announced in place (CUS-P1-02). */}
-            <div
-              className="grid gap-1.5 rounded-lg border-2 border-dashed border-border px-3 py-2.5 text-left"
-              aria-live="polite"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Sent to </span>
-                  <span className="font-bold tabular-nums">
-                    Phone ending {contactLast4}
-                  </span>
-                </p>
-                <SubmitButton
-                  variant="link"
-                  size="xs"
-                  className="-mr-2 shrink-0 text-xs"
-                  pendingLabel="Sending…"
-                >
-                  Resend code
-                </SubmitButton>
-              </div>
-              {resendError ? (
-                <p className="text-sm leading-5 text-destructive">
-                  {resendError}
-                </p>
-              ) : null}
-              {resendMessage ? (
-                <p className="text-sm leading-5 font-semibold text-foreground">
-                  {resendMessage}
-                </p>
-              ) : null}
-              <Link
-                href={phoneStepHref}
-                className="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
-              >
-                Wrong number? Use a different one
-              </Link>
-            </div>
-          </form>
-
-          {/* A text, one tap away: a resend by SMS through the same admission
-              and the same neutral reply. */}
-          {offersText ? (
-            <form action={requestAction} className="grid justify-items-center">
+          {/* The ways out, quiet and in one order: a new code, the other
+              channel, a different number, then (only once the server allows
+              it) email. Only the status line below is live, so the ticking
+              countdown and pending labels are never read out (CUS-P1-02). */}
+          <div className="grid gap-1 text-left">
+            <form action={requestAction} className="grid">
               <input type="hidden" name="merchantSlug" value={merchantSlug} />
               <input type="hidden" name="qrId" value={qrId ?? ""} />
               <input type="hidden" name="ref" value={referralCode ?? ""} />
+              {/* Marks this submission as a resend so the action answers in
+                  place (returned state) instead of redirecting forward. */}
               <input type="hidden" name="resend" value="1" />
-              <input type="hidden" name="channel" value="sms" />
+              <input type="hidden" name="channel" value={channel} />
               <SubmitButton
                 variant="link"
                 size="xs"
-                className="text-xs"
+                className="min-h-11 w-fit justify-self-start px-0 text-xs tabular-nums"
                 pendingLabel="Sending…"
+                disabled={resendWaiting(resendCountdown)}
               >
-                {OTP_TEXT_FALLBACK_LABEL}
+                {sendNewCodeLabel(resendCountdown)}
               </SubmitButton>
             </form>
-          ) : null}
+            <p
+              role="status"
+              aria-live="polite"
+              className={
+                resendError
+                  ? "text-sm leading-5 text-destructive"
+                  : "text-sm leading-5 font-semibold text-foreground"
+              }
+            >
+              {resendStatus ?? ""}
+            </p>
+            {/* A text, one tap away: a resend by SMS through the same
+                admission and the same neutral reply. */}
+            {offersText ? (
+              <form action={requestAction} className="grid">
+                <input type="hidden" name="merchantSlug" value={merchantSlug} />
+                <input type="hidden" name="qrId" value={qrId ?? ""} />
+                <input type="hidden" name="ref" value={referralCode ?? ""} />
+                <input type="hidden" name="resend" value="1" />
+                <input type="hidden" name="channel" value="sms" />
+                <SubmitButton
+                  variant="link"
+                  size="xs"
+                  className="min-h-11 w-fit justify-self-start px-0 text-xs"
+                  pendingLabel="Sending…"
+                  disabled={resendWaiting(resendCountdown)}
+                >
+                  {OTP_TEXT_FALLBACK_LABEL}
+                </SubmitButton>
+              </form>
+            ) : null}
+            <Link
+              href={phoneStepHref}
+              className="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
+            >
+              Wrong number? Change it
+            </Link>
+          </div>
 
           {/* No wrapper at all while email sign-in is off. */}
           {emailStepHref && emailFallbackInSeconds !== undefined ? (
@@ -254,9 +267,9 @@ function emailFallbackAfterResend(
 }
 
 /**
- * Email, offered only once the code has had time to arrive: a secondary
- * action under the phone's own recovery options, never in place of them. The
- * polite live region announces it when it appears.
+ * Email, offered only once the server allows it: a quiet link under the
+ * phone's own recovery options, never in place of them. Before that, one calm
+ * line and no countdown. The polite live region announces the link.
  */
 function EmailFallback({
   inSeconds,
@@ -267,17 +280,19 @@ function EmailFallback({
 }) {
   const ready = useEmailFallbackReady(inSeconds)
   return (
-    <div aria-live="polite" className="grid">
+    <div aria-live="polite" className="grid text-left">
       {ready ? (
-        <Button
-          asChild
-          variant="outline"
-          size="lg"
-          className="h-auto min-h-12 w-full py-3 whitespace-normal"
+        <Link
+          href={emailStepHref}
+          className="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
         >
-          <Link href={emailStepHref}>{PHONE_CODE_EMAIL_FALLBACK_LABEL}</Link>
-        </Button>
-      ) : null}
+          {PHONE_CODE_EMAIL_FALLBACK_LABEL}
+        </Link>
+      ) : (
+        <p className="text-xs leading-5 text-muted-foreground">
+          {PHONE_CODE_EMAIL_FALLBACK_PENDING}
+        </p>
+      )}
     </div>
   )
 }

@@ -6,8 +6,10 @@ import {
   narrowRewardSource,
   type RewardSource,
 } from "@/lib/customer/issued-reward-display"
+import { isAdultDateOfBirth } from "@/lib/customer/profile-fields"
 import { getRewardCollectionState } from "@/lib/customer/reward"
 import type { RewardCollectionState } from "@/lib/customer/reward-collection-state"
+import { groupRewardsForList } from "@/lib/customer/reward-list-groups"
 
 export type CustomerRewardItem = {
   rewardId: string
@@ -27,7 +29,11 @@ export type CustomerRewardItem = {
 }
 
 export type CustomerRewards = {
+  /** Ready to collect now. */
   redeemable: CustomerRewardItem[]
+  /** Unlocked, but a detail must be added on the reward page first. */
+  needsSetup: CustomerRewardItem[]
+  /** Waiting for its opening time, or held by the venue. */
   upcoming: CustomerRewardItem[]
   redeemed: CustomerRewardItem[]
   expired: CustomerRewardItem[]
@@ -52,7 +58,13 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
   const customer = await getCurrentCustomer()
 
   if (!customer) {
-    return { redeemable: [], upcoming: [], redeemed: [], expired: [] }
+    return {
+      redeemable: [],
+      needsSetup: [],
+      upcoming: [],
+      redeemed: [],
+      expired: [],
+    }
   }
 
   const supabase = createSupabaseServiceRoleClient()
@@ -73,15 +85,10 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
   const collections = await Promise.all(
     rows.map((row) => getRewardCollectionState(supabase, row.id))
   )
-  const redeemable: CustomerRewardItem[] = []
-  const upcoming: CustomerRewardItem[] = []
-  const redeemed: CustomerRewardItem[] = []
-  const expired: CustomerRewardItem[] = []
-
-  for (const [index, row] of rows.entries()) {
+  const items = rows.map((row, index): CustomerRewardItem => {
     const merchant = firstOf(row.merchants)
     const collection = collections[index]
-    const item: CustomerRewardItem = {
+    return {
       rewardId: row.id,
       membershipId: row.membership_id,
       businessName: merchant?.business_name ?? "Unknown venue",
@@ -97,20 +104,11 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
       redeemedAt: row.redeemed_at,
       createdAt: row.created_at,
     }
-
-    if (collection.state === "redeemed") {
-      redeemed.push(item)
-    } else if (
-      collection.state === "expired" ||
-      collection.state === "cancelled"
-    ) {
-      expired.push(item)
-    } else if (collection.state === "ready") {
-      redeemable.push(item)
-    } else {
-      upcoming.push(item)
-    }
-  }
+  })
+  const { redeemable, needsSetup, upcoming, redeemed, expired } =
+    groupRewardsForList(items, {
+      statedDateOfBirthIsAdult: isAdultDateOfBirth(customer.dateOfBirth),
+    })
 
   redeemed.sort((a, b) =>
     (b.redeemedAt ?? b.createdAt).localeCompare(a.redeemedAt ?? a.createdAt)
@@ -121,5 +119,5 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
     )
   )
 
-  return { redeemable, upcoming, redeemed, expired }
+  return { redeemable, needsSetup, upcoming, redeemed, expired }
 }

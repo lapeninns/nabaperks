@@ -41,14 +41,29 @@ test("Given a QR join first-stamp failure When the recovery migration is inspect
     "20260713100000_customer_join_ledger_recovery.sql"
   )
 
-  assert.match(migration, /create table if not exists public\.customer_join_stamp_recoveries/)
-  assert.match(migration, /reason in \('invalid_qr', 'billing_unavailable', 'reward_pool_unavailable', 'transient'\)/)
+  assert.match(
+    migration,
+    /create table if not exists public\.customer_join_stamp_recoveries/
+  )
+  assert.match(
+    migration,
+    /reason in \('invalid_qr', 'billing_unavailable', 'reward_pool_unavailable', 'transient'\)/
+  )
   assert.match(migration, /resolution in \('rescan', 'retry', 'venue_action'\)/)
   assert.match(migration, /retry_until timestamptz/)
-  assert.match(migration, /create or replace function public\.retry_customer_join_first_stamp/)
+  assert.match(
+    migration,
+    /create or replace function public\.retry_customer_join_first_stamp/
+  )
   assert.match(migration, /for update/)
-  assert.match(migration, /grant execute[\s\S]*retry_customer_join_first_stamp[\s\S]*to service_role/i)
-  assert.doesNotMatch(migration, /grant execute[\s\S]*retry_customer_join_first_stamp[\s\S]*to authenticated/i)
+  assert.match(
+    migration,
+    /grant execute[\s\S]*retry_customer_join_first_stamp[\s\S]*to service_role/i
+  )
+  assert.doesNotMatch(
+    migration,
+    /grant execute[\s\S]*retry_customer_join_first_stamp[\s\S]*to authenticated/i
+  )
 })
 
 test("Given a customer reloads a card When source wiring is inspected Then recovery comes from the database rather than a query flag", () => {
@@ -72,11 +87,18 @@ test("Given durable recovery reaches the card When presentation source is inspec
   const action = read("app", "card", "[membershipId]", "actions.ts")
 
   assert.match(card, /exp\.firstStampRecovery \? \(/)
-  assert.match(panel, /case "retry"[\s\S]*Try my first stamp again/)
-  assert.match(panel, /case "rescan"[\s\S]*Scan the venue QR again/)
-  assert.match(panel, /case "venue_action"[\s\S]*Ask the team/)
+  assert.match(
+    panel,
+    /case "retry"[\s\S]*Your card is saved\.[\s\S]*Your first stamp didn&apos;t go through\.[\s\S]*Try again/
+  )
+  assert.match(panel, /case "rescan"[\s\S]*Scan the QR/)
+  assert.match(panel, /case "venue_action"[\s\S]*Ask a team member/)
+  assert.doesNotMatch(panel, /calm retry|Try my first stamp again/)
   assert.doesNotMatch(panel, /firststamp=/)
   assert.match(action, /retryJoinFirstStampRecovery/)
-  assert.match(action, /merchantActivitySummaryCacheTag\(recovery\.merchantId\)/)
+  assert.match(
+    action,
+    /merchantActivitySummaryCacheTag\(recovery\.merchantId\)/
+  )
   assert.match(action, /outcome === "issued" \|\| outcome === "already_issued"/)
 })

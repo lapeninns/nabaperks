@@ -68,7 +68,9 @@ test.describe("@customer-flow reward gate email code state (live database)", () 
 
       await page.goto(`/reward/${fixture.rewardEventId}`)
       await expect(
-        page.getByText(`${email} is not confirmed yet.`, { exact: false })
+        page.getByText(`We'll send a code to ${email} to confirm it.`, {
+          exact: true,
+        })
       ).toBeVisible()
       const send = page.getByRole("button", { name: "Send me a code" })
       await expect(send).toBeVisible()

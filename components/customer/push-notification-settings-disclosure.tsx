@@ -14,16 +14,32 @@ const DeferredPushNotificationSettings = dynamic<PushNotificationSettingsProps>(
   { loading: PushSettingsFallback }
 )
 
-export function PushNotificationSettingsDisclosure() {
+/**
+ * Notifications on this browser, loaded only when opened. `embedded` sits
+ * inside "Messages from venues" without a card of its own.
+ */
+export function PushNotificationSettingsDisclosure({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   const [open, setOpen] = useState(false)
 
   return (
     <details
-      className="surface-card p-5"
+      className={
+        embedded
+          ? "border-t-2 border-dashed border-border pt-4"
+          : "surface-card p-5"
+      }
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary className="focus-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
-        <SectionHeader eyebrow="Push" title="Browser notifications" />
+        {embedded ? (
+          <h3 className="eyebrow">Notifications on this device</h3>
+        ) : (
+          <SectionHeader eyebrow="Notifications" title="On this device" />
+        )}
         <IconRoundel
           size="sm"
           className="bg-transparent font-mono text-sm font-black"

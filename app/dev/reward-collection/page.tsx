@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation"
 
 import { CustomerCardExperience } from "@/components/customer/customer-card-experience"
+import { ProfileContactNotice } from "@/components/customer/profile-contact-notice"
 import { renderQrCodePng } from "@/lib/qr/assets"
 import type {
   CustomerExperience,
   ProfileGate,
 } from "@/lib/customer/experience/types"
+import { isContactNotice } from "@/lib/customer/previous-stamps"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -57,8 +59,12 @@ const LONG_MERCHANT = "The extraordinarily long neighbourhood venue name"
 
 /**
  * Collection-stage fixtures, one per gate state the customer layer derives.
- * `details` has nothing saved, `email` has an address awaiting its code,
- * `id-check` is complete but unverified in person, `ready` is fully cleared.
+ * `details` has nothing saved (joined by phone), `email-address` has details
+ * but no address, `email` has an address awaiting its code, `phone` joined by
+ * email and still needs the mobile number, `email-first` joined by email with
+ * nothing else saved (details then mobile number, 2 steps), `nothing` has no
+ * confirmed contact (3 steps), `id-check` is complete but unverified in
+ * person, `ready` is fully cleared.
  */
 const GATES: Record<string, ProfileGate> = {
   phone: {
@@ -71,10 +77,31 @@ const GATES: Record<string, ProfileGate> = {
     email: "alex@example.test",
     emailLocked: true,
   },
+  "email-first": {
+    complete: false,
+    dateOfBirthVerified: false,
+    needsEmailVerification: false,
+    needsPhoneVerification: true,
+    fullName: null,
+    dateOfBirth: null,
+    email: "alex@example.test",
+    emailLocked: true,
+  },
+  nothing: {
+    complete: false,
+    dateOfBirthVerified: false,
+    needsEmailVerification: false,
+    needsPhoneVerification: true,
+    fullName: null,
+    dateOfBirth: null,
+    email: null,
+    emailLocked: false,
+  },
   details: {
     complete: false,
     dateOfBirthVerified: false,
     needsEmailVerification: false,
+    needsPhoneVerification: false,
     fullName: null,
     dateOfBirth: null,
     email: null,
@@ -84,6 +111,7 @@ const GATES: Record<string, ProfileGate> = {
     complete: false,
     dateOfBirthVerified: false,
     needsEmailVerification: false,
+    needsPhoneVerification: false,
     fullName: null,
     dateOfBirth: null,
     email: "alex@example.test",
@@ -93,15 +121,27 @@ const GATES: Record<string, ProfileGate> = {
     complete: false,
     dateOfBirthVerified: false,
     needsEmailVerification: true,
+    needsPhoneVerification: false,
     fullName: null,
     dateOfBirth: null,
     email: "alex@example.test",
+    emailLocked: false,
+  },
+  "email-address": {
+    complete: false,
+    dateOfBirthVerified: false,
+    needsEmailVerification: false,
+    needsPhoneVerification: false,
+    fullName: "Alex Regular",
+    dateOfBirth: "1990-01-01",
+    email: null,
     emailLocked: false,
   },
   email: {
     complete: false,
     dateOfBirthVerified: false,
     needsEmailVerification: true,
+    needsPhoneVerification: false,
     fullName: "Alex Regular",
     dateOfBirth: "1990-01-01",
     email: "alex@example.test",
@@ -111,6 +151,7 @@ const GATES: Record<string, ProfileGate> = {
     complete: true,
     dateOfBirthVerified: false,
     needsEmailVerification: false,
+    needsPhoneVerification: false,
     fullName: "Alex Regular",
     dateOfBirth: "1990-01-01",
     email: "alex@example.test",
@@ -120,6 +161,7 @@ const GATES: Record<string, ProfileGate> = {
     complete: true,
     dateOfBirthVerified: true,
     needsEmailVerification: false,
+    needsPhoneVerification: false,
     fullName: "Alex Regular",
     dateOfBirth: "1990-01-01",
     email: "alex@example.test",
@@ -136,12 +178,17 @@ const GATES: Record<string, ProfileGate> = {
  * viewport. It sits outside the home harness because that layout adds a second
  * wallet shell, which this screen does not have in production.
  *
- * It covers the collection stages (details, email code, photo-ID check, ready
- * code) and the waiting reward's optional early preparation step.
+ * It covers the collection stages (details, email address and code, mobile
+ * number, photo-ID check, ready code), the waiting reward's optional early
+ * preparation step, the collected proof and the unavailable reward.
  *
- * `?state=` selects the gate, `?waiting=1` renders the not-yet-open reward and
- * `?prepare=1` its early preparation step, and `?long=1` swaps in overflow
- * fixtures for the venue and reward names.
+ * `?state=` selects the gate (or `collected` / `expired`), `?waiting=1`
+ * renders the not-yet-open reward and `?prepare=1` its early preparation step,
+ * `?long=1` swaps in overflow fixtures for the venue and reward names, and
+ * `?notice=phone-added|stamps-together` is a fixture for the confirmation the
+ * phone step sends back (on /reward only from the server-set one-time cookie,
+ * never the URL), shown on a state past the phone step, such as `ready`, as
+ * the notice only shows when the gate's confirmed contacts back it.
  */
 export default async function RewardCollectionHarnessPage({
   searchParams,
@@ -151,6 +198,7 @@ export default async function RewardCollectionHarnessPage({
     waiting?: string
     prepare?: string
     long?: string
+    notice?: string
   }>
 }) {
   if (process.env.NODE_ENV === "production") {
@@ -164,23 +212,36 @@ export default async function RewardCollectionHarnessPage({
   const merchantName = long ? LONG_MERCHANT : MERCHANT
 
   const experience: CustomerExperience =
-    params.waiting === "1"
+    params.state === "collected"
       ? {
-          kind: "reward_waiting",
-          reward,
+          kind: "redeemed_proof",
+          reward: { ...reward, redeemedAt: "2026-09-14T11:05:00Z" },
           merchantName,
-          fromCard: true,
-          profileGate,
-          preparing: params.prepare === "1",
+          justRedeemed: false,
         }
-      : {
-          kind: "reward_ready",
-          reward: { ...reward, redeemableFrom: null },
-          merchantName,
-          location: { requireGeofence: false, geofenceRadiusMeters: 150 },
-          fromCard: true,
-          profileGate,
-        }
+      : params.state === "expired"
+        ? {
+            kind: "unavailable",
+            reason: "This reward has expired.",
+            subject: "reward",
+          }
+        : params.waiting === "1"
+          ? {
+              kind: "reward_waiting",
+              reward,
+              merchantName,
+              fromCard: true,
+              profileGate,
+              preparing: params.prepare === "1",
+            }
+          : {
+              kind: "reward_ready",
+              reward: { ...reward, redeemableFrom: null },
+              merchantName,
+              location: { requireGeofence: false, geofenceRadiusMeters: 150 },
+              fromCard: true,
+              profileGate,
+            }
 
   return (
     <CustomerCardExperience
@@ -188,6 +249,17 @@ export default async function RewardCollectionHarnessPage({
       offerPasses={[]}
       offerClaimNotice={null}
       qrSrc={await fixtureQrSrc()}
+      notice={
+        <ProfileContactNotice
+          notice={isContactNotice(params.notice) ? params.notice : null}
+          // As on /reward: only what this fixture's gate has confirmed backs
+          // a notice, so `phone-added` shows once the phone step is done.
+          confirmed={{
+            phone: profileGate.needsPhoneVerification !== true,
+            email: profileGate.emailLocked,
+          }}
+        />
+      }
     />
   )
 }

@@ -17,9 +17,10 @@ import { dismissPwaInstall } from "./helpers/harness"
  * DB-free e2e CI job leaves it skipped.
  */
 
-// The same answer whether or not the number holds a wallet (#332 copy).
+// The same answer whether or not the number holds a wallet: the code step,
+// naming the real channel and the masked number (designer brief J3/L2).
 const GENERIC_REQUEST_MESSAGE =
-  /If a code arrives for that number, enter it here\. Otherwise scan a venue QR to join first\./i
+  /^Sent (by (WhatsApp|text) )?to 07•••• ••\d{3}\.$/
 const DEV_OTP = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const WRONG_OTP = DEV_OTP === "000000" ? "111111" : "000000"
 const SESSION_COOKIE = "nabaperks_customer_session"
@@ -45,15 +46,18 @@ export function describeCustomerLoginAntiEnumeration() {
         "customer-flow dev server is not serving /home/login"
       )
       await expect(
-        page.getByRole("heading", { name: "Welcome back" })
+        page.getByRole("heading", { name: "Open my cards" })
       ).toBeVisible()
       await openPhoneLoginStep(page)
 
       // A fresh number holds no wallet; the helper refuses unless nothing
       // could text it (QA BUG-052).
       await page.locator("#contact").fill(disposableUkMobile().national)
-      await page.getByRole("button", { name: "Send code" }).click()
+      await page.getByRole("button", { name: "Send my code" }).click()
 
+      await expect(
+        page.getByRole("heading", { name: "Enter your code" })
+      ).toBeVisible()
       await expect(page.getByText(GENERIC_REQUEST_MESSAGE)).toBeVisible()
       await expect(page.locator("#otp")).toBeVisible()
 
@@ -64,12 +68,12 @@ export function describeCustomerLoginAntiEnumeration() {
             response.url().includes("/home/login") &&
             response.request().method() === "POST"
         ),
-        page.getByRole("button", { name: "Open my cards" }).click(),
+        page.getByRole("button", { name: "Continue" }).click(),
       ])
       await expect(
-        page
-          .locator('[role="alert"]')
-          .filter({ hasText: /That code was not accepted/i })
+        page.locator('[role="alert"]').filter({
+          hasText: /That code didn't work\. Check it and try again\./i,
+        })
       ).toBeVisible()
       await expect(page.locator("#otp")).toBeVisible()
 
@@ -80,17 +84,17 @@ export function describeCustomerLoginAntiEnumeration() {
             response.url().includes("/home/login") &&
             response.request().method() === "POST"
         ),
-        page.getByRole("button", { name: "Open my cards" }).click(),
+        page.getByRole("button", { name: "Continue" }).click(),
       ])
 
       await expect(
-        page.getByText(/No cards found for that number yet/i)
+        page.getByText(/We couldn't find any cards for this number/i)
       ).toBeVisible()
       await expect(
         page.getByRole("link", { name: "Scan a venue QR" })
       ).toHaveAttribute("href", "/scan")
       await expect(
-        page.getByRole("button", { name: "Send code", exact: true })
+        page.getByRole("button", { name: "Send my code", exact: true })
       ).toHaveCount(0)
 
       const cookies = await context.cookies()

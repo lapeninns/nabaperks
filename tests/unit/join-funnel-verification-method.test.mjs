@@ -256,8 +256,8 @@ test("Given a phone join When the number is sent and its code confirmed Then bot
   ])
 })
 
-test("Given a new email is confirmed When the guest chooses their phone and confirms its code Then the one stored verification is by phone", async () => {
-  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+test("Given mode existing and a new email is confirmed When the guest goes back to their phone and confirms its code Then the one stored verification is by phone", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "existing"
   const actions = await loadJoinActions()
   const { verifyCustomerEmailOtpAction, switchJoinToPhoneAction, state } =
     actions
@@ -270,7 +270,7 @@ test("Given a new email is confirmed When the guest chooses their phone and conf
     await redirectOf(verifyCustomerEmailOtpAction({}, form({ otp: "123456" }))),
     "/m/old-crown/join?qr=venue-qr&step=email_choice"
   )
-  // "Open my existing wallet with my phone" on the choice screen.
+  // "Use my mobile number" on the no-card-for-this-email screen (J7).
   assert.equal(
     await redirectOf(switchJoinToPhoneAction(form({}))),
     "/m/old-crown/join?qr=venue-qr&step=phone"
@@ -290,48 +290,34 @@ test("Given a new email is confirmed When the guest chooses their phone and conf
   )
 })
 
-test("Given a new email is confirmed When the guest continues with email Then the wallet start stores one verification by email", async () => {
+test("Given mode full and a new email is confirmed When the code step creates the wallet Then it stores one verification by email and the new-wallet confirmation", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const actions = await loadJoinActions()
-  const { verifyCustomerEmailOtpAction, startEmailWalletAction, state } =
-    actions
+  const { verifyCustomerEmailOtpAction, state } = actions
   Object.assign(state.impl, {
     checkEmailSignInChallenge: VERIFIED_EMAIL,
     findCustomerByVerifiedEmail: null,
-  })
-  await redirectOf(verifyCustomerEmailOtpAction({}, form({ otp: "123456" })))
-
-  Object.assign(state.impl, {
-    readVerifiedEmailHandoff: {
-      handoffId: "handoff-1",
-      email: "guest@example.com",
-      issuedAt: 1_000,
-      expiresAt: 9_999_999_999,
-    },
     getMerchantJoinContext: {
       available: true,
       merchant: { id: "merchant-1" },
     },
-    consumeVerifiedEmailHandoff: true,
     createCustomerByVerifiedEmail: {
       status: "created",
       customer: { id: "customer-new", phoneLast4: null },
     },
     establishCustomerSessionAfterVerifiedEmail: "authenticated",
   })
+
+  // No choice screen: the code step goes straight to the terms step.
   assert.equal(
-    await redirectOf(startEmailWalletAction({}, form({}))),
+    await redirectOf(verifyCustomerEmailOtpAction({}, form({ otp: "123456" }))),
     "/m/old-crown/join?qr=venue-qr&step=terms"
   )
 
   const rows = await storedFunnel(state)
   assert.deepEqual(
     rows.map(({ eventName }) => eventName),
-    [
-      "join_email_no_wallet",
-      "join_otp_verified",
-      "join_new_email_wallet_confirmed",
-    ]
+    ["join_otp_verified", "join_new_email_wallet_confirmed"]
   )
   assert.deepEqual(verifiedEvents(rows), [
     { eventName: "join_otp_verified", step: "otp", method: "email" },

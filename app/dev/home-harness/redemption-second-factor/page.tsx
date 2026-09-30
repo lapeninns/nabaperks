@@ -9,8 +9,16 @@ import type {
 export const dynamic = "force-dynamic"
 
 // `email-send`: the saved email has no code pending, so the email step offers
-// to send one instead of asking for it (QA BUG-036).
-const GATES = new Set(["details", "email-code", "email-send", "ready"])
+// to send one instead of asking for it (QA BUG-036). `email-address`: details
+// saved, no address yet. `phone`: joined by email, mobile number outstanding.
+const GATES = new Set([
+  "details",
+  "email-address",
+  "email-code",
+  "email-send",
+  "phone",
+  "ready",
+])
 
 const BASE_REWARD = {
   rewardId: "00000000-0000-4000-8000-000000000001",
@@ -37,9 +45,34 @@ function profileGate(gate: string): ProfileGate {
       dateOfBirthVerified: false,
       needsEmailVerification: true,
       emailCodePending: gate === "email-code",
+      needsPhoneVerification: false,
       fullName: "Alex Regular",
       dateOfBirth: "1990-01-01",
       email: "alex@example.test",
+      emailLocked: false,
+    }
+  }
+  if (gate === "phone") {
+    return {
+      complete: false,
+      dateOfBirthVerified: false,
+      needsEmailVerification: false,
+      needsPhoneVerification: true,
+      fullName: "Alex Regular",
+      dateOfBirth: "1990-01-01",
+      email: "alex@example.test",
+      emailLocked: true,
+    }
+  }
+  if (gate === "email-address") {
+    return {
+      complete: false,
+      dateOfBirthVerified: false,
+      needsEmailVerification: false,
+      needsPhoneVerification: false,
+      fullName: "Alex Regular",
+      dateOfBirth: "1990-01-01",
+      email: null,
       emailLocked: false,
     }
   }
@@ -48,6 +81,7 @@ function profileGate(gate: string): ProfileGate {
       complete: true,
       dateOfBirthVerified: true,
       needsEmailVerification: false,
+      needsPhoneVerification: false,
       fullName: "Alex Regular",
       dateOfBirth: "1990-01-01",
       email: "alex@example.test",
@@ -58,8 +92,9 @@ function profileGate(gate: string): ProfileGate {
     complete: false,
     dateOfBirthVerified: false,
     needsEmailVerification: false,
-    fullName: "Alex Regular",
-    dateOfBirth: "1990-01-01",
+    needsPhoneVerification: false,
+    fullName: null,
+    dateOfBirth: null,
     email: null,
     emailLocked: false,
   }

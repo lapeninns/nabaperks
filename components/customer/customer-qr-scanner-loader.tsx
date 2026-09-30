@@ -4,7 +4,7 @@ import { Camera01Icon } from "@hugeicons/core-free-icons"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 
-import { Eyebrow, Icon, IconRoundel, ReceiptCard } from "@/components/brand"
+import { Icon, IconRoundel, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
@@ -23,15 +23,13 @@ function CustomerQrScannerLoading() {
       <div className="grid gap-3">
         <IconRoundel icon={Camera01Icon} iconSize={22} tone="accent" />
         <div className="grid gap-1.5">
-          <Eyebrow>Customer scanner</Eyebrow>
           {/* Same headline as the loaded scanner (CUS-P3-11) — no string flip
               when the chunk lands. */}
           <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
-            Scan venue QR
+            Scan the venue QR
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Point your camera at a Nabaperks venue QR to collect your stamp. No
-            app, no plastic.
+            Point your camera at the QR on the counter to open your card.
           </p>
         </div>
       </div>

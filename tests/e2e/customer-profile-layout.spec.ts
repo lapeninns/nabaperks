@@ -13,7 +13,7 @@ test.describe("@customer-flow profile email verification layout", () => {
       await page.evaluate(() => document.fonts.ready)
 
       const code = page.getByRole("textbox", {
-        name: "Email code",
+        name: "Your code",
         exact: true,
       })
       await code.fill("123456")
@@ -21,7 +21,7 @@ test.describe("@customer-flow profile email verification layout", () => {
 
       for (const name of [
         "Confirm email",
-        "Email me a new code",
+        "Send a new code",
         "Continue without email",
       ]) {
         const button = page.getByRole("button", { name, exact: true })
@@ -56,13 +56,18 @@ test.describe("@customer-flow profile email verification layout", () => {
     // The wallet header carries the wordmark only; the account action sits in
     // Profile, which the fixed tab bar reaches from every screen.
     const header = page.locator("header").first()
-    await expect(header.getByRole("button", { name: "Log out" })).toHaveCount(0)
+    await expect(header.getByRole("button", { name: "Sign out" })).toHaveCount(
+      0
+    )
     await expect(
       page.getByRole("link", { name: "Profile", exact: true })
     ).toBeVisible()
 
     const account = page.locator("[data-account-section]")
-    const logOut = account.getByRole("button", { name: "Log out", exact: true })
+    const logOut = account.getByRole("button", {
+      name: "Sign out",
+      exact: true,
+    })
     await expect(logOut).toBeVisible()
     await logOut.click({ trial: true })
 
@@ -73,7 +78,7 @@ test.describe("@customer-flow profile email verification layout", () => {
 
     // Sessions last until log-out, so a lost phone needs a way out.
     const logOutAll = account.getByRole("button", {
-      name: "Log out on all devices",
+      name: "Sign out on all devices",
       exact: true,
     })
     await expect(logOutAll).toBeVisible()

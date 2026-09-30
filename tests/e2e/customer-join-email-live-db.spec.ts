@@ -51,10 +51,10 @@ import {
  * CUSTOMER_EMAIL_AUTH_MODE=full. The local dev code stands in for the email.
  */
 
-const CHOICE_HEADING = "Continue with your email"
-const START_WALLET = "Continue with email"
-const USE_PHONE = "Open my existing wallet with my phone"
-const NOT_ACCEPTED = "That code was not accepted."
+const TERMS_HEADING = /^Join the card at /
+/** The one action on a confirmed-email handoff left by the previous build. */
+const LEGACY_CONTINUE = { name: "Continue", exact: true } as const
+const NOT_ACCEPTED = "That code didn't work. Check it and try again."
 const KNOWN_CODE = "135790"
 
 type Journey = {
@@ -115,7 +115,7 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
     })
   })
 
-  test("a new email starts a wallet only when chosen, then collects the first stamp", async ({
+  test("a new email creates its card at the code step, with no choice screen, then collects the first stamp", async ({
     context,
     page,
   }) => {
@@ -126,18 +126,19 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
       await requestJoinEmailCode(page, fixture, email, phone)
       await confirmJoinCode(page)
 
-      await expect(page).toHaveURL(/step=email_choice/)
+      // Straight to the terms step, keeping the QR (guest journey J5).
+      await expect(page).toHaveURL(
+        (url) =>
+          url.searchParams.get("step") === "terms" &&
+          url.searchParams.get("qr") === fixture.activeQrId
+      )
       await expect(
-        page.getByRole("heading", { name: CHOICE_HEADING })
+        page.getByRole("heading", { name: TERMS_HEADING })
       ).toBeVisible()
-      // Proving the email created nothing: only the choice does.
-      await expect(readEmailWallets(sql, email)).resolves.toEqual([])
-
-      await page.getByRole("button", { name: START_WALLET }).click()
       await expect(
-        page.getByRole("heading", { name: "Collect your first stamp" })
+        page.getByText(/Send me offers from .* by email$/)
       ).toBeVisible()
-      await expect(page.getByText("by email. Optional")).toBeVisible()
+      await expect(page.getByLabel(/Send me offers/)).not.toBeChecked()
 
       const wallets = await readEmailWallets(sql, email)
       expect(wallets).toHaveLength(1)
@@ -147,15 +148,15 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
       await expect(
         countDeviceSessions(sql, wallet.customer_id, device)
       ).resolves.toBe(1)
+      // No membership or stamp until the terms are accepted.
       await expect(
-        context
-          .cookies()
-          .then((cookies) =>
-            cookies.some((cookie) => cookie.name === EMAIL_HANDOFF_COOKIE)
-          )
-      ).resolves.toBe(false)
+        readFirstStamp(sql, fixture, wallet.customer_id)
+      ).resolves.toBeUndefined()
+      await expect(hasCookie(context, EMAIL_HANDOFF_COOKIE)).resolves.toBe(
+        false
+      )
 
-      await page.getByLabel(/Loyalty terms/i).check()
+      await page.getByLabel(/Card terms/i).check()
       await Promise.all([
         page.waitForURL(
           (url) =>
@@ -163,7 +164,7 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
             url.searchParams.get("welcome") === "1" &&
             url.searchParams.get("stamp") === "issued"
         ),
-        page.getByRole("button", { name: "Get my first stamp" }).click(),
+        page.getByRole("button", { name: "Add my first stamp" }).click(),
       ])
       await expect(
         readFirstStamp(sql, fixture, wallet.customer_id)
@@ -177,38 +178,44 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
           )
         )
         .toBe(1)
+      await expect
+        .poll(() =>
+          countEmailEvents(sql, wallet.customer_id, "join_otp_verified")
+        )
+        .toBe(1)
     })
   })
 
-  test("choosing phone on the choice screen creates nothing and opens the phone step", async ({
+  test("a confirmed-email handoff left by the previous build takes one Continue, and only once", async ({
     context,
     page,
   }) => {
-    const email = uniqueJoinEmail("phone")
-    await withJourney([email], async ({ sql, fixture, phone }) => {
-      await installKnownDevice(context)
-      await requestJoinEmailCode(page, fixture, email, phone)
-      await confirmJoinCode(page)
-      await expect(
-        page.getByRole("heading", { name: CHOICE_HEADING })
-      ).toBeVisible()
-
-      await page.getByRole("button", { name: USE_PHONE }).click()
-      await expect(page).toHaveURL(/step=phone/)
-      await expect(page.getByLabel("UK phone number")).toBeVisible()
-      await expect(readEmailWallets(sql, email)).resolves.toEqual([])
-      await expect(hasCookie(context, EMAIL_HANDOFF_COOKIE)).resolves.toBe(
-        false
-      )
-
-      // The handoff is gone, so the choice cannot be reopened.
+    const email = uniqueJoinEmail("legacy")
+    await withJourney([email], async ({ sql, fixture }) => {
+      const device = await installKnownDevice(context)
+      await installForeignDeviceHandoff(context, {
+        email,
+        merchantSlug: fixture.merchantSlug,
+        qrId: fixture.activeQrId,
+        deviceHash: device.deviceHash,
+      })
       await page.goto(
         `/m/${fixture.merchantSlug}/join?qr=${fixture.activeQrId}&step=email_choice`
       )
       await expect(
-        page.getByRole("heading", { name: CHOICE_HEADING })
-      ).toHaveCount(0)
+        page.getByRole("heading", { name: "Email confirmed" })
+      ).toBeVisible()
+      await expect(page.getByRole("button", LEGACY_CONTINUE)).toHaveCount(1)
       await expect(readEmailWallets(sql, email)).resolves.toEqual([])
+
+      await page.getByRole("button", LEGACY_CONTINUE).click()
+      await expect(
+        page.getByRole("heading", { name: TERMS_HEADING })
+      ).toBeVisible()
+      await expect(readEmailWallets(sql, email)).resolves.toHaveLength(1)
+      await expect(hasCookie(context, EMAIL_HANDOFF_COOKIE)).resolves.toBe(
+        false
+      )
     })
   })
 
@@ -222,80 +229,32 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
       async ({ sql, fixture }) => {
         await installKnownDevice(context)
         await page.goto(publicQrPath(fixture.activeQrId))
-        await page.getByRole("link", { name: "Claim my first stamp" }).click()
+        await page.getByRole("link", { name: "Get my first stamp" }).click()
         await expect(page).toHaveURL(/step=phone/)
-        await expect(page.getByLabel("UK phone number")).toBeVisible()
+        await expect(page.getByLabel("UK mobile number")).toBeVisible()
         await expect(page.getByLabel("Email address")).toHaveCount(0)
         await expect(page.getByRole("link", { name: /email/i })).toHaveCount(0)
 
-        await page.getByLabel("UK phone number").fill(phone.national)
+        await page.getByLabel("UK mobile number").fill(phone.national)
         await page.getByRole("button", { name: "Send my code" }).click()
         await expect(
           page.getByRole("heading", { name: "Enter your code" })
         ).toBeVisible()
         await confirmJoinCode(page)
         await expect(
-          page.getByRole("heading", { name: "Collect your first stamp" })
+          page.getByRole("heading", { name: /^Join the card at / })
         ).toBeVisible()
-        await page.getByLabel(/Loyalty terms/i).check()
+        await page.getByLabel(/Card terms/i).check()
         await Promise.all([
           page.waitForURL(
             (url) =>
               url.pathname.startsWith("/card/") &&
               url.searchParams.get("stamp") === "issued"
           ),
-          page.getByRole("button", { name: "Get my first stamp" }).click(),
+          page.getByRole("button", { name: "Add my first stamp" }).click(),
         ])
         const joined = await readJoinedMembership(sql, fixture, phone)
         expect(joined?.stamp_count).toBe(1)
-      },
-      phone
-    )
-  })
-
-  test("a phone code requested after the choice screen opens its code step", async ({
-    context,
-    page,
-  }) => {
-    const email = uniqueJoinEmail("then-phone")
-    const phone = disposableUkMobile()
-    await withJourney(
-      [email],
-      async ({ sql, fixture }) => {
-        // The same number texted first, before the email fallback.
-        await installKnownDevice(context)
-        await requestJoinEmailCode(page, fixture, email, phone)
-        await confirmJoinCode(page)
-        await expect(
-          page.getByRole("heading", { name: CHOICE_HEADING })
-        ).toBeVisible()
-
-        // Away from the choice without answering it, then on to phone.
-        await page.getByRole("link", { name: "Use a different email" }).click()
-        await expect(page).toHaveURL(/step=email/)
-        await page
-          .getByRole("link", { name: "Use my phone number instead" })
-          .click()
-        await expect(page).toHaveURL(/step=phone/)
-        await page.getByLabel("UK phone number").fill(phone.national)
-        await page.getByRole("button", { name: "Send my code" }).click()
-
-        await expect(page).toHaveURL(/step=otp/)
-        await expect(
-          page.getByRole("heading", { name: "Enter your code" })
-        ).toBeVisible()
-        await expect(
-          page.getByRole("heading", { name: CHOICE_HEADING })
-        ).toHaveCount(0)
-        await expect(hasCookie(context, EMAIL_HANDOFF_COOKIE)).resolves.toBe(
-          false
-        )
-
-        await confirmJoinCode(page)
-        await expect(
-          page.getByRole("heading", { name: "Collect your first stamp" })
-        ).toBeVisible()
-        await expect(readEmailWallets(sql, email)).resolves.toEqual([])
       },
       phone
     )
@@ -315,29 +274,27 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         await agePendingPhoneCode(page)
         await takeEmailFallback(page)
         await expect(
-          page.getByRole("heading", { name: "Get your code by email instead" })
+          page.getByRole("heading", { name: "Get your code by email" })
         ).toBeVisible()
 
         // The code turns up now: phone returns to it, not a blank number.
-        await page
-          .getByRole("link", { name: "Use my phone number instead" })
-          .click()
+        await page.getByRole("link", { name: "Back to the text code" }).click()
         await expect(
           page.getByRole("heading", { name: "Enter your code" })
         ).toBeVisible()
-        await expect(page.getByLabel("UK phone number")).toHaveCount(0)
+        await expect(page.getByLabel("UK mobile number")).toHaveCount(0)
         // Email is still offered on the server's timing if it does not come.
         await page.clock.fastForward(31_000)
         await expect(emailFallback(page)).toBeVisible()
 
         await confirmJoinCode(page)
         await expect(
-          page.getByRole("heading", { name: "Collect your first stamp" })
+          page.getByRole("heading", { name: /^Join the card at / })
         ).toBeVisible()
-        await page.getByLabel(/Loyalty terms/i).check()
+        await page.getByLabel(/Card terms/i).check()
         await Promise.all([
           page.waitForURL((url) => url.pathname.startsWith("/card/")),
-          page.getByRole("button", { name: "Get my first stamp" }).click(),
+          page.getByRole("button", { name: "Add my first stamp" }).click(),
         ])
         const joined = await readJoinedMembership(sql, fixture, phone)
         expect(joined?.stamp_count).toBe(1)
@@ -357,12 +314,12 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         await installKnownDevice(context)
         const emailStep = `/m/${fixture.merchantSlug}/join?qr=${fixture.activeQrId}&step=email`
         const emailHeading = page.getByRole("heading", {
-          name: "Get your code by email instead",
+          name: "Get your code by email",
         })
 
         // A bookmarked email step with no phone code: the number form.
         await page.goto(emailStep)
-        await expect(page.getByLabel("UK phone number")).toBeVisible()
+        await expect(page.getByLabel("UK mobile number")).toBeVisible()
         await expect(page.getByLabel("Email address")).toHaveCount(0)
         await expect(emailHeading).toHaveCount(0)
 
@@ -401,9 +358,9 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         await page.clock.fastForward(20_000)
         // A later whole second, so the server's new send time differs.
         await new Promise((resolve) => setTimeout(resolve, 1_100))
-        await page.getByRole("button", { name: "Resend code" }).click()
+        await page.getByRole("button", { name: "Send a new code" }).click()
         await expect(
-          page.getByText("If a new code arrives, enter it here.")
+          page.getByText("If a new code arrives, use the latest one.")
         ).toBeVisible()
 
         // 31 seconds after the first code, 11 after the resend: not yet.
@@ -432,12 +389,13 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
         page.getByRole("heading", { name: "Enter your code" })
       ).toBeVisible()
 
-      // The real digest, not the dev shortcut, accepts the emailed code.
+      // The real digest, not the dev shortcut, accepts the emailed code, and
+      // mode full creates the card there and then.
       await confirmJoinCode(page, KNOWN_CODE)
       await expect(
-        page.getByRole("heading", { name: CHOICE_HEADING })
+        page.getByRole("heading", { name: TERMS_HEADING })
       ).toBeVisible()
-      await expect(readEmailWallets(sql, email)).resolves.toEqual([])
+      await expect(readEmailWallets(sql, email)).resolves.toHaveLength(1)
     })
   })
 
@@ -451,7 +409,7 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
       await installPendingEmailChallenge(context, { email, code: KNOWN_CODE })
       await openCodeStep(page, fixture)
 
-      await page.getByRole("button", { name: "Resend code" }).click()
+      await page.getByRole("button", { name: "Send a new code" }).click()
       await expect(
         page.getByText("Use the latest code we sent.", { exact: true })
       ).toBeVisible()
@@ -459,7 +417,7 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
       await confirmJoinCode(page, KNOWN_CODE)
       await expect(page.getByText(NOT_ACCEPTED, { exact: true })).toBeVisible()
       await expect(
-        page.getByRole("heading", { name: CHOICE_HEADING })
+        page.getByRole("heading", { name: TERMS_HEADING })
       ).toHaveCount(0)
     })
   })
@@ -470,16 +428,25 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
     page,
   }) => {
     const email = uniqueJoinEmail("device")
-    await withJourney([email], async ({ sql, fixture, phone }) => {
+    await withJourney([email], async ({ sql, fixture }) => {
+      // Only a handoff left by the previous build (or mode existing) exists
+      // now; this one is bound to the first device.
       const first = await installKnownDevice(context)
-      await requestJoinEmailCode(page, fixture, email, phone)
-      await confirmJoinCode(page)
+      await installForeignDeviceHandoff(context, {
+        email,
+        merchantSlug: fixture.merchantSlug,
+        qrId: fixture.activeQrId,
+        deviceHash: first.deviceHash,
+      })
+      await page.goto(
+        `/m/${fixture.merchantSlug}/join?qr=${fixture.activeQrId}&step=email_choice`
+      )
       await expect(
-        page.getByRole("heading", { name: CHOICE_HEADING })
+        page.getByRole("heading", { name: "Email confirmed" })
       ).toBeVisible()
 
       // Another browser holding a handoff issued to the first device sees no
-      // choice at all.
+      // confirmed-email screen at all.
       const other = await browser.newContext()
       try {
         await installKnownDevice(other)
@@ -495,19 +462,19 @@ test.describe("@customer-flow join by email (live database, mode full)", () => {
           `/m/${fixture.merchantSlug}/join?qr=${fixture.activeQrId}&step=email_choice`
         )
         await expect(
-          otherPage.getByRole("heading", { name: "Your first stamp is ready" })
+          otherPage.getByRole("heading", { name: "Get your first stamp" })
         ).toBeVisible()
         await expect(
-          otherPage.getByRole("heading", { name: CHOICE_HEADING })
+          otherPage.getByRole("heading", { name: "Email confirmed" })
         ).toHaveCount(0)
       } finally {
         await other.close()
       }
 
-      // The open choice screen, now posting from a different device, is
-      // refused by the action itself.
+      // The open screen, now posting from a different device, is refused by
+      // the action itself.
       await installKnownDevice(context)
-      await page.getByRole("button", { name: START_WALLET }).click()
+      await page.getByRole("button", LEGACY_CONTINUE).click()
       await expect(
         page.getByText(
           "That email confirmation has expired. Enter your email again."

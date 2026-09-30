@@ -45,9 +45,15 @@ test("CUS-P2-02: the /q error states carry one headline and one description", ()
   assert.doesNotMatch(page, /title="Card unavailable"/)
   assert.doesNotMatch(page, /title="One moment"/)
   // The near-duplicate shell description is gone; the receipt keeps one.
-  // Copy is centralised in lib/copy/product-copy — assert the wired constant.
+  // Guest journey Q2: one headline and one description, in guest words.
   assert.doesNotMatch(page, /Ask the venue team for the current loyalty QR\./)
-  assert.match(page, /ASK_TEAM_FOR_QR/)
+  assert.match(page, /QR_NOT_WORKING_TITLE = "This QR isn't working"/)
+  assert.match(
+    page,
+    /QR_NOT_WORKING_DESCRIPTION =\s*"Ask a member of staff for the current loyalty QR\."/
+  )
+  assert.match(page, /title=\{QR_NOT_WORKING_TITLE\}/)
+  assert.match(page, /description=\{QR_NOT_WORKING_DESCRIPTION\}/)
   // Error receipts are honest: no mono footer pretending technical facts.
   const unavailable = page.slice(page.indexOf("function UnavailableQr"))
   assert.match(unavailable, /hideFooter/)
@@ -147,8 +153,14 @@ test("CUS-P2-09: the reward support line matches the state it renders over", () 
   // a code for it. The per-stage headlines are asserted behaviourally in
   // tests/unit/customer-experience-reward.test.mjs.
   assert.doesNotMatch(copy, /show this at the counter/)
-  assert.match(copy, /formatCollectionAvailability\(availableFrom\)/)
-  assert.match(copy, /Unlocked — collection timing will appear here/)
+  // The waiting line is the server's own time, capitalised as formatted
+  // ("Ready from Wed 1 Oct, 12:00."), never lower-cased mid-sentence.
+  assert.match(
+    copy,
+    /formatCollectionAvailability\(availableFrom \?\? nextWindow\)/
+  )
+  assert.doesNotMatch(copy, /toLocaleLowerCase/)
+  assert.match(copy, /The collection time will show here once it's set\./)
 })
 
 test("CUS-P2-10: redemption-gate resend links meet the tap-size contract", () => {
@@ -185,8 +197,13 @@ test("CUS-P2-11: the scanner intro speaks barista, not system", () => {
 
   assert.doesNotMatch(scanner, /existing QR flow/)
   assert.doesNotMatch(scanner, /OTP checks/)
-  // \s+ tolerates the JSX line wrap; the rendered sentence is one line.
-  assert.match(scanner, /No\s+app, no plastic\./)
+  // Guest words only (guest journey brief E): no internal "Customer
+  // scanner" eyebrow and no promises such as "No app, no plastic".
+  assert.doesNotMatch(scanner, /Customer scanner|No\s+app, no plastic/)
+  assert.match(scanner, /Scan the venue QR/)
+  assert.match(scanner, /Point at the QR on the counter/)
+  assert.match(scanner, /Found it\. Opening your card/)
+  assert.match(scanner, /That's not a Nabaperks QR/)
 })
 
 test("CUS-P2-12/16: one customer journey, one column width (max-w-customer)", () => {

@@ -9,7 +9,7 @@ import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
-  title: "Reset my session · Nabaperks",
+  title: "Sign in again · Nabaperks",
 }
 
 type CustomerSessionResetPageProps = {
@@ -30,18 +30,18 @@ export default async function CustomerSessionResetPage({
           <VenueMark size={56} name="Nabaperks" caption="My Nabaperks" />
           <div className="grid gap-2">
             <h1 className="text-2xl leading-tight font-extrabold text-balance">
-              Reset this sign-in?
+              Sign in again
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              We could not match this sign-in to a current customer record.
-              Continue only if you want to end this session and sign in again.
+              We couldn&apos;t open your cards with this sign-in. Sign in again
+              with your mobile number. Your stamps are safe.
             </p>
           </div>
         </div>
 
         <form action={resetCustomerSessionAction} className="grid gap-3">
           <input type="hidden" name="next" value={next} />
-          <Button type="submit">Reset and sign in again</Button>
+          <Button type="submit">Sign in again</Button>
         </form>
       </ReceiptCard>
     </CustomerShell>

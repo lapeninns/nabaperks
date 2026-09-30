@@ -10,14 +10,20 @@ import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Field, FieldGroup } from "@/components/ui/field"
 import { useEmailFallbackReady } from "@/hooks/use-email-fallback-ready"
-import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
-import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
+import { useOtpRetryCountdown } from "@/hooks/use-otp-retry-countdown"
+import { LOGIN_COPY, loginPhonePrefill } from "@/lib/customer/login-copy"
+import { OTP_TEXT_FALLBACK_LABEL } from "@/lib/customer/otp-channel-core"
+import {
+  phoneCodeResendAt,
+  resendWaiting,
+  sendNewCodeLabel,
+} from "@/lib/customer/otp-resend"
 
 /**
  * /home/login by phone: the number, then the code from the message. A code
- * only opens a wallet the number already holds; the request answer is the
- * same whether or not one does. Email is offered beside the number only when
- * no code could be sent at all; otherwise it is the code step's fallback.
+ * only opens cards the number already holds; the request answer is the same
+ * whether or not it does. Email is offered beside the number only when no
+ * code could be sent at all; otherwise it is the code step's fallback.
  */
 export function CustomerLoginPhoneStep(props: CustomerLoginStepProps) {
   const { state } = props
@@ -55,10 +61,10 @@ function PhoneScanStep({
           disabled={pending}
           pendingLabel="Changing number…"
         >
-          Use a different number
+          {LOGIN_COPY.tryDifferentNumber}
         </SubmitButton>
       </form>
-      {/* A wallet joined by email is opened by email. */}
+      {/* A card joined by email is opened by email. */}
       {scanAlternate}
     </CustomerLoginScanStep>
   )
@@ -74,6 +80,11 @@ function PhoneCodeStep({
   const contact = state.fields?.contact ?? ""
   const verifyError = state.errors?.otp ?? state.errors?.form
   const message = pending ? undefined : state.message
+  // A new code after a short wait from the latest send, as on the join and
+  // email code steps; the server still admits each send.
+  const resendCountdown = useOtpRetryCountdown(
+    phoneCodeResendAt(state.fields?.phoneCodeSentAt)
+  )
 
   return (
     <div className="grid gap-4">
@@ -84,7 +95,7 @@ function PhoneCodeStep({
         <FieldGroup className="gap-4">
           <Field className="gap-2" data-invalid={Boolean(verifyError)}>
             <label htmlFor="otp" className="eyebrow">
-              Phone code
+              {LOGIN_COPY.codeLabel}
             </label>
             <CustomerOtpInput
               id="otp"
@@ -108,7 +119,7 @@ function PhoneCodeStep({
                 id="otp-hint"
                 className="text-xs leading-5 text-muted-foreground"
               >
-                Paste or type the code from the message.
+                {LOGIN_COPY.codeHint}
               </p>
             )}
           </Field>
@@ -118,7 +129,7 @@ function PhoneCodeStep({
             disabled={pending}
             pendingLabel="Checking…"
           >
-            {OPEN_MY_CARDS_LABEL}
+            {LOGIN_COPY.continue}
           </SubmitButton>
         </FieldGroup>
       </form>
@@ -129,22 +140,40 @@ function PhoneCodeStep({
           className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1"
         >
           <input type="hidden" name="intent" value="request" />
+          <input type="hidden" name="resend" value="1" />
           <input type="hidden" name="contact" value={contact} />
-          <p className="text-sm text-muted-foreground">
-            Phone ending{" "}
-            <span className="font-bold text-foreground tabular-nums">
-              {contact.slice(-4)}
-            </span>
-          </p>
+          {state.fields?.channel ? (
+            <input type="hidden" name="channel" value={state.fields.channel} />
+          ) : null}
           <SubmitButton
             variant="link"
             size="xs"
-            disabled={pending}
+            className="tabular-nums"
+            disabled={pending || resendWaiting(resendCountdown)}
             pendingLabel="Sending…"
           >
-            Resend code
+            {sendNewCodeLabel(resendCountdown)}
           </SubmitButton>
         </form>
+        {/* A text is offered only when the code went out on WhatsApp; if it
+            already went by text, WhatsApp refused the number. */}
+        {state.fields?.channel === "whatsapp" ? (
+          <form action={submitAction}>
+            <input type="hidden" name="intent" value="request" />
+            <input type="hidden" name="resend" value="1" />
+            <input type="hidden" name="contact" value={contact} />
+            <input type="hidden" name="channel" value="sms" />
+            <SubmitButton
+              variant="link"
+              size="xs"
+              className="h-auto min-h-11 justify-start px-0"
+              disabled={pending || resendWaiting(resendCountdown)}
+              pendingLabel="Sending…"
+            >
+              {OTP_TEXT_FALLBACK_LABEL}
+            </SubmitButton>
+          </form>
+        ) : null}
         <form action={submitAction}>
           <input type="hidden" name="intent" value="edit" />
           <input type="hidden" name="contact" value={contact} />
@@ -155,7 +184,7 @@ function PhoneCodeStep({
             disabled={pending}
             pendingLabel="Changing number…"
           >
-            Wrong number? Use a different one
+            {LOGIN_COPY.changeNumber}
           </SubmitButton>
         </form>
         {/* Announced when it appears, 30 seconds after the latest send (a
@@ -215,7 +244,7 @@ function PhoneRequestStep({
         <FieldGroup className="gap-4">
           <Field className="gap-2" data-invalid={Boolean(contactError)}>
             <label htmlFor="contact" className="eyebrow">
-              Phone number
+              {LOGIN_COPY.phoneLabel}
             </label>
             <input
               id="contact"
@@ -224,8 +253,8 @@ function PhoneRequestStep({
               inputMode="tel"
               autoComplete="tel"
               autoFocus={editingContact}
-              placeholder="07400 123456"
-              defaultValue={contact}
+              placeholder={LOGIN_COPY.phonePlaceholder}
+              defaultValue={loginPhonePrefill(contact)}
               className={customerInputClass}
               aria-invalid={Boolean(contactError)}
               aria-describedby={contactError ? "contact-error" : "contact-hint"}
@@ -243,7 +272,7 @@ function PhoneRequestStep({
                 id="contact-hint"
                 className="text-xs leading-5 text-muted-foreground"
               >
-                {JOIN_PHONE_CODE_HINT}
+                {LOGIN_COPY.phoneHint}
               </p>
             )}
           </Field>
@@ -261,7 +290,7 @@ function PhoneRequestStep({
             disabled={pending}
             pendingLabel="Sending…"
           >
-            Send code
+            {LOGIN_COPY.send}
           </SubmitButton>
         </FieldGroup>
       </form>

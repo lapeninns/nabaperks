@@ -31,9 +31,9 @@ import {
  * this runs against its own dev server rather than the mode `full` one.
  */
 
-const NO_WALLET_HEADING = "No wallet uses this email yet"
+const NO_CARD_HEADING = "No card uses this email"
 const CREATION_OFF =
-  "You can't start a wallet with email just now. Use your phone number instead."
+  "You can't join with email just now. Use your mobile number instead."
 
 test.describe("@customer-flow join by email (live database, mode existing)", () => {
   const reason =
@@ -45,7 +45,7 @@ test.describe("@customer-flow join by email (live database, mode existing)", () 
     await dismissPwaInstall(page)
   })
 
-  test("a verified email with no wallet offers only the phone, and a forged start creates nothing", async ({
+  test("a verified email with no wallet says no card uses it, offers only the phone, and a forged start creates nothing", async ({
     context,
     page,
   }) => {
@@ -67,24 +67,27 @@ test.describe("@customer-flow join by email (live database, mode existing)", () 
       await confirmJoinCode(page)
 
       await expect(
-        page.getByRole("heading", { name: NO_WALLET_HEADING })
+        page.getByRole("heading", { name: NO_CARD_HEADING })
       ).toBeVisible()
+      await expect(page.getByRole("button", { name: /Continue/ })).toHaveCount(
+        0
+      )
       await expect(
-        page.getByRole("button", { name: /Continue with email/ })
-      ).toHaveCount(0)
-      await expect(
-        page.getByRole("button", { name: "Use my phone instead" })
+        page.getByRole("button", { name: "Use my mobile number" })
       ).toBeVisible()
+      await expect(readEmailWallets(sql, email)).resolves.toEqual([])
 
-      // Forge the new-wallet request: the harness renders the real choice form
-      // bound to the real action. Point it at this venue, whose verified-email
-      // handoff this device now holds, so only the mode can refuse it.
+      // Forge the new-wallet request: the harness renders the real confirmed-
+      // email form bound to the real action. Point it at this venue, whose
+      // verified-email handoff this device now holds, so only the mode can
+      // refuse it.
       await gotoHydratedPage(
         page,
-        "/dev/welcome-offer?surface=email-choice&offer=none"
+        "/dev/welcome-offer?surface=email-confirmed&offer=none"
       )
       const start = page.getByRole("button", {
-        name: "Continue with email",
+        name: "Continue",
+        exact: true,
       })
       const form = start.locator("xpath=ancestor::form")
       await form

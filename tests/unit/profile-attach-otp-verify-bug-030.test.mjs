@@ -211,7 +211,7 @@ const attachVerify = (actions, otp, action = "profilePhoneAction") =>
     form({ intent: "verify", otp })
   )
 
-const TOO_MANY = /too many code attempts/i
+const TOO_MANY = /too many tries/i
 
 test("Given six correct attach codes in a row When each is confirmed on the profile Then every one adds the phone", async () => {
   const actions = await loadAttachAction()
@@ -246,7 +246,7 @@ test("Given five wrong attach codes When the correct code follows Then the numbe
   for (let n = 0; n < 5; n += 1) {
     const wrong = await attachVerify(actions, "000000")
     assert.equal(wrong.step, "code")
-    assert.match(wrong.errors.otp, /that code was not accepted/i)
+    assert.match(wrong.errors.otp, /that code didn't work/i)
   }
 
   actions.state.impl.checkCustomerPhoneVerification = { status: "approved" }

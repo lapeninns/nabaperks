@@ -3,7 +3,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { connection } from "next/server"
 
-import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
+import { ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
@@ -23,42 +23,45 @@ export default async function StartPage() {
     redirect(destination)
   }
 
+  // Guests first: the two guest actions, with the venue team's sign-in as a
+  // small footer link rather than a competing button.
   return (
     <CustomerShell>
       <ReceiptCard edge className="grid gap-6">
         <div className="grid justify-items-center gap-3 text-center">
           <VenueMark size={56} name="Nabaperks" caption="Welcome" />
           <div className="grid gap-1">
-            <Eyebrow>Nabaperks</Eyebrow>
             <h1 className="text-2xl leading-tight font-extrabold text-balance">
-              Welcome to Nabaperks
+              Your loyalty cards
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              Open your loyalty cards, or sign in to run your venue.
+              Scan the QR at a venue to get a stamp, or open the cards you
+              already have.
             </p>
           </div>
         </div>
 
         <div className="grid gap-2">
           <Button asChild size="lg">
-            <Link href="/scan">Scan a QR</Link>
+            <Link href="/scan">Scan a venue QR</Link>
           </Button>
           <Button asChild variant="secondary" size="lg">
             <Link href="/home/login">{OPEN_MY_CARDS_LABEL}</Link>
           </Button>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="justify-self-center text-muted-foreground underline underline-offset-4"
-          >
-            <Link href="/login">Merchant sign-in</Link>
-          </Button>
         </div>
 
         <p className="border-t-2 border-dashed border-foreground/25 pt-4 text-center text-sm leading-6 text-muted-foreground">
-          New here? Scan a venue&apos;s QR code to collect your first stamp —
-          your first card is created automatically.
+          New here? Scan the QR at a venue to get your first stamp.
+        </p>
+
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          Run a venue?{" "}
+          <Link
+            href="/login"
+            className="focus-ring inline-flex min-h-11 items-center font-bold underline underline-offset-4"
+          >
+            Venue sign-in
+          </Link>
         </p>
       </ReceiptCard>
     </CustomerShell>

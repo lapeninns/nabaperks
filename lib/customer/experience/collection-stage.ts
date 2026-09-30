@@ -8,9 +8,11 @@ import type { ProfileGate } from "./types"
  * a QR that is not available to them yet. Pure and shared: the view model
  * phrases the stage, the panels render it, and the harness exercises each one.
  *
- * - `details`  — name, date of birth or an email address is still missing.
- * - `email`    — an address is on file but its emailed code is unconfirmed.
- * - `phone`    — the phone number still needs verification.
+ * - `details`  — name or date of birth is still missing. That screen asks
+ *                for those two fields only; the email is its own step.
+ * - `email`    — name and date of birth are saved; the email address is
+ *                missing, or on file awaiting its emailed code.
+ * - `phone`    — the mobile number still needs confirming.
  * - `id_check` — everything is saved; the venue still checks photo ID in person.
  * - `ready`    — nothing is outstanding, and the date of birth is verified.
  */
@@ -32,45 +34,57 @@ export type CollectionSetup = {
 
 /** The one instruction each stage leads with. */
 export const COLLECTION_STAGE_INSTRUCTION: Record<CollectionStage, string> = {
-  details: "Complete your details",
-  email: "Verify your email",
-  phone: "Verify your phone number",
+  details: "Add your name and date of birth",
+  email: "Confirm your email",
+  phone: "Confirm your mobile number",
   id_check: "Show your reward code",
   ready: "Show your reward code",
 }
 
 /**
- * Steps already completed are recognised rather than asked for again, while
- * pending contact verification is included in the remaining setup.
+ * The next unmet requirement and an honest step count.
+ *
+ * Order: details, then email, then mobile number. The count is fixed from the
+ * first step so it reads 1 of 3, 2 of 3, 3 of 3 as the guest moves through:
+ *
+ * - details always counts (saved details count as a step already done);
+ * - email counts unless it was already confirmed before setup (a guest who
+ *   joined through the email fallback);
+ * - the mobile number counts whenever it still needs confirming, so it is
+ *   included from the very first step.
+ *
+ * A confirmed contact that is still ahead in the order can only be the one the
+ * guest joined with, so it is never counted. The one case this cannot tell
+ * apart is a guest with no confirmed contact at all (none can sign in today):
+ * once they confirm an email mid-setup it is treated as their joining contact.
  */
 export function collectionSetup(
   gate: ProfileGate,
   requiresAgeCheck = true
 ): CollectionSetup {
-  const detailsSaved = Boolean(gate.fullName?.trim() && gate.dateOfBirth)
-  if (detailsSaved && gate.emailLocked && gate.needsPhoneVerification) {
-    return { stage: "phone", outstanding: true, step: 1, total: 1 }
-  }
-  if (!gate.complete && detailsSaved && gate.needsEmailVerification) {
-    return {
-      stage: "email",
-      outstanding: true,
-      step: 2,
-      total: gate.needsPhoneVerification ? 3 : 2,
-    }
+  if (gate.complete) {
+    const stage: CollectionStage =
+      !requiresAgeCheck || gate.dateOfBirthVerified ? "ready" : "id_check"
+    return { stage, outstanding: false, step: 1, total: 1 }
   }
 
-  if (!gate.complete) {
-    // A verified, locked email is a step this customer will never be asked for.
-    const total =
-      (gate.emailLocked ? 1 : 2) + (gate.needsPhoneVerification ? 1 : 0)
+  const detailsSaved = Boolean(gate.fullName?.trim() && gate.dateOfBirth)
+  const emailSteps = gate.emailLocked ? 0 : 1
+  const phoneNeeded = gate.needsPhoneVerification === true
+  const total = 1 + emailSteps + (phoneNeeded ? 1 : 0)
+
+  if (!detailsSaved) {
     return { stage: "details", outstanding: true, step: 1, total }
   }
-
-  const stage: CollectionStage =
-    !requiresAgeCheck || gate.dateOfBirthVerified ? "ready" : "id_check"
-
-  return { stage, outstanding: false, step: 1, total: 1 }
+  if (!gate.emailLocked) {
+    return { stage: "email", outstanding: true, step: 2, total }
+  }
+  if (phoneNeeded) {
+    return { stage: "phone", outstanding: true, step: total, total }
+  }
+  // Incomplete for a reason no step here can fix (for example an under-age
+  // date of birth, which the profile reads as missing): ask for details again.
+  return { stage: "details", outstanding: true, step: 1, total: 1 }
 }
 
 /**
@@ -79,4 +93,22 @@ export function collectionSetup(
  */
 export function collectionProgressVisible(setup: CollectionSetup): boolean {
   return setup.outstanding && setup.total > 1
+}
+
+/**
+ * Requirements already met, shown as a compact ticked list beside the next
+ * step so nothing done is ever asked for again. Empty once nothing is
+ * outstanding (the code screen needs no checklist).
+ */
+export function collectionDoneChecklist(gate: ProfileGate): string[] {
+  if (gate.complete) return []
+  const done: string[] = []
+  if (gate.fullName?.trim() && gate.dateOfBirth) {
+    done.push("Name and date of birth saved")
+  }
+  if (gate.emailLocked) done.push("Email confirmed")
+  if (gate.needsPhoneVerification === false) {
+    done.push("Mobile number confirmed")
+  }
+  return done
 }

@@ -9,14 +9,12 @@ import { CustomerLoginEmailStep } from "@/components/customer/customer-login-ema
 import { CustomerLoginMethodSwitch } from "@/components/customer/customer-login-method-switch"
 import { CustomerLoginPhoneStep } from "@/components/customer/customer-login-phone-step"
 import { useForgetLegacyContactMethod } from "@/hooks/use-forget-legacy-contact-method"
-import {
-  JOIN_EMAIL_FALLBACK_HEADLINE,
-  PHONE_CODE_EMAIL_FALLBACK_LABEL,
-} from "@/lib/customer/experience/copy"
+import { PHONE_CODE_EMAIL_FALLBACK_LABEL } from "@/lib/customer/experience/copy"
 import type {
   JoinContactMethod,
   JoinEmailMode,
 } from "@/lib/customer/experience/types"
+import { LOGIN_COPY, loginHeading } from "@/lib/customer/login-copy"
 
 type LoginAction = (
   state: CustomerLoginOtpState,
@@ -41,12 +39,14 @@ type CustomerLoginFormProps = {
 }
 
 /**
- * /home/login: opens an existing wallet by phone. Phone is always the first
- * contact form. Once email sign-in is on, email is offered only as a
- * fallback: on the phone code step 30 seconds after the code was sent, beside
- * a send that failed outright, and on the no-cards step for a wallet joined
- * by email. Once the customer has picked email, the server's answer names it
- * and the screen stays on it.
+ * /home/login ("Open my cards"): opens a guest's cards by mobile number, in
+ * the join flow's words. Phone is the only first step. Once email sign-in is
+ * on, email is offered only as the code's fallback, as a quiet link: on the
+ * phone code step once the server's wait has run, beside a send that failed
+ * outright, and on the no-cards step. The server gate
+ * (`walletEmailFallbackGate`) refuses email at any other time, whatever the
+ * form posts. Once the customer has taken email, the server's answer names
+ * it and the screen stays on it.
  */
 export function CustomerLoginForm({
   next,
@@ -64,6 +64,8 @@ export function CustomerLoginForm({
     ? (state.fields?.method ?? "phone")
     : "phone"
   const step = { state, submitAction, pending, next }
+  // Only ever a quiet link: email never competes with the phone as a first
+  // choice.
   const emailSwitch = (label: string) =>
     emailEnabled ? (
       <CustomerLoginMethodSwitch
@@ -88,8 +90,9 @@ export function CustomerLoginForm({
               to="phone"
               submitAction={submitAction}
               pending={pending}
+              variant="link"
             >
-              Use my phone number instead
+              {LOGIN_COPY.backToPhone}
             </CustomerLoginMethodSwitch>
           }
         />
@@ -100,16 +103,15 @@ export function CustomerLoginForm({
           // step offers it once the code has had time to arrive.
           codeAlternate={emailSwitch(PHONE_CODE_EMAIL_FALLBACK_LABEL)}
           // A number with no cards may belong to someone who joined by email.
-          scanAlternate={emailSwitch("Use my email instead")}
+          scanAlternate={emailSwitch(LOGIN_COPY.emailFallback)}
           // No code went out at all: the code step is never reached.
-          sendFailedAlternate={emailSwitch("Use my email instead")}
+          sendFailedAlternate={emailSwitch(LOGIN_COPY.emailFallback)}
         />
       )}
 
       {state.fields?.noCards && !state.fields.editingContact ? null : (
         <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
-          New here? Scan a venue&apos;s QR code to collect your first stamp —
-          your first card is created automatically.
+          {LOGIN_COPY.newHere}
         </p>
       )}
     </ReceiptCard>
@@ -128,21 +130,14 @@ function LoginHeading({
   // same scan step, not another code.
   const noCards = Boolean(state.fields?.noCards) && !editingContact
   const otpSent = Boolean(state.fields?.otpSent) && !editingContact && !noCards
-  const byEmail = method === "email"
-  const title = noCards
-    ? `No cards on this ${byEmail ? "email" : "number"}`
-    : otpSent
-      ? "Enter your code"
-      : byEmail
-        ? JOIN_EMAIL_FALLBACK_HEADLINE
-        : "Welcome back"
-  const body = noCards
-    ? "Scan the venue QR at the counter. Your first card is created there."
-    : otpSent
-      ? `Use the code from your ${byEmail ? "email" : "message"} to open your cards.`
-      : byEmail
-        ? "We'll email you a one-time code to open your cards."
-        : "Sign in to see every loyalty card you've collected, track your rewards, and pick up where you left off."
+  const { title, body } = loginHeading({
+    method,
+    noCards,
+    otpSent,
+    contact: state.fields?.contact,
+    channel: state.fields?.channel,
+    maskedEmail: state.fields?.maskedEmail,
+  })
 
   return (
     <div className="grid justify-items-center gap-3 text-center">

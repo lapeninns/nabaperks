@@ -41,19 +41,17 @@ test.describe("@customer-flow customer home readback", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: "Rewards" })
       ).toBeVisible()
-      await expect(page.getByText("Ready for scan")).toBeVisible()
       await expect(
-        page.getByRole("heading", { name: "Show these now" })
-      ).toBeVisible()
-      await expect(page.getByText("Coming soon")).toBeVisible()
-      await expect(
-        page.getByRole("heading", { name: "Almost there" })
+        page.getByRole("heading", { name: "Ready to collect" })
       ).toBeVisible()
       await expect(
-        page.getByRole("heading", { name: "Redeemed", exact: true })
+        page.getByRole("heading", { name: "On the way" })
       ).toBeVisible()
       await expect(
-        page.getByRole("heading", { name: "Expired", exact: true })
+        page.getByRole("heading", { name: "Collected", exact: true })
+      ).toBeVisible()
+      await expect(
+        page.getByRole("heading", { name: "No longer available", exact: true })
       ).toBeVisible()
       await expect(page.getByText(fixture.readyRewardName)).toBeVisible()
       await expect(page.getByText(fixture.upcomingRewardName)).toBeVisible()

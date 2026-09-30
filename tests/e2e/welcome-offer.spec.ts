@@ -2,6 +2,13 @@ import { expect, test } from "@playwright/test"
 import { expectNoAxeViolations } from "./helpers/axe"
 import { dismissPwaInstall } from "./helpers/harness"
 
+/** The step label each join screen carries before the terms step. */
+const STEP_LABEL: Record<string, string> = {
+  welcome: "Your card",
+  phone: "Your number",
+  code: "Your code",
+}
+
 test.describe("@customer-flow @a11y welcome offer composition", () => {
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
@@ -10,12 +17,23 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
   test("offer content uses the standard joining layout and independent consent controls", async ({
     page,
   }) => {
-    for (const surface of ["phone", "code", "terms"]) {
+    for (const surface of ["welcome", "phone", "code", "terms"]) {
       for (const offer of ["none", "attached"]) {
         await page.goto(`/dev/welcome-offer?surface=${surface}&offer=${offer}`)
         const shell = page.locator('[data-screen-label="Customer join"]')
         await expect(shell.locator("header")).toContainText("nabaperks")
-        await expect(shell.getByText(/Step \d of 3/)).toBeVisible()
+        // The count shows only where it is true for everyone: the terms
+        // step, the last one. Earlier steps carry only their label.
+        if (surface === "terms") {
+          await expect(shell.getByText("Step 3 of 3")).toBeVisible()
+        } else {
+          await expect(shell.getByText(/Step \d of \d/)).toHaveCount(0)
+          await expect(
+            shell.locator(":scope > div", {
+              hasText: new RegExp(`^${STEP_LABEL[surface]}$`),
+            })
+          ).toBeVisible()
+        }
         await expect(shell.getByRole("heading", { level: 1 })).toHaveCSS(
           "text-align",
           "center"
@@ -39,6 +57,41 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
     }
   })
 
+  test("the join steps keep required terms and optional marketing apart, and recover an expired code on the number step", async ({
+    page,
+  }) => {
+    await page.goto("/dev/welcome-offer?surface=terms-age-check&offer=none")
+    await expect(page.getByText(/Yes to all/i)).toHaveCount(0)
+    await expect(page.getByRole("checkbox")).toHaveCount(2)
+    await expect(page.locator("#loyalty-terms")).not.toBeChecked()
+    await expect(page.locator("#marketing-opt-in")).not.toBeChecked()
+    await expect(page.getByText("Optional", { exact: true })).toBeVisible()
+    await expect(
+      page.getByText(
+        "Collecting a reward needs your name, date of birth and a confirmed phone number and email. Photo ID may be checked."
+      )
+    ).toBeVisible()
+    // Ticking one never ticks the other.
+    await page.locator("#marketing-opt-in").check()
+    await expect(page.locator("#loyalty-terms")).not.toBeChecked()
+
+    await page.goto("/dev/welcome-offer?surface=terms&offer=none")
+    await expect(page.getByText("Photo ID may be checked.")).toHaveCount(0)
+
+    await page.goto("/dev/welcome-offer?surface=phone-expired&offer=none")
+    await expect(
+      page.getByText("Your code expired. Send a new one.")
+    ).toBeVisible()
+    await expect(
+      page.getByText("Enter a UK mobile number, like 07700 900123.")
+    ).toHaveCount(0)
+
+    await page.goto("/dev/welcome-offer?surface=phone-change&offer=none")
+    await expect(page.getByLabel("UK mobile number")).toHaveValue(
+      "07700 900123"
+    )
+  })
+
   test("a discount pass preserves the standard card, reward ticket and stamp action", async ({
     page,
   }) => {
@@ -48,7 +101,7 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
         page.getByRole("heading", { name: "Loyalty card" })
       ).toBeVisible()
       await expect(
-        page.getByRole("link", { name: "Your cards", exact: true })
+        page.getByRole("link", { name: "Open my cards", exact: true })
       ).toHaveAttribute("href", "/home")
       const receipt = page.locator('[data-edge-class="receipt-edge"]')
       await expect(
@@ -57,9 +110,14 @@ test.describe("@customer-flow @a11y welcome offer composition", () => {
       await expect(
         receipt.getByText("Something's under there.", { exact: true })
       ).toBeVisible()
+      // Nothing to do on the card itself (brief C): no primary action, one
+      // quiet line saying how today's stamp is added.
       await expect(
-        receipt.getByRole("link", { name: "Scan to stamp" })
-      ).toHaveAttribute("href", "/scan")
+        receipt.getByText("Scan the QR at the counter to get today's stamp.", {
+          exact: true,
+        })
+      ).toBeVisible()
+      await expect(receipt.getByRole("link", { name: /scan/i })).toHaveCount(0)
       const pass = page.getByRole("link", { name: /^Show pass QR,/ })
       if (offer === "attached") {
         await expect(pass).toHaveAttribute(

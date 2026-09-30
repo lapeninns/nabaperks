@@ -159,7 +159,7 @@ export function describeOfferCampaignJourney(): void {
       await expect(
         rail.getByRole("list", { name: "2 of 3 stamps earned" }).first()
       ).toBeVisible()
-      await expect(rail).toContainText("2 of 3 stamps — 1 more to unlock")
+      await expect(rail).toContainText("2 of 3 stamps. 1 more to your reward.")
       await expect(
         rail
           .getByRole("link", {

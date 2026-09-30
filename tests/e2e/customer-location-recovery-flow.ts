@@ -112,14 +112,14 @@ export function registerLocationRecoveryTests() {
       page.on("pageerror", (error) => errors.push(error.message))
       await captureSequence(page, ["denied", "denied", "granted"])
       const root = await open(page)
-      await root.getByRole("button", { name: "Use my location" }).click()
+      await root.getByRole("button", { name: "Share my location" }).click()
       await expect(
         root.getByText("Location access is blocked", { exact: true })
       ).toBeVisible()
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(page.locator("[data-submit-count]")).toHaveText("0")
       await expect(root).not.toHaveAttribute("aria-busy", "true")
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
       await expect(page.locator("[data-submit-count]")).toHaveText("1")
       await expect(page.locator("[data-last-location-status]")).toHaveText(
@@ -138,7 +138,7 @@ export function registerLocationRecoveryTests() {
       }) => {
         await captureSequence(page, ["granted"], permission)
         const root = await open(page)
-        await root.getByRole("button", { name: "Use my location" }).click()
+        await root.getByRole("button", { name: "Share my location" }).click()
         await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
         await expect(page.locator("[data-submit-count]")).toHaveText("1")
       })
@@ -155,7 +155,7 @@ export function registerLocationRecoveryTests() {
       }) => {
         await captureSequence(page, [outcome, "granted"])
         const root = await open(page)
-        await root.getByRole("button", { name: "Use my location" }).click()
+        await root.getByRole("button", { name: "Share my location" }).click()
         await expect(root.getByText(title, { exact: true })).toBeVisible()
         await expect(
           root.locator("[data-location-permission-help]")
@@ -165,7 +165,7 @@ export function registerLocationRecoveryTests() {
         ).not.toContainText(/outside|blocked/)
         await expect(page.locator("[data-submit-count]")).toHaveText("0")
         await root
-          .getByRole("button", { name: "Try Again", exact: true })
+          .getByRole("button", { name: "Try again", exact: true })
           .click()
         await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
         await expect(page.locator("[data-submit-count]")).toHaveText("1")
@@ -177,16 +177,18 @@ export function registerLocationRecoveryTests() {
     }) => {
       await captureSequence(page, ["granted"])
       const root = await open(page, "verify-out-of-range")
-      await root.getByRole("button", { name: "Use my location" }).click()
+      await root.getByRole("button", { name: "Share my location" }).click()
       await expect(
-        root.getByText("You appear to be outside the pub", { exact: true })
+        root.getByText("We couldn't confirm you're at Old Crown Girton", {
+          exact: true,
+        })
       ).toBeVisible()
       await expect(
-        root.getByRole("button", { name: "Try Again", exact: true })
+        root.getByRole("button", { name: "Try again", exact: true })
       ).toBeEnabled()
       await expect(root.locator("[data-venue-code-form]")).toBeVisible()
       await expect(
-        root.getByRole("button", { name: "Add without location" })
+        root.getByRole("button", { name: "Add my stamp without location" })
       ).toHaveCount(0)
     })
 
@@ -195,8 +197,10 @@ export function registerLocationRecoveryTests() {
     }) => {
       await captureSequence(page, ["pending"])
       const root = await open(page)
-      await root.getByRole("button", { name: "Use my location" }).click()
-      await root.getByRole("button", { name: "Enter venue code" }).click()
+      await root.getByRole("button", { name: "Share my location" }).click()
+      await root
+        .getByRole("button", { name: "Enter the venue code instead" })
+        .click()
       await root.getByLabel("Today's code from a team member").fill("482913")
       await root
         .getByRole("button", { name: "Add my stamp", exact: true })
@@ -212,7 +216,7 @@ export function registerLocationRecoveryTests() {
     }) => {
       await captureSequence(page, ["pending"])
       const root = await open(page)
-      await root.getByRole("button", { name: "Use my location" }).dblclick()
+      await root.getByRole("button", { name: "Share my location" }).dblclick()
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
       await expect(page.locator("[data-submit-count]")).toHaveText("1")
       expect(
@@ -225,7 +229,7 @@ export function registerLocationRecoveryTests() {
     }) => {
       await captureSequence(page, ["denied"])
       const root = await open(page)
-      await root.getByRole("button", { name: "Use my location" }).click()
+      await root.getByRole("button", { name: "Share my location" }).click()
       await expect(
         root.getByText("Location access is blocked", { exact: true })
       ).toBeVisible()
@@ -267,7 +271,7 @@ export function registerLocationRecoveryTests() {
       ).toContainText("Nabaperks can't change these settings for you.")
 
       // Retry is still a real browser location attempt, never a pretend reset.
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect
         .poll(() =>
           page.evaluate(() => Reflect.get(window, "locationTestCalls"))
@@ -282,14 +286,14 @@ export function registerLocationRecoveryTests() {
       await page.setViewportSize({ width: 320, height: 568 })
       await captureSequence(page, ["denied"])
       const root = await open(page, "verify-grace-left")
-      await root.getByRole("button", { name: "Use my location" }).click()
+      await root.getByRole("button", { name: "Share my location" }).click()
       await root.getByText("Help with location access", { exact: true }).click()
       await root.getByLabel("Your browser").selectOption("ios-safari")
       await expect(
         root.locator("[data-location-permission-help]")
       ).toContainText("Website Settings → Location → Allow")
       await root.getByText("Help with location access", { exact: true }).click()
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(
         root.getByText("Location access is blocked", { exact: true })
       ).toBeVisible()
@@ -311,7 +315,7 @@ export function registerLocationRecoveryTests() {
         root.locator("[data-location-permission-help]")
       ).toContainText("sign in again, reopen or rescan the venue QR code")
       await root.getByText("Help with location access", { exact: true }).click()
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(
         root.getByText("Location access is blocked", { exact: true })
       ).toBeVisible()
@@ -336,7 +340,7 @@ export function registerLocationRecoveryTests() {
         page,
         "blocked location recovery on a small iPhone"
       )
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(
         root.getByText("Location access is blocked", { exact: true })
       ).toBeVisible()

@@ -26,7 +26,7 @@ export function ProfileEmailDetailRow({
       <ProfileDetailRow
         label="Email"
         value={profile.email}
-        tag={<MonoTag tone="leaf">Verified</MonoTag>}
+        tag={<MonoTag tone="leaf">Confirmed</MonoTag>}
       />
     )
   }
@@ -35,7 +35,7 @@ export function ProfileEmailDetailRow({
     <ProfileDetailRow
       label="Email"
       value={profile.email}
-      tag={<MonoTag tone="sun">Awaiting</MonoTag>}
+      tag={<MonoTag tone="sun">Not confirmed</MonoTag>}
     />
   )
 }

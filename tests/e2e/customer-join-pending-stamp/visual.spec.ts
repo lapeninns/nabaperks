@@ -48,8 +48,8 @@ test.describe("first-stamp recovery", () => {
         where loyalty_card_id = ${fixture.loyaltyCardId}::uuid`
 
       await openTermsStep(page, fixture, phone)
-      await page.getByLabel(/Loyalty terms/i).check()
-      await page.getByRole("button", { name: "Get my first stamp" }).click()
+      await page.getByLabel(/Card terms/i).check()
+      await page.getByRole("button", { name: "Add my first stamp" }).click()
       await expect(page).toHaveURL(/\/card\/[^?]+/)
       await expect(page.getByText("Your card is saved.")).toBeVisible()
       await expect(
@@ -75,13 +75,11 @@ test.describe("first-stamp recovery", () => {
         where membership_id = ${joined.membership_id}::uuid`
 
       await page.reload()
-      await page
-        .getByRole("button", { name: "Try my first stamp again" })
-        .click()
+      await page.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(page).toHaveURL(new RegExp(`/card/${joined.membership_id}`))
-      await expect(page.getByText("That's the full card.")).toBeVisible()
+      await expect(page.getByText("Your card is full.")).toBeVisible()
       await expect(
-        page.getByRole("button", { name: "Try my first stamp again" })
+        page.getByRole("button", { name: "Try again", exact: true })
       ).toHaveCount(0)
 
       const resolved = await readJoinedMembership(sql, fixture, phone)

@@ -9,9 +9,21 @@ for (const width of [375, 768, 1280]) {
   }, testInfo) => {
     await page.setViewportSize({ width, height: 900 })
     await dismissPwaInstall(page)
+    // One requirement per screen (R3): the details step asks for name and
+    // date of birth only; the email address is the step after it.
     await gotoHydratedPage(page, "/dev/reward-collection?state=details")
-    await page.getByLabel("Full name").fill("Adult Customer")
-    await page.getByLabel("Date of birth").fill("1990-01-01")
+    await expect(page.getByLabel("Full name")).toBeVisible()
+    await expect(page.getByLabel("Date of birth")).toBeVisible()
+    await expect(page.getByLabel("Email address", { exact: true })).toHaveCount(
+      0
+    )
+    await expect(
+      page.getByRole("img", { name: /QR code for collecting/i })
+    ).toHaveCount(0)
+
+    await gotoHydratedPage(page, "/dev/reward-collection?state=email-address")
+    await expect(page.getByLabel("Full name")).toHaveCount(0)
+    await expect(page.getByLabel("Date of birth")).toHaveCount(0)
     const email = page.getByLabel("Email address", { exact: true })
     await expect(email).toHaveAttribute("required", "")
     await page.getByRole("button", { name: "Save and continue" }).click()

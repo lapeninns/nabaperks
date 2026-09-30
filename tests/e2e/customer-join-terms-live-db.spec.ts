@@ -39,20 +39,21 @@ test.describe("@customer-flow customer join terms live DB", () => {
       if (!fixture) return
 
       await openTermsStep(page, fixture, phone)
-      await page.getByRole("button", { name: "Get my first stamp" }).click()
+      await page.getByRole("button", { name: "Add my first stamp" }).click()
 
       await expect(
-        page.getByText("Accept the loyalty terms to join.", { exact: true })
+        page.getByText("Tick the card terms to continue.", { exact: true })
       ).toBeVisible()
-      const terms = page.getByLabel(/Loyalty terms/i)
+      const terms = page.getByLabel(/Card terms/i)
       await expect(terms).toBeFocused()
       await expect(terms).toHaveAttribute("aria-invalid", "true")
+      // The error first, then the reward requirements line it always carries.
       await expect(terms).toHaveAttribute(
         "aria-describedby",
-        "loyalty-terms-error"
+        "loyalty-terms-error loyalty-terms-requirements"
       )
       await expect(
-        page.getByRole("heading", { name: "Collect your first stamp" })
+        page.getByRole("heading", { name: /^Join the card at / })
       ).toBeVisible()
       await expect(readJoinedMembership(sql, fixture, phone)).resolves.toBe(
         undefined

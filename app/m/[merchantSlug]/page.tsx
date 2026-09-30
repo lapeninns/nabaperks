@@ -26,7 +26,7 @@ import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
-  title: "Collect your stamp",
+  title: "Save your card",
 }
 // The only DB read behind this page is served from the data cache, so make
 // request-time rendering explicit rather than relying on an uncached read.
@@ -67,9 +67,9 @@ export default async function MerchantRewardsPage({
 
   return (
     <CustomerFlowShell
-      eyebrow="No-app loyalty"
-      title="Collect your stamp"
-      description={`Save ${merchant.business_name}'s card to your number, collect ${loyaltyCard.stamps_required} stamps to unseal a mystery reward. No app, no plastic.`}
+      eyebrow={merchant.business_name}
+      title="Save your card"
+      description={`Save the ${merchant.business_name} card to your mobile number. Your stamps start when you scan the QR at the venue.`}
       dense
       className="content-center"
       screenLabel="Merchant loyalty preview"
@@ -99,7 +99,7 @@ export default async function MerchantRewardsPage({
           description={
             <>
               Collect {loyaltyCard.stamps_required} stamps to unseal a surprise
-              reward, yours from the next venue trading day.
+              reward.
             </>
           }
           className="min-w-0"
@@ -113,7 +113,7 @@ export default async function MerchantRewardsPage({
               referralCode: ref,
             })}
           >
-            Join rewards
+            Save my card
           </Link>
         </Button>
         <CustomerVenueTermsSheet
@@ -131,7 +131,7 @@ export default async function MerchantRewardsPage({
               .filter(Boolean)
               .join(" · "),
           }}
-          triggerLabel="View reward terms"
+          triggerLabel="View venue terms"
           // The sheet's trigger is a plain button, so dress it with the real
           // secondary Button styles (focus ring, press, tokens) via buttonVariants
           // instead of hand-rolling them. no-underline cancels the trigger's

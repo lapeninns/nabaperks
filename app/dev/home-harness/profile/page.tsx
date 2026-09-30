@@ -1,14 +1,24 @@
 import { notFound } from "next/navigation"
+import type { ReactNode } from "react"
 
 import { PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
 import { CustomerProfileAccountSection } from "@/components/customer/profile-account-section"
 import { CustomerProfileAddPhone } from "@/components/customer/profile-add-phone"
-import { CustomerProfileMarketing } from "@/components/customer/profile-marketing-consent"
-import { PhoneMessagingSettings } from "@/components/customer/phone-messaging-settings"
+import { ProfileContactNotice } from "@/components/customer/profile-contact-notice"
+import { CustomerProfileMessagesSection } from "@/components/customer/profile-messages-section"
+import { CustomerProfilePreviousStamps } from "@/components/customer/profile-previous-stamps"
+import { CustomerProfilePreviousStampsEmail } from "@/components/customer/profile-previous-stamps-email"
 import { StatusBanner } from "@/components/loyalty"
-import { customerSignInMethodsLabel } from "@/lib/customer/sign-in-methods"
-import { harnessProfilePhoneAction } from "./actions"
+import {
+  PREVIOUS_STAMPS_RETURN_TO,
+  isContactNotice,
+  previousStampsMethod,
+} from "@/lib/customer/previous-stamps"
+import {
+  harnessPreviousStampsEmailAction,
+  harnessProfilePhoneAction,
+} from "./actions"
 
 /**
  * Fixture sign-out. The real screen submits `signOutCustomerAction` and
@@ -20,33 +30,74 @@ async function noopSignOutAction() {
   if (process.env.NODE_ENV === "production") notFound()
 }
 
+const TITLE = (
+  <PageTitle
+    eyebrow="My Nabaperks"
+    title="Your details"
+    description="What a venue needs to hand over a reward, and the messages you get."
+  />
+)
+
+const FINISH_DETAILS = (
+  <StatusBanner title="Finish your details" tone="warning">
+    Collecting a reward needs your name, date of birth, and a confirmed mobile
+    number and email. You can keep collecting stamps meanwhile.
+  </StatusBanner>
+)
+
+const PHONE_PREFERENCES = {
+  phoneMessagesEnabled: true,
+  preferredPhoneChannel: "whatsapp",
+  whatsappUnavailableAt: "2026-09-19T09:00:00.000Z",
+} as const
+
 /**
- * `?wallet=email-only` is a wallet started with an email: no phone, so no
- * phone messages or phone marketing, and the account area offers to add one.
- * `?email=no-code` is the saved, unverified email with no code pending (a
- * failed send, a lapsed code, another browser): the card offers to send one
- * (QA BUG-036). The default lane has a code pending.
+ * Lanes, all from literal fixtures:
+ * - default: a card with a confirmed mobile number and an email awaiting its
+ *   code; previous stamps asks for the other email (`linked@`, `again@`,
+ *   `review@`, `held@` pick the outcome after code 424242).
+ * - `?email=no-code`: the saved, unconfirmed email with no code pending (a
+ *   failed send, a lapsed code, another browser): the card offers to send
+ *   one (QA BUG-036).
+ * - `?wallet=email-only`: a card started with an email. Contact asks for a
+ *   mobile number; previous stamps asks for the other number (07700900997
+ *   brings stamps together, 996 sign in again, 995 staff, 999 used by
+ *   another card, 998 save failed, 994 code expired).
+ * - `?wallet=complete`: both contacts confirmed; previous stamps points to
+ *   staff.
+ * - `?notice=`: a fixture for the notice a task sends back (`stamps-together`,
+ *   `nothing-found-phone`, `nothing-found-email`, `phone-added`). On
+ *   /home/profile it comes only from the server-set one-time cookie, never the
+ *   URL; here the lane passes it literally. It shows only when the lane's
+ *   confirmed contacts back it (the default lane has a phone, `email-only` an
+ *   email, `complete` both), as on /home/profile.
  */
 export default async function CustomerProfileHarnessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ wallet?: string; email?: string }>
+  searchParams: Promise<{ wallet?: string; email?: string; notice?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
   const query = await searchParams
+  // A literal fixture notice; each lane's confirmed contacts back it, as on
+  // /home/profile.
+  const fixtureNotice = isContactNotice(query.notice) ? query.notice : null
+  const notice = (confirmed: { phone: boolean; email: boolean }) => (
+    <ProfileContactNotice notice={fixtureNotice} confirmed={confirmed} />
+  )
   if (query.wallet === "email-only") {
-    return <EmailOnlyProfile />
+    return <EmailOnlyProfile notice={notice({ phone: false, email: true })} />
+  }
+  if (query.wallet === "complete") {
+    return <CompleteProfile notice={notice({ phone: true, email: true })} />
   }
 
   return (
     <div className="grid gap-6">
-      <PageTitle
-        eyebrow="My Nabaperks"
-        title="Your details"
-        description="Your contact details and the information needed to collect rewards."
-      />
+      {TITLE}
+      {FINISH_DETAILS}
       <CustomerProfileAboutYou
         profile={{
           phone: "+447700900123",
@@ -60,16 +111,33 @@ export default async function CustomerProfileHarnessPage({
         // A fixed literal time keeps the lane deterministic.
         emailCodeSentAt={query.email === "no-code" ? null : 1_790_000_000}
       />
-      <PhoneMessagingSettings
-        preferences={{
-          phoneMessagesEnabled: true,
-          preferredPhoneChannel: "whatsapp",
-          whatsappUnavailableAt: "2026-09-19T09:00:00.000Z",
+      <CustomerProfileMessagesSection
+        consents={[{ channel: "whatsapp", optedIn: true }]}
+        hasPhone
+        phoneMessagingPreferences={PHONE_PREFERENCES}
+        eligibility={{
+          hasVerifiedPhone: true,
+          hasVerifiedEmail: false,
+          membershipCount: 1,
         }}
+      />
+      <CustomerProfilePreviousStamps
+        method={previousStampsMethod({
+          phoneVerified: true,
+          emailVerified: false,
+        })}
+        notice={notice({ phone: true, email: false })}
+        form={
+          <CustomerProfilePreviousStampsEmail
+            action={harnessPreviousStampsEmailAction}
+            returnTo={PREVIOUS_STAMPS_RETURN_TO}
+          />
+        }
       />
       <CustomerProfileAccountSection
         memberSinceLabel="September 2026"
         venueLabel="1 venue"
+        signInWith="your mobile number"
         signOutAction={noopSignOutAction}
         signOutAllAction={noopSignOutAction}
       />
@@ -77,19 +145,11 @@ export default async function CustomerProfileHarnessPage({
   )
 }
 
-function EmailOnlyProfile() {
+function EmailOnlyProfile({ notice }: { notice: ReactNode }) {
   return (
     <div className="grid gap-6">
-      <PageTitle
-        eyebrow="My Nabaperks"
-        title="Your details"
-        description="Your contact details and the information needed to collect rewards."
-      />
-      <StatusBanner title="Finish your details" tone="warning">
-        Complete your name and date of birth, and verify your email and phone
-        number before collecting a reward. You can keep earning stamps
-        meanwhile.
-      </StatusBanner>
+      {TITLE}
+      {FINISH_DETAILS}
       <CustomerProfileAboutYou
         profile={{
           phone: null,
@@ -104,9 +164,10 @@ function EmailOnlyProfile() {
           <CustomerProfileAddPhone action={harnessProfilePhoneAction} />
         }
       />
-      <CustomerProfileMarketing
+      <CustomerProfileMessagesSection
         consents={[{ channel: "email", optedIn: true }]}
         hasPhone={false}
+        phoneMessagingPreferences={null}
         // Literal, so the DB-free lane never loads eligibility from a session.
         eligibility={{
           hasVerifiedPhone: false,
@@ -114,14 +175,71 @@ function EmailOnlyProfile() {
           membershipCount: 1,
         }}
       />
+      <CustomerProfilePreviousStamps
+        method={previousStampsMethod({
+          phoneVerified: false,
+          emailVerified: true,
+        })}
+        notice={notice}
+        form={
+          <CustomerProfileAddPhone
+            action={harnessProfilePhoneAction}
+            variant="previous"
+          />
+        }
+      />
       <CustomerProfileAccountSection
         memberSinceLabel="September 2026"
         venueLabel="1 venue"
-        signInWith={customerSignInMethodsLabel({
-          hasPhone: false,
+        signOutAction={noopSignOutAction}
+        signOutAllAction={noopSignOutAction}
+      />
+    </div>
+  )
+}
+
+function CompleteProfile({ notice }: { notice: ReactNode }) {
+  return (
+    <div className="grid gap-6">
+      {TITLE}
+      <CustomerProfileAboutYou
+        profile={{
+          phone: "+447700900123",
+          fullName: "Alex Regular",
+          dateOfBirth: "1990-01-01",
+          email: "alex@example.test",
+          emailVerified: true,
+          emailLocked: true,
+          needsEmailVerification: false,
+        }}
+      />
+      <CustomerProfileMessagesSection
+        consents={[
+          { channel: "email", optedIn: true },
+          { channel: "sms", optedIn: false },
+        ]}
+        hasPhone
+        phoneMessagingPreferences={{
+          ...PHONE_PREFERENCES,
+          phoneMessagesEnabled: false,
+        }}
+        eligibility={{
+          hasVerifiedPhone: true,
           hasVerifiedEmail: true,
-          emailSignInEnabled: true,
+          membershipCount: 2,
+        }}
+      />
+      <CustomerProfilePreviousStamps
+        method={previousStampsMethod({
+          phoneVerified: true,
+          emailVerified: true,
         })}
+        notice={notice}
+      />
+      <CustomerProfileAccountSection
+        memberSinceLabel="September 2026"
+        venueLabel="2 venues"
+        signInWith="your mobile number"
         signOutAction={noopSignOutAction}
         signOutAllAction={noopSignOutAction}
       />

@@ -32,6 +32,8 @@ const STUBS = {
     export async function getPendingEmailSignIn() { return null }`,
   "@/lib/customer/email-fallback":
     "export async function emailFallbackOpenedFor() { return false }",
+  "@/lib/customer/phone-verification-state":
+    "export async function customerHasVerifiedPhone() { return true }",
   "@/lib/customer/session":
     "export async function getPendingPhoneVerification() { return null }",
   "@/lib/customer/stamp":
@@ -127,11 +129,8 @@ test("Given the database is unreachable When the join page loads Then it asks fo
   assert.doesNotMatch(page.text, /loyalty card is unavailable/i)
   assert.doesNotMatch(page.text, /wizard:unavailable/)
   assert.doesNotMatch(page.text, /current loyalty QR/)
-  assert.match(page.text, /We can't load this right now/)
-  assert.match(
-    page.text,
-    /Your cards and stamps are safe\. Try again in a moment\./
-  )
+  assert.match(page.text, /We couldn't load this card/)
+  assert.match(page.text, /Check your signal or Wi-Fi, then try again\./)
   assert.match(page.html, /href="\/m\/old-crown\/join\?qr=old-crown-bar"/)
   assert.deepEqual(page.logs, [
     {
@@ -151,7 +150,7 @@ test(
     const page = await openJoin(() => new Promise(() => {}))
 
     assert.ok(page.ms < 5_000, `answered after ${page.ms} ms`)
-    assert.match(page.text, /We can't load this right now/)
+    assert.match(page.text, /We couldn't load this card/)
     assert.equal(page.logs[0]?.reason, "timeout")
   }
 )
@@ -163,6 +162,6 @@ test("Given an unknown or inactive venue When the join page loads Then it is sti
     page.text,
     /wizard:unavailable:This loyalty card is unavailable\./
   )
-  assert.doesNotMatch(page.text, /We can't load this right now/)
+  assert.doesNotMatch(page.text, /We couldn't load this card/)
   assert.deepEqual(page.logs, [])
 })

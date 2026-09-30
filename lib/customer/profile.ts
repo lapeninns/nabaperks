@@ -6,10 +6,7 @@ import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-stat
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentCustomer } from "@/lib/customer/identity"
-import type {
-  ContactEventSurface,
-  EmailPromptSurface,
-} from "@/lib/customer/contact-event-core"
+import type { ContactEventSurface } from "@/lib/customer/contact-event-core"
 import { recordCustomerEmailAudit } from "@/lib/customer/email-audit"
 import {
   customerEmailHmac,
@@ -327,7 +324,7 @@ export type SetCustomerEmailForVerificationResult =
  */
 export async function setCustomerEmailForVerification(
   email: string,
-  surface: EmailPromptSurface
+  surface: ContactEventSurface
 ): Promise<SetCustomerEmailForVerificationResult> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")

@@ -60,10 +60,16 @@ test("Given /home/login When a verified email holds no wallet Then it never crea
     verify.body.indexOf("checkEmailSignInChallenge(") <
       verify.body.indexOf("findCustomerByVerifiedEmail(")
   )
+  // Said in the guest's words, with no "wallet".
   assert.match(
     source,
-    /"No wallet uses this email yet\. Scan a venue QR to join, or sign in with your phone\."/
+    /const NO_WALLET_MESSAGE = "You can use your mobile number instead\."/
   )
+  const guestCopy = [...source.matchAll(/const [A-Z_]+ =\s*"([^"]+)"/g)].map(
+    ([, text]) => text
+  )
+  assert.ok(guestCopy.length >= 5)
+  for (const text of guestCopy) assert.doesNotMatch(text, /wallet|—|!/i, text)
   // A failed lookup or session after a matched code keeps that code usable.
   assert.match(source, /await keepEmailSignInForRetry\(verified\)/)
   // The same scan step as a phone with no cards (#387), not another code.
@@ -128,8 +134,19 @@ test("Given any email mode When /home/login opens Then phone leads and email is 
   )
   assert.match(
     form,
-    /sendFailedAlternate=\{emailSwitch\("Use my email instead"\)\}/
+    /sendFailedAlternate=\{emailSwitch\(LOGIN_COPY\.emailFallback\)\}/
   )
+  // A switch to email is only ever a quiet link, never a first choice.
+  const methodSwitch = read(
+    "components",
+    "customer",
+    "customer-login-method-switch.tsx"
+  )
+  assert.match(
+    methodSwitch,
+    /const quiet = to === "email" \|\| variant === "link"/
+  )
+  assert.match(methodSwitch, /variant=\{quiet \? "link" : "outline"\}/)
   // The code step counts down the server's seconds left, not a device-clock
   // deadline.
   const code = phone.slice(
@@ -143,8 +160,9 @@ test("Given any email mode When /home/login opens Then phone leads and email is 
   )
   assert.doesNotMatch(code, /Date\.now/)
   assert.ok(
-    code.indexOf("Wrong number? Use a different one") <
-      code.indexOf("<CodeEmailFallback")
+    code.indexOf("{LOGIN_COPY.changeNumber}") > 0 &&
+      code.indexOf("{LOGIN_COPY.changeNumber}") <
+        code.indexOf("<CodeEmailFallback")
   )
   const countdown = phone.slice(phone.indexOf("function CodeEmailFallback("))
   assert.match(countdown, /useEmailFallbackReady\(inSeconds\)/)
@@ -157,7 +175,10 @@ test("Given any email mode When /home/login opens Then phone leads and email is 
     actions,
     /\.\.\.phoneCodeStepTiming\(pending\.issuedAt, Date\.now\(\)\)/
   )
-  assert.match(actions, /fields: loginPhoneCodeFields\(pendingCode\)/)
+  assert.match(
+    actions,
+    /fields: loginPhoneCodeFields\(\{ \.\.\.pendingCode, channel: sentChannel \}\)/
+  )
   const verify = actions.slice(
     actions.indexOf("export async function verifyCustomerLoginOtpAction(")
   )

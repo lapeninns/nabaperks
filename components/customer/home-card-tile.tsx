@@ -15,8 +15,11 @@ import { ReferralBonusBankMini } from "@/components/customer/referral-bonus-bank
 import { ReferralShareButton } from "@/components/customer/referral-share-button"
 import { StampGrid } from "@/components/loyalty"
 import {
+  hasReadyStampReward,
   homeCardNextStep,
   homeCardStatusCopy,
+  REWARD_NEEDS_SETUP_ACTION,
+  stampRewardNeedsSetup,
 } from "@/lib/customer/home-dashboard"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
@@ -49,9 +52,21 @@ export function HomeCardTile({
   // still waiting, a stamp the venue can add today, or today's stamp already
   // collected — so the tile's next step reads at a glance.
   const nextStep = homeCardNextStep(card)
-  const rewardReadyLabel =
-    formatCollectionAvailability(card.revealedRewardAvailableFrom ?? null) ??
-    "Ready from the next trading day"
+  const rewardReady = hasReadyStampReward(card)
+  // A reward held only by setup is never "ready" and never offers a code.
+  const rewardNeedsSetup = stampRewardNeedsSetup(card)
+  const rewardTimingLabel = rewardReady
+    ? "Ready to collect"
+    : rewardNeedsSetup
+      ? "Finish setting up to collect"
+      : (formatCollectionAvailability(
+          card.revealedRewardAvailableFrom ?? null
+        ) ?? "Open the card to see when it's ready")
+  const openLabel = rewardReady
+    ? "Open reward"
+    : rewardNeedsSetup
+      ? REWARD_NEEDS_SETUP_ACTION
+      : "Open card"
 
   return (
     <div className="grid min-w-0 gap-2">
@@ -83,9 +98,7 @@ export function HomeCardTile({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <MonoTag tone={card.stampRewardId ? "leaf" : "plain"}>
-              {card.stampRewardId ? "Open reward QR" : "Open card"}
-            </MonoTag>
+            <MonoTag tone={rewardReady ? "leaf" : "plain"}>{openLabel}</MonoTag>
             {nextStep ? (
               <MonoTag tone={nextStep.tone}>{nextStep.label}</MonoTag>
             ) : null}
@@ -111,7 +124,7 @@ export function HomeCardTile({
               data-reward-ticket="revealed"
               className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
             >
-              <Eyebrow>Your reward wallet</Eyebrow>
+              <Eyebrow>Your reward</Eyebrow>
               {/* Reward name wraps freely on its own row — never truncated or clipped. */}
               <p className="text-sm leading-tight font-extrabold break-words">
                 {card.stampRewardName ??
@@ -119,7 +132,7 @@ export function HomeCardTile({
                   "Your reward"}
               </p>
               <span className="mono-id w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
-                {card.stampRewardId ? "Ready to collect" : rewardReadyLabel}
+                {rewardTimingLabel}
               </span>
             </div>
           ) : (
@@ -178,11 +191,11 @@ function TileGiftChip({
 }) {
   const badge = rewardSourceBadge(gift.source, businessName) ?? "Gift"
   const label = gift.redeemable
-    ? "Ready to collect"
-    : gift.availableFrom
-      ? (formatCollectionAvailability(gift.availableFrom) ??
-        "Ready from the next trading day")
-      : "Collection timing will appear here"
+    ? gift.needsSetup
+      ? "Finish setting up to collect"
+      : "Ready to collect"
+    : (formatCollectionAvailability(gift.availableFrom) ??
+      "Open the card to see when it's ready")
 
   return (
     <div

@@ -22,13 +22,40 @@ export const STAMP_HARNESS_MODES = [
   "verify-rate-limited",
   "verify-code-locked",
   "verify-code-throttled",
-  // A phone-only member: once the stamp lands, the compact "Add your email"
-  // card appears below the card (QA BUG-020), never before.
-  "email-prompt",
+  // The next stamp time is unknown (the venue's day start could not be read):
+  // the quiet line falls back to "on your next visit".
+  "success-next-visit",
+  "closed-next-visit",
 ] as const
 
 export type HarnessMode = (typeof STAMP_HARNESS_MODES)[number]
 
 export function isStampHarnessMode(value: string): value is HarnessMode {
   return (STAMP_HARNESS_MODES as readonly string[]).includes(value)
+}
+
+/**
+ * Stamp outcomes that land on the card page instead of the stamp screen, so
+ * the harness mounts the real card surface for them:
+ *
+ * - `unmatched-missing` / `unmatched-venue`: S6, the stamp link had no venue
+ *   QR, or a QR from another venue.
+ * - `first-stamp-rescan` / `first-stamp-retry` / `first-stamp-venue`: S8, the
+ *   card was saved on joining but the first stamp did not land, with each
+ *   recovery the server can offer.
+ */
+export const STAMP_HARNESS_CARD_MODES = [
+  "unmatched-missing",
+  "unmatched-venue",
+  "first-stamp-rescan",
+  "first-stamp-retry",
+  "first-stamp-venue",
+] as const
+
+export type StampHarnessCardMode = (typeof STAMP_HARNESS_CARD_MODES)[number]
+
+export function isStampHarnessCardMode(
+  value: string
+): value is StampHarnessCardMode {
+  return (STAMP_HARNESS_CARD_MODES as readonly string[]).includes(value)
 }

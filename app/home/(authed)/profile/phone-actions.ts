@@ -2,14 +2,22 @@
 
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
+import { emailSignInEnabled } from "@/lib/customer/email-auth-mode"
 import { normalizeOtpInput } from "@/lib/customer/experience/otp-field"
 import {
   linkWalletAfterContactVerification,
   walletLinkFailureMessage,
 } from "@/lib/customer/wallet-link"
 import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
+import { setContactNoticeFlash } from "@/lib/customer/contact-notice-flash"
+import {
+  walletLinkedMessage,
+  type ContactNotice,
+  type WalletLinkRecovery,
+} from "@/lib/customer/previous-stamps"
 import {
   attachVerifiedPhoneToCustomer,
   getCurrentCustomer,
@@ -24,7 +32,7 @@ import {
   enforceCustomerOtpVerifyRateLimit,
   releaseCustomerOtpVerifyAdmission,
 } from "@/lib/customer/otp-rate-limit"
-import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
+import { normalizePhone } from "@/lib/customer/phone"
 import {
   clearPendingPhoneVerification,
   getPendingPhoneVerification,
@@ -57,21 +65,37 @@ import {
  */
 
 const PROFILE_PATH = "/home/profile"
-const SIGN_IN_FIRST = "Sign in to add a phone number."
-const SEND_FAILED = "We couldn't send a code just now. Try again shortly."
-const CODE_EXPIRED = "Request a new code."
+const SIGN_IN_FIRST = "Sign in again to add your mobile number."
+const SEND_FAILED = "We couldn't send a code just now. Try again."
+const CODE_EXPIRED = "Your code expired. Send a new one."
 const REQUEST_MESSAGE = "If a code arrives for that number, enter it here."
-const ALREADY_HAS_PHONE = "Your wallet already has a phone number."
-const ATTACHED = "Your phone number is added. You can sign in with it too."
+const ALREADY_HAS_PHONE = "Your mobile number is already confirmed."
+const ATTACHED = "Your mobile number is confirmed. You can use it to sign in."
 const ADD_FAILED =
-  "We couldn't add this phone number just now. Try again shortly."
+  "We couldn't save your number just now. Send a new code and try again."
+const CODE_MALFORMED = "Enter the code we sent you."
+const TOO_MANY_TRIES = "Too many tries. Send a new code in a few minutes."
+const CHECK_FAILED =
+  "We couldn't check that code. Try again, or send a new code."
+const CODE_REJECTED = "That code didn't work. Check it and try again."
+/** Longest number a guest could reasonably type, echoed back to their form. */
+const MAX_TYPED_PHONE_LENGTH = 32
 
 export type ProfilePhoneState = {
   readonly step: "phone" | "code" | "attached"
-  /** The number as typed on the phone step, or E.164 once a code is sent. */
+  /**
+   * The number as typed on the phone step, or E.164 once a code is sent. Kept
+   * on every answer that returns to the number, so a failure never empties
+   * the field.
+   */
   readonly phone?: string
   /** The channel that carried the code, so the code step can offer a text. */
   readonly channel?: OtpChannel
+  /**
+   * When this code was asked for (epoch seconds), so the code step can count
+   * down to "Send a new code". Display only: admission stays on the server.
+   */
+  readonly codeSentAt?: number
   readonly errors?: {
     readonly phone?: string
     readonly otp?: string
@@ -79,7 +103,13 @@ export type ProfilePhoneState = {
   }
   readonly message?: string
   readonly walletLinked?: boolean
-  readonly recovery?: "reauthenticate" | "requires_review"
+  /**
+   * This request checked a code and added the number (or brought the stamps
+   * together). Only then may a form redirect back with a notice: an early
+   * "already confirmed" answer proved nothing and linked nothing.
+   */
+  readonly verifiedNow?: boolean
+  readonly recovery?: WalletLinkRecovery
 }
 
 /**
@@ -92,14 +122,45 @@ export async function profilePhoneAction(
   state: ProfilePhoneState,
   formData: FormData
 ): Promise<ProfilePhoneState> {
-  return phoneAction(state, formData, "profile")
+  return await returnWithNotice(
+    await phoneAction(state, formData, "profile"),
+    formData
+  )
 }
 
 export async function rewardPhoneAction(
   state: ProfilePhoneState,
   formData: FormData
 ): Promise<ProfilePhoneState> {
-  return phoneAction(state, formData, "reward_gate")
+  return await returnWithNotice(
+    await phoneAction(state, formData, "reward_gate"),
+    formData
+  )
+}
+
+/**
+ * When the form names where the guest was (`returnTo`: the reward, or the
+ * profile's previous-stamps task), a confirmed number redirects back there
+ * with the outcome in a one-time server-set notice (never a URL flag). Those
+ * screens move on once the number is added (the reward gate passes its phone
+ * step, the task asks for an email next), which unmounts this form and would
+ * otherwise lose the confirmation. Without `returnTo` the form shows its own
+ * answer, as the Contact section does.
+ */
+async function returnWithNotice(
+  result: ProfilePhoneState,
+  formData: FormData
+): Promise<ProfilePhoneState> {
+  const returnTo = value(formData, "returnTo")
+  if (result.step !== "attached" || !result.verifiedNow || !returnTo) {
+    return result
+  }
+  const notice: ContactNotice = result.walletLinked
+    ? "stamps-together"
+    : value(formData, "task") === "previous"
+      ? "nothing-found-phone"
+      : "phone-added"
+  redirect(await setContactNoticeFlash(notice, returnTo))
 }
 
 async function phoneAction(
@@ -111,7 +172,7 @@ async function phoneAction(
   if (intent === "verify") return verifyAttachPhone(formData, surface)
   if (intent === "edit") {
     await clearPendingPhoneVerification()
-    return { step: "phone", phone: value(formData, "phone") || state.phone }
+    return { step: "phone", phone: typedPhone(formData) || state.phone }
   }
   return requestAttachPhone(formData)
 }
@@ -120,43 +181,47 @@ async function requestAttachPhone(
   formData: FormData
 ): Promise<ProfilePhoneState> {
   const customer = await getCurrentCustomer()
-  if (!customer) return { step: "phone", errors: { form: SIGN_IN_FIRST } }
+  const raw = typedPhone(formData)
+  if (!customer) {
+    return { step: "phone", phone: raw, errors: { form: SIGN_IN_FIRST } }
+  }
   if (await customerHasVerifiedPhone(customer.id)) {
     return { step: "attached", message: ALREADY_HAS_PHONE }
   }
 
-  const raw = value(formData, "phone")
   const requestHeaders = await headers()
   const resent = await pendingAttachFor(customer.id, formData)
   const normalized = resent
     ? ({ ok: true, phone: resent } as const)
-    : normalizePhone(raw, defaultCountryFromHeaders(requestHeaders))
+    : normalizePhone(raw)
   if (!normalized.ok) {
     return { step: "phone", phone: raw, errors: { phone: normalized.error } }
   }
 
   const phone = normalized.phone
-  // Refused admission still sets the pending code, so the answer is the same.
-  const admitted = await enforceCustomerOtpSendRateLimit({
-    phone: phone.e164,
-    requestIdentity: customerRateLimitIdentityFromHeaders(requestHeaders),
-    trustedIp: trustedClientIp(requestHeaders),
-    scope: "attach",
-    deviceHash: customerDeviceHashFromHeaders(requestHeaders),
-  })
+  const failed: ProfilePhoneState = {
+    step: "phone",
+    phone: raw || phone.e164,
+    errors: { form: SEND_FAILED },
+  }
   let channel =
     parseOtpChannel(value(formData, "channel")) ??
     resent?.channel ??
     primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL)
-  if (admitted) {
-    const sent = await startCustomerPhoneVerification(phone.e164, channel)
-    if (sent.status === "unavailable") {
-      return { step: "phone", phone: raw, errors: { form: SEND_FAILED } }
-    }
-    channel = sent.channel
-  }
-
   try {
+    // Refused admission still sets the pending code, so the answer is the same.
+    const admitted = await enforceCustomerOtpSendRateLimit({
+      phone: phone.e164,
+      requestIdentity: customerRateLimitIdentityFromHeaders(requestHeaders),
+      trustedIp: trustedClientIp(requestHeaders),
+      scope: "attach",
+      deviceHash: customerDeviceHashFromHeaders(requestHeaders),
+    })
+    if (admitted) {
+      const sent = await startCustomerPhoneVerification(phone.e164, channel)
+      if (sent.status === "unavailable") return failed
+      channel = sent.channel
+    }
     await setPendingPhoneVerification({
       purpose: "attach",
       phone: phone.e164,
@@ -165,10 +230,18 @@ async function requestAttachPhone(
       customerId: customer.id,
     })
   } catch {
-    return { step: "phone", phone: raw, errors: { form: SEND_FAILED } }
+    // A failed admission store, provider call or cookie write: no code the
+    // guest can use is pending, so they stay on the number, as typed.
+    return failed
   }
 
-  return { step: "code", phone: phone.e164, channel, message: REQUEST_MESSAGE }
+  return {
+    step: "code",
+    phone: phone.e164,
+    channel,
+    codeSentAt: Math.floor(Date.now() / 1_000),
+    message: REQUEST_MESSAGE,
+  }
 }
 
 /** This wallet's pending attach code, when the form asks to resend it. */
@@ -193,17 +266,29 @@ async function verifyAttachPhone(
   surface: "profile" | "reward_gate"
 ): Promise<ProfilePhoneState> {
   const customer = await getCurrentCustomer()
-  if (!customer) return { step: "phone", errors: { form: SIGN_IN_FIRST } }
+  if (!customer) {
+    return {
+      step: "phone",
+      phone: typedPhone(formData),
+      errors: { form: SIGN_IN_FIRST },
+    }
+  }
 
   // Bound to this wallet: a code requested on another wallet, or for joining
-  // or signing in, never adds a phone here.
+  // or signing in, never adds a phone here. The number the code step showed
+  // is echoed back (it is the guest's own input), so they can send a new
+  // code without typing it again.
   const pending = await getPendingPhoneVerification()
   if (
     !pending ||
     pending.purpose !== "attach" ||
     pending.customerId !== customer.id
   ) {
-    return { step: "phone", errors: { phone: CODE_EXPIRED } }
+    return {
+      step: "phone",
+      phone: typedPhone(formData),
+      errors: { phone: CODE_EXPIRED },
+    }
   }
 
   const codeStep = {
@@ -213,78 +298,111 @@ async function verifyAttachPhone(
   }
   const otp = normalizeOtpInput(value(formData, "otp"))
   if (!/^\d{4,8}$/.test(otp)) {
-    return { ...codeStep, errors: { otp: "Enter the code from your message." } }
+    return { ...codeStep, errors: { otp: CODE_MALFORMED } }
   }
 
   const checked = await checkAttachCode(pending.phone, otp)
   if (checked) return { ...codeStep, errors: checked }
 
-  const result = await attachVerifiedPhoneToCustomer({
-    customerId: customer.id,
-    phone: {
-      e164: pending.phone,
-      country: pending.country,
-      last4: pending.phone.slice(-4),
-    },
-    surface,
-  })
+  // The code is spent from here on, so the pending code goes whatever the
+  // attach answers; every failure keeps the number for a fresh code.
+  const retry: ProfilePhoneState = {
+    step: "phone",
+    phone: pending.phone,
+    errors: { form: ADD_FAILED },
+  }
+  let result: Awaited<ReturnType<typeof attachVerifiedPhoneToCustomer>>
+  try {
+    result = await attachVerifiedPhoneToCustomer({
+      customerId: customer.id,
+      phone: {
+        e164: pending.phone,
+        country: pending.country,
+        last4: pending.phone.slice(-4),
+      },
+      surface,
+    })
+  } catch {
+    await clearPendingPhoneVerification()
+    return retry
+  }
   await clearPendingPhoneVerification()
   if (result.status === "wallet_unavailable") {
-    return { step: "phone", errors: { form: SIGN_IN_FIRST } }
+    return { ...retry, errors: { form: SIGN_IN_FIRST } }
   }
 
   // The phone was taken off again because its audit row could not be
   // written; the code is spent, so the customer starts over.
-  if (result.status === "audit_failed") {
-    return { step: "phone", phone: pending.phone, errors: { form: ADD_FAILED } }
-  }
+  if (result.status === "audit_failed") return retry
   if (result.status === "contact_conflict") {
-    let link: Awaited<ReturnType<typeof linkWalletAfterContactVerification>>
-    try {
-      link = await linkWalletAfterContactVerification("phone", pending.phone)
-    } catch {
-      return {
-        step: "phone",
-        phone: pending.phone,
-        errors: { form: ADD_FAILED },
-      }
-    }
-    if (link.status === "linked") {
-      revalidatePath("/home", "layout")
-      revalidatePath("/reward", "layout")
-      return {
-        step: "attached",
-        walletLinked: true,
-        message:
-          "Your wallets are linked. You can sign in with your phone or email. Your stamps and rewards are together.",
-      }
-    }
-    recordCustomerContactEvent({
-      eventName: "customer_contact_conflict",
+    return linkAfterConflict({
       customerId: customer.id,
-      metadata: { method: "phone", surface, reason: "phone_in_use" },
+      phone: pending.phone,
+      surface,
+      retry,
     })
-    return {
-      step: "phone",
-      errors: { form: walletLinkFailureMessage(link.status) },
-      ...(link.status === "reauthenticate" || link.status === "requires_review"
-        ? { recovery: link.status }
-        : {}),
-    }
   }
 
   revalidatePath(PROFILE_PATH)
   revalidatePath("/reward", "layout")
+  return result.status === "attached"
+    ? { step: "attached", verifiedNow: true, message: ATTACHED }
+    : { step: "attached", message: ALREADY_HAS_PHONE }
+}
+
+/**
+ * Another card holds the proven number. When it is the complementary card
+ * the stamps are brought together here; otherwise nothing changes, the
+ * refusal is recorded and the guest keeps the number they typed.
+ */
+async function linkAfterConflict({
+  customerId,
+  phone,
+  surface,
+  retry,
+}: {
+  customerId: string
+  phone: string
+  surface: "profile" | "reward_gate"
+  retry: ProfilePhoneState
+}): Promise<ProfilePhoneState> {
+  let link: Awaited<ReturnType<typeof linkWalletAfterContactVerification>>
+  try {
+    link = await linkWalletAfterContactVerification("phone", phone)
+  } catch {
+    return retry
+  }
+  if (link.status === "linked") {
+    revalidatePath("/home", "layout")
+    revalidatePath("/reward", "layout")
+    return {
+      step: "attached",
+      walletLinked: true,
+      verifiedNow: true,
+      message: walletLinkedMessage(emailSignInEnabled()),
+    }
+  }
+  recordCustomerContactEvent({
+    eventName: "customer_contact_conflict",
+    customerId,
+    metadata: { method: "phone", surface, reason: "phone_in_use" },
+  })
   return {
-    step: "attached",
-    message: result.status === "attached" ? ATTACHED : ALREADY_HAS_PHONE,
+    step: "phone",
+    phone,
+    errors: { form: walletLinkFailureMessage(link.status, "phone") },
+    ...(link.status === "reauthenticate" || link.status === "requires_review"
+      ? { recovery: link.status }
+      : {}),
   }
 }
 
 /**
  * Guess limits, then the provider check. Returns the errors to show, if any.
  * Only a rejected code keeps its reserved attempt: an approved one hands it
- * back, as join and sign-in do (QA BUG-030).
+ * back, as join and sign-in do (QA BUG-030). A failure of the limiter or the
+ * provider itself answers like an unavailable check, keeping the pending
+ * code, rather than reaching the error boundary.
  */
 async function checkAttachCode(
   phone: string,
@@ -294,23 +412,30 @@ async function checkAttachCode(
   try {
     await enforceCustomerOtpVerifyRateLimit({ phone, requestIdentity })
   } catch (error) {
-    if (error instanceof RateLimitError) {
-      return { form: "Too many code attempts. Request a new code shortly." }
+    return {
+      form: error instanceof RateLimitError ? TOO_MANY_TRIES : CHECK_FAILED,
     }
-    throw error
   }
 
-  const verification = await checkCustomerPhoneVerification(phone, otp)
-  if (verification.status === "unavailable") {
-    return {
-      form: "We couldn't check that code. Try again or request a new one.",
-    }
+  let verification: Awaited<ReturnType<typeof checkCustomerPhoneVerification>>
+  try {
+    verification = await checkCustomerPhoneVerification(phone, otp)
+  } catch {
+    return { form: CHECK_FAILED }
   }
-  if (verification.status === "rejected") {
-    return { otp: "That code was not accepted." }
+  if (verification.status === "unavailable") return { form: CHECK_FAILED }
+  if (verification.status === "rejected") return { otp: CODE_REJECTED }
+  try {
+    await releaseCustomerOtpVerifyAdmission({ phone, requestIdentity })
+  } catch {
+    // Best effort: the approved code still counts against the limit.
   }
-  await releaseCustomerOtpVerifyAdmission({ phone, requestIdentity })
   return null
+}
+
+/** The number as the guest typed it, bounded, to refill their field. */
+function typedPhone(formData: FormData): string {
+  return value(formData, "phone").slice(0, MAX_TYPED_PHONE_LENGTH)
 }
 
 function value(formData: FormData, key: string): string {

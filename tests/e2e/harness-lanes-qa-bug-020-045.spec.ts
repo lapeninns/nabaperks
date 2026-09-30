@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
 /**
- * DB-free harness lanes owed by earlier QA fixes (38c42a1..2c45031). The live
- * behaviour is proven elsewhere: the stamp-screen email ask in
- * customer-stamp-email-prompt-live-db.spec.ts (BUG-020) and the other-venue
+ * DB-free harness lanes owed by earlier QA fixes (38c42a1..2c45031) and the
+ * guest journey redesign. The live behaviour is proven elsewhere: the stamp
+ * screen in customer-stamp-email-prompt-live-db.spec.ts and the other-venue
  * scan refusal in tests/db/reward-scan-other-venue-bug-045.test.mjs. These
  * lanes pin the screens themselves so they can be reviewed and captured
  * without a database.
@@ -15,26 +15,65 @@ test.describe("QA follow-up harness lanes", () => {
     await dismissPwaInstall(page)
   })
 
-  test("stamp screen: the add-email card appears only after the stamp lands (BUG-020)", async ({
+  test("stamp screen: once the stamp lands the result stands alone, with no contact prompt", async ({
     page,
   }) => {
-    await page.goto("/dev/home-harness/stamp?mode=email-prompt&delay=40")
+    await page.goto("/dev/home-harness/stamp?mode=success&delay=40")
     const root = page.locator("[data-stamp-phase]")
-    const prompt = page.getByTestId("email-prompt")
 
     await expect(
-      root.getByRole("button", { name: "Add today's stamp" })
+      page.getByRole("heading", { level: 1, name: "Today's stamp" })
     ).toBeVisible()
-    await expect(prompt).toHaveCount(0)
-
-    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await root.getByRole("button", { name: "Stamp my card" }).click()
     await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
-    await expect(prompt).toBeVisible()
     await expect(
-      prompt.getByRole("heading", { name: "Add your email" })
+      page.getByRole("heading", { level: 1, name: "Stamp added." })
     ).toBeVisible()
-    // The prompt sits inside the stamp collector, below the card.
-    await expect(root.getByTestId("email-prompt")).toHaveCount(1)
+    await expect(
+      page.getByText("1 more to your reward.", { exact: true })
+    ).toBeVisible()
+    await expect(root.locator("[data-stamp-receipt]")).toHaveText("4 OF 5")
+    await expect(
+      page.getByText("Next stamp from Fri 17 Jul, 06:00.")
+    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "View my card" })).toBeVisible()
+    await expect(page.getByTestId("email-prompt")).toHaveCount(0)
+    await expect(page.getByText(/Added without a location check/)).toHaveCount(
+      0
+    )
+  })
+
+  test("stamp screen: an unknown next-stamp time falls back to the next visit", async ({
+    page,
+  }) => {
+    await page.goto("/dev/home-harness/stamp?mode=success-next-visit&delay=40")
+    const root = page.locator("[data-stamp-phase]")
+
+    await root.getByRole("button", { name: "Stamp my card" }).click()
+    await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
+    await expect(
+      page.getByText("You can get your next stamp on your next visit.")
+    ).toBeVisible()
+  })
+
+  test("stamp screen: already stamped names the next stamp time", async ({
+    page,
+  }) => {
+    await page.goto("/dev/home-harness/stamp?mode=closed")
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "You've already got today's stamp",
+      })
+    ).toBeVisible()
+    await expect(
+      page.getByText("Next stamp from Fri 17 Jul, 06:00.")
+    ).toBeVisible()
+    await expect(page.getByText(/trading day|daily reset/)).toHaveCount(0)
+
+    await page.goto("/dev/home-harness/stamp?mode=closed-next-visit")
+    await expect(page.getByText("Come back on your next visit.")).toBeVisible()
   })
 
   test("reward scan: another venue's code shows only the not-matched banner (BUG-045)", async ({

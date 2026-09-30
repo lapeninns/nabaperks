@@ -13,12 +13,9 @@ import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Field, FieldGroup } from "@/components/ui/field"
 import { useOtpRetryCountdown } from "@/hooks/use-otp-retry-countdown"
-import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
-import {
-  JOIN_EMAIL_SPAM_HINT,
-  JOIN_EMAIL_WIFI_HINT,
-} from "@/lib/customer/experience/copy"
-import { OTP_SEND_LABEL } from "@/lib/customer/otp-channel-core"
+import { JOIN_EMAIL_SPAM_HINT } from "@/lib/customer/experience/copy"
+import { LOGIN_COPY } from "@/lib/customer/login-copy"
+import { resendClock, resendWaiting } from "@/lib/customer/otp-resend"
 
 /** After this long without a code, suggest the spam folder. */
 const SPAM_HINT_AFTER_MS = 30_000
@@ -26,7 +23,7 @@ const SPAM_HINT_AFTER_MS = 30_000
 /**
  * /home/login by email: the address, then the code from the email. The code
  * goes out by email, so it arrives over the venue's Wi-Fi when there is no
- * mobile signal. Whether a wallet uses the address is said only after the
+ * mobile signal. Whether a card uses the address is said only after the
  * code proves the inbox is the customer's.
  */
 export function CustomerLoginEmailStep(props: CustomerLoginStepProps) {
@@ -43,8 +40,9 @@ export function CustomerLoginEmailStep(props: CustomerLoginStepProps) {
 }
 
 /**
- * The code proved the inbox and no wallet uses the address. As on the phone
- * step, point at the venue QR instead of offering another code.
+ * The code proved the inbox and no card uses the address. As on the phone
+ * step, point at the venue QR instead of offering another code, with one way
+ * back to the mobile number.
  */
 function EmailScanStep({
   state,
@@ -63,7 +61,7 @@ function EmailScanStep({
           disabled={pending}
           pendingLabel="Changing email…"
         >
-          Use a different email
+          {LOGIN_COPY.changeEmail}
         </SubmitButton>
       </form>
       <CustomerLoginMethodSwitch
@@ -72,7 +70,7 @@ function EmailScanStep({
         pending={pending}
         variant="link"
       >
-        Use my phone instead
+        {LOGIN_COPY.useMobile}
       </CustomerLoginMethodSwitch>
     </CustomerLoginScanStep>
   )
@@ -116,7 +114,9 @@ function EmailRequestStep({
               defaultValue={state.fields?.email ?? ""}
               className={customerInputClass}
               aria-invalid={Boolean(emailError)}
-              aria-describedby={emailError ? "email-error" : "email-hint"}
+              // The Wi-Fi line is the heading's support (loginHeading), as on
+              // the join email step, so it is not repeated under the field.
+              aria-describedby={emailError ? "email-error" : undefined}
             />
             {emailError ? (
               <p
@@ -126,14 +126,7 @@ function EmailRequestStep({
               >
                 {emailError}
               </p>
-            ) : (
-              <p
-                id="email-hint"
-                className="text-xs leading-5 text-muted-foreground"
-              >
-                {JOIN_EMAIL_WIFI_HINT}
-              </p>
-            )}
+            ) : null}
           </Field>
           {formError ? <StatusBanner tone="error" title={formError} /> : null}
           {message ? (
@@ -147,7 +140,7 @@ function EmailRequestStep({
             disabled={pending}
             pendingLabel="Sending…"
           >
-            {OTP_SEND_LABEL}
+            {LOGIN_COPY.emailSend}
           </SubmitButton>
         </FieldGroup>
       </form>
@@ -179,7 +172,7 @@ function EmailCodeStep({
         <FieldGroup className="gap-4">
           <Field className="gap-2" data-invalid={Boolean(verifyError)}>
             <label htmlFor="otp" className="eyebrow">
-              Email code
+              {LOGIN_COPY.emailCodeLabel}
             </label>
             <CustomerOtpInput
               id="otp"
@@ -216,7 +209,7 @@ function EmailCodeStep({
             disabled={pending}
             pendingLabel="Checking…"
           >
-            {OPEN_MY_CARDS_LABEL}
+            {LOGIN_COPY.continue}
           </SubmitButton>
         </FieldGroup>
       </form>
@@ -230,22 +223,18 @@ function EmailCodeStep({
         >
           <input type="hidden" name="intent" value="email-request" />
           <input type="hidden" name="resend" value="1" />
-          <p className="min-w-0 text-sm">
-            <span className="text-muted-foreground">Sent to </span>
-            <span className="font-bold break-all">{fields?.maskedEmail}</span>
-          </p>
           <SubmitButton
             variant="link"
             size="xs"
             className="tabular-nums"
             // Disabled only once the client clock runs, so a resend still
             // posts before hydration; the server keeps the cooldown anyway.
-            disabled={pending || (countdown.ready && countdown.active)}
+            disabled={pending || resendWaiting(countdown)}
             pendingLabel="Sending…"
           >
-            {countdown.active && countdown.ready
-              ? `Resend code in ${countdown.remainingSeconds}s`
-              : "Resend code"}
+            {resendWaiting(countdown)
+              ? `${LOGIN_COPY.emailResend} in ${resendClock(countdown.remainingSeconds)}`
+              : LOGIN_COPY.emailResend}
           </SubmitButton>
         </form>
         <form action={submitAction}>
@@ -258,7 +247,7 @@ function EmailCodeStep({
             disabled={pending}
             pendingLabel="Changing email…"
           >
-            Wrong email? Use a different one
+            {LOGIN_COPY.changeEmail}
           </SubmitButton>
         </form>
         <CustomerLoginMethodSwitch
@@ -267,7 +256,7 @@ function EmailCodeStep({
           pending={pending}
           variant="link"
         >
-          Use my phone instead
+          {LOGIN_COPY.backToPhone}
         </CustomerLoginMethodSwitch>
         <p
           role="status"

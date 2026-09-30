@@ -1,52 +1,44 @@
 "use client"
 
-import Link from "next/link"
 import { useActionState, type ReactNode } from "react"
 
 import {
   requestCustomerEmailIdentityAction,
-  startEmailWalletAction,
-  switchJoinToPhoneAction,
-  type CustomerEmailChoiceState,
   type CustomerEmailIdentityState,
 } from "@/app/m/[merchantSlug]/join/email-actions"
 import { customerInputClass } from "@/components/customer/input-class"
-import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
-import {
-  JOIN_EMAIL_WIFI_HINT,
-  JOIN_PHONE_BACK_LABEL,
-} from "@/lib/customer/experience/copy"
-import { OTP_SEND_LABEL } from "@/lib/customer/otp-channel-core"
 
 const emailInitialState: CustomerEmailIdentityState = {}
-const choiceInitialState: CustomerEmailChoiceState = {}
 
 export type CustomerEmailFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
-  /** "Use my phone number instead", directly under the button. */
+  /** "Back to the text code" (or the number form), under the button. */
   alternate?: ReactNode
-  /** "What do I get?": the welcome step, or the venue page for a direct join. */
-  backHref: string
+  /**
+   * Mode `full`: that confirming the code starts a card for an address no
+   * card uses. Shown before the code is sent, so sending is an informed
+   * choice (the published terms: "after you choose to start one").
+   */
+  creationDisclosure?: string
 }
 
 /**
- * Join by email, the fallback for a phone code that has not
- * arrived: one field and
- * one button. The code goes out by email, so it arrives over the venue's
- * Wi-Fi when there is no mobile signal. The answer is
- * the same whether or not a wallet uses the address; that is only said after
- * the customer proves the inbox is theirs.
+ * Join by email, the fallback for a phone code that has not arrived: one
+ * field and one button. The code goes out by email, so it arrives over the
+ * venue's Wi-Fi when there is no mobile signal. The answer is the same
+ * whether or not a card uses the address; that is only said after the guest
+ * proves the inbox is theirs.
  */
 export function CustomerEmailForm({
   merchantSlug,
   qrId,
   referralCode,
   alternate,
-  backHref,
+  creationDisclosure,
 }: CustomerEmailFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerEmailIdentityAction,
@@ -78,9 +70,12 @@ export function CustomerEmailForm({
             defaultValue={state.fields?.email}
             className={customerInputClass}
             aria-invalid={Boolean(state.errors?.email)}
-            aria-describedby={
-              state.errors?.email ? "email-error" : "email-hint"
-            }
+            aria-describedby={[
+              state.errors?.email ? "email-error" : "email-hint",
+              creationDisclosure ? "email-new-card" : null,
+            ]
+              .filter(Boolean)
+              .join(" ")}
             onFocus={(event) =>
               event.currentTarget.scrollIntoView({ block: "center" })
             }
@@ -98,9 +93,17 @@ export function CustomerEmailForm({
               id="email-hint"
               className="text-xs leading-5 text-muted-foreground"
             >
-              {JOIN_EMAIL_WIFI_HINT}
+              We&apos;ll email you a code to type on the next screen.
             </p>
           )}
+          {creationDisclosure ? (
+            <p
+              id="email-new-card"
+              className="text-xs leading-5 text-muted-foreground"
+            >
+              {creationDisclosure}
+            </p>
+          ) : null}
         </div>
         {state.errors?.form ? (
           <StatusBanner tone="error" title={state.errors.form} />
@@ -111,7 +114,7 @@ export function CustomerEmailForm({
           className="w-full"
           disabled={requestPending}
         >
-          {requestPending ? "Sending…" : OTP_SEND_LABEL}
+          {requestPending ? "Sending…" : "Send code by email"}
         </Button>
         <p role="status" aria-live="polite" className="sr-only">
           {requestPending ? "Sending your code" : ""}
@@ -119,95 +122,6 @@ export function CustomerEmailForm({
       </form>
 
       {alternate}
-
-      <Link
-        href={backHref}
-        className="text-center text-xs font-bold underline underline-offset-4"
-      >
-        {JOIN_PHONE_BACK_LABEL}
-      </Link>
-    </div>
-  )
-}
-
-export type CustomerEmailChoiceFormProps = {
-  merchantSlug: string
-  qrId?: string
-  referralCode?: string
-  maskedEmail: string
-  /** Mode `full` only: otherwise the new-wallet choice is not offered. */
-  canCreate: boolean
-  /** "Use a different email": the email step, where a pending code is ignored. */
-  differentEmailHref: string
-}
-
-/**
- * The email is proven but no wallet holds it. Nothing has been created yet:
- * the customer can continue with email or recover a wallet held by their phone.
- */
-export function CustomerEmailChoiceForm({
-  merchantSlug,
-  qrId,
-  referralCode,
-  maskedEmail,
-  canCreate,
-  differentEmailHref,
-}: CustomerEmailChoiceFormProps) {
-  const [state, createAction] = useActionState(
-    startEmailWalletAction,
-    choiceInitialState
-  )
-
-  return (
-    <div className="grid gap-4">
-      <p className="rounded-lg border-2 border-dashed border-border px-3 py-2.5 text-left text-sm">
-        <span className="text-muted-foreground">Confirmed </span>
-        <span className="font-bold break-all">{maskedEmail}</span>
-      </p>
-      {state.errors?.form ? (
-        <StatusBanner tone="error" title={state.errors.form} />
-      ) : null}
-      <div className="grid gap-3">
-        {canCreate ? (
-          <form action={createAction} className="grid">
-            <JoinHiddenFields
-              merchantSlug={merchantSlug}
-              qrId={qrId}
-              referralCode={referralCode}
-            />
-            <SubmitButton
-              size="lg"
-              className="h-auto min-h-12 w-full py-3 whitespace-normal"
-              pendingLabel="Starting your wallet…"
-            >
-              Continue with email
-            </SubmitButton>
-          </form>
-        ) : null}
-        <form action={switchJoinToPhoneAction} className="grid">
-          <JoinHiddenFields
-            merchantSlug={merchantSlug}
-            qrId={qrId}
-            referralCode={referralCode}
-          />
-          <SubmitButton
-            variant="outline"
-            size="lg"
-            className="h-auto min-h-12 w-full py-3 whitespace-normal"
-            pendingLabel="Opening…"
-          >
-            {canCreate
-              ? "Open my existing wallet with my phone"
-              : "Use my phone instead"}
-          </SubmitButton>
-        </form>
-      </div>
-      <Link
-        href={differentEmailHref}
-        className="focus-ring inline-flex min-h-11 w-fit items-center justify-self-center text-xs font-bold underline underline-offset-4"
-      >
-        Use a different email
-      </Link>
     </div>
   )
 }

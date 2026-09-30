@@ -52,10 +52,16 @@ function initialModeFor(profile: AboutYouProfile): Mode {
  */
 const EMAIL_HINT: Record<EmailPromptReason, string> = {
   rewards:
-    "A verified email is required before reward collection. We'll send a code to confirm it.",
+    "You'll need a confirmed email to collect a reward. We'll send a code to confirm it.",
   wifi_sign_in:
-    "A verified email is required before reward collection, and lets you sign in over Wi-Fi when there's no signal. Confirm it here to open this same wallet with your stamps and rewards. We'll send a code to confirm it.",
+    "You'll need a confirmed email to collect a reward. It also helps when a text code can't reach you. We'll send a code to confirm it.",
 }
+
+/** Shown beside a confirmed contact that this screen cannot change. */
+const ASK_STAFF_TO_CHANGE = "To change it, ask staff at a venue."
+/** The honest reason to add a phone, in the Contact group. */
+const ADD_MOBILE_REASON =
+  "Add your mobile number so you can sign in on another phone."
 
 export function CustomerProfileAboutYou({
   profile,
@@ -105,12 +111,14 @@ export function CustomerProfileAboutYou({
   }
 
   // A save that returns inline still needs to leave edit: a new email routes to
-  // verify, any other successful save returns to the read-only summary.
-  const [seenSaveMessage, setSeenSaveMessage] = useState(saveState.message)
-  if (saveState.message !== seenSaveMessage) {
-    setSeenSaveMessage(saveState.message)
-    if (saveState.message) {
-      setMode(/code/i.test(saveState.message) ? "verify" : "view")
+  // verify, any other successful save returns to the read-only summary. The
+  // action says which in `outcome`, so rewording its message never changes
+  // the mode; each answer is a new object, so a repeat save still counts.
+  const [seenSaveState, setSeenSaveState] = useState(saveState)
+  if (saveState !== seenSaveState) {
+    setSeenSaveState(saveState)
+    if (saveState.outcome) {
+      setMode(saveState.outcome === "email_code_sent" ? "verify" : "view")
       dismissVerifyAnswer()
     }
   }
@@ -122,7 +130,7 @@ export function CustomerProfileAboutYou({
 
   return (
     <section className="surface-card grid gap-4 p-5">
-      <SectionHeader eyebrow="About you" title="Your contact details" />
+      <SectionHeader eyebrow="About you" title="Your details" />
 
       {mode === "view" ? (
         <AboutYouView
@@ -185,12 +193,7 @@ function AboutYouView({
 }) {
   return (
     <div className="grid gap-4">
-      <dl className="grid gap-3">
-        <DetailRow
-          label="Phone"
-          value={profile.phone ?? "Not set"}
-          tag={profile.phone ? <MonoTag tone="leaf">Verified</MonoTag> : null}
-        />
+      <dl className="grid gap-3" aria-label="Your details">
         <DetailRow label="Full name" value={profile.fullName ?? "Not set"} />
         <DetailRow
           label="Date of birth"
@@ -200,12 +203,31 @@ function AboutYouView({
               : "Not set"
           }
         />
-        <EmailDetailRow profile={profile} />
       </dl>
 
-      <p className="text-xs leading-5 text-muted-foreground">
-        Verified contact details are locked for account security.
-      </p>
+      <div className="grid gap-3 border-t-2 border-dashed border-border pt-4">
+        <h3 className="eyebrow">Contact</h3>
+        <dl className="grid gap-3" aria-label="Contact">
+          <DetailRow
+            label="Mobile"
+            value={profile.phone ?? "Not added"}
+            tag={
+              profile.phone ? <MonoTag tone="leaf">Confirmed</MonoTag> : null
+            }
+          />
+          <EmailDetailRow profile={profile} />
+        </dl>
+        {profile.phone ? null : (
+          <p className="text-sm leading-6 text-foreground">
+            {ADD_MOBILE_REASON}
+          </p>
+        )}
+        {profile.phone || profile.emailLocked ? (
+          <p className="text-xs leading-5 text-muted-foreground">
+            To change a confirmed number or email, ask staff at a venue.
+          </p>
+        ) : null}
+      </div>
 
       <Button
         type="button"
@@ -253,8 +275,8 @@ function AboutYouEditForm({
         error={state.errors?.dateOfBirth}
       />
       {profile.emailLocked && profile.email ? (
-        <StatusBanner tone="neutral" title="Verified email">
-          {profile.email} is verified and locked for account security.
+        <StatusBanner tone="neutral" title="Email">
+          {profile.email} is confirmed. {ASK_STAFF_TO_CHANGE}
         </StatusBanner>
       ) : (
         <Field
@@ -382,18 +404,13 @@ function AboutYouEmailVerify({
   return (
     <div className="grid gap-3">
       <StatusBanner title="Confirm your email" tone="neutral">
-        Enter the code we sent{email ? ` to ${email}` : ""} to verify it.
+        Enter the code we sent{email ? ` to ${email}` : ""}.
       </StatusBanner>
-      <p className="text-sm leading-6 text-muted-foreground">
-        Used this email for another wallet? After verification, we can bring
-        your stamps and rewards together. If we need help checking the wallets,
-        we will tell you and keep your stamps and rewards unchanged.
-      </p>
 
       <form action={action} className="grid gap-3">
         <div className="grid gap-2">
           <label htmlFor="home-profile-otp" className="eyebrow">
-            Email code
+            Your code
           </label>
           <CustomerOtpInput
             id="home-profile-otp"
@@ -434,7 +451,7 @@ function AboutYouEmailVerify({
             size="sm"
             disabled={resendPending}
           >
-            {resendPending ? "Sending…" : "Email me a new code"}
+            {resendPending ? "Sending…" : "Send a new code"}
           </Button>
         </form>
         <form action={clearHomeProfileEmailAction}>

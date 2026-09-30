@@ -238,12 +238,12 @@ export async function requestJoinEmailCode(
       url.searchParams.get("qr") === fixture.activeQrId
   )
   await expect(
-    page.getByRole("heading", { name: "Get your code by email instead" })
+    page.getByRole("heading", { name: "Get your code by email", exact: true })
   ).toBeVisible()
-  await expect(page.getByLabel("UK phone number")).toHaveCount(0)
+  await expect(page.getByLabel("UK mobile number")).toHaveCount(0)
 
   await page.getByLabel("Email address").fill(email)
-  await page.getByRole("button", { name: "Send my code" }).click()
+  await page.getByRole("button", { name: "Send code by email" }).click()
   await expect(page).toHaveURL(/step=otp/)
   await expect(
     page.getByRole("heading", { name: "Enter your code" })
@@ -257,7 +257,7 @@ export async function confirmJoinCode(
   code: string = DEV_OTP
 ): Promise<void> {
   await page.getByLabel("Your code").fill(code)
-  await page.getByRole("button", { name: "Check code" }).click()
+  await page.getByRole("button", { name: "Continue" }).click()
 }
 
 export async function readEmailWallets(

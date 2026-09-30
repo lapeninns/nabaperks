@@ -14,8 +14,12 @@ type FlowTone = "accent" | "ink" | "leaf" | "sun" | "plain"
 
 /** Stepped progress for the onboarding wizard. Optional — other routes omit it. */
 export type FlowProgress = {
-  step: number
-  total: number
+  /**
+   * Position on the scale. Left out (with `total`) when the count is not yet
+   * true for this guest, so only the step's label shows.
+   */
+  step?: number
+  total?: number
   label?: string
 }
 
@@ -158,6 +162,13 @@ export function CustomerFlowShell({
 }
 
 function OnboardingProgress({ progress }: { progress: FlowProgress }) {
+  if (progress.step === undefined || progress.total === undefined) {
+    return (
+      <div className="mono-id tracking-[0.08em] text-muted-foreground">
+        {progress.label ?? "Setup"}
+      </div>
+    )
+  }
   const total = Math.max(progress.total, 1)
   const step = Math.min(Math.max(progress.step, 1), total)
 

@@ -14,8 +14,8 @@ export default function CustomerLoginError({
   return (
     <CustomerShell className="grid content-center">
       <CustomerErrorState
-        title="Sign in unavailable"
-        description="Signing in could not be loaded safely. Your cards and stamps are safe — try again in a moment."
+        title="Something went wrong"
+        description="We couldn't open sign-in just now. Your stamps are safe. Try again in a moment."
         reset={() => recoverFromBoundaryError(error, reset)}
         secondaryAction={{ label: "Scan a venue QR", href: "/scan" }}
       />

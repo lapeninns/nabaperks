@@ -38,6 +38,19 @@ async function installMetrics(page: Page) {
   })
 }
 
+/**
+ * The harness mounts the stamp screen inside the wallet shell, whose fixed tab
+ * bar covers the bottom of a 720px viewport. `scrollIntoViewIfNeeded` stops as
+ * soon as the target touches the viewport, which leaves the stamp under that
+ * bar, so a click or press would first scroll the page (or land on the bar).
+ * Centre the target, instantly, so every measurement starts from one place.
+ */
+async function centreStampTarget(page: Page) {
+  await page.locator("[data-stamp-press-button]").evaluate((element) => {
+    element.scrollIntoView({ block: "center", behavior: "instant" })
+  })
+}
+
 test.use({ contextOptions: { reducedMotion: "no-preference" } })
 
 test.describe("customer stamp choreography — normal motion", () => {
@@ -52,7 +65,7 @@ test.describe("customer stamp choreography — normal motion", () => {
     await page.goto(`${HARNESS}?mode=success&delay=700`)
     const root = page.locator("[data-stamp-phase]")
     const button = page.locator("[data-stamp-press-button]")
-    await button.scrollIntoViewIfNeeded()
+    await centreStampTarget(page)
     const initialBox = await button.boundingBox()
     expect(initialBox).not.toBeNull()
 
@@ -100,7 +113,10 @@ test.describe("customer stamp choreography — normal motion", () => {
     await expect(
       root.locator('[role="list"] [data-stamp-earned=true]')
     ).toHaveCount(4)
-    await expect(root.getByText("Stamp 4 of 5 added.")).toBeVisible()
+    await expect(root.locator("[data-stamp-receipt]")).toHaveText("4 OF 5")
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Stamp added." })
+    ).toBeVisible()
 
     expect(await button.boundingBox()).toEqual(initialBox)
     expect(
@@ -168,7 +184,7 @@ test.describe("customer stamp choreography — normal motion", () => {
     await page.goto(`${HARNESS}?mode=final&delay=180`)
     const root = page.locator("[data-stamp-phase]")
 
-    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await root.getByRole("button", { name: "Stamp my card" }).click()
     await expect(
       root.getByRole("list", { name: /4 of 5 stamps earned/ })
     ).toBeVisible()
@@ -183,10 +199,15 @@ test.describe("customer stamp choreography — normal motion", () => {
     await expect(
       root.getByRole("img", { name: "Mystery reward, unlocked" })
     ).toBeVisible()
-    await expect(root.getByText("That's the full card.")).toBeVisible()
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Your card is full." })
+    ).toBeVisible()
+    await expect(
+      page.getByText("Your reward is unlocked.", { exact: true })
+    ).toBeVisible()
     await expect(root.locator('[data-ticket-state="waiting"]')).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "See your reward" })
+      page.getByRole("link", { name: "See my reward" })
     ).toBeVisible()
     await expect(root.locator('[role="status"]')).toHaveCount(1)
     await expect(page.locator("[data-refresh-count]")).toHaveText("1")
@@ -198,28 +219,29 @@ test.describe("customer stamp choreography — normal motion", () => {
     await page.goto(`${HARNESS}?mode=final-pending&delay=120`)
     const root = page.locator("[data-stamp-phase]")
 
-    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await root.getByRole("button", { name: "Stamp my card" }).click()
     await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
     await expect(
       root.getByRole("list", { name: /5 of 5 stamps earned/ })
     ).toBeVisible()
     await expect(
-      root.getByText("That's the full card.", { exact: true })
+      page.getByRole("heading", { level: 1, name: "Your card is full." })
     ).toBeVisible()
     await expect(
-      root.getByText(
+      page.getByText(
         "We're sorting your reward. Check back shortly, or ask a team member.",
         { exact: true }
       )
     ).toBeVisible()
     await expect(root.locator('[role="status"]')).toHaveText(
-      "Stamp added. That's the full card. We're sorting your reward. Check back shortly, or ask a team member."
+      "Stamp added. Your card is full. We're sorting your reward. Check back shortly, or ask a team member."
     )
+    await expect(page.getByText(/unlocked/)).toHaveCount(0)
     await expect(root.locator('[data-ticket-state="sealed"]')).toBeVisible()
     await expect(root.locator('[data-ticket-state="waiting"]')).toHaveCount(0)
-    await expect(
-      page.getByRole("link", { name: "See your reward" })
-    ).toHaveCount(0)
+    await expect(page.getByRole("link", { name: "See my reward" })).toHaveCount(
+      0
+    )
     await expect(page.locator("[data-refresh-count]")).toHaveText("0")
   })
 
@@ -227,12 +249,12 @@ test.describe("customer stamp choreography — normal motion", () => {
     await page.goto(`${HARNESS}?mode=blocked&delay=40`)
     const root = page.locator("[data-stamp-phase]")
 
-    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await root.getByRole("button", { name: "Stamp my card" }).click()
     await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
     await expect(
       root.getByRole("list", { name: /3 of 5 stamps earned/ })
     ).toBeVisible()
-    await root.getByRole("button", { name: "Try today's stamp again" }).click()
+    await root.getByRole("button", { name: "Try again" }).click()
     await expect(page.locator("[data-submit-count]")).toHaveText("2")
   })
 
@@ -241,7 +263,7 @@ test.describe("customer stamp choreography — normal motion", () => {
   }) => {
     await page.goto(`${HARNESS}?mode=success&delay=500`)
     const button = page.locator("[data-stamp-press-button]")
-    await button.scrollIntoViewIfNeeded()
+    await centreStampTarget(page)
     const box = await button.boundingBox()
     expect(box).not.toBeNull()
     if (!box) return
@@ -298,13 +320,11 @@ test.describe("customer stamp choreography — normal motion", () => {
     await page.goto(`${HARNESS}?mode=unknown&delay=40`)
     const root = page.locator("[data-stamp-phase]")
 
-    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await root.getByRole("button", { name: "Stamp my card" }).click()
     await expect(page.locator("[data-refresh-count]")).toHaveText("1")
     await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
     await expect(root).toContainText("We couldn't confirm the stamp.")
-    await expect(
-      root.getByRole("button", { name: "Try today's stamp again" })
-    ).toBeVisible()
+    await expect(root.getByRole("button", { name: "Try again" })).toBeVisible()
   })
 
   test("prints the recovered venue stamp after an issued readback", async ({
@@ -313,7 +333,7 @@ test.describe("customer stamp choreography — normal motion", () => {
     await page.goto(`${HARNESS}?mode=unknown-issued-bonus&delay=40`)
     const root = page.locator("[data-stamp-phase]")
 
-    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await root.getByRole("button", { name: "Stamp my card" }).click()
     await expect(root).toHaveAttribute("data-stamp-phase", "printing")
     await expect(
       root.locator('[data-stamp-earned="true"][data-slammed="true"]')
@@ -328,13 +348,16 @@ test.describe("customer stamp choreography — normal motion", () => {
     await page.goto(`${HARNESS}?mode=unknown-closed&delay=40`)
     const root = page.locator("[data-stamp-phase]")
 
-    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await root.getByRole("button", { name: "Stamp my card" }).click()
     await expect(root).toHaveAttribute("data-stamp-phase", "closed")
     await expect(
       root.getByRole("list", { name: /3 of 5 stamps earned/ })
     ).toBeVisible()
     await expect(root).toContainText("No new stamp was confirmed.")
-    await expect(root).not.toContainText("Stamp 3 of 5 added.")
+    await expect(root).not.toContainText("Stamp added.")
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Stamp added." })
+    ).toHaveCount(0)
   })
 
   test("keeps the unlocked ticket revealed on a reloaded completed card", async ({
@@ -351,9 +374,11 @@ test.describe("customer stamp choreography — normal motion", () => {
       root.getByRole("img", { name: "Mystery reward, unlocked" })
     ).toBeVisible()
     await expect(root.locator('[data-ticket-state="waiting"]')).toBeVisible()
-    await expect(root.getByText("Your reward is ready to open.")).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "See your reward" })
+      root.getByText("Open your reward to see when you can collect it.")
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "See my reward" })
     ).toBeVisible()
   })
 })

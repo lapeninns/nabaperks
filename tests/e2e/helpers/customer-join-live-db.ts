@@ -62,14 +62,14 @@ export async function openOtpStep(
   } else {
     await page.goto(publicQrPath(fixture.activeQrId))
     await expect(
-      page.getByRole("heading", { name: "Your first stamp is ready" })
+      page.getByRole("heading", { name: "Get your first stamp" })
     ).toBeVisible()
 
-    await page.getByRole("link", { name: "Claim my first stamp" }).click()
+    await page.getByRole("link", { name: "Get my first stamp" }).click()
   }
 
   await expect(
-    page.getByRole("heading", { name: "Save your stamp to your number" })
+    page.getByRole("heading", { name: "Enter your mobile number" })
   ).toBeVisible()
 
   await page.locator("#contact").fill(phone.national)
@@ -86,7 +86,7 @@ export async function openOtpStep(
   else backParams.set("qr", fixture.activeQrId)
   backParams.set("step", "phone")
   await expect(
-    page.getByRole("link", { name: "Wrong number? Use a different one" })
+    page.getByRole("link", { name: "Wrong number? Change it" })
   ).toHaveAttribute(
     "href",
     `/m/${fixture.merchantSlug}/join?${backParams.toString()}`
@@ -100,9 +100,9 @@ export async function openTermsStep(
 ): Promise<void> {
   await openOtpStep(page, fixture, phone)
   await page.locator("#otp").fill(DEV_OTP)
-  await page.getByRole("button", { name: "Check code" }).click()
+  await page.getByRole("button", { name: "Continue" }).click()
   await expect(
-    page.getByRole("heading", { name: "Collect your first stamp" })
+    page.getByRole("heading", { name: /^Join the card at / })
   ).toBeVisible()
 }
 
@@ -113,12 +113,12 @@ export async function openDirectTermsStep(
 ): Promise<void> {
   await page.goto(`/m/${merchantSlug}`)
   await expect(
-    page.getByRole("heading", { name: "Collect your stamp" })
+    page.getByRole("heading", { name: "Save your card" })
   ).toBeVisible()
 
-  await page.getByRole("link", { name: "Join rewards" }).click()
+  await page.getByRole("link", { name: "Save my card" }).click()
   await expect(
-    page.getByRole("heading", { name: "Save your stamp to your number" })
+    page.getByRole("heading", { name: "Enter your mobile number" })
   ).toBeVisible()
 
   await page.locator("#contact").fill(phone.national)
@@ -127,13 +127,13 @@ export async function openDirectTermsStep(
     page.getByRole("heading", { name: "Enter your code" })
   ).toBeVisible()
   await expect(
-    page.getByRole("link", { name: "Wrong number? Use a different one" })
+    page.getByRole("link", { name: "Wrong number? Change it" })
   ).toHaveAttribute("href", `/m/${merchantSlug}/join?step=phone`)
 
   await page.locator("#otp").fill(DEV_OTP)
-  await page.getByRole("button", { name: "Check code" }).click()
+  await page.getByRole("button", { name: "Continue" }).click()
   await expect(
-    page.getByRole("heading", { name: "Save your loyalty card" })
+    page.getByRole("heading", { name: /^Join the card at / })
   ).toBeVisible()
 }
 

@@ -47,7 +47,11 @@ test("R-9: the wallet cards render the badge and expiry and the page mounts them
 
   const page = readProjectFile("app", "home", "(authed)", "rewards", "page.tsx")
   assert.match(page, /components\/customer\/reward-list-cards/)
-  assert.match(page, /const \{ redeemable, upcoming, redeemed, expired \}/)
+  assert.match(
+    page,
+    /const \{ redeemable, needsSetup, upcoming, redeemed, expired \}/
+  )
+  assert.match(cards, /export function RewardListSections/)
 })
 
 test("R-8: the reward-ready push producer only enqueues stamp_cycle rewards", () => {

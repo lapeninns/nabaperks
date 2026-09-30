@@ -74,7 +74,7 @@ test.describe("@customer-flow welcome offer real local join", () => {
       expect(await claimCount(sql, fixture.merchantId)).toBe(0)
       await page.getByRole("button", { name: "Claim this offer" }).click()
       await expect(
-        page.getByRole("heading", { name: "Save your card to your number" })
+        page.getByRole("heading", { name: "Enter your mobile number" })
       ).toBeVisible()
       await expect(
         page.getByRole("complementary", { name: "Offer in progress" })
@@ -85,11 +85,11 @@ test.describe("@customer-flow welcome offer real local join", () => {
         page.getByRole("heading", { name: "Enter your code" })
       ).toBeVisible()
       await page.locator("#otp").fill(WRONG_OTP)
-      await page.getByRole("button", { name: "Check code" }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
       await expect(page.locator("#otp")).toHaveAttribute("aria-invalid", "true")
       expect(await claimCount(sql, fixture.merchantId)).toBe(0)
       await page.locator("#otp").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Check code" }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
       await expect(page.locator("#loyalty-terms")).toBeVisible()
       await expect(page.locator("#loyalty-terms")).not.toBeChecked()
       await expect(page.locator("#marketing-opt-in")).not.toBeChecked()

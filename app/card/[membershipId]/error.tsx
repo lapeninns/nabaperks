@@ -15,8 +15,8 @@ export default function CustomerCardError({
   return (
     <CustomerShell className="grid content-center">
       <CustomerErrorState
-        title="Card unavailable"
-        description="This card could not be loaded safely. Ask a team member for the current loyalty QR and try again."
+        title="We couldn't load this card"
+        description="Your stamps are safe. Try again, or open your cards."
         reset={() => recoverFromBoundaryError(error, reset)}
         secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />

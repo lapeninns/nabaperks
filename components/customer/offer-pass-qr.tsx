@@ -176,12 +176,12 @@ function PassQrRecovery({
         <span>Try again, or ask a team member to help.</span>
         {suggestSignIn ? (
           <span>
-            Still nothing? You may be signed out on this phone —{" "}
+            Still nothing? You may be signed out on this phone.{" "}
             <Link
               href={customerLoginHref(`/pass/${entitlementId}`)}
               className="font-bold underline underline-offset-4"
             >
-              sign in again
+              Sign in again
             </Link>{" "}
             to bring your pass back.
           </span>

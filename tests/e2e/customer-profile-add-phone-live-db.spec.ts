@@ -34,9 +34,9 @@ import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
  * local dev code stands in for the text message.
  */
 
-const ATTACHED = "Your phone number is added. You can sign in with it too."
+const ATTACHED = "Your mobile number is confirmed. You can use it to sign in."
 const CONFLICT =
-  "This phone number is already used by another Nabaperks wallet. Sign in with that number, or ask the venue for help."
+  "This number is used by another card. Sign in with that number, or ask staff for help."
 
 type ContactRow = {
   readonly email: string | null
@@ -90,16 +90,16 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
 
       await addPhoneFromProfile(page, phone)
       await expect(
-        page.locator("[data-add-phone]").getByRole("status")
+        page.locator('[data-add-phone="contact"]').getByRole("status")
       ).toHaveText(ATTACHED)
       // After the re-render with a phone, only the confirmation remains.
       await expect(
         page
-          .locator("[data-add-phone]")
-          .getByRole("heading", { name: "Phone number added" })
+          .locator('[data-add-phone="contact"]')
+          .getByRole("heading", { name: "Mobile number confirmed" })
       ).toBeVisible()
       await expect(
-        page.getByRole("heading", { name: "Add a phone number" })
+        page.getByRole("heading", { name: "Add your mobile number" })
       ).toHaveCount(0)
 
       const after = await readContact(sql, customerId)
@@ -129,7 +129,7 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
       // The wallet has a phone now, so the profile stops offering to add one.
       await page.goto("/home/profile")
       await expect(page.locator("[data-account-section]")).toBeVisible()
-      await expect(page.locator("[data-add-phone]")).toHaveCount(0)
+      await expect(page.locator('[data-add-phone="contact"]')).toHaveCount(0)
     } finally {
       await deleteWallets(sql, [customerId])
       await cleanupCustomerJoinRows(sql, undefined, phone)
@@ -172,8 +172,8 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
       )
       await addPhoneFromProfile(page, phone)
       await expect(
-        page.locator("[data-add-phone]").getByRole("status")
-      ).toContainText("Your wallets are linked.")
+        page.locator('[data-add-phone="contact"]').getByRole("status")
+      ).toContainText("Your stamps are together now.")
       await page.screenshot({
         path: testInfo.outputPath("wallet-linked.png"),
         fullPage: true,
@@ -193,7 +193,7 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
       await expectRewardQrServed(page, wallet.rewardId)
       await page.reload()
       await expect(
-        page.getByRole("heading", { name: "Add a phone number" })
+        page.getByRole("heading", { name: "Add your mobile number" })
       ).toHaveCount(0)
       const [sessions] =
         await sql`select count(*)::integer n from public.customer_sessions where customer_id=${holderId}::uuid and revoked_at is null`
@@ -230,10 +230,10 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
       )
       await addPhoneFromProfile(page, phone)
 
-      const section = page.locator("[data-add-phone]")
+      const section = page.locator('[data-add-phone="contact"]')
       await expect(section.getByText(CONFLICT)).toBeVisible()
       await expect(
-        section.getByLabel("Phone number", { exact: true })
+        section.getByLabel("UK mobile number", { exact: true })
       ).toBeVisible()
 
       await expect(readContact(sql, guestId)).resolves.toEqual(guestBefore)
@@ -271,15 +271,15 @@ test.describe("@customer-flow add a phone to an email-only wallet (live database
       )
 
       const section = await sendAttachCode(page, phone)
-      await section.getByLabel("Phone code").fill(WRONG_OTP)
-      await section.getByRole("button", { name: "Add phone number" }).click()
+      await section.getByLabel("Your code").fill(WRONG_OTP)
+      await section.getByRole("button", { name: "Continue" }).click()
       await expect(
-        section.getByText("That code was not accepted.")
+        section.getByText("That code didn't work. Check it and try again.")
       ).toBeVisible()
       await expect.poll(() => verifyAttempts(sql, phone)).toBe(1)
 
-      await section.getByLabel("Phone code").fill(DEV_OTP)
-      await section.getByRole("button", { name: "Add phone number" }).click()
+      await section.getByLabel("Your code").fill(DEV_OTP)
+      await section.getByRole("button", { name: "Continue" }).click()
       await expect(section.getByRole("status")).toHaveText(ATTACHED)
       await expect.poll(() => verifyAttempts(sql, phone)).toBe(1)
     } finally {
@@ -295,15 +295,19 @@ async function addPhoneFromProfile(
   phone: DisposablePhone
 ): Promise<void> {
   await gotoHydratedPage(page, "/home/profile")
-  const section = page.locator("[data-add-phone]")
+  const section = page.locator('[data-add-phone="contact"]')
   await expect(
-    section.getByRole("heading", { name: "Add a phone number" })
+    section.getByRole("heading", { name: "Add your mobile number" })
   ).toBeVisible()
-  await section.getByLabel("Phone number", { exact: true }).fill(phone.national)
+  await section
+    .getByLabel("UK mobile number", { exact: true })
+    .fill(phone.national)
   await section.getByRole("button", { name: "Send my code" }).click()
-  await expect(section.getByText("Phone ending")).toContainText(phone.last4)
-  await section.getByLabel("Phone code").fill(DEV_OTP)
-  await section.getByRole("button", { name: "Add phone number" }).click()
+  await expect(section.getByText("Sent to the number ending")).toContainText(
+    phone.last4
+  )
+  await section.getByLabel("Your code").fill(DEV_OTP)
+  await section.getByRole("button", { name: "Continue" }).click()
 }
 
 async function expectRewardQrServed(
@@ -493,13 +497,17 @@ async function deleteWallets(
 
 async function sendAttachCode(page: Page, phone: DisposablePhone) {
   await gotoHydratedPage(page, "/home/profile")
-  const section = page.locator("[data-add-phone]")
+  const section = page.locator('[data-add-phone="contact"]')
   await expect(
-    section.getByRole("heading", { name: "Add a phone number" })
+    section.getByRole("heading", { name: "Add your mobile number" })
   ).toBeVisible()
-  await section.getByLabel("Phone number", { exact: true }).fill(phone.national)
+  await section
+    .getByLabel("UK mobile number", { exact: true })
+    .fill(phone.national)
   await section.getByRole("button", { name: "Send my code" }).click()
-  await expect(section.getByText("Phone ending")).toContainText(phone.last4)
+  await expect(section.getByText("Sent to the number ending")).toContainText(
+    phone.last4
+  )
   return section
 }
 

@@ -184,7 +184,7 @@ test("Given email sign-in is off When any email action is posted Then it refuses
       {},
       form({ email: "guest@example.com", otp: "123456" })
     )
-    assert.match(result.errors.form, /use your phone number instead/i)
+    assert.match(result.errors.form, /use your mobile number instead/i)
   }
   assert.equal(
     await redirectOf(
@@ -203,7 +203,7 @@ test("Given mode existing When a new wallet is requested Then creation is refuse
 
   const result = await startEmailWalletAction({}, form({}))
 
-  assert.match(result.errors.form, /can't start a wallet with email/)
+  assert.match(result.errors.form, /can't join with email/)
   assert.deepEqual(state.calls, [])
 })
 
@@ -416,7 +416,7 @@ test("Given a verified email a wallet holds When the code is confirmed Then that
   )
 })
 
-test("Given a verified email no wallet holds When the code is confirmed Then only a bound handoff is recorded and the choice opens", async () => {
+test("Given mode existing and a verified email no wallet holds When the code is confirmed Then only a bound handoff is recorded and the no-card state opens", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "existing"
   const { verifyCustomerEmailOtpAction, state } = await loadActions()
 
@@ -439,12 +439,9 @@ test("Given a rejected, expired or limited code When confirmed Then no wallet is
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const { verifyCustomerEmailOtpAction, state } = await loadActions()
   const expectations = {
-    invalid_code: ["otp", "That code was not accepted."],
-    expired: ["form", "That code has expired. Request a new one."],
-    rate_limited: [
-      "form",
-      "Too many code attempts. Request a new code shortly.",
-    ],
+    invalid_code: ["otp", "That code didn't work. Check it and try again."],
+    expired: ["form", "That code has expired. Send a new code."],
+    rate_limited: ["form", "Too many tries. Send a new code in a few minutes."],
   }
   for (const [status, [field, copy]] of Object.entries(expectations)) {
     state.check = { status }
@@ -457,7 +454,124 @@ test("Given a rejected, expired or limited code When confirmed Then no wallet is
   assert.deepEqual([...new Set(callNames(state))], ["check"])
 })
 
-test("Given mode full and a bound handoff When a new wallet is started Then it is created, signed in as new and sent to terms", async () => {
+test("Given mode full and a verified email no wallet holds When the code is confirmed Then a wallet is created at the code step, signed in as new and sent to terms with the scan context", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { verifyCustomerEmailOtpAction, state } = await loadActions()
+
+  const destination = await redirectOf(
+    verifyCustomerEmailOtpAction(
+      {},
+      form({ otp: "123456", qrId: "venue-qr", ref: "friend" })
+    )
+  )
+
+  // No choice screen: straight to the terms step, keeping the QR and the
+  // referral (guest journey J5). No membership or stamp is created here.
+  assert.equal(
+    destination,
+    "/m/old-crown/join?qr=venue-qr&ref=friend&step=terms"
+  )
+  assert.deepEqual(state.calls, [
+    ["check", { code: "123456", purpose: "join" }],
+    ["find", "guest@example.com"],
+    ["create", "guest@example.com"],
+    ["session", "customer-new", true],
+  ])
+  assert.deepEqual(
+    state.events.map((event) => [event.eventName, event.step, event.method]),
+    [
+      ["join_otp_verified", "otp", "email"],
+      ["join_new_email_wallet_confirmed", "email_choice", "email"],
+    ]
+  )
+  assert.equal(state.events[1].merchantId, "merchant-1")
+  assert.equal(state.events[1].entry, "qr_referral")
+})
+
+test("Given mode full When the wallet or session after a matched code fails Then the same code is kept for one retry, which signs in to the wallet the first try made", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { verifyCustomerEmailOtpAction, state } = await loadActions()
+
+  state.createError = new Error("database unavailable")
+  const createFailed = await verifyCustomerEmailOtpAction(
+    {},
+    form({ otp: "123456", qrId: "venue-qr" })
+  )
+  assert.equal(
+    createFailed.errors.form,
+    "We couldn't finish signing you in. Enter the same code again."
+  )
+  assert.deepEqual(state.calls.slice(-2), [
+    ["create", "guest@example.com"],
+    ["keepForRetry", "challenge-retry"],
+  ])
+  assert.equal(callNames(state).includes("session"), false)
+
+  // The wallet is made, but the session fails: the code is kept again.
+  state.calls = []
+  state.createError = null
+  state.sessionError = new Error("session rpc unavailable")
+  const sessionFailed = await verifyCustomerEmailOtpAction(
+    {},
+    form({ otp: "123456", qrId: "venue-qr" })
+  )
+  assert.match(sessionFailed.errors.form, /Enter the same code again/)
+  assert.deepEqual(state.calls.at(-1), ["keepForRetry", "challenge-retry"])
+
+  // The retry finds the wallet the first try made and signs in to it.
+  state.calls = []
+  state.sessionError = null
+  state.wallet = { id: "customer-new", phoneLast4: null }
+  assert.equal(
+    await redirectOf(
+      verifyCustomerEmailOtpAction(
+        {},
+        form({ otp: "123456", qrId: "venue-qr" })
+      )
+    ),
+    "/m/old-crown/join?qr=venue-qr&step=terms"
+  )
+  assert.deepEqual(state.calls.at(-1), ["session", "customer-new", false])
+})
+
+test("Given mode full and another wallet holds the address unmatched When the code is confirmed Then nothing is signed in and the conflict shows on the code step", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { verifyCustomerEmailOtpAction, state } = await loadActions()
+  state.created = { status: "conflict" }
+
+  const result = await verifyCustomerEmailOtpAction(
+    {},
+    form({ otp: "123456", qrId: "venue-qr" })
+  )
+
+  assert.equal(
+    result.errors.form,
+    "This email is used by another Nabaperks card. Use your mobile number instead, or ask the venue team for help."
+  )
+  assert.deepEqual(result.fields, {
+    merchantSlug: "old-crown",
+    qrId: "venue-qr",
+    emailOtpSent: true,
+  })
+  assert.deepEqual(callNames(state), ["check", "find", "create"])
+  assert.deepEqual(state.events, [])
+})
+
+test("Given mode full and a card no longer live When the code is confirmed Then no wallet is created and the code is kept", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const { verifyCustomerEmailOtpAction, state } = await loadActions()
+
+  const result = await verifyCustomerEmailOtpAction(
+    {},
+    form({ otp: "123456", merchantSlug: "closed" })
+  )
+
+  assert.equal(result.errors.form, "This loyalty card is unavailable just now.")
+  assert.deepEqual(callNames(state), ["check", "find", "keepForRetry"])
+  assert.deepEqual(state.events, [])
+})
+
+test("Given mode full and a legacy handoff When Continue is posted Then the wallet is created, signed in as new and sent to terms", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const { startEmailWalletAction, state } = await loadActions()
   state.handoff = { handoffId: "handoff-1", email: "guest@example.com" }
@@ -553,7 +667,8 @@ test("Given a failed resend When the provider errors Then the renewed cooldown i
 })
 
 test("Given a matched code When the sign-in after it fails Then the same code is kept for one more try and nothing redirects", async () => {
-  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  // Mode existing: an unknown email records a handoff, which may fail too.
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "existing"
   const { verifyCustomerEmailOtpAction, state } = await loadActions()
   const failures = {
     find: () => {
@@ -583,7 +698,7 @@ test("Given a matched code When the sign-in after it fails Then the same code is
 
     assert.equal(
       result.errors.form,
-      "We couldn't sign you in just now. Enter the same code again shortly.",
+      "We couldn't finish signing you in. Enter the same code again.",
       failingStep
     )
     assert.deepEqual(result.fields, {
@@ -612,7 +727,7 @@ test("Given a spent handoff When creating the wallet or its session fails Then a
   const createFailed = await startEmailWalletAction({}, form({}))
   assert.equal(
     createFailed.errors.form,
-    "We couldn't start your wallet just now. Try again shortly."
+    "We couldn't set up your card just now. Try again shortly."
   )
   assert.deepEqual(state.calls.at(-1), [
     "reissueHandoff",
@@ -682,7 +797,7 @@ test("Given another wallet holds the address unmatched When a wallet is started 
 
   assert.equal(
     result.errors.form,
-    "This email is already used by another Nabaperks wallet. Use your phone number instead, or ask the venue for help."
+    "This email is used by another Nabaperks card. Use your mobile number instead, or ask the venue team for help."
   )
   assert.deepEqual(callNames(state), [
     "readHandoff",

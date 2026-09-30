@@ -85,7 +85,7 @@ async function matchMerchantMembershipForContact(
       .limit(5)
     customerIds = (data ?? []).map((row) => row.id as string)
   } else {
-    const normalized = normalizePhone(raw, "GB")
+    const normalized = normalizePhone(raw)
     if (!normalized.ok) return null
     let hmac: string
     try {
@@ -182,7 +182,7 @@ async function createRewardInviteForUnmatchedContact(
       return { ok: false }
     }
   } else {
-    const normalized = normalizePhone(raw, "GB")
+    const normalized = normalizePhone(raw)
     if (!normalized.ok) return { ok: false }
     try {
       phoneHmac = customerPhoneHmac(normalized.phone.e164)

@@ -15,7 +15,8 @@ type MarketingConsent = {
 }
 
 /**
- * Global marketing preferences for the signed-in customer. One toggle per channel
+ * Offers from venues, the optional part of "Messages from venues" on the
+ * profile. One toggle per channel
  * applies across every venue. Only the channels the wallet can choose are
  * offered: text and WhatsApp need a verified phone, email needs a verified
  * email, and a wallet with no venue yet is told it chooses updates when it
@@ -27,6 +28,7 @@ export async function CustomerProfileMarketing({
   consents,
   hasPhone = true,
   eligibility,
+  embedded = false,
 }: {
   consents: readonly MarketingConsent[]
   /**
@@ -36,6 +38,11 @@ export async function CustomerProfileMarketing({
   hasPhone?: boolean
   /** Loaded for the signed-in wallet when not given. */
   eligibility?: MarketingConsentEligibility | null
+  /**
+   * Inside the "Messages from venues" block: no card of its own and a
+   * sub-heading instead of a section header.
+   */
+  embedded?: boolean
 }) {
   const wallet =
     eligibility === undefined
@@ -57,11 +64,15 @@ export async function CustomerProfileMarketing({
     (channel) => optedInByChannel[channel] !== undefined
   )
 
-  return (
-    <section className="surface-card grid gap-4 p-5">
-      <SectionHeader eyebrow="Marketing" title="Updates from your venues" />
+  const content = (
+    <>
+      {embedded ? (
+        <h3 className="eyebrow">Offers</h3>
+      ) : (
+        <SectionHeader eyebrow="Optional" title="Messages from venues" />
+      )}
       <p className="text-sm leading-6 text-muted-foreground">
-        Optional. Turning these off won&apos;t affect stamps or rewards.
+        Optional. Turning these off won&apos;t change your stamps or rewards.
       </p>
 
       {notice ? (
@@ -84,9 +95,19 @@ export async function CustomerProfileMarketing({
 
       {!notice && !hasAnyConsent ? (
         <p className="text-xs leading-5 text-muted-foreground">
-          You choose this when you join a venue — change it here any time.
+          You can change these any time.
         </p>
       ) : null}
+    </>
+  )
+
+  return embedded ? (
+    <div className="grid gap-4" data-marketing-offers>
+      {content}
+    </div>
+  ) : (
+    <section className="surface-card grid gap-4 p-5" data-marketing-offers>
+      {content}
     </section>
   )
 }

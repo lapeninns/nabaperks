@@ -34,37 +34,56 @@ const REFERRAL_BANK_EXPERIENCE: Extract<
   },
 }
 
+const SETUP_REWARD_EXPERIENCE: Extract<
+  CustomerExperience,
+  { kind: "card_collecting" }
+> = {
+  ...REFERRAL_BANK_EXPERIENCE,
+  current: 5,
+  stampDates: ["30 Jun", "1 Jul", "Bonus", "Bonus", "2 Jul"],
+  reward: "ready",
+  rewardNeedsSetup: true,
+  rewardId: "reward_harness_setup",
+  rewardName: "A mystery reward",
+  gift: {
+    rewardId: "gift_harness_setup",
+    rewardName: "Birthday fizz",
+    source: "birthday_month",
+    redeemable: true,
+    needsSetup: true,
+    availableFrom: null,
+  },
+}
+
 /**
- * `?email=` shows the card straight after a stamp for a customer with no
- * verified email, so the compact add-your-email card sits beside the referral
- * panel (email sign-in Step 0):
- * - `missing`: no email on the profile; the card opens at the email step.
- * - `pending`: an unverified email with a code on its way; it opens at the
- *   code step, as the /home prompt does.
+ * `?stamped=1` shows the card straight after a stamp: the stamp confirmation,
+ * the next-stamp line and the referral panel below the progress, and no
+ * contact prompt (the stamp result stands alone; setup waits for /home).
+ * `?reward=setup` shows a full card whose reward and gift wait only on a setup
+ * step: "Reward unlocked. Finish setting up to collect." and "Get it ready",
+ * never a code to show.
  */
 export default async function ReferralBankHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ email?: string }>
+  searchParams?: Promise<{ stamped?: string; reward?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
 
   const params = searchParams ? await searchParams : {}
-  const pending = params.email === "pending"
   const experience: CustomerExperience =
-    params.email === "missing" || pending
-      ? {
-          ...REFERRAL_BANK_EXPERIENCE,
-          justStamped: true,
-          emailPrompt: {
-            reason: "rewards",
-            initialEmail: pending ? "alex@example.test" : null,
-            codePending: pending,
-          },
-        }
-      : REFERRAL_BANK_EXPERIENCE
+    params.reward === "setup"
+      ? SETUP_REWARD_EXPERIENCE
+      : params.stamped === "1"
+        ? {
+            ...REFERRAL_BANK_EXPERIENCE,
+            justStamped: true,
+            slamIndex: REFERRAL_BANK_EXPERIENCE.current - 1,
+            nextStampFrom: "2026-07-17T05:00:00.000Z",
+          }
+        : REFERRAL_BANK_EXPERIENCE
 
   // This harness lane exercises the referral bank, not the offers rail.
   return (

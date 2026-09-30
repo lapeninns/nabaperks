@@ -39,10 +39,12 @@ test.describe("OTP resilience", () => {
       if (!fixture) return
 
       await page.goto(`${publicQrPath(fixture.activeQrId)}?ref=FRIEND01`)
-      await page.getByRole("link", { name: "Claim my first stamp" }).click()
+      await page.getByRole("link", { name: "Get my first stamp" }).click()
       await page.locator("#contact").fill("+1 202 555 0123")
       await page.getByRole("button", { name: "Send my code" }).click()
-      await expect(page.getByText("Enter a UK phone number.")).toBeVisible()
+      await expect(
+        page.getByText("Enter a UK mobile number, like 07700 900123.")
+      ).toBeVisible()
 
       await page.locator("#contact").fill(phone.national)
       await page.getByRole("button", { name: "Send my code" }).click()
@@ -51,18 +53,22 @@ test.describe("OTP resilience", () => {
       ).toBeVisible()
       expect(new URL(page.url()).searchParams.get("ref")).toBe("FRIEND01")
 
-      await page.getByRole("button", { name: "Resend code" }).click()
+      await page.getByRole("button", { name: "Send a new code" }).click()
       // Resends answer in place with neutral copy that does not reveal
       // whether a code was dispatched.
       await expect(
-        page.getByText("If a new code arrives, enter it here.", { exact: true })
+        page.getByText("If a new code arrives, use the latest one.", {
+          exact: true,
+        })
       ).toBeVisible()
 
       await page.locator("#otp").fill(WRONG_OTP)
-      await page.getByRole("button", { name: "Check code" }).click()
-      await expect(page.getByText("That code was not accepted.")).toBeVisible()
+      await page.getByRole("button", { name: "Continue" }).click()
       await expect(
-        page.getByRole("button", { name: "Resend code" })
+        page.getByText("That code didn't work. Check it and try again.")
+      ).toBeVisible()
+      await expect(
+        page.getByRole("button", { name: "Send a new code" })
       ).toBeVisible()
     } finally {
       await cleanupCustomerJoinRows(sql, fixture, phone)

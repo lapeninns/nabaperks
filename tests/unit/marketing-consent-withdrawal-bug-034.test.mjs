@@ -91,7 +91,7 @@ async function render({ consents, hasVerifiedEmail, hasVerifiedPhone }) {
     .replace(/\s+/g, " ")
   const toggles = [
     ...html.matchAll(
-      /<span class="sr-only">Receive ([A-Za-z]+) updates<\/span><input type="checkbox"([^>]*)\/>/g
+      /<span class="sr-only">Offers by ([A-Za-z]+)<\/span><input type="checkbox"([^>]*)\/>/g
     ),
   ].map(([, label, attributes]) => ({
     label,
@@ -100,7 +100,7 @@ async function render({ consents, hasVerifiedEmail, hasVerifiedPhone }) {
   return { text, toggles }
 }
 
-const WITHDRAW_ONLY_EMAIL = /can only turn email updates off/
+const WITHDRAW_ONLY_EMAIL = /can only turn email offers off/
 
 test("Given a verified email When the profile lists marketing toggles Then Email is a normal toggle", async () => {
   const { text, toggles } = await render({
@@ -109,7 +109,7 @@ test("Given a verified email When the profile lists marketing toggles Then Email
   })
   assert.deepEqual(toggles, [
     { label: "Email", checked: true },
-    { label: "SMS", checked: false },
+    { label: "Text", checked: false },
     { label: "WhatsApp", checked: false },
   ])
   assert.doesNotMatch(text, WITHDRAW_ONLY_EMAIL)
@@ -145,7 +145,7 @@ test("Given an unverified email without email updates on When the profile render
     })
     assert.deepEqual(
       toggles.map((toggle) => toggle.label),
-      ["SMS", "WhatsApp"]
+      ["Text", "WhatsApp"]
     )
     assert.doesNotMatch(text, WITHDRAW_ONLY_EMAIL)
   }
@@ -157,11 +157,11 @@ test("Given an unverified phone with text updates on and no email When the profi
     hasVerifiedEmail: false,
     hasVerifiedPhone: false,
   })
-  assert.deepEqual(toggles, [{ label: "SMS", checked: true }])
-  assert.match(text, /can only turn text and WhatsApp updates off/)
+  assert.deepEqual(toggles, [{ label: "Text", checked: true }])
+  assert.match(text, /can only turn text and WhatsApp offers off/)
   assert.doesNotMatch(
     text,
-    /Confirm your email or add a phone number to choose updates/
+    /Confirm your email or add your mobile number to choose offers/
   )
 })
 
@@ -174,6 +174,6 @@ test("Given unverified contacts and no standing opt-in When the profile renders 
   assert.deepEqual(toggles, [])
   assert.match(
     text,
-    /Confirm your email or add a phone number to choose updates from your venues\./
+    /Confirm your email or add your mobile number to choose offers from your venues\./
   )
 })

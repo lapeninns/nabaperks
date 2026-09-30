@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   cardRewardCollectable,
+  rewardCollectability,
   collectionWindowCopy,
   formatCollectionAvailability,
   formatCollectionAvailableLabel,
@@ -10,6 +11,7 @@ import {
   isCollectionSetupBlock,
   parseRewardCollectionState,
   photoIdSetupApplies,
+  resolveAgeCheckReason,
   rewardCollectionBlockedCopy,
 } from "@/lib/customer/reward-collection-state"
 
@@ -53,22 +55,22 @@ test("Given a complete predicate row When parsed Then server collection facts ar
 test("Given an authoritative collection instant When formatted Then the London date and time are shown", () => {
   assert.equal(
     formatCollectionAvailability("2026-10-27T05:30:00Z"),
-    "Ready Tue 27 Oct at 05:30"
+    "Ready from Tue 27 Oct, 05:30"
   )
   assert.equal(
     formatCollectionAvailableLabel("2026-10-27T05:30:00Z"),
-    "Tue 27 Oct at 05:30"
+    "Tue 27 Oct, 05:30"
   )
   assert.equal(formatCollectionAvailability(null), null)
   assert.equal(formatCollectionAvailableLabel(null), null)
   // Date-only legacy values open at London midnight in summer and winter.
   assert.equal(
     formatCollectionAvailability("2026-07-02"),
-    "Ready Thu 2 Jul at 00:00"
+    "Ready from Thu 2 Jul, 00:00"
   )
   assert.equal(
     formatCollectionAvailability("2026-01-15"),
-    "Ready Thu 15 Jan at 00:00"
+    "Ready from Thu 15 Jan, 00:00"
   )
 })
 
@@ -79,7 +81,7 @@ test("an under-18 customer is told the age policy, not to show ID", () => {
   )
   assert.equal(
     rewardCollectionBlockedCopy("age_verification_required"),
-    "Photo ID is needed to collect this reward."
+    "Staff will check photo ID when you collect this reward."
   )
 })
 
@@ -149,7 +151,7 @@ test("Given current and upcoming upgrade windows When formatted Then copy names 
       nextWindowEndsAt: null,
       nextWindowUpgradeName: null,
     }),
-    "Collect now and get Free starter — until 15:00"
+    "Collect before 15:00 and get Free starter"
   )
   assert.equal(
     collectionWindowCopy({
@@ -184,6 +186,83 @@ test("an age-checked reward awaiting in-person photo ID stays a setup step, not 
   assert.equal(photoIdSetupApplies("venue_paused", true), false)
   assert.equal(
     rewardCollectionBlockedCopy(reason),
-    "Photo ID is needed to collect this reward."
+    "Staff will check photo ID when you collect this reward."
   )
+})
+
+test("Given predicate facts When classified Then setup-only blocks never read as ready to collect", () => {
+  assert.equal(rewardCollectability("ready", null), "ready")
+  assert.equal(
+    rewardCollectability("blocked", "Complete your profile before redeeming"),
+    "needs_setup"
+  )
+  assert.equal(
+    rewardCollectability("blocked", "profile_incomplete"),
+    "needs_setup"
+  )
+  assert.equal(
+    rewardCollectability(
+      "blocked",
+      "Verified email required for reward collection"
+    ),
+    "needs_setup"
+  )
+  // Photo ID is checked at the counter once every other requirement is met, so
+  // the code is shown and the reward is ready.
+  assert.equal(
+    rewardCollectability(
+      "blocked",
+      "Customer must have verified photo ID and be 18 or over to redeem"
+    ),
+    "ready"
+  )
+  assert.equal(rewardCollectability("waiting", null), "waiting")
+  assert.equal(rewardCollectability("blocked", "venue_paused"), "unavailable")
+  assert.equal(
+    rewardCollectability("blocked", "one_reward_per_day"),
+    "unavailable"
+  )
+  assert.equal(rewardCollectability("expired", "expired"), "unavailable")
+  assert.equal(rewardCollectability("redeemed", null), "unavailable")
+})
+
+test("reward timing and block copy never lower-case dates or name a trading day", () => {
+  const ready = formatCollectionAvailability("2026-10-01T11:00:00Z")
+  assert.equal(ready, "Ready from Thu 1 Oct, 12:00")
+  for (const reason of [
+    "one_reward_per_day",
+    "One reward per visit day already collected",
+    "Complete your profile before redeeming",
+    "venue_paused",
+  ]) {
+    const copy = rewardCollectionBlockedCopy(reason)
+    assert.doesNotMatch(copy, /trading day|daily reset|—|!/)
+  }
+  assert.equal(
+    rewardCollectionBlockedCopy("one_reward_per_day"),
+    "You've already collected a reward here today. You can collect this one on a later visit."
+  )
+})
+
+test("the photo-ID reason is resolved by the stated date of birth before classification", () => {
+  const photoId =
+    "Customer must have verified photo ID and be 18 or over to redeem"
+
+  const adult = resolveAgeCheckReason(photoId, true)
+  assert.equal(adult, photoId)
+  assert.equal(rewardCollectability("blocked", adult), "ready")
+  assert.equal(cardRewardCollectable("blocked", adult), true)
+
+  const minor = resolveAgeCheckReason(photoId, false)
+  assert.equal(minor, "Customer must be 18 or over to redeem")
+  assert.equal(rewardCollectability("blocked", minor), "unavailable")
+  assert.equal(cardRewardCollectable("blocked", minor), false)
+  assert.equal(
+    rewardCollectionBlockedCopy(minor),
+    "This reward can only be collected by customers aged 18 or over."
+  )
+
+  // Other reasons pass through untouched.
+  assert.equal(resolveAgeCheckReason("venue_paused", false), "venue_paused")
+  assert.equal(resolveAgeCheckReason(null, false), null)
 })

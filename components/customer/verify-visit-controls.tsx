@@ -40,11 +40,11 @@ export type VerifyVisitControlsProps = {
 
 /**
  * The two ways a visit from the third onwards can be confirmed, side by side
- * before anything has been refused. "Use my location" is the only thing that
+ * before anything has been refused. "Share my location" is the only thing that
  * asks the browser for a fix — never page load, never the stamp press — so a
  * customer who has since allowed location in site settings gets a real
  * reading on the tap. After a Chrome deny, the native location control can
- * reopen a blocked prompt. "Enter venue code" opens the six-digit form
+ * reopen a blocked prompt. "Enter the venue code instead" opens the six-digit form
  * without a failed location attempt first. Once permission is refused the
  * order flips: the venue code sits before the retry control and the
  * site-settings steps fold into "Help with location access" beneath, so the
@@ -164,7 +164,7 @@ export function VerifyVisitControls({
       onClick={openCode}
       data-enter-venue-code
     >
-      Enter venue code
+      Enter the venue code instead
     </Button>
   )
 
@@ -200,14 +200,14 @@ export function VerifyVisitControls({
           {acquiring
             ? "Checking location"
             : retry
-              ? "Try Again"
-              : "Use my location"}
+              ? "Try again"
+              : "Share my location"}
         </Button>
       )}
       {recoveryIssue && !deniedRecovery ? (
         <p className="text-sm leading-5 text-muted-foreground">
-          No stamp added. You can also ask a team member for today&apos;s venue
-          code.
+          No stamp added yet. You can also ask a team member for today&apos;s
+          venue code.
         </p>
       ) : null}
       {deniedRecovery ? null : venueCodeButton}
@@ -219,9 +219,10 @@ export function VerifyVisitControls({
           </summary>
           <div className="grid gap-2 pb-2">
             <p className="text-sm leading-5">
-              You have {graceRemaining} unverified{" "}
-              {graceRemaining === 1 ? "stamp" : "stamps"} left. Adding one uses
-              this allowance. Trying location again doesn&apos;t.
+              This venue lets you add {graceRemaining} more{" "}
+              {graceRemaining === 1 ? "stamp" : "stamps"} without your location.
+              Adding one now uses one of them. Trying location again
+              doesn&apos;t.
             </p>
             <Button
               type="button"
@@ -231,7 +232,7 @@ export function VerifyVisitControls({
               disabled={disabled || acquiring}
               onClick={onUseGrace}
             >
-              Add without location
+              Add my stamp without location
             </Button>
           </div>
         </details>

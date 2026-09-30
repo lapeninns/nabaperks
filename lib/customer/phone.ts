@@ -1,10 +1,6 @@
 import "server-only"
 
-import {
-  getCountries,
-  parsePhoneNumberFromString,
-  type CountryCode,
-} from "libphonenumber-js"
+import { parsePhoneNumberFromString } from "libphonenumber-js"
 
 export type NormalizedPhone = {
   readonly e164: string
@@ -14,41 +10,23 @@ export type NormalizedPhone = {
 
 export type NormalizePhoneResult =
   | { ok: true; phone: NormalizedPhone }
-  | {
-      ok: false
-      error: "Enter a UK phone number." | "Enter a valid phone number."
-    }
+  | { ok: false; error: typeof UK_MOBILE_NUMBER_ERROR }
 
-const fallbackCountry: CountryCode = "GB"
-const ipCountryHeaders = ["x-vercel-ip-country", "cf-ipcountry"] as const
-const supportedCountries = getCountries()
+/**
+ * The one answer for a number we cannot use, invalid or from outside the UK:
+ * what to type, with an example (designer brief J2).
+ */
+export const UK_MOBILE_NUMBER_ERROR =
+  "Enter a UK mobile number, like 07700 900123."
 
-export function defaultCountryFromHeaders(
-  headersList: Pick<Headers, "get">
-): CountryCode {
-  for (const header of ipCountryHeaders) {
-    const country = toCountryCode(headersList.get(header))
-    if (country) return country
-  }
-
-  return fallbackCountry
-}
-
-export function normalizePhone(
-  raw: string,
-  defaultCountry: CountryCode = fallbackCountry
-): NormalizePhoneResult {
+export function normalizePhone(raw: string): NormalizePhoneResult {
   const parsed = parsePhoneNumberFromString(raw, {
-    defaultCountry,
+    defaultCountry: "GB",
     extract: false,
   })
 
-  if (!parsed?.isValid()) {
-    return { ok: false, error: "Enter a valid phone number." }
-  }
-
-  if (parsed.country !== "GB") {
-    return { ok: false, error: "Enter a UK phone number." }
+  if (!parsed?.isValid() || parsed.country !== "GB") {
+    return { ok: false, error: UK_MOBILE_NUMBER_ERROR }
   }
 
   return {
@@ -66,20 +44,9 @@ export function phoneLast4(e164: string): string {
 }
 
 export function normalizeUkPhone(raw: string): string {
-  const normalized = normalizePhone(raw, "GB")
+  const normalized = normalizePhone(raw)
 
   if (normalized.ok) return normalized.phone.e164
 
   return raw.replace(/[\s()-]/g, "")
-}
-
-function toCountryCode(value: string | null): CountryCode | null {
-  if (!value) return null
-
-  const normalized = value.trim().toUpperCase()
-  for (const country of supportedCountries) {
-    if (country === normalized) return country
-  }
-
-  return null
 }

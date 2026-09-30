@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 
 import { CustomerCardExperience } from "@/components/customer/customer-card-experience"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
-import { stampEmailPrompt } from "@/lib/customer/experience/load-card"
 import { loadStampExperienceContext } from "@/lib/customer/experience/load-stamp"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
@@ -35,25 +34,17 @@ export default async function StampPage({
     redirect(`/reward/${experience.reward.rewardId}`)
   }
 
-  // Whether to ask for an email once a stamp lands: server-loaded (signed in,
-  // no verified email, the rollout mode allows it), shown only after the
-  // stamp is confirmed on this screen.
-  const emailPrompt =
-    experience.kind === "stamp_confirm" ||
-    experience.kind === "card_stamped_today"
-      ? await stampEmailPrompt()
-      : null
-
   // The stamp entry never derives `card_collecting` (see `deriveStamp`), so the
   // discount-pass rail cannot render on this screen and loading passes here
   // would be a read thrown away. The empty rail is passed explicitly rather
   // than defaulted, so the decision is visible and cannot rot into an omission.
+  // Nothing is asked of the guest here once a stamp lands: the stamp result
+  // owns the screen, and optional setup waits for /home.
   return (
     <CustomerCardExperience
       experience={experience}
       offerPasses={[]}
       offerClaimNotice={null}
-      stampEmailPrompt={emailPrompt}
     />
   )
 }

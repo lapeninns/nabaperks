@@ -6,12 +6,15 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
 /**
- * QA BUG-022 (38c42a1..2c45031). With `CUSTOMER_EMAIL_AUTH_MODE=off`, a wallet
- * with no verified phone cannot sign back in at all, yet the account section
- * told it to "Sign back in with your email" beside "Log out". The page now
- * passes `emailSignInPaused`, and the section warns before either log-out
- * control and points to adding a phone instead of promising email sign-in.
+ * QA BUG-022 (38c42a1..2c45031), revised by the guest journey redesign. A card
+ * with no confirmed mobile number used to be warned that "Email sign-in is
+ * paused", which exposed a rollout setting and implied email was a way in.
+ * Phone is the only way in: the account section names it only for a card
+ * with a phone, and a card without one is asked to add it in the Contact
+ * group ("Add your mobile number so you can sign in on another phone.").
  */
+
+import { readFileSync } from "node:fs"
 
 const bundle = await build({
   entryPoints: ["components/customer/profile-account-section.tsx"],
@@ -49,34 +52,44 @@ const text = (html) =>
     .replace(/&#x27;|&#39;/g, "'")
     .replace(/\s+/g, " ")
 
-test("Given email sign-in is paused and the wallet has no phone When the account section renders Then it warns before logging out and points to adding a phone", () => {
-  const html = render({ signInWith: "your email", emailSignInPaused: true })
-  const copy = text(html)
+test("Given a card with no mobile number When the account section renders Then it names no sign-in route and exposes no rollout setting", () => {
+  const copy = text(render({}))
 
-  assert.doesNotMatch(copy, /Sign back in with your email/)
-  const warning = copy.search(/Add a phone number before you log out/)
-  assert.ok(warning >= 0, "warning shown")
+  assert.doesNotMatch(copy, /Sign back in with/)
+  assert.doesNotMatch(copy, /paused|email sign-in|wallet|account security/i)
+  assert.match(copy, /\bSign out\b/)
+  assert.match(copy, /Sign out on all devices/)
+  assert.doesNotMatch(copy, /!|—/)
+})
+
+test("Given a card with a mobile number When the account section renders Then it names the mobile number", () => {
+  const copy = text(render({ signInWith: "your mobile number" }))
+
+  assert.match(copy, /Sign back in with your mobile number\./)
+})
+
+test("Given the profile page When it builds the account section Then email is never passed as a sign-in route and no paused warning is wired", () => {
+  const page = readFileSync("app/home/(authed)/profile/page.tsx", "utf8")
+
   assert.match(
-    copy,
-    /Email sign-in is paused, so you could not sign back in to this account/
+    page,
+    /signInWith=\{hasPhone \? "your mobile number" : undefined\}/
   )
-  assert.match(copy, /Add a phone number in Your contact details above/)
-  // The warning comes before both log-out controls.
-  assert.ok(warning < copy.indexOf("Log out on all devices"))
-  assert.ok(warning < copy.search(/\bLog out\b/))
-  assert.doesNotMatch(copy, /!/)
+  assert.doesNotMatch(page, /emailSignInPaused|customerSignInMethodsLabel/)
 })
 
-test("Given email sign-in is on When the account section renders Then it names the sign-in route without a warning", () => {
-  const copy = text(render({ signInWith: "your email" }))
+test("Given a card with no mobile number When Contact renders Then it says why to add one", () => {
+  const aboutYou = readFileSync(
+    "components/customer/profile-about-you.tsx",
+    "utf8"
+  )
 
-  assert.match(copy, /Sign back in with your email\./)
-  assert.doesNotMatch(copy, /before you log out/)
-})
-
-test("Given a wallet with a phone When the account section renders Then the phone sign-in copy is unchanged", () => {
-  const copy = text(render({ signInWith: "your phone number" }))
-
-  assert.match(copy, /Sign back in with your phone number\./)
-  assert.doesNotMatch(copy, /before you log out/)
+  assert.match(
+    aboutYou,
+    /Add your mobile number so you can sign in on another phone\./
+  )
+  assert.doesNotMatch(
+    aboutYou,
+    /verified and locked|locked for account security/
+  )
 })

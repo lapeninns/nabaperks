@@ -15,8 +15,8 @@ export default function CustomerScanError({
   return (
     <CustomerShell className="grid content-center">
       <CustomerErrorState
-        title="Scanner unavailable"
-        description="The scanner could not be opened safely. Try again, or point your phone's camera at the printed venue QR."
+        title="Something went wrong"
+        description="We couldn't open the scanner. Your stamps are safe. Try again, or scan the venue QR with your phone's camera app."
         reset={() => recoverFromBoundaryError(error, reset)}
         secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />

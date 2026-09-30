@@ -28,6 +28,7 @@ const REAL = new Set([
   "@/lib/customer/phone",
   "@/lib/customer/experience/otp-field",
   "@/lib/customer/otp-channel-core",
+  "@/lib/customer/login-copy",
   "@/lib/customer/phone-code-email-fallback",
   "@/lib/customer/join-observability-contract",
   "@/lib/navigation/customer-join-intent",
@@ -242,7 +243,9 @@ const loginVerify = (actions, otp) =>
     actions.verifyCustomerLoginOtpAction({}, form({ otp, next: "/home" }))
   )
 
-const TOO_MANY = /too many code attempts/i
+// The join page (guest journey J3) and /home/login word these differently.
+const TOO_MANY = /too many code attempts|too many tries/i
+const REJECTED = /that code was not accepted|that code didn't work/i
 
 test("Given six correct codes in a row When each is confirmed on the join page Then every one signs in", async () => {
   const actions = await loadVerifyActions()
@@ -279,10 +282,7 @@ test("Given five wrong codes When the correct code follows Then the number stays
     for (let n = 0; n < 5; n += 1) {
       const wrong = await verify(actions, "000000")
       assert.equal(wrong.outcome, "answered")
-      assert.match(
-        wrong.errors.otp ?? wrong.errors.form,
-        /that code was not accepted/i
-      )
+      assert.match(wrong.errors.otp ?? wrong.errors.form, REJECTED)
     }
 
     actions.state.impl.checkCustomerPhoneVerification = { status: "approved" }
@@ -311,7 +311,7 @@ test("Given four wrong codes When correct codes follow Then each still signs in 
 
   state.impl.checkCustomerPhoneVerification = { status: "rejected" }
   const fifthWrong = await joinVerify(actions, "000000")
-  assert.match(fifthWrong.errors.otp, /that code was not accepted/i)
+  assert.match(fifthWrong.errors.otp, REJECTED)
 
   state.impl.checkCustomerPhoneVerification = { status: "approved" }
   assert.match((await joinVerify(actions, "123456")).errors.form, TOO_MANY)

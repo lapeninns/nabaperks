@@ -15,8 +15,8 @@ export default function CustomerVenueError({
   return (
     <CustomerShell className="grid content-center">
       <CustomerErrorState
-        title="Venue unavailable"
-        description="This venue page could not be loaded safely. Try again, or ask a team member for the current loyalty QR."
+        title="Something went wrong"
+        description="We couldn't load this venue. Your stamps are safe. Try again, or ask staff for the current loyalty QR."
         reset={() => recoverFromBoundaryError(error, reset)}
         secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />

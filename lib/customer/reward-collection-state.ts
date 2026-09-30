@@ -90,18 +90,20 @@ export function rewardCollectionBlockedCopy(reason: string | null): string {
     // a deliberate pause; keep the neutral wording the card uses.
     case "This loyalty programme is unavailable right now":
       return "This loyalty programme is unavailable at the moment."
+    // The venue's day resets at its own configured time, so the copy names a
+    // later visit rather than a calendar day it cannot promise.
     case "one_reward_per_day":
     case "One reward per visit day already collected":
-      return "You've collected a reward here in this venue trading day. Your next reward is available after the venue's daily reset."
+      return "You've already collected a reward here today. You can collect this one on a later visit."
     case "profile_incomplete":
     case "Complete your profile before redeeming":
-      return "Complete your profile before collecting this reward."
+      return "Finish setting up to collect this reward."
     case "Verified email required for reward collection":
-      return "Verify your email before collecting this reward."
+      return "Confirm your email to collect this reward."
     case "age_verification_required":
     case PHOTO_ID_REQUIRED_REASON:
-      return "Photo ID is needed to collect this reward."
-    case "Customer must be 18 or over to redeem":
+      return "Staff will check photo ID when you collect this reward."
+    case UNDER_AGE_REASON:
       return "This reward can only be collected by customers aged 18 or over."
     case "expired":
       return "This reward has expired."
@@ -127,6 +129,39 @@ export function isCollectionSetupBlock(reason: string | null): boolean {
   )
 }
 
+/**
+ * What the guest can do with a reward, from the server predicate alone:
+ *
+ * - `ready`: collect it now. The in-person photo-ID reason counts here because
+ *   the predicate reports it only once every other requirement is met, and the
+ *   code is shown with the ID note beside it. Callers resolve that reason with
+ *   {@link resolveAgeCheckReason} first, so an under-age customer's reward is
+ *   `unavailable`, never ready.
+ * - `needs_setup`: unlocked, but a detail (name, date of birth, email or
+ *   mobile number) must be added on the reward page first. Never shown with a
+ *   code or as ready.
+ * - `waiting`: unlocked, opening at its server-derived time.
+ * - `unavailable`: anything else (paused, capped, expired, collected).
+ *
+ * Presentation only. The QR route and the database predicate stay the
+ * authority on whether a code can be minted.
+ */
+export type RewardCollectability =
+  "ready" | "needs_setup" | "waiting" | "unavailable"
+
+export function rewardCollectability(
+  state: RewardCollectionState,
+  reason: string | null
+): RewardCollectability {
+  if (state === "ready") return "ready"
+  if (state === "waiting") return "waiting"
+  if (state === "blocked" && reason === PHOTO_ID_REQUIRED_REASON) return "ready"
+  if (state === "blocked" && isCollectionSetupBlock(reason)) {
+    return "needs_setup"
+  }
+  return "unavailable"
+}
+
 /** The predicate's reason when an age-checked reward needs in-person ID. */
 export const PHOTO_ID_REQUIRED_REASON =
   "Customer must have verified photo ID and be 18 or over to redeem"
@@ -145,11 +180,31 @@ export function photoIdSetupApplies(
   return reason === PHOTO_ID_REQUIRED_REASON && statedDateOfBirthIsAdult
 }
 
+/** The predicate's reason when the customer is under age for the reward. */
+export const UNDER_AGE_REASON = "Customer must be 18 or over to redeem"
+
+/**
+ * Resolves the predicate's ambiguous photo-ID reason with the customer's
+ * stated date of birth, the same fact the reward page and the QR route check.
+ * An under-age (or missing) date of birth becomes the under-age policy block,
+ * so list and card surfaces never show that reward as ready to collect. Every
+ * surface that classifies rewards must pass its reasons through this first.
+ */
+export function resolveAgeCheckReason(
+  reason: string | null,
+  statedDateOfBirthIsAdult: boolean
+): string | null {
+  if (reason !== PHOTO_ID_REQUIRED_REASON) return reason
+  return photoIdSetupApplies(reason, statedDateOfBirthIsAdult)
+    ? reason
+    : UNDER_AGE_REASON
+}
+
 export function collectionWindowCopy(
   facts: CollectionWindowFacts
 ): string | null {
   if (facts.inWindow && facts.windowEndsAt && facts.upgradeRewardName) {
-    return `Collect now and get ${facts.upgradeRewardName} — until ${formatTime(facts.windowEndsAt)}`
+    return `Collect before ${formatTime(facts.windowEndsAt)} and get ${facts.upgradeRewardName}`
   }
 
   if (
@@ -168,18 +223,23 @@ export function formatCollectionDeadline(value: string | null): string | null {
   return `Expires ${LONDON_DEADLINE.format(parseInstant(value)).replace(",", " at")}`
 }
 
+/**
+ * "Ready from Wed 1 Oct, 12:00": the server's opening instant in London time,
+ * capitalised as the formatter gives it. Callers must not lower-case it.
+ */
 export function formatCollectionAvailability(
   value: string | null
 ): string | null {
   if (!value) return null
-  return `Ready ${formatCollectionAvailableLabel(value)}`
+  return `Ready from ${formatCollectionAvailableLabel(value)}`
 }
 
+/** "Wed 1 Oct, 12:00" in London time, for a date chip or a sentence. */
 export function formatCollectionAvailableLabel(
   value: string | null
 ): string | null {
   if (!value) return null
-  return LONDON_DEADLINE.format(parseInstant(value)).replace(",", " at")
+  return LONDON_DEADLINE.format(parseInstant(value))
 }
 
 function formatTime(value: string): string {

@@ -6,6 +6,7 @@ import {
   COLLECTION_STAGE_INSTRUCTION,
   collectionSetup,
 } from "./collection-stage"
+import { stampedTodayLine } from "./next-stamp"
 import { assertNever, type CustomerExperience } from "./types"
 
 /**
@@ -39,71 +40,92 @@ type UnavailableExperience = Extract<
   { kind: "unavailable" }
 >
 
-/** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
+/** QR-scan welcome: the three things the guest will actually do. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
-  "You scanned the venue QR",
-  "Confirm it's you with one code",
-  "Your first stamp lands on your card",
+  "Enter your mobile number",
+  "Type the code we send you",
+  "Your first stamp goes on your card",
 ] as const
 
 export const JOIN_WELCOME_HOW_IT_WORKS_LABEL = "How it works" as const
 
 /**
- * Under the welcome CTA while email sign-in is off. The wallet is found by the
- * contact it was joined with, so the same phone number opens the same card.
+ * Under the welcome CTA. A card is found by the number it was joined with, so
+ * the same mobile number opens the same card. Email is never mentioned here:
+ * it is only the code step's fallback.
  */
 export const JOIN_WELCOME_PHONE_REASSURANCE =
-  "Already have a card here? Sign in the same way as before." as const
+  "Been here before? Use the same mobile number and your card opens." as const
 
 /**
- * Under the welcome CTA while email sign-in is on. The CTA always opens the
- * phone step and email appears only on the code step, so a customer who
- * joined by email is told where to find it rather than verifying a phone,
- * which would start a second wallet.
+ * Join phone step: the one quiet line about how the code arrives. WhatsApp
+ * first, with text one tap away on the code step.
  */
-export const JOIN_WELCOME_EMAIL_REASSURANCE =
-  "Already have a card here? Sign in the same way as before. Joined by email? The code screen offers email after 30 seconds." as const
+export function joinPhoneChannelNote(channel: "sms" | "whatsapp"): string {
+  return channel === "whatsapp"
+    ? "We send codes by WhatsApp. You can switch to text on the next screen."
+    : "We send codes by text message."
+}
 
-/** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
-export const JOIN_PHONE_CODE_HINT = "We'll send you a one-time code." as const
+/** The number step after a code step whose pending code had expired. */
+export const JOIN_PHONE_CODE_EXPIRED =
+  "Your code expired. Send a new one." as const
 
-/** Join-only number guidance: the promise, not the plumbing. */
-export const JOIN_PHONE_RETENTION_HINT =
-  "Only used to keep your stamps safe. No spam, ever." as const
+/** The phone step's back link, to the welcome (QR) or the venue page. */
+export const JOIN_PHONE_BACK_LABEL = "Back" as const
 
 /**
- * The phone code step's email fallback, shown once the code has had time to
- * arrive (lib/customer/phone-code-email-fallback.ts). Join page and
- * /home/login.
+ * The phone code step's email fallback, shown once the server allows it
+ * (lib/customer/phone-code-email-fallback.ts). Join page and /home/login.
  */
 export const PHONE_CODE_EMAIL_FALLBACK_LABEL =
-  "Not received a code? Use your email instead" as const
+  "No code? Get one by email instead" as const
+
+/** Before the fallback opens: no ticking number, just that there is more. */
+export const PHONE_CODE_EMAIL_FALLBACK_PENDING =
+  "If nothing arrives, more options appear shortly." as const
+
+/** Beside a failed phone send, which is a genuine delivery failure. */
+export const JOIN_PHONE_SEND_FAILED_EMAIL_LABEL =
+  "Get a code by email instead" as const
 
 /** Leads the email step, which is only ever reached as that fallback. */
-export const JOIN_EMAIL_FALLBACK_HEADLINE =
-  "Get your code by email instead" as const
+export const JOIN_EMAIL_FALLBACK_HEADLINE = "Get your code by email" as const
 
-/** Under the email field: why email helps at a venue with no signal. */
+/** Why email helps at a venue with no signal. Join and /home/login. */
 export const JOIN_EMAIL_WIFI_HINT =
-  "Works over the venue's Wi-Fi, even with no mobile signal." as const
+  "Useful when there's no mobile signal. Works on the venue's Wi-Fi." as const
+
+/**
+ * Mode `full` only, under the email field: confirming a code for an address
+ * no card uses starts a card with it (email-actions.ts). Said before the code
+ * is sent, so sending it is the guest's informed choice to start one, as the
+ * published terms describe. Conditional wording: it says nothing about
+ * whether this address already has a card.
+ */
+export const JOIN_EMAIL_NEW_CARD_DISCLOSURE =
+  "If no Nabaperks card uses this email yet, confirming the code starts one with it." as const
 
 /** When the email provider failed to take a join code (plan section 7). */
 export const JOIN_EMAIL_DELAYED =
-  "Email codes are delayed. Try again shortly or use your phone." as const
+  "Email is slow right now. Try again shortly, or go back to the text code." as const
 
 /** Shown on the email code step once the code has had time to arrive. */
-export const JOIN_EMAIL_SPAM_HINT =
-  "Not there yet? Check your spam or junk folder." as const
+export const JOIN_EMAIL_SPAM_HINT = "Not there? Check spam or junk." as const
 
-/** Returns to the QR welcome card when the customer wants the full preview again. */
-export const JOIN_PHONE_BACK_LABEL = "What do I get?" as const
+/** The email steps' way back to the phone code, which may still arrive. */
+export const JOIN_EMAIL_BACK_TO_PHONE_CODE_LABEL =
+  "Back to the text code" as const
+
+/** The email steps' way to the number form when no phone code is pending. */
+export const JOIN_USE_MOBILE_NUMBER_LABEL = "Use my mobile number" as const
 
 /** The reward hook — keeps *why* in one line on every join step. */
 export function joinUnlockingRewardHook(stampsRequired: number): string {
   const stamps = Math.max(stampsRequired, 1)
   return stamps === 1
-    ? "Just 1 stamp to a mystery reward"
-    : `Just ${stamps} stamps to a mystery reward`
+    ? "1 stamp to a mystery reward"
+    : `${stamps} stamps to a mystery reward`
 }
 
 /**
@@ -116,23 +138,86 @@ export function joinCompletionHint({
   savedTo = "number",
 }: {
   hasQr: boolean
-  /** A wallet with no phone number is saved to its email. */
+  /** A card joined without a confirmed phone is kept with its email. */
   savedTo?: "number" | "email"
 }): string {
-  const target = savedTo === "email" ? "your email" : "this number"
+  const target = savedTo === "email" ? "your email" : "your mobile number"
   return hasQr
-    ? `Your stamp and card stay saved to ${target}.`
-    : `Your card is saved to ${target}, ready for your first visit.`
+    ? `Your card and stamps stay with ${target}.`
+    : `Your card stays with ${target}, ready for your first visit.`
 }
 
+/**
+ * The one material condition of joining, said once, beside the terms: what
+ * collecting a reward needs (lib/customer/profile-completion.ts). Photo ID
+ * only when the card data says a reward is age checked.
+ */
+export function joinRewardRequirementLine({
+  mayNeedPhotoId,
+}: {
+  mayNeedPhotoId: boolean
+}): string {
+  const line =
+    "Collecting a reward needs your name, date of birth and a confirmed phone number and email."
+  return mayNeedPhotoId ? `${line} Photo ID may be checked.` : line
+}
+
+/**
+ * The optional marketing choice, naming only the channels the database would
+ * record consent on: WhatsApp and text for a confirmed phone, email for a
+ * confirmed email (migration 20261009150100). With neither confirmed a tick
+ * would record nothing, so there is no choice to offer: null, and the form
+ * leaves the optional section out.
+ */
+export function joinMarketingOptInLabel(
+  merchantName: string,
+  channels: { phone: boolean; email: boolean }
+): string | null {
+  const by =
+    channels.phone && channels.email
+      ? "by WhatsApp, text or email"
+      : channels.phone
+        ? "by WhatsApp or text"
+        : channels.email
+          ? "by email"
+          : null
+  return by ? `Send me offers from ${merchantName} ${by}` : null
+}
+
+/** R4: one quiet line under "Show this at the counter." beside the code. */
+export const REWARD_CODE_BRIGHTNESS_HINT =
+  "Turn your screen brightness up so staff can scan it." as const
+
+export const JOIN_MARKETING_CHANGE_NOTE =
+  "You can change this any time in your profile." as const
+
+/**
+ * "Sent by WhatsApp to 07•••• ••123.": the same masked number sign-in shows,
+ * so the step reads the same in join and sign-in.
+ */
+function phoneCodeSentLine(contact: {
+  channel: string
+  maskedNumber: string
+}): string {
+  const by = contact.channel === "whatsapp" ? "by WhatsApp" : "by text"
+  return contact.maskedNumber
+    ? `Sent ${by} to ${contact.maskedNumber}.`
+    : `Sent ${by}.`
+}
+
+/**
+ * R2. "Ready from Wed 1 Oct, 12:00." from the server's opening instant,
+ * capitalised as formatted (never lower-cased). Without a time, it says where
+ * the time will appear rather than inventing one or promising speed.
+ */
 export function waitingRewardTiming(
   availableFrom: string | null,
   nextWindow: string | null = null
 ): string {
   const timing = formatCollectionAvailability(availableFrom ?? nextWindow)
   return timing
-    ? `${timing.replace("Ready", "It's yours from")}.`
-    : "Check back shortly for the collection time."
+    ? `${timing}.`
+    : "The collection time will show here once it's set."
 }
 
 export function getCustomerExperienceViewModel(
@@ -140,16 +225,15 @@ export function getCustomerExperienceViewModel(
 ): CustomerExperienceViewModel {
   switch (exp.kind) {
     case "join_welcome":
-      // Shown to anyone who scans the venue QR while logged out. Returning
-      // members verify and route to their card; new members finish terms and
-      // earn stamp #1 in the same onboarding call.
+      // Shown to anyone who scans the venue QR while signed out. Returning
+      // members confirm their number and go to today's stamp; new members
+      // accept the terms and get stamp 1 in the same call.
       return {
-        eyebrow: "Stamp 1 is ready",
-        headline: "Your first stamp is ready",
-        supportLine:
-          "Save it to your number in 20 seconds. No app, no password, and it's there on every visit.",
+        eyebrow: exp.merchant.name,
+        headline: "Get your first stamp",
+        supportLine: `A stamp card for ${exp.merchant.name}. Join with your mobile number.`,
         primaryAction: {
-          label: "Claim my first stamp",
+          label: "Get my first stamp",
           href: buildCustomerJoinHref(exp.merchant.slug, {
             qrId: exp.qrId,
             step: "phone",
@@ -158,30 +242,29 @@ export function getCustomerExperienceViewModel(
       }
     case "join_phone":
       return {
-        eyebrow: "One message, no password",
-        headline: "Save your stamp to your number",
-        supportLine: `One message confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
+        eyebrow: "Your number",
+        headline: "Enter your mobile number",
+        supportLine: "We'll send you a code to confirm it's you.",
       }
     case "join_email":
       // Reached only from a phone code that has not arrived.
       return {
-        eyebrow: "No code yet?",
+        eyebrow: "Your email",
         headline: JOIN_EMAIL_FALLBACK_HEADLINE,
-        supportLine: `One code by email confirms it's you. Your ${exp.merchant.name} card then follows you on every visit.`,
+        supportLine: JOIN_EMAIL_WIFI_HINT,
       }
     case "join_email_choice":
       return exp.canCreate
         ? {
-            eyebrow: "Email confirmed",
-            headline: "Continue with your email",
-            supportLine:
-              "You can add and verify your phone number later in Profile, before collecting a reward. Already have stamps saved to your phone? Open that wallet below to keep using them.",
+            // Only a handoff left by the previous build lands here.
+            eyebrow: "Your email",
+            headline: "Email confirmed",
+            supportLine: `Continue to join the card at ${exp.merchant.name}.`,
           }
         : {
-            eyebrow: "Email confirmed",
-            headline: "No wallet uses this email yet",
-            supportLine:
-              "Use the phone number you joined with. You can add this email to your wallet once you're signed in.",
+            eyebrow: "Your email",
+            headline: "No card uses this email",
+            supportLine: "Join with your mobile number instead.",
           }
     case "join_otp":
       return exp.contact.method === "email"
@@ -190,83 +273,63 @@ export function getCustomerExperienceViewModel(
             headline: "Enter your code",
             // A failed send is never described as an email on its way.
             supportLine: exp.contact.deliveryDelayed
-              ? "If the email doesn't arrive, send a new code or use your phone."
-              : "It's in the email we just sent you.",
+              ? `We couldn't email ${exp.contact.maskedEmail} yet. Send a new code, or go back to the text code.`
+              : `Sent to ${exp.contact.maskedEmail}.`,
           }
         : {
             eyebrow: "Check your messages",
             headline: "Enter your code",
-            supportLine: "It's in the message we just sent you.",
+            supportLine: phoneCodeSentLine(exp.contact),
           }
     case "join_terms":
       return exp.qrId
         ? {
-            eyebrow: "Last step",
-            headline: "Collect your first stamp",
-            supportLine: "One tick and stamp 1 is on your card.",
+            eyebrow: "Your first stamp",
+            headline: `Join the card at ${exp.merchant.name}`,
+            supportLine: "Agree to the card terms to add your first stamp.",
           }
         : {
-            eyebrow: "Last step",
-            headline: "Save your loyalty card",
-            supportLine:
-              "One tick and your card is saved for your first visit.",
+            eyebrow: "Your card",
+            headline: `Join the card at ${exp.merchant.name}`,
+            supportLine: "Agree to the card terms to save your card.",
           }
     case "join_returning":
       return {
-        eyebrow: "Welcome back",
-        headline: `${exp.current} of ${exp.total} stamps saved`,
-        supportLine: `Your ${exp.merchant.name} card is already in your wallet.`,
+        eyebrow: `${exp.current} of ${exp.total} stamps`,
+        headline: "Welcome back",
+        supportLine: `Your ${exp.merchant.name} card is ready.`,
         primaryAction: {
-          label: exp.qrId ? "Continue to today's stamp" : "Open my card",
+          label: exp.qrId ? "Get today's stamp" : "Open my card",
           href: exp.qrId
             ? `/card/${exp.membershipId}/stamp?qr=${encodeURIComponent(exp.qrId)}`
             : `/card/${exp.membershipId}`,
         },
       }
     case "stamp_confirm":
+      // S1. Once the stamp lands the screen headline follows the result
+      // ("Stamp added."), from stampChoreographyView's outcome.
       return {
-        eyebrow: "Today's stamp",
-        headline: "Stamp it here",
+        eyebrow: "Your card",
+        headline: "Today's stamp",
         supportLine: exp.merchantName,
       }
     case "card_stamped_today":
-      if (exp.reward) {
-        return {
-          eyebrow: "Reward unlocked",
-          headline: "Your reward is unlocked",
-          supportLine:
-            "Your completed card is safe. Open the reward for the collection date.",
-          primaryAction: {
-            label: "See your reward",
-            href: `/reward/${exp.reward.rewardId}`,
-          },
-        }
-      }
-      return {
-        eyebrow: "Today's stamp",
-        headline: "You're stamped for today",
-        supportLine:
-          "Come back on the next venue trading day to keep building your card.",
-        primaryAction: {
-          label: "View card",
-          href: `/card/${exp.membershipId}`,
-        },
-      }
+      return stampedTodayViewModel(exp)
     case "stamp_unmatched":
-      // The shell carries the one headline and a reassurance; the panel's
+      // S6. The shell carries the one headline and a reassurance; the panel's
       // band beneath the card carries the instruction, so the two never
       // repeat each other. No primaryAction: the panel renders the shared
-      // recovery pair (scan again / open my cards) itself.
+      // recovery pair (scan the QR / open my cards) itself.
       return exp.problem === "missing"
         ? {
-            eyebrow: "Today's stamp",
-            headline: "Open this from the venue QR",
-            supportLine: `Your ${exp.merchantName} card is safe — nothing has changed.`,
+            eyebrow: "Your card",
+            headline: `Scan the QR at ${exp.merchantName}`,
+            supportLine: "Your stamps are safe.",
           }
         : {
-            eyebrow: "Today's stamp",
-            headline: "That QR didn't match this card",
-            supportLine: `Your ${exp.merchantName} stamps are safe — nothing has changed.`,
+            eyebrow: "Your card",
+            headline: "This QR doesn't match your card",
+            supportLine: "Your stamps are safe.",
           }
     case "card_collecting":
       return cardCollectingViewModel(exp)
@@ -276,10 +339,10 @@ export function getCustomerExperienceViewModel(
     case "redeemed_proof":
       return {
         eyebrow: "Reward collected",
-        headline: exp.reward.rewardName,
-        supportLine: "Your reward has been collected.",
+        headline: "Collected. Enjoy.",
+        supportLine: exp.reward.rewardName,
         primaryAction: {
-          label: "Back to card",
+          label: "Back to my card",
           href: `/card/${exp.reward.membershipId}`,
         },
       }
@@ -290,18 +353,70 @@ export function getCustomerExperienceViewModel(
   }
 }
 
+/**
+ * S5, or the full card held after its reward unlocked (S3 on a reload). The
+ * next stamp is named as a concrete London date and time when the server knew
+ * the venue's day start, never as "tomorrow" or a "daily reset".
+ */
+function stampedTodayViewModel(
+  exp: Extract<CustomerExperience, { kind: "card_stamped_today" }>
+): CustomerExperienceViewModel {
+  if (exp.reward) {
+    return {
+      eyebrow: "Your card",
+      headline: "Your card is full.",
+      supportLine: "Your reward is unlocked.",
+      primaryAction: {
+        label: "See my reward",
+        href: `/reward/${exp.reward.rewardId}`,
+      },
+    }
+  }
+  return {
+    eyebrow: "Your card",
+    headline: "You've already got today's stamp",
+    supportLine: stampedTodayLine(exp.nextStampFrom),
+    primaryAction: {
+      label: "View my card",
+      href: `/card/${exp.membershipId}`,
+    },
+  }
+}
+
+/** "3 more to your reward." while collecting; the reward once it unlocks. */
+function cardProgressLine({
+  current,
+  total,
+  reward,
+}: {
+  current: number
+  total: number
+  reward: CardCollectingExperience["reward"]
+}): string | undefined {
+  if (reward !== "none") return "Your reward is unlocked."
+  if (total <= 0) return undefined
+  const remaining = Math.max(total - current, 0)
+  return remaining > 0 ? `${remaining} more to your reward.` : undefined
+}
+
+/**
+ * C. The card: where the guest is on it. A just-joined guest is welcomed by
+ * name of the venue, with no setup asked of them here.
+ */
 function cardCollectingViewModel(
   exp: CardCollectingExperience
 ): CustomerExperienceViewModel {
+  const progress = cardProgressLine(exp)
   return exp.justJoined
     ? {
         eyebrow: exp.merchantName,
         headline: `Welcome to ${exp.merchantName}`,
-        supportLine: exp.cardName,
+        supportLine: progress ?? exp.cardName,
       }
     : {
         eyebrow: exp.merchantName,
         headline: exp.cardName,
+        supportLine: progress,
       }
 }
 
@@ -316,9 +431,9 @@ function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
     return exp.preparing
       ? preparingRewardViewModel(exp)
       : {
-          eyebrow: "Reward",
+          eyebrow: "Your reward",
           headline: exp.reward.rewardName,
-          supportLine: waitingRewardSupportLine(exp.reward.availableFrom),
+          supportLine: waitingRewardTiming(exp.reward.availableFrom),
         }
   }
 
@@ -341,8 +456,8 @@ function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
 
 /**
  * Preparing a waiting reward. The timing line stays out of the headline: this
- * screen is about the outstanding step, and the panel repeats — once — that
- * finishing it does not move the collection date.
+ * screen is about the outstanding step, and the panel states the date once,
+ * without implying that finishing setup brings it forward.
  */
 function preparingRewardViewModel(
   exp: Extract<CustomerExperience, { kind: "reward_waiting" }>
@@ -356,7 +471,7 @@ function preparingRewardViewModel(
     headline:
       setup && setup.outstanding
         ? COLLECTION_STAGE_INSTRUCTION[setup.stage]
-        : "You are ready to collect",
+        : "Nothing else to add",
     supportLine: rewardIdentityLine(exp),
   }
 }
@@ -366,16 +481,31 @@ function rewardIdentityLine(exp: RewardExperience): string {
   return `${exp.reward.rewardName} at ${exp.merchantName}`
 }
 
-function waitingRewardSupportLine(availableFrom: string | null): string {
-  if (availableFrom) {
-    return `Unlocked — ${formatCollectionAvailability(availableFrom)?.toLocaleLowerCase("en-GB")}.`
-  }
-  return "Unlocked — collection timing will appear here."
-}
-
 function unavailableViewModel(
   exp: UnavailableExperience
 ): CustomerExperienceViewModel {
+  if (exp.subject === "reward") {
+    // R6: reward-specific wording. Signed out, the one way back is signing in
+    // (to this reward). Otherwise the reason says why (expired, paused, not
+    // found) and the way out is the guest's cards; not-found and not-yours
+    // already read the same, so this reveals nothing about other rewards.
+    return exp.recovery
+      ? {
+          eyebrow: "Your reward",
+          headline: "Sign in to see this reward",
+          supportLine: "Use the mobile number you collect stamps with.",
+          primaryAction: {
+            label: OPEN_MY_CARDS_LABEL,
+            href: exp.recovery.loginHref,
+          },
+        }
+      : {
+          eyebrow: "Your reward",
+          headline: "This reward isn't available",
+          supportLine: exp.reason,
+          primaryAction: { label: OPEN_MY_CARDS_LABEL, href: "/home" },
+        }
+  }
   return {
     eyebrow: "Nabaperks loyalty",
     headline: "Card unavailable",

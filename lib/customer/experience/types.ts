@@ -17,16 +17,6 @@ import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-rec
 export type EmailPromptReason = "rewards" | "wifi_sign_in"
 
 /**
- * The after-stamp email prompt: why it asks and where it opens (the code step
- * when a code for the saved address is already pending, as on /home).
- */
-export type StampEmailPrompt = {
-  readonly reason: EmailPromptReason
-  readonly initialEmail: string | null
-  readonly codePending: boolean
-}
-
-/**
  * Email sign-in rollout mode as the join page sees it (mirrors
  * `CustomerEmailAuthMode` in lib/customer/email-auth-mode.ts, which is
  * server-only): `off` phone only, `existing` email opens wallets that already
@@ -42,6 +32,11 @@ export type JoinOtpContact =
   | {
       method: "phone"
       last4: string
+      /**
+       * The number as the guest knows it, masked ("07•••• ••123"), the same
+       * form sign-in shows. Empty when the number is not known.
+       */
+      maskedNumber: string
       /** Where the code went, so the step says "by text" or "on WhatsApp". */
       channel: OtpChannel
       /**
@@ -235,6 +230,9 @@ export type CardGift = {
   rewardName: string
   source: RewardSource
   redeemable: boolean
+  /** Unlocked but held only by a setup step the guest finishes on the reward
+   *  page (details, email or mobile number); it is not a code to show yet. */
+  needsSetup?: boolean
   availableFrom: string | null
 }
 
@@ -246,8 +244,6 @@ export type CustomerExperience =
       card: JoinCard
       /** The welcome CTA always opens the phone step: email is a fallback. */
       qrId: string
-      /** Email sign-in is on: the note says where email is offered. */
-      emailSignIn: boolean
     }
   | {
       kind: "join_phone"
@@ -258,6 +254,17 @@ export type CustomerExperience =
       channel: OtpChannel
       /** Email sign-in is on: a failed send offers email beside the error. */
       emailSignIn: boolean
+      /**
+       * The guest came back from a code step whose pending code had expired,
+       * so the form says why they are here.
+       */
+      notice?: "code_expired"
+      /**
+       * "Wrong number? Change it": the number of the code still pending on
+       * this browser, in UK national form, so the guest edits rather than
+       * retypes it. Only ever this browser's own signed pending code.
+       */
+      prefillPhone?: string
     }
   | {
       kind: "join_email"
@@ -277,9 +284,11 @@ export type CustomerExperience =
     }
   | {
       /**
-       * The email was verified but no wallet holds it. Nothing has been
-       * created: the customer chooses a new wallet (mode `full` only) or
-       * their phone number.
+       * A verified-email handoff with no wallet behind it. Mode `existing`
+       * (`canCreate` false): no card uses this email, one way back to the
+       * phone. Mode `full` (`canCreate` true): only a handoff left by the
+       * previous build, which one "Continue" spends; new fallback emails are
+       * turned into a wallet at the code step and never land here.
        */
       kind: "join_email_choice"
       merchant: JoinMerchant
@@ -304,6 +313,12 @@ export type CustomerExperience =
       location: LocationRequirement
       /** What the wallet can be contacted on, for the marketing line. */
       contactChannels: JoinContactChannels
+      /**
+       * A reward on this card may be age checked (an active reward-pool item
+       * or collection-window upgrade requires it), so joining says photo ID
+       * may be checked. False when the card data does not say so.
+       */
+      rewardMayNeedPhotoId: boolean
     }
   | {
       kind: "join_returning"
@@ -328,6 +343,12 @@ export type CustomerExperience =
       stampDates: string[]
       /** Pre-formatted UK date for the stamp landing now (computed server-side). */
       todayLabel: string
+      /**
+       * When the stamp after today's opens (ISO instant, from the venue's
+       * trading-day start). Null or absent when it could not be worked out,
+       * and the screen says "on your next visit" instead.
+       */
+      nextStampFrom?: string | null
     }
   | {
       kind: "card_stamped_today"
@@ -340,6 +361,8 @@ export type CustomerExperience =
       total: number
       stampDates: string[]
       todayLabel: string
+      /** As on `stamp_confirm`: when the next stamp opens, if known. */
+      nextStampFrom?: string | null
       /**
        * Set once the final stamp has unlocked a reward that is not yet
        * redeemable. The completed card holds in place (no swap to the waiting
@@ -380,6 +403,8 @@ export type CustomerExperience =
       total: number
       slamIndex: number
       reward: CardRewardStatus
+      /** The unlocked reward waits only on a setup step on its own page. */
+      rewardNeedsSetup?: boolean
       rewardId?: string
       rewardName?: string
       rewardTerms: string
@@ -398,9 +423,9 @@ export type CustomerExperience =
        *  referral_code (never the membership UUID); absent if unshareable. */
       referralShareUrl?: string
       referralBonusBank?: ReferralBonusBank
-      /** Compact "Add your email" card after a stamp; absent unless the
-       *  customer just stamped and holds no verified email. */
-      emailPrompt?: StampEmailPrompt | null
+      /** When the next stamp opens after the one just added, if known. Only
+       *  loaded straight after a stamp. */
+      nextStampFrom?: string | null
     }
   // --- Reward ---
   | {
@@ -432,7 +457,13 @@ export type CustomerExperience =
       justRedeemed: boolean
     }
   // --- Catch-all ---
-  | { kind: "unavailable"; reason: string; recovery?: AccessRecovery }
+  | {
+      kind: "unavailable"
+      reason: string
+      recovery?: AccessRecovery
+      /** Set on the reward route, so the copy names the reward, not a card. */
+      subject?: "reward"
+    }
 
 export type CustomerExperienceKind = CustomerExperience["kind"]
 

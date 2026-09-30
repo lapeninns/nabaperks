@@ -29,7 +29,7 @@ export function describePublicQrRouter() {
 
       expect(response?.status()).toBe(200)
       await expect(
-        page.getByRole("heading", { name: "We can't load this right now" })
+        page.getByRole("heading", { name: "We couldn't load this card" })
       ).toBeVisible()
       await expect(
         page.getByRole("link", { name: "Try again" })

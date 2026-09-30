@@ -7,28 +7,27 @@ import {
   stampDisplayLabelsForCount,
 } from "@/lib/customer/card"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
-import { emailPromptReason } from "@/lib/customer/email-auth-mode"
-import { emailPromptOpening } from "@/lib/customer/email-prompt-opening"
-import { getCurrentCustomer } from "@/lib/customer/identity"
 import { getJoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-recovery"
-import { customerHasVerifiedEmail } from "@/lib/customer/profile"
-import { getPendingEmailVerification } from "@/lib/customer/session"
 import { getReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 import {
   buildReferralJoinUrl,
   isShareableReferralCode,
 } from "@/lib/customer/referral"
 import { narrowRewardSource } from "@/lib/customer/issued-reward-display"
-import { cardRewardCollectable } from "@/lib/customer/reward-collection-state"
+import {
+  cardRewardCollectable,
+  rewardCollectability,
+} from "@/lib/customer/reward-collection-state"
 import {
   normalizeGoogleReviewUrl,
   normalizeVenueLocality,
 } from "@/lib/customer/venue-details"
+import { getVenueTradingDate } from "@/lib/customer/venue-trading-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
 
 import type { CardContext } from "./derive"
-import type { StampEmailPrompt } from "./types"
+import { loadNextStampFrom } from "./load-next-stamp"
 
 type CardSearchParams = {
   stamp?: string
@@ -92,8 +91,8 @@ export async function loadCardExperienceContext(
   }
 
   const target = loyaltyCard.stamps_required
-  const [stampDates, referralBonusBank, firstStampRecovery] = await Promise.all(
-    [
+  const [stampDates, referralBonusBank, firstStampRecovery, nextStampFrom] =
+    await Promise.all([
       getMembershipStampDisplayDates(
         membership.id,
         target,
@@ -101,8 +100,8 @@ export async function loadCardExperienceContext(
       ),
       getReferralBonusBank(membership.id),
       getJoinFirstStampRecovery(membership.id),
-    ]
-  )
+      justStamped ? justStampedNextStampFrom(merchant.id) : null,
+    ])
   const current = reconcileCardStampCount({
     membershipCount: membership.current_stamp_count,
     total: target,
@@ -138,6 +137,11 @@ export async function loadCardExperienceContext(
             stampCycleReward.collection_state,
             stampCycleReward.collection_reason
           ),
+          needsSetup:
+            rewardCollectability(
+              stampCycleReward.collection_state,
+              stampCycleReward.collection_reason
+            ) === "needs_setup",
         }
       : null
 
@@ -154,6 +158,11 @@ export async function loadCardExperienceContext(
             issuedReward.collection_state,
             issuedReward.collection_reason
           ),
+          needsSetup:
+            rewardCollectability(
+              issuedReward.collection_state,
+              issuedReward.collection_reason
+            ) === "needs_setup",
         }
       : null
 
@@ -176,8 +185,6 @@ export async function loadCardExperienceContext(
       ? buildReferralJoinUrl(merchant.business_slug, membership.referral_code)
       : undefined
 
-  const emailPrompt = justStamped ? await stampEmailPrompt() : null
-
   return {
     membershipId: membership.id,
     merchantName: merchant.business_name,
@@ -198,29 +205,23 @@ export async function loadCardExperienceContext(
     justRedeemed,
     referralShareUrl,
     referralBonusBank,
-    emailPrompt,
+    nextStampFrom,
   }
 }
 
 /**
- * The compact "Add your email" card after a stamp, only for a customer with no
- * verified email: on the card after the join's first stamp, and on the stamp
- * screen after a later one (QA BUG-020). It reads the already-cached session
- * customer and the pending-code cookie, and opens exactly where the /home
- * prompt would: at the
- * code step when a code for the saved address is on its way to this customer,
- * otherwise at the email step with that address prefilled. It must never cost
- * the stamp screen: any failure simply leaves the card out.
+ * When the next stamp opens after the one just added, for the quiet line under
+ * the stamp confirmation. Display only: any failure leaves the card with its
+ * "on your next visit" line, never an error page.
  */
-export async function stampEmailPrompt(): Promise<StampEmailPrompt | null> {
+async function justStampedNextStampFrom(
+  merchantId: string
+): Promise<string | null> {
   try {
-    const customer = await getCurrentCustomer()
-    if (!customer || customerHasVerifiedEmail(customer)) return null
-    const opening = emailPromptOpening(
-      customer,
-      await getPendingEmailVerification()
+    return await loadNextStampFrom(
+      merchantId,
+      await getVenueTradingDate(merchantId)
     )
-    return { reason: emailPromptReason(), ...opening }
   } catch {
     return null
   }

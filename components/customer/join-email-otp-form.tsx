@@ -14,9 +14,12 @@ import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { useOtpRetryCountdown } from "@/hooks/use-otp-retry-countdown"
+import { resendClock } from "@/lib/customer/otp-resend"
 import {
+  JOIN_EMAIL_BACK_TO_PHONE_CODE_LABEL,
   JOIN_EMAIL_DELAYED,
   JOIN_EMAIL_SPAM_HINT,
+  JOIN_USE_MOBILE_NUMBER_LABEL,
 } from "@/lib/customer/experience/copy"
 
 const emailInitialState: CustomerEmailIdentityState = {}
@@ -28,8 +31,6 @@ export type CustomerEmailOtpFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
-  /** Already masked on the server ("j***@example.com"). */
-  maskedEmail: string
   /** Epoch seconds when a resend is allowed. */
   resendAvailableAt: number
   /** The latest send failed, so no code is described as on its way. */
@@ -37,22 +38,25 @@ export type CustomerEmailOtpFormProps = {
   /** "Use a different email": the email step, where a pending code is ignored. */
   emailStepHref: string
   phoneStepHref: string
+  /** A phone code is still pending: the way back is to that code. */
+  phoneCodePending?: boolean
 }
 
 /**
- * The code step for a join by email: where the code went, the code field, a
- * resend that counts down to the server's cooldown, and both ways out. A
- * resend always goes to the address already in the pending challenge.
+ * The code step for a join by email: the code field, then quietly a resend
+ * that counts down to the server's cooldown, a different email and the way
+ * back to the phone. Where the code went is the step's support line. A resend
+ * always goes to the address already in the pending challenge.
  */
 export function CustomerEmailOtpForm({
   merchantSlug,
   qrId,
   referralCode,
-  maskedEmail,
   resendAvailableAt,
   deliveryDelayed = false,
   emailStepHref,
   phoneStepHref,
+  phoneCodePending = false,
 }: CustomerEmailOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
     verifyCustomerEmailOtpAction,
@@ -129,7 +133,7 @@ export function CustomerEmailOtpForm({
           <StatusBanner tone="error" title={verifyState.errors.form} />
         ) : null}
         <SubmitButton size="lg" className="w-full" pendingLabel="Checking…">
-          Check code
+          Continue
         </SubmitButton>
       </form>
 
@@ -141,56 +145,45 @@ export function CustomerEmailOtpForm({
         />
         {/* A resend answers in place and goes to the pending address only. */}
         <input type="hidden" name="resend" value="1" />
-        <div
-          className="grid gap-1.5 rounded-lg border-2 border-dashed border-border px-3 py-2.5 text-left"
-          aria-live="polite"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <p className="min-w-0 text-sm">
-              <span className="text-muted-foreground">
-                {delayed ? "Not sent yet to " : "Sent to "}
-              </span>
-              <span className="font-bold break-all">{maskedEmail}</span>
-            </p>
-            <SubmitButton
-              variant="link"
-              size="xs"
-              className="-mr-2 shrink-0 text-xs tabular-nums"
-              pendingLabel="Sending…"
-              disabled={countdown.active}
-            >
-              {countdown.active && countdown.ready
-                ? `Resend code in ${countdown.remainingSeconds}s`
-                : "Resend code"}
-            </SubmitButton>
-          </div>
-          {resendError ? (
-            <p className="text-sm leading-5 text-destructive">{resendError}</p>
-          ) : null}
-          {delayedNotice ? (
-            <p className="text-sm leading-5 text-destructive">
-              {delayedNotice}
-            </p>
-          ) : null}
-          {resendMessage ? (
-            <p className="text-sm leading-5 font-semibold text-foreground">
-              {resendMessage}
-            </p>
-          ) : null}
-          <div className="flex flex-wrap gap-x-4">
-            <Link
-              href={emailStepHref}
-              className="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
-            >
-              Use a different email
-            </Link>
-            <Link
-              href={phoneStepHref}
-              className="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
-            >
-              Use my phone instead
-            </Link>
-          </div>
+        {/* Only the status line is live: the ticking countdown and the
+            pending label are never read out once a second. */}
+        <div className="grid gap-1 text-left">
+          <SubmitButton
+            variant="link"
+            size="xs"
+            className="min-h-11 w-fit justify-self-start px-0 text-xs tabular-nums"
+            pendingLabel="Sending…"
+            disabled={countdown.active}
+          >
+            {countdown.active && countdown.ready
+              ? `Send a new code in ${resendClock(countdown.remainingSeconds)}`
+              : "Send a new code"}
+          </SubmitButton>
+          <p
+            role="status"
+            aria-live="polite"
+            className={
+              resendError || delayedNotice
+                ? "text-sm leading-5 text-destructive"
+                : "text-sm leading-5 font-semibold text-foreground"
+            }
+          >
+            {resendError ?? delayedNotice ?? resendMessage ?? ""}
+          </p>
+          <Link
+            href={emailStepHref}
+            className="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
+          >
+            Change email
+          </Link>
+          <Link
+            href={phoneStepHref}
+            className="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
+          >
+            {phoneCodePending
+              ? JOIN_EMAIL_BACK_TO_PHONE_CODE_LABEL
+              : JOIN_USE_MOBILE_NUMBER_LABEL}
+          </Link>
         </div>
       </form>
     </div>

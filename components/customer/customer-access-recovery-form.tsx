@@ -34,15 +34,14 @@ export function CustomerAccessRecoveryForm({
       <div className="grid gap-4">
         <StatusBanner
           tone="error"
-          title="We can't safely open this existing wallet on a new device because it has no verified recovery email."
+          title="We can't open these cards in this browser."
         />
         <p className="text-sm leading-6 text-muted-foreground">
-          Use a browser where you have opened this wallet before. We will not
-          create a replacement wallet or move the previous customer&apos;s
-          cards.
+          Open them in a browser you&apos;ve used before, or ask staff at a
+          venue for help. Your stamps are safe.
         </p>
         <Button asChild>
-          <Link href="/home/login">Try another phone number</Link>
+          <Link href="/home/login">Try a different number</Link>
         </Button>
       </div>
     )
@@ -51,14 +50,13 @@ export function CustomerAccessRecoveryForm({
   return (
     <div className="grid gap-4">
       <p className="text-sm leading-6 text-muted-foreground">
-        We sent a six-digit code to the verified email already on this account.
-        Enter it to prove this wallet belongs to you. We do not show the address
-        here.
+        We&apos;ve sent a code to the email saved with your cards. Enter it to
+        open them here.
       </p>
       <form action={verifyAction} className="grid gap-4">
         <div className="grid gap-2">
           <label htmlFor="recovery-code" className="eyebrow">
-            Email code
+            Your code
           </label>
           <input
             id="recovery-code"
@@ -90,7 +88,7 @@ export function CustomerAccessRecoveryForm({
           </p>
         ) : null}
         <Button type="submit" disabled={verifyPending}>
-          {verifyPending ? "Checking…" : "Open my wallet"}
+          {verifyPending ? "Checking…" : "Continue"}
         </Button>
       </form>
       <form action={resendAction}>
@@ -100,14 +98,14 @@ export function CustomerAccessRecoveryForm({
           className="w-full"
           disabled={resendPending}
         >
-          {resendPending ? "Sending…" : "Send a fresh email code"}
+          {resendPending ? "Sending…" : "Send a new code"}
         </Button>
       </form>
       <Link
         href="/home/login"
         className="text-center text-xs font-bold underline underline-offset-4"
       >
-        Start again with a different phone
+        Start again with a different number
       </Link>
     </div>
   )

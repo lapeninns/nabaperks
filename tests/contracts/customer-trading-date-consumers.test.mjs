@@ -65,9 +65,28 @@ test("customer-facing trading-day copy does not describe a UK weekday calendar",
 
   assert.doesNotMatch(visibleCopy, /UK business day/i)
   assert.match(visibleCopy, /next venue trading day/)
-  assert.match(visibleCopy, /One stamp per venue trading day/)
-  assert.match(
-    visibleCopy,
-    /referral bonus stamps can land per venue trading day/
+  // The card and stamp screens name the next stamp as a concrete time, or
+  // the next visit; "trading day" and "daily reset" are internal vocabulary
+  // (designer brief 2.4 and section S).
+  for (const guestFile of [
+    ["components", "customer", "customer-card-experience.tsx"],
+    ["components", "customer", "stamp-screen.tsx"],
+    ["lib", "customer", "experience", "stamp-choreography.ts"],
+    ["lib", "customer", "experience", "next-stamp.ts"],
+  ]) {
+    const source = read(...guestFile)
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "")
+    assert.doesNotMatch(
+      source,
+      /trading day|daily reset|scan window/i,
+      guestFile.join("/")
+    )
+  }
+  // Guest referral copy states the daily limit in plain words; "trading day"
+  // is internal vocabulary (designer brief 2.4).
+  assert.doesNotMatch(
+    read("lib", "customer", "referral-bonus-bank-copy.ts"),
+    /trading day/
   )
 })

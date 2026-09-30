@@ -11,6 +11,8 @@ export type HomeCardGift = {
   rewardName: string
   source: RewardSource
   redeemable: boolean
+  /** Redeemable only once the guest finishes setup: never shown as ready. */
+  needsSetup?: boolean
   availableFrom: string | null
 }
 
@@ -34,9 +36,14 @@ export type HomeCard = {
   /** Stamp-cycle unlocked reward count — the card's own pending reward(s). */
   unlockedRewards: number
   referralBonusBank?: ReferralBonusBank
-  /** Stamp-cycle redeemable reward → the tile's "Reward ready" state and QR link. */
+  /** Stamp-cycle actionable reward: the tile links to it. */
   stampRewardId?: string
   stampRewardName?: string | null
+  /**
+   * That reward is unlocked but needs a detail from the guest first, so the
+   * tile says "Finish setting up to collect", never "Ready".
+   */
+  stampRewardNeedsSetup?: boolean
   /** Name of the waiting (unlocked, not-yet-redeemable) stamp-cycle reward, for the mini ticket. */
   revealedRewardName?: string | null
   /** UK business date the waiting reward opens — drives the mini ticket timing chip. */
@@ -53,7 +60,10 @@ export type CustomerHome = {
 
 export type HomeSummary = {
   cardCount: number
+  /** Cards with a reward the guest can collect now. */
   redeemableCount: number
+  /** Cards with an unlocked reward that needs setting up first. */
+  setupRewardCount?: number
   stampAvailableCount: number
 }
 
@@ -62,6 +72,8 @@ export type TopRedeemable = {
   rewardName: string
   businessName: string
   membershipId: string
+  /** Unlocked but blocked by setup: "Get it ready", never a code. */
+  needsSetup?: boolean
 }
 
 export type HomeDashboard = {

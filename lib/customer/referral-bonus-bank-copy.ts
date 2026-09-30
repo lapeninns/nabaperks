@@ -78,11 +78,11 @@ function detailCopy({
   readonly remainingToday: number
 }): string {
   if (banked === 0) {
-    return "You still keep your venue stamp separately. Referral bonuses are capped at 2 per venue trading day."
+    return `You still keep your venue stamp separately. Referral bonuses are limited to ${REFERRAL_BONUS_DAILY_CAP} a day.`
   }
 
   if (remainingToday === 0) {
-    return "Your venue stamp can still land today. Referral bonus limit is full, so these stay banked for another venue trading day."
+    return "Your venue stamp can still land today. Referral bonus limit is full, so these stay banked for a later visit."
   }
 
   const applyCopy = countNoun(
@@ -109,7 +109,7 @@ function compactDetailCopy({
   readonly remainingToday: number
 }): string {
   if (banked === 0) {
-    return "Venue stamps are separate. Referral bonus limit: 2 per venue trading day."
+    return `Venue stamps are separate. Referral bonus limit: ${REFERRAL_BONUS_DAILY_CAP} a day.`
   }
 
   if (remainingToday === 0) {
@@ -128,7 +128,7 @@ function ruleSummaryCopy({ banked }: { readonly banked: number }): string {
     return `Venue stamps stay separate from the ${REFERRAL_BONUS_DAILY_CAP}-per-day referral bonus limit.`
   }
 
-  return `Venue stamp first. Up to ${REFERRAL_BONUS_DAILY_CAP} referral bonus stamps can land per venue trading day; the rest stay banked.`
+  return `Venue stamp first. Up to ${REFERRAL_BONUS_DAILY_CAP} referral bonus stamps can land each day; the rest stay banked for a later visit.`
 }
 
 function countNoun(

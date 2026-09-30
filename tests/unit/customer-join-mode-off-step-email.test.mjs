@@ -33,6 +33,8 @@ const STUBS = {
       }
     }
     export async function getMembershipForCustomer() { return null }`,
+  "@/lib/customer/phone-verification-state":
+    "export async function customerHasVerifiedPhone() { return true }",
   "@/lib/customer/session": `import { state } from "fixture-state";
     export async function getPendingPhoneVerification() { return state.phone }`,
   "@/lib/customer/stamp":

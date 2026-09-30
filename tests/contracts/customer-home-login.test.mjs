@@ -37,5 +37,12 @@ test("Given a customer login phone is unknown When the request action runs Then 
     /const verification = await checkCustomerPhoneVerification\(contact, otp\)[\s\S]*findCustomerByVerifiedPhone[\s\S]*if \(!customer\)/
   )
   assert.match(actions, /await clearPendingPhoneVerification\(\)/)
-  assert.match(actions, /No cards found for that number yet/)
+  // The no-cards words live in the login copy (the heading), said only after
+  // the code proved the number.
+  assert.match(
+    unknownCustomerBlock,
+    /return \{ fields: \{ contact, noCards: true \} \}/
+  )
+  const copy = readProjectFile("lib", "customer", "login-copy.ts")
+  assert.match(copy, /We couldn't find any cards for this number\./)
 })

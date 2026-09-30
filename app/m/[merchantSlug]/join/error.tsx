@@ -15,8 +15,8 @@ export default function CustomerJoinError({
   return (
     <CustomerShell className="grid content-center">
       <CustomerErrorState
-        title="Join unavailable"
-        description="This step could not be loaded safely. Your stamps are safe — try again, or ask a team member for help."
+        title="We couldn't open this step"
+        description="Your stamps are safe. Try again, or ask a member of staff for help."
         reset={() => recoverFromBoundaryError(error, reset)}
         secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />

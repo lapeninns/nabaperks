@@ -91,7 +91,7 @@ export function registerMerchantIdVerificationTests() {
         // the details disclosure: it is what the customer needs in hand.
         await expect(page.getByText("Photo ID needed")).toBeVisible()
         await expect(
-          page.getByText("Show this code to the team.", { exact: true })
+          page.getByText("Show this at the counter.", { exact: true })
         ).toBeVisible()
         await expect(
           page.getByRole("img", {
@@ -197,7 +197,7 @@ export function registerMerchantIdVerificationTests() {
           merchant.getByRole("alert").filter({ hasText: "Reward collected" })
         ).toBeVisible()
         await expect(
-          page.getByRole("alert").filter({ hasText: "Reward collected." })
+          page.getByRole("heading", { name: "Collected. Enjoy." })
         ).toBeVisible()
         await expect(
           page.getByRole("img", {

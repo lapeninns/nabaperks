@@ -114,9 +114,9 @@ test("Given a refused confirmation withdrew the code When the profile card re-re
 
 test("Given a code-field error and no pending code When the profile card renders Then that error is still shown", () => {
   const copy = text({
-    errors: { otp: "That code has expired. Email me a new code." },
+    errors: { otp: "That code has expired. Send a new code." },
   })
 
-  assert.match(copy, /That code has expired\. Email me a new code\./)
+  assert.match(copy, /That code has expired\. Send a new code\./)
   assert.doesNotMatch(copy, /Email not confirmed/)
 })

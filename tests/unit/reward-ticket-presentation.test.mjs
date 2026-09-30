@@ -31,7 +31,7 @@ test("Given an expired reward When rendered Then expiry is visible and accessibl
   const html = render({ state: "expired" })
   assert.match(html, /Your reward · expired/)
   assert.match(html, /aria-label="Reward expired"/)
-  assert.doesNotMatch(html, /Reward ready for merchant scan|Reward redeemed/)
+  assert.doesNotMatch(html, /Reward ready to collect|Reward redeemed/)
 })
 
 test("Given an age-restricted reward When rendered Then photo ID guidance is shown", () => {
@@ -78,4 +78,11 @@ test("Given an upcoming upgrade window When rendered Then the supplied collectio
       "Collect on Tue 12:00–15:00 and get Cream tea instead",
   })
   assert.match(html, /Collect on Tue 12:00–15:00 and get Cream tea instead/)
+})
+
+test("Given an unlocked reward that is not ready When rendered Then it never reads as ready", () => {
+  const html = render({ state: "waiting" })
+  assert.match(html, /Unlocked/)
+  assert.doesNotMatch(html, />Ready</)
+  assert.doesNotMatch(html, /Reward ready to collect/)
 })

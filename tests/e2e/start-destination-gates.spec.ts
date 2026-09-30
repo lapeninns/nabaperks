@@ -12,17 +12,16 @@ test.describe("start resolver destination gates", () => {
 
     expect(response?.status()).toBe(200)
     await expect(
-      page.getByRole("heading", { name: "Welcome to Nabaperks" })
+      page.getByRole("heading", { name: "Your loyalty cards" })
     ).toBeVisible()
-    await expect(page.getByRole("link", { name: "Scan a QR" })).toHaveAttribute(
-      "href",
-      "/scan"
-    )
+    await expect(
+      page.getByRole("link", { name: "Scan a venue QR" })
+    ).toHaveAttribute("href", "/scan")
     await expect(
       page.getByRole("link", { name: "Open my cards" })
     ).toHaveAttribute("href", "/home/login")
     await expect(
-      page.getByRole("link", { name: "Merchant sign-in" })
+      page.getByRole("link", { name: "Venue sign-in" })
     ).toHaveAttribute("href", "/login")
   })
 
@@ -52,7 +51,7 @@ test.describe("start resolver destination gates", () => {
     expect(url.pathname).toBe("/home/login")
     expect(url.searchParams.get("next")).toBe("/home")
     await expect(
-      page.getByRole("heading", { name: "Welcome back" })
+      page.getByRole("heading", { name: "Open my cards" })
     ).toBeVisible()
   })
 

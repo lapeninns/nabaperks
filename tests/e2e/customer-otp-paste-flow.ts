@@ -24,7 +24,7 @@ const PASTE_CASES: ReadonlyArray<readonly [string, string]> = [
 ]
 
 async function pasteInto(page: Page, text: string): Promise<void> {
-  const field = page.getByLabel("Phone code")
+  const field = page.getByLabel("Your code")
   await field.fill("")
   await field.focus()
   if (test.info().project.use.browserName === "chromium") {
@@ -54,7 +54,7 @@ export function describeCustomerOtpPaste(): void {
     }) => {
       const sentAt = Math.floor(Date.now() / 1000)
       await gotoHydratedPage(page, `/dev/customer-login?sentAt=${sentAt}`)
-      const field = page.getByLabel("Phone code")
+      const field = page.getByLabel("Your code")
       await expect(field).toBeVisible()
 
       for (const [name, text] of PASTE_CASES) {
@@ -68,7 +68,7 @@ export function describeCustomerOtpPaste(): void {
     }) => {
       const sentAt = Math.floor(Date.now() / 1000)
       await gotoHydratedPage(page, `/dev/customer-login?sentAt=${sentAt}`)
-      const field = page.getByLabel("Phone code")
+      const field = page.getByLabel("Your code")
       await pasteInto(page, "1234567890")
       await expect(field).toHaveValue("12345678")
     })

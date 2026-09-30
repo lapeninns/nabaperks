@@ -20,7 +20,7 @@ export type CustomerLoginStepProps = {
    * while email sign-in is off.
    */
   readonly codeAlternate?: ReactNode
-  /** Phone scan step (no cards on the number): email, for an email wallet. */
+  /** Phone scan step (no cards on the number): email, for a card joined by email. */
   readonly scanAlternate?: ReactNode
   /**
    * Phone number step, only after no code could be sent: email beside the
@@ -30,10 +30,13 @@ export type CustomerLoginStepProps = {
 }
 
 /**
- * Switches /home/login between phone and email ("Not received a code? Use
- * your email instead", "Use my phone number instead"). A plain form post,
- * so it works before hydration too; the server drops the code pending for the
- * method being left.
+ * Switches /home/login between phone and email (the code's email fallback,
+ * and "Back to the text code"). A plain form post, so it works before
+ * hydration too; the server drops the code pending for the method being left
+ * and opens email only through `walletEmailFallbackGate`.
+ *
+ * A switch to email is always a quiet link, whatever `variant` asks for, so
+ * email can never be presented as a first choice beside the phone.
  */
 export function CustomerLoginMethodSwitch({
   to,
@@ -48,15 +51,16 @@ export function CustomerLoginMethodSwitch({
   children: ReactNode
   variant?: "outline" | "link"
 }) {
+  const quiet = to === "email" || variant === "link"
   return (
     <form action={submitAction} className="grid">
       <input type="hidden" name="intent" value="switch-method" />
       <input type="hidden" name="method" value={to} />
       <SubmitButton
-        variant={variant}
-        size={variant === "link" ? "xs" : "lg"}
+        variant={quiet ? "link" : "outline"}
+        size={quiet ? "xs" : "lg"}
         className={
-          variant === "link"
+          quiet
             ? "h-auto min-h-11 justify-start px-0 text-left whitespace-normal"
             : "w-full"
         }

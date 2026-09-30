@@ -55,7 +55,7 @@ test.describe("reward collection second-factor gates", () => {
     await page.goto(`${HARNESS}?gate=ready`)
 
     await expect(
-      page.getByText("Show this code to the team.", { exact: true })
+      page.getByText("Show this at the counter.", { exact: true })
     ).toBeVisible()
     await expect(page.getByRole("img", { name: COLLECTION_QR })).toBeVisible()
     await expect(page.getByLabel("Email code")).toHaveCount(0)

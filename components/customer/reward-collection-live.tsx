@@ -137,7 +137,7 @@ export function RewardCollectionLive({
       <p className="sr-only" role="status" aria-live="polite">
         {redeemed
           ? "Reward collected. Updating your screen."
-          : "Waiting for the team to scan your collection code."}
+          : "Waiting for staff to scan your reward code."}
       </p>
     </div>
   )

@@ -97,3 +97,33 @@ test("Given a new email When reward details are saved Then the address awaits th
     },
   ])
 })
+
+function detailsStep() {
+  const form = details()
+  form.set("part", "details")
+  return form
+}
+
+test("Given the details step When name and date of birth are saved alone Then no email is required and no code is sent", async () => {
+  const { state, saveProfileForRedeemAction: save } = await loadAction()
+  const result = await save({}, detailsStep())
+  assert.equal(result.errors, undefined)
+  assert.equal(state.saves.length, 1)
+  assert.equal(state.saves[0].fullName, "Adult Customer")
+  assert.equal(state.saves[0].email, null)
+  assert.deepEqual(state.sends, [])
+  assert.deepEqual(state.revalidated, ["/reward/test-reward"])
+})
+
+test("Given an unconfirmed address on file When the details step is saved Then the address is kept and the email step, not this save, sends the code", async () => {
+  const { state, saveProfileForRedeemAction: save } = await loadAction()
+  state.customer = { email: "adult@example.test", emailVerifiedAt: null }
+  const form = detailsStep()
+  // A details-only save ignores any posted address.
+  form.set("email", "other@example.test")
+  const result = await save({}, form)
+  assert.equal(result.errors, undefined)
+  assert.equal(state.saves[0].email, "adult@example.test")
+  assert.deepEqual(state.sends, [])
+  assert.deepEqual(state.events, [])
+})

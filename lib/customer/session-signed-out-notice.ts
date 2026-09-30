@@ -4,7 +4,7 @@
  * action redirected with `?signed_out=this_device`).
  */
 export const SIGNED_OUT_THIS_DEVICE_NOTICE =
-  "You are signed out on this device. Other devices could not be signed out just now. Try again later."
+  "You're signed out on this device. We couldn't sign you out on your other devices just now. Sign in and try again later."
 
 /** Only the exact single value `this_device` shows the notice. */
 export function signedOutNotice(

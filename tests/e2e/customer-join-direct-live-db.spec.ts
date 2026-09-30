@@ -50,7 +50,7 @@ test.describe("@customer-flow @a11y direct customer join live DB", () => {
         body: await page.screenshot({ fullPage: true }),
         contentType: "image/png",
       })
-      await page.getByLabel(/Loyalty terms/i).check()
+      await page.getByLabel(/Card terms/i).check()
       await Promise.all([
         page.waitForURL(
           (url) =>

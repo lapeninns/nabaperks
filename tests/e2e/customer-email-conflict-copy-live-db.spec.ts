@@ -36,7 +36,7 @@ import { dismissPwaInstall, waitForHydratedPage } from "./helpers/harness"
 // wallet linking; for these two verified wallets the refusal is the review
 // answer. QA BUG-005 is about that refusal surviving the re-render, whichever
 // refusal copy applies.
-const CONFLICT_COPY = "Your wallets need a review before they can be linked."
+const CONFLICT_COPY = "We can't bring these together automatically."
 const PENDING_EMAIL_COOKIE = "nabaperks_pending_email"
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
@@ -144,7 +144,8 @@ test.describe("@customer-flow email conflict copy on the profile and reward gate
 async function confirmCode(page: Page): Promise<void> {
   // A fill before hydration posts an empty code under the harness webServer.
   await waitForHydratedPage(page)
-  await page.getByLabel("Email code").fill(DEV_OTP)
+  // The profile says "Your code"; the reward gate names its own label.
+  await page.getByLabel(/^(Email code|Your code)$/).fill(DEV_OTP)
   await page.getByRole("button", { name: "Confirm email" }).click()
 }
 

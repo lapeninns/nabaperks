@@ -2,17 +2,14 @@ import "server-only"
 
 import type { ContactEventSurface } from "@/lib/customer/contact-event-core"
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
-import { emailSignInEnabled } from "@/lib/customer/email-auth-mode"
 import { checkCustomerEmailVerification } from "@/lib/customer/email-verification"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
   CustomerContactLockedError,
   markCustomerEmailVerified,
 } from "@/lib/customer/profile"
-import {
-  linkWalletAfterContactVerification,
-  walletLinkFailureMessage,
-} from "@/lib/customer/wallet-link"
+import { walletLinkFailureCopy } from "@/lib/customer/previous-stamps"
+import { linkWalletAfterContactVerification } from "@/lib/customer/wallet-link"
 
 export type EmailCodeConfirmation =
   | { readonly status: "verified"; readonly walletLinked?: boolean }
@@ -95,40 +92,34 @@ export type EmailConfirmationErrors = {
 }
 
 /**
- * Copy shown wherever a verified email turns out to belong to another wallet.
- * It points to email sign-in only while email can open a wallet
- * (`CUSTOMER_EMAIL_AUTH_MODE` `existing` or `full`); otherwise it promises
- * nothing that is not live.
+ * Copy shown wherever a verified email turns out to belong to another card.
+ * Email is never a way in on its own, so it never points to signing in with
+ * that email, and it says nothing about the other card.
  */
-export function customerEmailConflictMessage(
-  env: Record<string, string | undefined> = process.env
-): string {
-  return emailSignInEnabled(env)
-    ? "This email is already used by another Nabaperks wallet. Sign in with that email, or ask the venue for help."
-    : "This email is already used by another Nabaperks wallet. Use a different email, or ask the venue for help."
+export function customerEmailConflictMessage(): string {
+  return walletLinkFailureCopy("conflict", "email")
 }
 
 /** The shared guest copy for every outcome except `verified` (which is null). */
 export function emailConfirmationErrors(
-  confirmation: EmailCodeConfirmation,
-  env: Record<string, string | undefined> = process.env
+  confirmation: EmailCodeConfirmation
 ): EmailConfirmationErrors | null {
   switch (confirmation.status) {
     case "check_failed":
       return { form: "We couldn't check that code. Try again." }
     case "rejected":
-      return { otp: "That code didn't match. Check your email and try again." }
+      return { otp: "That code didn't work. Check it and try again." }
     case "expired":
-      return { otp: "That code has expired. Email me a new code." }
+      return { otp: "That code has expired. Send a new code." }
     case "already_verified":
       return { form: "Your email is already confirmed." }
     case "confirm_failed":
       return { form: "We couldn't confirm your email. Try again." }
     case "conflict":
-      return { form: customerEmailConflictMessage(env) }
+      return { form: customerEmailConflictMessage() }
     case "reauthenticate":
     case "requires_review":
-      return { form: walletLinkFailureMessage(confirmation.status) }
+      return { form: walletLinkFailureCopy(confirmation.status, "email") }
     case "verified":
       return null
   }

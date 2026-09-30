@@ -21,6 +21,8 @@ import {
   WELCOME_OFFER,
   WELCOME_JOIN_SURFACES,
   WELCOME_PASS,
+  welcomeCardExperience,
+  welcomeJoinChannel,
   welcomeJoinExperience,
 } from "./fixtures"
 
@@ -37,6 +39,9 @@ export default async function WelcomeOfferHarness({
     offer?: string
     sentAt?: string
     ref?: string
+    channel?: string
+    joined?: string
+    stamped?: string
   }>
 }) {
   if (process.env.NODE_ENV === "production") notFound()
@@ -50,6 +55,7 @@ export default async function WelcomeOfferHarness({
       <JoinWizard
         experience={welcomeJoinExperience(query.surface ?? "phone", {
           sentAt: fixtureSentAt(query.sentAt),
+          channel: welcomeJoinChannel(query.channel),
         })}
         referralCode={query.ref}
         pendingOffer={query.offer === "none" ? null : offer}
@@ -85,7 +91,14 @@ export default async function WelcomeOfferHarness({
   if (query.surface === "card")
     return (
       <CustomerCardExperience
-        experience={WELCOME_CARD}
+        experience={
+          query.joined === "1"
+            ? welcomeCardExperience({
+                justJoined: true,
+                justStamped: query.stamped === "1",
+              })
+            : WELCOME_CARD
+        }
         offerPasses={query.offer === "none" ? [] : [WELCOME_PASS]}
         offerClaimNotice={query.state === "claimed" ? "claimed" : null}
       />

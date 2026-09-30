@@ -9,7 +9,7 @@ import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
-  title: "Confirm wallet access",
+  title: "Confirm it's you",
 }
 
 export default async function CustomerAccessRecoveryPage() {
@@ -23,11 +23,10 @@ export default async function CustomerAccessRecoveryPage() {
           <VenueMark size={56} name="Nabaperks" caption="My Nabaperks" />
           <div className="grid gap-1">
             <h1 className="text-2xl leading-tight font-extrabold text-balance">
-              Confirm this is your wallet
+              Confirm it&apos;s you
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              This phone is linked to an existing Nabaperks wallet, but this
-              browser has not opened it before.
+              Your cards haven&apos;t been opened in this browser before.
             </p>
           </div>
         </div>

@@ -89,6 +89,8 @@ function loadConfirmation(check) {
     new Set([
       "@/lib/customer/contact-event-core",
       "@/lib/customer/email-auth-mode",
+      "@/lib/customer/previous-stamps",
+      "@/lib/navigation/safe-next-path",
     ])
   )
 }
@@ -137,11 +139,11 @@ test("Given an expired check When the code is confirmed Then nothing is marked o
   assert.equal(confirmation.state.marks, 0)
   assert.deepEqual(confirmation.state.events, [])
   assert.deepEqual(confirmation.emailConfirmationErrors(result), {
-    otp: "That code has expired. Email me a new code.",
+    otp: "That code has expired. Send a new code.",
   })
   // A wrong code keeps its own copy.
   assert.deepEqual(
     confirmation.emailConfirmationErrors({ status: "rejected" }),
-    { otp: "That code didn't match. Check your email and try again." }
+    { otp: "That code didn't work. Check it and try again." }
   )
 })

@@ -44,10 +44,19 @@ import { logger } from "@/lib/observability/logger"
 import { formValue } from "./form-values"
 
 /**
- * Email on the join page (email sign-in PR 3). The join page is both sign-in
- * and sign-up: a verified email that a wallet already holds opens that wallet;
- * one that no wallet holds leads to an explicit choice, and only the customer's
- * "start a new wallet" (mode `full`) creates one (D2).
+ * Email on the join page, only ever as the phone code's fallback. After a
+ * valid code the server decides; the guest is never asked to choose again:
+ *
+ * - a wallet holds the verified email: signed in, then today's stamp or the
+ *   terms step, as on the phone path;
+ * - none does, mode `full`: a wallet is created from the verified email at
+ *   this step (as a verified phone creates one), signed in, then terms. No
+ *   membership, stamp or consent exists until the guest accepts the terms;
+ * - none does, mode `existing`: a bound handoff records the proof and the
+ *   page says no card uses this email, with the way back to the phone.
+ *
+ * A handoff cookie left by the previous build (which asked the guest to
+ * choose) is still honoured by `startEmailWalletAction`, single use as before.
  *
  * Every action reads the rollout mode on the server and refuses while email
  * sign-in is off, whatever the form posted. Sessions are minted only through
@@ -84,19 +93,19 @@ type JoinRequest = {
 }
 
 const EMAIL_SIGN_IN_OFF =
-  "Email sign-in isn't available just now. Use your phone number instead."
+  "Codes by email aren't available just now. Use your mobile number instead."
 const EMAIL_WALLET_CREATION_OFF =
-  "You can't start a wallet with email just now. Use your phone number instead."
+  "You can't join with email just now. Use your mobile number instead."
 const CARD_UNAVAILABLE = "This loyalty card is unavailable just now."
 const HANDOFF_EXPIRED =
   "That email confirmation has expired. Enter your email again."
 const SESSION_FAILED = "We couldn't sign you in just now. Try again shortly."
 const SIGN_IN_RETRY =
-  "We couldn't sign you in just now. Enter the same code again shortly."
-const WALLET_RETRY =
-  "We couldn't start your wallet just now. Try again shortly."
+  "We couldn't finish signing you in. Enter the same code again."
+const WALLET_RETRY = "We couldn't set up your card just now. Try again shortly."
+/** Never says what holds the address or what it holds (no enumeration). */
 const EMAIL_HELD_ELSEWHERE =
-  "This email is already used by another Nabaperks wallet. Use your phone number instead, or ask the venue for help."
+  "This email is used by another Nabaperks card. Use your mobile number instead, or ask the venue team for help."
 
 export async function requestCustomerEmailIdentityAction(
   _state: CustomerEmailIdentityState,
@@ -210,19 +219,19 @@ export async function verifyCustomerEmailOtpAction(
   if (result.status === "expired") {
     return {
       fields: { merchantSlug, qrId },
-      errors: { form: "That code has expired. Request a new one." },
+      errors: { form: "That code has expired. Send a new code." },
     }
   }
   if (result.status === "invalid_code") {
     return {
       fields: codeFields,
-      errors: { otp: "That code was not accepted." },
+      errors: { otp: "That code didn't work. Check it and try again." },
     }
   }
   if (result.status === "rate_limited") {
     return {
       fields: codeFields,
-      errors: { form: "Too many code attempts. Request a new code shortly." },
+      errors: { form: "Too many tries. Send a new code in a few minutes." },
     }
   }
 
@@ -236,26 +245,9 @@ export async function verifyCustomerEmailOtpAction(
   }
 
   if (!customer) {
-    // Proven, but no wallet holds it: nothing is created until the customer
-    // chooses on the next screen.
-    try {
-      await setVerifiedEmailHandoff({
-        email: result.email,
-        emailHmac: result.emailHmac,
-        merchantSlug,
-        qrId: qrId || null,
-      })
-    } catch {
-      return retryVerifiedCode(result, codeFields, "set_verified_email_handoff")
-    }
-    await captureJoinFunnelEvent({
-      eventName: "join_email_no_wallet",
-      scopeKey: merchantSlug,
-      entry: entryFor(request),
-      step: "email_choice",
-      method: "email",
-    })
-    redirect(joinHref(request, "email_choice"))
+    return emailWalletCreationEnabled()
+      ? startWalletFromVerifiedCode(request, result, codeFields)
+      : noCardForVerifiedEmail(request, result, codeFields)
   }
 
   await captureJoinFunnelEvent({
@@ -273,6 +265,108 @@ export async function verifyCustomerEmailOtpAction(
   redirect(await destinationAfterSignIn(request, customer.id, false))
 }
 
+type CodeFields = NonNullable<CustomerEmailIdentityState["fields"]>
+
+/**
+ * Mode `full`, no wallet holds the verified email: create one here, as the
+ * phone path does for a verified phone, and continue to the terms step. The
+ * code is spent, so a failure restores it for one more try; a retry then
+ * finds the wallet the first try made and signs in to it.
+ */
+async function startWalletFromVerifiedCode(
+  request: JoinRequest,
+  verified: EmailSignInVerified,
+  codeFields: CodeFields
+): Promise<CustomerEmailIdentityState> {
+  const merchantId = await availableJoinMerchantId(
+    request.merchantSlug,
+    request.qrId
+  )
+  if (!merchantId) {
+    await keepEmailSignInForRetry(verified)
+    return { fields: codeFields, errors: { form: CARD_UNAVAILABLE } }
+  }
+
+  let wallet: VerifiedEmailWallet
+  try {
+    wallet = await createCustomerByVerifiedEmail(verified.email)
+  } catch {
+    return retryVerifiedCode(verified, codeFields, "create_customer")
+  }
+
+  if (wallet.status === "conflict") {
+    // Another wallet holds the address without a verified match. Nothing is
+    // created or signed in, and nothing about that wallet is said.
+    logger.warn("customer_email_join_wallet_conflict", {
+      operation: "create_customer",
+    })
+    return { fields: codeFields, errors: { form: EMAIL_HELD_ELSEWHERE } }
+  }
+
+  // The verified email is this journey's verification, recorded as the
+  // previous build recorded it once the guest chose email (QA BUG-028). A
+  // retry after a failed session is deduplicated by the funnel's event ID.
+  await captureJoinFunnelEvent({
+    eventName: "join_otp_verified",
+    customerId: wallet.customer.id,
+    scopeKey: request.merchantSlug,
+    entry: entryFor(request),
+    step: "otp",
+    method: "email",
+  })
+  const created = wallet.status === "created"
+  if (created) {
+    await captureJoinFunnelEvent({
+      eventName: "join_new_email_wallet_confirmed",
+      merchantId,
+      customerId: wallet.customer.id,
+      entry: entryFor(request),
+      step: "email_choice",
+      method: "email",
+    })
+  }
+
+  if (!(await signInWithVerifiedEmail(wallet.customer, created))) {
+    return retryVerifiedCode(verified, codeFields, "establish_session")
+  }
+  redirect(await destinationAfterSignIn(request, wallet.customer.id, created))
+}
+
+/**
+ * Mode `existing`, no wallet holds the verified email: nothing is created. A
+ * handoff bound to this device, venue and QR records the proof, and the page
+ * says no card uses this email, with one action back to the phone.
+ */
+async function noCardForVerifiedEmail(
+  request: JoinRequest,
+  verified: EmailSignInVerified,
+  codeFields: CodeFields
+): Promise<CustomerEmailIdentityState> {
+  try {
+    await setVerifiedEmailHandoff({
+      email: verified.email,
+      emailHmac: verified.emailHmac,
+      merchantSlug: request.merchantSlug,
+      qrId: request.qrId || null,
+    })
+  } catch {
+    return retryVerifiedCode(verified, codeFields, "set_verified_email_handoff")
+  }
+  await captureJoinFunnelEvent({
+    eventName: "join_email_no_wallet",
+    scopeKey: request.merchantSlug,
+    entry: entryFor(request),
+    step: "email_choice",
+    method: "email",
+  })
+  redirect(joinHref(request, "email_choice"))
+}
+
+/**
+ * "Continue" on a confirmed-email handoff left by the previous build, which
+ * asked the guest to choose after the code. Mode `full` only; the handoff is
+ * spent once on the server, as before.
+ */
 export async function startEmailWalletAction(
   _state: CustomerEmailChoiceState,
   formData: FormData
@@ -324,12 +418,9 @@ export async function startEmailWalletAction(
     return { errors: { form: EMAIL_HELD_ELSEWHERE } }
   }
 
-  // A new email counts as the journey's verification only now, once the
-  // guest has chosen it: the code step proved the address, but the guest may
-  // still take "Open my existing wallet with my phone", and that phone code
-  // is then the verification. The funnel's event ID is one per journey and
-  // step, so recording email at the code step would drop the phone one (QA
-  // BUG-028). A retry after a failed session is deduplicated the same way.
+  // The legacy handoff's code step recorded nothing, so the verification is
+  // recorded here (QA BUG-028). A retry after a failed session is
+  // deduplicated by the funnel's event ID.
   await captureJoinFunnelEvent({
     eventName: "join_otp_verified",
     customerId: wallet.customer.id,
@@ -362,8 +453,8 @@ export async function startEmailWalletAction(
 }
 
 /**
- * "Use my phone instead" from the choice screen: the verified-email handoff is
- * dropped and the phone step opens. While email sign-in is off there is no
+ * "Use my mobile number" from the confirmed-email screens: the verified-email
+ * handoff is dropped and the phone step opens. While email sign-in is off there is no
  * handoff to drop, so it only opens the phone step.
  */
 export async function switchJoinToPhoneAction(
@@ -419,12 +510,12 @@ async function availableJoinMerchantId(
 }
 
 /**
- * After a matched code, a failed lookup, handoff or session restores the same
- * code under a new challenge and keeps the customer on the code step.
+ * After a matched code, a failed lookup, wallet, handoff or session restores
+ * the same code under a new challenge and keeps the customer on the code step.
  */
 async function retryVerifiedCode(
   verified: EmailSignInVerified,
-  fields: NonNullable<CustomerEmailIdentityState["fields"]>,
+  fields: CodeFields,
   operation: string
 ): Promise<CustomerEmailIdentityState> {
   logger.error("customer_email_join_sign_in_failed", { operation })

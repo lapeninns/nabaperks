@@ -91,12 +91,12 @@ test("each capture failure has its own visible recovery state and unchanged stam
     assert.equal(view.pendingIndex, -1)
     assert.doesNotMatch(
       view.statusTitle + view.statusBody,
-      /outside|not at the pub/
+      /outside|not at the pub|couldn't confirm you're at/
     )
   }
 })
 
-test("only a server out-of-range refusal says outside the pub", () => {
+test("only a server out-of-range refusal says the venue could not confirm the guest is there", () => {
   const state = reduceStampChoreography(
     { phase: "checking" },
     {
@@ -106,7 +106,13 @@ test("only a server out-of-range refusal says outside the pub", () => {
     }
   )
   const view = stampChoreographyView(state, viewInput)
-  assert.equal(view.statusTitle, "You appear to be outside the pub")
+  assert.equal(view.statusTitle, "We couldn't confirm you're at the venue")
+  assert.equal(
+    stampChoreographyView(state, { ...viewInput, venueName: "The Old Crown" })
+      .statusTitle,
+    "We couldn't confirm you're at The Old Crown"
+  )
+  assert.doesNotMatch(view.statusTitle, /pub|outside/)
   assert.equal(state.locationIssue, undefined)
 })
 

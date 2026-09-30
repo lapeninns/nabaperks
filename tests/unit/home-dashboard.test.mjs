@@ -8,6 +8,7 @@ import {
   homeCardStatusCopy,
   homeSummaryLabels,
   sortHomeCards,
+  stampRewardNeedsSetup,
 } from "@/lib/customer/home-dashboard"
 
 function card(overrides = {}) {
@@ -68,7 +69,7 @@ test("collecting today's stamp removes the card from the available count and cha
 test("the availability copy stays conditional on a venue scan and promises no eligibility", () => {
   const copy = homeCardStatusCopy(card())
 
-  assert.match(copy, /2 of 3 stamps — 1 more to unlock/)
+  assert.equal(copy, "2 of 3 stamps. 1 more to your reward.")
   // The scan condition is stated once, beside the count it qualifies, rather
   // than repeated under every tile.
   assert.ok(!copy.includes(HOME_STAMP_SCAN_NOTE))
@@ -163,7 +164,11 @@ test("the five per-card states read differently from one another", () => {
     ]
   )
   assert.match(states.rewardReady, /Reward ready to collect/)
-  assert.match(states.rewardWaiting, /ready tue 22 sept at 10:00/)
+  // The server's concrete opening time, capitalised, never lower-cased.
+  assert.equal(
+    states.rewardWaiting,
+    "Reward unlocked. Ready from Tue 22 Sept, 10:00."
+  )
   assert.doesNotMatch(states.rewardWaiting, /tomorrow/i)
   // The server's own reason is passed through untouched.
   assert.equal(states.unavailable, "This venue has paused stamps.")
@@ -195,4 +200,66 @@ test("a ready gift keeps the stamp card's own next step", () => {
   )
 
   assert.equal(next?.label, "Ready for a stamp")
+})
+
+test("a reward held only by setup never reads as ready and never promises a code", () => {
+  const setup = card({
+    currentStamps: 3,
+    stampsRemaining: 0,
+    unlockedRewards: 1,
+    stampRewardId: "reward_1",
+    stampRewardNeedsSetup: true,
+  })
+  const ready = card({
+    currentStamps: 3,
+    stampsRemaining: 0,
+    unlockedRewards: 1,
+    stampRewardId: "reward_1",
+  })
+
+  assert.equal(
+    homeCardStatusCopy(setup),
+    "Reward unlocked. Finish setting up to collect."
+  )
+  assert.equal(homeCardNextStep(setup)?.label, "Reward unlocked")
+  assert.doesNotMatch(homeCardStatusCopy(setup), /ready|QR|scan/i)
+  assert.equal(homeCardNextStep(ready)?.label, "Reward ready")
+
+  const summary = buildHomeSummary([setup])
+  assert.equal(summary.redeemableCount, 0)
+  assert.equal(summary.setupRewardCount, 1)
+  assert.deepEqual(homeSummaryLabels(summary), [
+    "1 card",
+    "1 reward to get ready",
+  ])
+  // It still sorts to the top: it is the guest's next action.
+  assert.deepEqual(
+    sortHomeCards([card({ membershipId: "other" }), setup]).map(
+      (entry) => entry.membershipId
+    ),
+    ["mem_1", "other"]
+  )
+})
+
+test("home card copy uses no trading-day wording or dashes", () => {
+  for (const entry of [
+    card(),
+    card({ stampedToday: true }),
+    card({ unlockedRewards: 1 }),
+    card({ stampRewardId: "reward_1" }),
+    card({ stampRewardId: "reward_1", stampRewardNeedsSetup: true }),
+  ]) {
+    assert.doesNotMatch(homeCardStatusCopy(entry), /trading day|—|!/)
+  }
+})
+
+test("a stamp reward held only by setup needs setup, and a ready one or none does not", () => {
+  assert.equal(
+    stampRewardNeedsSetup(
+      card({ stampRewardId: "r-1", stampRewardNeedsSetup: true })
+    ),
+    true
+  )
+  assert.equal(stampRewardNeedsSetup(card({ stampRewardId: "r-1" })), false)
+  assert.equal(stampRewardNeedsSetup(card()), false)
 })

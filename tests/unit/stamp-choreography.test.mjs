@@ -61,8 +61,13 @@ test("issued progress comes from the server and slams the venue stamp slot", () 
   assert.equal(view.rewardUnlocked, true)
   assert.equal(
     view.announcement,
-    "Stamp added. That's the full card, your reward is unlocked."
+    "Stamp added. Your card is full. Your reward is unlocked."
   )
+  assert.equal(view.statusReceipt, "5 OF 5")
+  assert.deepEqual(view.outcome, {
+    headline: "Your card is full.",
+    supportLine: "Your reward is unlocked. 2 bonus stamps were added too.",
+  })
 })
 
 test("a full card with no reward issued confirms the stamp calmly, never an unlock", () => {
@@ -87,13 +92,18 @@ test("a full card with no reward issued confirms the stamp calmly, never an unlo
   assert.equal(view.slamIndex, 4, "the visit stamp still prints")
   assert.equal(view.rewardUnlocked, false, "the reward stays sealed")
   assert.equal(view.rewardSlammed, false)
-  assert.equal(view.statusTitle, "That's the full card.")
-  assert.equal(view.statusBody, pending)
-  assert.equal(
+  assert.equal(view.statusTitle, "Your card is full.")
+  assert.equal(view.statusBody, "Your stamps are safe.")
+  assert.equal(view.announcement, `Stamp added. Your card is full. ${pending}`)
+  assert.deepEqual(view.outcome, {
+    headline: "Your card is full.",
+    supportLine: pending,
+  })
+  for (const copy of [
     view.announcement,
-    `Stamp added. That's the full card. ${pending}`
-  )
-  for (const copy of [view.announcement, view.statusBody]) {
+    view.statusBody,
+    view.outcome.supportLine,
+  ]) {
     assert.doesNotMatch(copy, /unlocked|ready to open|!/i)
   }
 
@@ -102,7 +112,7 @@ test("a full card with no reward issued confirms the stamp calmly, never an unlo
     { ...baseView, current: 4 }
   )
   assert.equal(confirmed.rewardUnlocked, false)
-  assert.equal(confirmed.statusBody, pending)
+  assert.equal(confirmed.outcome.supportLine, pending)
 })
 
 test("a fast server refresh cannot move the final stamp slam past its slot", () => {
@@ -253,7 +263,7 @@ test("an unchanged open readback unlocks a retry instead of staying secured", ()
 
   assert.equal(retryable.phase, "blocked")
   assert.equal(view.secured, false)
-  assert.equal(view.buttonLabel, "Try today's stamp again")
+  assert.equal(view.buttonLabel, "Try again")
   assert.equal(
     reduceStampChoreography(retryable, { type: "request_started" }).phase,
     "checking"
@@ -295,8 +305,13 @@ test("a server-derived unlocked reward stays revealed after reload", () => {
   assert.equal(view.cardComplete, true)
   assert.equal(view.rewardUnlocked, true)
   assert.equal(view.confirmed, true)
-  assert.equal(view.statusTitle, "That's the full card.")
-  assert.equal(view.statusBody, "Your reward is ready to open.")
+  assert.equal(view.statusTitle, "Your card is full.")
+  assert.equal(view.statusReceipt, "5 OF 5")
+  assert.equal(
+    view.statusBody,
+    "Open your reward to see when you can collect it."
+  )
+  assert.equal(view.outcome, null, "no stamp landed on this visit")
 })
 
 test("the venue-code fallback is offered for location refusals, throttles and wrong codes, never for a lockout", () => {
@@ -329,8 +344,19 @@ test("a visit that must confirm location offers both methods before any refusal"
   assert.equal(verified.locationControls, true)
   assert.equal(verified.venueCodeOffer, true)
   assert.equal(verified.secured, false)
-  assert.equal(verified.statusTitle, "Confirm you're at the venue.")
-  assert.match(verified.statusBody, /location, or enter today's code/)
+  assert.equal(verified.statusTitle, "We need to check you're at the venue.")
+  assert.equal(
+    verified.statusBody,
+    "Share your location, or ask a team member for today's venue code."
+  )
+  assert.equal(
+    stampChoreographyView(initialStampChoreographyState, {
+      ...baseView,
+      verificationRequired: true,
+      venueName: "The Old Crown",
+    }).statusTitle,
+    "We need to check you're at The Old Crown."
+  )
 
   const closed = stampChoreographyView(initialStampChoreographyState, {
     ...baseView,
@@ -446,7 +472,7 @@ test("a lockout withholds both methods until it lifts", () => {
   assert.equal(view.venueCodeLockedUntil, "2026-09-11T20:00:00.000Z")
 })
 
-test("an issued stamp says how the visit was confirmed when that matters", () => {
+test("S2: a landed stamp leads with the result, the progress and what is left, and nothing about how it was confirmed", () => {
   const checking = reduceStampChoreography(initialStampChoreographyState, {
     type: "request_started",
   })
@@ -456,36 +482,109 @@ test("an issued stamp says how the visit was confirmed when that matters", () =>
     rewardUnlocked: false,
     bonusStampsApplied: 0,
   }
-  const body = (result, extra = {}) =>
+  const view = (result, extra = {}) =>
     stampChoreographyView(
       reduceStampChoreography(checking, { type: "request_issued", result }),
-      { ...baseView, ...extra }
-    ).statusBody
+      { ...baseView, nextStampFrom: "2026-10-01T05:00:00.000Z", ...extra }
+    )
 
-  assert.doesNotMatch(body(plain), /location|venue code/)
-  assert.match(
-    body({ ...plain, verification: "venue_code" }),
-    /Confirmed using today's venue code\.$/
+  const landed = view(plain)
+  assert.deepEqual(landed.outcome, {
+    headline: "Stamp added.",
+    supportLine: "2 more to your reward.",
+  })
+  assert.equal(landed.statusTitle, "Stamp added.")
+  assert.equal(landed.statusReceipt, "3 OF 5")
+  assert.equal(landed.statusBody, "Next stamp from Thu 1 Oct, 06:00.")
+  assert.equal(landed.announcement, "Stamp added. 2 more to your reward.")
+
+  // How the visit was confirmed is never repeated to the guest, and the
+  // stamps allowed without a location check are not counted down on the
+  // success screen. Same result, same words.
+  for (const result of [
+    { ...plain, verification: "venue_code" },
+    { ...plain, geoFlagged: true, verification: "unverified" },
+  ]) {
+    const other = view(result, { unverifiedGraceRemaining: 2 })
+    assert.deepEqual(other.outcome, landed.outcome)
+    assert.equal(other.statusBody, landed.statusBody)
+    for (const copy of [
+      other.announcement,
+      other.statusBody,
+      other.outcome.supportLine,
+    ]) {
+      assert.doesNotMatch(
+        copy,
+        /location check|without one|venue code|verif|trading day|daily reset|tomorrow/i
+      )
+    }
+  }
+
+  assert.equal(
+    view({ ...plain, bonusStampsApplied: 1 }).outcome.supportLine,
+    "2 more to your reward. Your bonus stamp was added too."
   )
-  assert.match(
-    body({ ...plain, geoFlagged: true, verification: "unverified" }),
-    /Added without a location check\.$/,
-    "with no grace count known, no number is invented"
-  )
-  assert.match(
-    body(
-      { ...plain, geoFlagged: true, verification: "unverified" },
-      { unverifiedGraceRemaining: 2 }
-    ),
-    /1 more can be added without one\.$/
-  )
-  assert.match(
-    body(
-      { ...plain, geoFlagged: true, verification: "unverified" },
-      { unverifiedGraceRemaining: 1 }
-    ),
-    /Next time, location or the venue code is needed\.$/
-  )
+})
+
+test("S2: without a known next stamp time the quiet line falls back to the next visit", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const printing = reduceStampChoreography(checking, {
+    type: "request_issued",
+    result: {
+      ...issued,
+      newStampCount: 3,
+      rewardUnlocked: false,
+      bonusStampsApplied: 0,
+    },
+  })
+  for (const nextStampFrom of [undefined, null]) {
+    assert.equal(
+      stampChoreographyView(printing, { ...baseView, nextStampFrom })
+        .statusBody,
+      "You can get your next stamp on your next visit."
+    )
+  }
+})
+
+test("S5: already stamped shows the receipt and what is left, never a reset", () => {
+  const view = stampChoreographyView(initialStampChoreographyState, {
+    ...baseView,
+    canStamp: false,
+    current: 3,
+  })
+  assert.equal(view.statusTitle, "You've got today's stamp.")
+  assert.equal(view.statusReceipt, "3 OF 5")
+  assert.equal(view.statusBody, "2 more to your reward.")
+  assert.equal(view.outcome, null)
+  assert.doesNotMatch(view.statusBody, /reset|trading day|tomorrow/i)
+})
+
+test("S1: the ready screen offers the stamp press with guest wording", () => {
+  const view = stampChoreographyView(initialStampChoreographyState, baseView)
+  assert.equal(view.buttonLabel, "Stamp my card")
+  assert.equal(view.statusTitle, "Ready for today's stamp.")
+  assert.equal(view.statusReceipt, null)
+  assert.equal(view.outcome, null)
+})
+
+test("S7: a refusal is titled in guest words for this venue", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const paused = reduceStampChoreography(checking, {
+    type: "request_blocked",
+    message: "This venue isn't taking stamps yet.",
+    reason: "billing_required",
+  })
+  const view = stampChoreographyView(paused, {
+    ...baseView,
+    venueName: "The Old Crown",
+  })
+  assert.equal(view.statusTitle, "Stamps are paused at The Old Crown")
+  assert.equal(view.statusBody, "This venue isn't taking stamps yet.")
+  assert.equal(view.outcome, null)
 })
 
 test("a blocked view carries the fallback facts and a retry clears them", () => {

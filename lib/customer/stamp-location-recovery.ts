@@ -42,15 +42,15 @@ export const LOCATION_ISSUE_COPY: Record<
 > = {
   denied: {
     title: "Location access is blocked",
-    body: "Your browser or phone hasn't allowed location. We need it to verify you're at the pub.",
+    body: "Your browser or phone hasn't allowed location. We need it to check you're at the venue.",
   },
   timeout: {
     title: "Location took too long",
-    body: "Move nearer a window or the entrance, then tap Try Again.",
+    body: "Move nearer a window or the entrance, then tap Try again.",
   },
   unavailable: {
     title: "Location is unavailable",
-    body: "Check your phone's Location Services and connection, then tap Try Again.",
+    body: "Check your phone's Location Services and connection, then tap Try again.",
   },
   unsupported: {
     title: "Location isn't supported here",
@@ -58,7 +58,7 @@ export const LOCATION_ISSUE_COPY: Record<
   },
   poor_accuracy: {
     title: "Location isn't accurate enough",
-    body: "We can't tell if you're at the pub yet. Turn on Precise Location or move nearer the entrance, then tap Try Again.",
+    body: "We can't tell if you're at the venue yet. Turn on Precise Location or move nearer the entrance, then tap Try again.",
   },
 }
 
@@ -102,35 +102,35 @@ export const LOCATION_HELP: Record<
   "ios-safari": {
     label: "iPhone / iPad Safari",
     steps:
-      "Safari page menu → More (…) → Website Settings → Location → Allow. Return here and tap Try Again.",
+      "Safari page menu → More (…) → Website Settings → Location → Allow. Return here and tap Try again.",
     detail:
       "Still blocked? In iPhone Settings → Privacy & Security → Location Services, turn on Location Services. Open Safari Websites, allow location while using the app and turn on Precise Location. Safari may call the section ‘Website Settings For’.",
   },
   "ios-chrome": {
     label: "Chrome on iPhone / iPad",
     steps:
-      "iPhone Settings → Privacy & Security → Location Services → Chrome → While Using the App. Turn on Precise Location, return here and tap Try Again.",
+      "iPhone Settings → Privacy & Security → Location Services → Chrome → While Using the App. Turn on Precise Location, return here and tap Try again.",
     detail:
       "Chrome can still remember a blocked website permission even when iPhone Settings allows Chrome. Reload or reopen Nabaperks and try once more. If it stays blocked, open the same page in Safari and allow location there, or ask a team member for today's venue code. Chrome on iPhone may not show a Location switch in Site information. If Chrome still blocks this site after that, deleting Chrome and installing it again can clear a saved block Chrome on iPhone does not let you reset. Deleting Chrome also removes its local data, including your Nabaperks sign-in, so afterwards sign in again, reopen or rescan the venue QR code, tap the location button, and choose Allow when Chrome asks.",
   },
   "android-chrome": {
     label: "Chrome on Android",
     steps:
-      "Use the location button on this page if Chrome shows one, and choose Allow. Otherwise open site controls beside the address bar → Permissions → Location → Allow, then tap Try Again.",
+      "Use the location button on this page if Chrome shows one, and choose Allow. Otherwise open site controls beside the address bar → Permissions → Location → Allow, then tap Try again.",
     detail:
       "A previous deny or a timed-out prompt can leave this site blocked so Chrome will not show the ordinary prompt again. The in-page location button can reopen it. You can also open Chrome → Settings → Site settings → Location and check Nabaperks under blocked sites. In Android Settings, check that Location is on and Chrome has location permission. Turn on precise location if your phone offers it. Menu names may vary by phone.",
   },
   "desktop-chrome": {
     label: "Chrome on a computer",
     steps:
-      "Use the location button on this page if Chrome shows one, and choose Allow. Otherwise click the padlock beside the address bar → Site settings → Location → Allow, reload, then tap Try Again.",
+      "Use the location button on this page if Chrome shows one, and choose Allow. Otherwise click the padlock beside the address bar → Site settings → Location → Allow, reload, then tap Try again.",
     detail:
       "A previous deny or a timed-out prompt can leave Location blocked for this site, and the padlock switch may stay off. Chrome Settings → Privacy and security → Site settings → Location lists blocked sites; remove Nabaperks, set Location so sites can ask, then reload. The in-page location button can reopen Chrome's prompt without those settings when your Chrome version offers it.",
   },
   generic: {
     label: "Other browser",
     steps:
-      "Enable Location in your browser's site settings, return here, then tap Try Again.",
+      "Enable Location in your browser's site settings, return here, then tap Try again.",
     detail:
       "Look for the site controls beside the address bar. Also check that your device's Location Services allow your browser. In an in-app browser, try opening Nabaperks in your usual browser.",
   },

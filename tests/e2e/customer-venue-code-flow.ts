@@ -46,7 +46,7 @@ export function registerCustomerVenueCodeTests() {
       await page.keyboard.press("Enter")
 
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
-      await expect(root.getByText("Stamp 4 of 5 added.")).toBeVisible()
+      await expect(root.locator("[data-stamp-receipt]")).toHaveText("4 OF 5")
       await expect(root.locator("[data-venue-code-form]")).toHaveCount(0)
       await expect(page.locator("[data-submit-count]")).toHaveText("2")
     })
@@ -118,16 +118,16 @@ export function registerCustomerVenueCodeTests() {
       const root = await openVerifiedVisit(page, "verify-grace-spent")
 
       await expect(root.locator("[data-stamp-status-band]")).toContainText(
-        "Confirm you're at the venue."
+        "We need to check you're at Old Crown Girton."
       )
       await expect(
-        root.getByRole("button", { name: "Use my location" })
+        root.getByRole("button", { name: "Share my location" })
       ).toBeEnabled()
       await expect(
-        root.getByRole("button", { name: "Enter venue code" })
+        root.getByRole("button", { name: "Enter the venue code instead" })
       ).toBeEnabled()
       await expect(
-        root.getByRole("button", { name: "Add today's stamp" })
+        root.getByRole("button", { name: "Stamp my card" })
       ).toHaveCount(0)
       await expect(root.locator("[data-venue-code-form]")).toHaveCount(0)
     })
@@ -146,7 +146,7 @@ export function registerCustomerVenueCodeTests() {
         "Location access is blocked"
       )
       await expect(
-        root.getByRole("button", { name: "Try Again" })
+        root.getByRole("button", { name: "Try again" })
       ).toBeEnabled()
 
       // The form opened with the first refusal; the code lands as usual.
@@ -156,9 +156,10 @@ export function registerCustomerVenueCodeTests() {
       await form.getByRole("button", { name: "Add my stamp" }).click()
 
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
-      await expect(root.getByText("Stamp 4 of 5 added.")).toBeVisible()
-      await expect(root.locator("[data-stamp-status-band]")).toContainText(
-        "Confirmed using today's venue code."
+      await expect(root.locator("[data-stamp-receipt]")).toHaveText("4 OF 5")
+      // How the visit was confirmed is not repeated on the result.
+      await expect(root.locator("[data-stamp-status-band]")).not.toContainText(
+        "venue code"
       )
       await expect(page.locator("[data-submit-count]")).toHaveText("1")
     })
@@ -168,14 +169,16 @@ export function registerCustomerVenueCodeTests() {
     }) => {
       const root = await openVerifiedVisit(page, "verify-grace-spent")
 
-      await root.getByRole("button", { name: "Enter venue code" }).click()
+      await root
+        .getByRole("button", { name: "Enter the venue code instead" })
+        .click()
       const form = root.locator("[data-venue-code-form]")
       await expect(form).toBeVisible()
       await expect(
-        root.getByRole("button", { name: "Enter venue code" })
+        root.getByRole("button", { name: "Enter the venue code instead" })
       ).toHaveCount(0)
       await expect(
-        root.getByRole("button", { name: "Use my location" })
+        root.getByRole("button", { name: "Share my location" })
       ).toBeVisible()
 
       await form.getByLabel("Today's code from a team member").fill("482913")
@@ -192,24 +195,28 @@ export function registerCustomerVenueCodeTests() {
     }) => {
       const root = await openVerifiedVisit(page, "verify-grace-left")
 
-      await root.getByRole("button", { name: "Use my location" }).click()
+      await root.getByRole("button", { name: "Share my location" }).click()
       await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
       await expect(page.locator("[data-submit-count]")).toHaveText("0")
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(page.locator("[data-submit-count]")).toHaveText("0")
       await root
         .getByText("Can't get location working?", { exact: true })
         .click()
       await root
-        .getByRole("button", { name: "Add without location", exact: true })
+        .getByRole("button", {
+          name: "Add my stamp without location",
+          exact: true,
+        })
         .click()
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
       await expect(page.locator("[data-submit-count]")).toHaveText("1")
       await expect(page.locator("[data-last-location-status]")).toHaveText(
         "denied"
       )
-      await expect(root.locator("[data-stamp-status-band]")).toContainText(
-        "Added without a location check. Next time, location or the venue code is needed."
+      // The stamp result stands alone: no location-check caveat or count.
+      await expect(root.locator("[data-stamp-status-band]")).not.toContainText(
+        "location check"
       )
     })
 
@@ -229,7 +236,7 @@ export function registerCustomerVenueCodeTests() {
         browserRefusesLocation: false,
       })
 
-      await root.getByRole("button", { name: "Use my location" }).click()
+      await root.getByRole("button", { name: "Share my location" }).click()
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
       await expect(page.locator("[data-submit-count]")).toHaveText("1")
       await expect(page.locator("[data-last-location-status]")).toHaveText(
@@ -245,12 +252,15 @@ export function registerCustomerVenueCodeTests() {
     }) => {
       const root = await openVerifiedVisit(page, "verify-rate-limited")
 
-      await root.getByRole("button", { name: "Use my location" }).click()
+      await root.getByRole("button", { name: "Share my location" }).click()
       await root
         .getByText("Can't get location working?", { exact: true })
         .click()
       await root
-        .getByRole("button", { name: "Add without location", exact: true })
+        .getByRole("button", {
+          name: "Add my stamp without location",
+          exact: true,
+        })
         .click()
       await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
       await expect(root.locator("[data-stamp-status-band]")).toContainText(
@@ -267,7 +277,9 @@ export function registerCustomerVenueCodeTests() {
       page,
     }) => {
       const root = await openVerifiedVisit(page, "verify-code-locked")
-      await root.getByRole("button", { name: "Enter venue code" }).click()
+      await root
+        .getByRole("button", { name: "Enter the venue code instead" })
+        .click()
       const form = root.locator("[data-venue-code-form]")
       await form.getByLabel("Today's code from a team member").fill("000000")
       await form.getByRole("button", { name: "Add my stamp" }).click()
@@ -278,7 +290,7 @@ export function registerCustomerVenueCodeTests() {
       )
       await expect(root.locator("[data-venue-code-form]")).toHaveCount(0)
       await expect(
-        root.getByRole("button", { name: "Use my location" })
+        root.getByRole("button", { name: "Share my location" })
       ).toHaveCount(0)
       await expect(
         root.getByRole("button", {
@@ -292,7 +304,9 @@ export function registerCustomerVenueCodeTests() {
       page,
     }) => {
       const root = await openVerifiedVisit(page, "verify-code-throttled")
-      await root.getByRole("button", { name: "Enter venue code" }).click()
+      await root
+        .getByRole("button", { name: "Enter the venue code instead" })
+        .click()
       const form = root.locator("[data-venue-code-form]")
       await form.getByLabel("Today's code from a team member").fill("482913")
       await form.getByRole("button", { name: "Add my stamp" }).click()
@@ -306,7 +320,7 @@ export function registerCustomerVenueCodeTests() {
       )
       await expect(root.locator("[data-venue-code-form]")).toHaveCount(0)
       await expect(
-        root.getByRole("button", { name: "Use my location" })
+        root.getByRole("button", { name: "Share my location" })
       ).toBeEnabled()
       await expect(
         root.getByRole("button", {
@@ -393,7 +407,7 @@ async function refuseGeolocationInBrowser(page: Page) {
 async function refuseLocation(page: Page, mode: string) {
   await page.goto(`/dev/home-harness/stamp?mode=${mode}&delay=40`)
   const root = page.locator("[data-stamp-phase]")
-  await root.getByRole("button", { name: "Add today's stamp" }).click()
+  await root.getByRole("button", { name: "Stamp my card" }).click()
   await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
   return root
 }

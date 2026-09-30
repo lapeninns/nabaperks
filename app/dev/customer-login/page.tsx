@@ -12,6 +12,10 @@ import { submitLoginFixture } from "./actions"
 /**
  * `?sentAt=` (epoch seconds) opens on the code step of a phone code the
  * server sent then, as /home/login does on a reload with a code pending.
+ * `?scenario=` picks a fixture answer: `send-error`, `resend-error`,
+ * `expired` (back to the number, kept), `verify-error`, `sign-in-error`,
+ * `unknown` (no cards for the number), `email-send-error`, `email-unknown`,
+ * `email-expired`.
  */
 function harnessInitialState(
   sentAt: string | undefined
@@ -23,6 +27,7 @@ function harnessInitialState(
       method: "phone",
       contact: "+447700900123",
       otpSent: true,
+      channel: "whatsapp",
       ...phoneCodeStepTiming(seconds, Date.now()),
     },
   }

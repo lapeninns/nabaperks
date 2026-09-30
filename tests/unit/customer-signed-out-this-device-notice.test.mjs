@@ -18,8 +18,9 @@ test("Given only this device was signed out When /home/login opens Then it says 
   assert.match(SIGNED_OUT_THIS_DEVICE_NOTICE, /signed out on this device/)
   assert.match(
     SIGNED_OUT_THIS_DEVICE_NOTICE,
-    /Other devices could not be signed out/
+    /couldn't sign you out on your other devices/
   )
+  assert.doesNotMatch(SIGNED_OUT_THIS_DEVICE_NOTICE, /session|account|—/i)
   // British English guest copy: no exclamation marks.
   assert.doesNotMatch(SIGNED_OUT_THIS_DEVICE_NOTICE, /!/)
 })

@@ -41,16 +41,16 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: "Your cards" })
       ).toBeVisible()
-      await expect(
-        page.getByText("Scan a venue QR to start a card")
-      ).toBeVisible()
+      await expect(page.getByText("No cards yet")).toBeVisible()
       await expect(page.getByText("How it works")).toBeVisible()
       await expect(
-        page.getByRole("link", { name: "Scan venue QR" })
+        page.getByRole("link", { name: "Scan a venue QR" })
       ).toBeVisible()
       // Sign-out left the sticky header for the Profile screen's account
       // section; the fixed tab bar keeps it two taps from every screen.
-      await expect(page.getByRole("button", { name: "Log out" })).toHaveCount(0)
+      await expect(page.getByRole("button", { name: "Sign out" })).toHaveCount(
+        0
+      )
       await expect(page.getByRole("link", { name: "Profile" })).toBeVisible()
       await expect(page.getByText(fixture.businessName)).toHaveCount(0)
       await expectNoHorizontalOverflow(page)
@@ -86,15 +86,15 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(
         page.getByText("1 card / 1 card with a reward ready", { exact: true })
       ).toBeVisible()
-      await expect(page.getByText("Ready for scan")).toBeVisible()
+      await expect(page.getByText("Ready to collect").first()).toBeVisible()
       await expect(
         page.getByRole("heading", { name: fixture.readyRewardName })
       ).toBeVisible()
       await expect(page.getByText(fixture.businessName).first()).toBeVisible()
       await expect(page.getByText("Reward ready").first()).toBeVisible()
-      await expect(page.getByText("Open reward QR").first()).toBeVisible()
+      await expect(page.getByText("Open reward").first()).toBeVisible()
       await expect(
-        page.getByText("Reward ready to collect — show the QR at the counter")
+        page.getByText("Reward ready to collect. Show it at the counter.")
       ).toBeVisible()
       await expect(page.getByText("Latest visits")).toBeVisible()
       await expect(
@@ -140,8 +140,10 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(page.getByText("Reward soon")).toBeVisible()
       await expect(page.getByText("Your reward")).toBeVisible()
       await expect(page.getByText(fixture.waitingRewardName)).toBeVisible()
-      await expect(page.getByText("Ready for scan")).toHaveCount(0)
-      await expect(page.getByText("Open reward QR")).toHaveCount(0)
+      await expect(page.getByText("Ready to collect")).toHaveCount(0)
+      await expect(page.getByText("Open reward", { exact: true })).toHaveCount(
+        0
+      )
       await expectNoHorizontalOverflow(page)
     } finally {
       await cleanupCustomerReadbackFixture(sql, fixture)

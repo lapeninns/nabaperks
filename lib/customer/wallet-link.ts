@@ -2,6 +2,10 @@ import "server-only"
 
 import { customerEmailHmac } from "@/lib/customer/email-pii-core"
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
+import {
+  walletLinkFailureCopy,
+  type WalletLinkOutcome,
+} from "@/lib/customer/previous-stamps"
 import { getCustomerSession, setCustomerSession } from "@/lib/customer/session"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -81,15 +85,14 @@ function parseWalletLinkResult(data: unknown): WalletLinkResult {
   }
 }
 
+/**
+ * The guest's words for a link that did not happen, for the contact that was
+ * just proven. Copy lives with the rest of the task in
+ * `lib/customer/previous-stamps.ts`.
+ */
 export function walletLinkFailureMessage(
-  status: "conflict" | "reauthenticate" | "requires_review"
+  status: WalletLinkOutcome,
+  method: "phone" | "email" = "phone"
 ): string {
-  switch (status) {
-    case "reauthenticate":
-      return "Sign in again, then verify the other contact to link your wallets. Your stamps and rewards are safe."
-    case "requires_review":
-      return "Your wallets need a review before they can be linked. No stamps or rewards have changed. Ask the venue for help."
-    case "conflict":
-      return "This phone number is already used by another Nabaperks wallet. Sign in with that number, or ask the venue for help."
-  }
+  return walletLinkFailureCopy(status, method)
 }

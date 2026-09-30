@@ -64,7 +64,7 @@ test.describe("customer entry error boundaries", { tag: "@polish" }, () => {
 
     expect(response?.status()).toBe(200)
     await expect(
-      page.getByRole("heading", { name: "We can't load this right now" })
+      page.getByRole("heading", { name: "We couldn't load this card" })
     ).toBeVisible()
     await expect(page.getByRole("link", { name: "Try again" })).toHaveAttribute(
       "href",
@@ -82,11 +82,11 @@ test.describe("customer entry error boundaries", { tag: "@polish" }, () => {
 
     // app/q/[qrId]/error.tsx → CustomerErrorState: branded, calm, recoverable.
     await expect(
-      page.getByText("QR unavailable", { exact: true })
+      page.getByText("We couldn't load this card", { exact: true })
     ).toBeVisible()
     await expect(
       page.getByText(
-        "This QR could not be opened safely. Try again, or ask a team member for the current loyalty QR."
+        "Check your signal or Wi-Fi, then try again. Your stamps are safe."
       )
     ).toBeVisible()
     await expect(
@@ -100,7 +100,7 @@ test.describe("customer entry error boundaries", { tag: "@polish" }, () => {
     // boundary must come back rather than the framework default error text.
     await retry.click()
     await expect(
-      page.getByText("QR unavailable", { exact: true })
+      page.getByText("We couldn't load this card", { exact: true })
     ).toBeVisible()
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible()
   })
@@ -158,7 +158,7 @@ test.describe("scan camera-unavailable hierarchy", { tag: "@polish" }, () => {
     const response = await page.goto("/scan")
 
     expect(response?.status()).toBe(200)
-    await expect(page.getByText("Camera unavailable")).toBeVisible()
+    await expect(page.getByText("We can't use your camera")).toBeVisible()
 
     const retry = page.getByRole("button", { name: "Try the camera again" })
     await expect(retry).toBeVisible()

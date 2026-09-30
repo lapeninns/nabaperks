@@ -37,7 +37,7 @@ import { dismissPwaInstall, waitForHydratedPage } from "./helpers/harness"
 // wallet linking; for these two verified wallets the refusal is the review
 // answer. QA BUG-005 is about that refusal surviving the re-render, whichever
 // refusal copy applies.
-const CONFLICT_COPY = "Your wallets need a review before they can be linked."
+const CONFLICT_COPY = "We can't bring these together automatically."
 const PENDING_EMAIL_COOKIE = "nabaperks_pending_email"
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
@@ -89,13 +89,13 @@ test.describe("@customer-flow profile email confirmation states (live database)"
         page.getByRole("button", { name: "Send me a code" })
       ).toBeVisible()
       await expect(page.getByText(/code we sent/i)).toHaveCount(0)
-      await expect(page.getByLabel("Email code")).toHaveCount(0)
+      await expect(page.getByLabel("Your code")).toHaveCount(0)
 
       // With a code pending for that address, the code step opens.
       await addPendingEmailCode(context, { email, customerId: fixture.guestId })
       await page.goto("/home/profile")
       await expect(
-        page.getByText(`Enter the code we sent to ${email} to verify it.`)
+        page.getByText(`Enter the code we sent to ${email}.`, { exact: true })
       ).toBeVisible()
     } finally {
       await cleanup(sql, fixture)
@@ -196,7 +196,7 @@ test.describe("@customer-flow profile email confirmation states (live database)"
 async function confirmCode(page: Page): Promise<void> {
   // A fill before hydration posts an empty code under the harness webServer.
   await waitForHydratedPage(page)
-  await page.getByLabel("Email code").fill(DEV_OTP)
+  await page.getByLabel("Your code").fill(DEV_OTP)
   await page.getByRole("button", { name: "Confirm email" }).click()
 }
 

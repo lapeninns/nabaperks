@@ -18,7 +18,6 @@ export async function harnessLinkedEmailAction(
   return {
     step: "verified",
     walletLinked: true,
-    message:
-      "Your wallets are linked. You can sign in with your phone or email. Your stamps and rewards are together.",
+    message: "Your stamps are together now.",
   }
 }

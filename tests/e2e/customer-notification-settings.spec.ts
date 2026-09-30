@@ -48,7 +48,7 @@ test.describe("customer notification settings", () => {
       await installCustomerSession(context, fixture.emptySession)
       await page.goto("/home/profile")
 
-      const control = page.getByText("Browser notifications")
+      const control = page.getByText("Notifications on this device")
       await expect(control).toBeVisible()
 
       // Opening the disclosure mounts the notification preference controls. The

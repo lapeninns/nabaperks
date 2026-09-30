@@ -6,7 +6,11 @@ import {
   FULL_CARD_REWARD_PENDING_COPY,
   REFERRAL_BONUS_STAMP_LABEL,
 } from "@/lib/customer/card-stamp-labels"
-import type { CustomerBlockReason } from "@/lib/customer/experience/block-reasons"
+import {
+  blockReasonTitle,
+  type CustomerBlockReason,
+} from "@/lib/customer/experience/block-reasons"
+import { nextStampLine } from "@/lib/customer/experience/next-stamp"
 import type {
   SelfStampActionState,
   SelfStampBlockedDetail,
@@ -85,7 +89,7 @@ export function venueCodeOffered(
 /**
  * Whether the refusal is one that a fresh location reading could answer.
  * Narrower than venueCodeOffered: a mistyped or rejected code is not a
- * location problem, and re-offering "Use my location" there abandons the code
+ * location problem, and re-offering "Share my location" there abandons the code
  * the customer was mid-way through entering.
  */
 export function locationRetryOffered(
@@ -160,15 +164,30 @@ type StampViewInput = {
   verificationRequired?: boolean
   /** The browser is being asked for a fix; nothing has been sent yet. */
   acquiringLocation?: boolean
-  /** Unverified stamps still available, from the page payload, if known. */
-  unverifiedGraceRemaining?: number
+  /** The venue, for the location and refusal headlines ("the venue" if absent). */
+  venueName?: string
+  /**
+   * When the stamp after this visit's opens (ISO instant), from the server.
+   * Absent or null: the quiet line says "on your next visit" instead.
+   */
+  nextStampFrom?: string | null
+}
+
+/**
+ * The screen's own headline and support line once a stamp has landed on this
+ * visit. The stamp result owns the screen (S2/S3): the shell swaps to these
+ * and nothing else is asked of the guest.
+ */
+export type StampOutcome = {
+  headline: string
+  supportLine: string
 }
 
 /** What the stamp screen needs to render the venue-code fallback, if any. */
 export type VenueCodeFallbackView = {
   /** The six-digit code may be entered (idle on a verified visit, or after a refusal it answers). */
   venueCodeOffer: boolean
-  /** Show "Use my location" / "Enter venue code" instead of the stamp press. */
+  /** Show "Share my location" / "Enter the venue code instead" in place of the stamp press. */
   locationControls: boolean
   /** Tries left before a lockout, when the last code was wrong. */
   venueCodeAttemptsRemaining: number | null
@@ -196,6 +215,10 @@ export type StampChoreographyView = VenueCodeFallbackView & {
   announcement: string
   statusTitle: string
   statusBody: string
+  /** The receipt fact in the band ("4 OF 8") once a stamp is on the card. */
+  statusReceipt: string | null
+  /** Headline and support for the screen, only once a stamp has landed. */
+  outcome: StampOutcome | null
   rewardUnlocked: boolean
   rewardSlammed: boolean
 }
@@ -274,9 +297,22 @@ function displayDates(
 function bonusCopy(count: number): string {
   if (count <= 0) return ""
   return count === 1
-    ? " 1 banked bonus stamp was added too."
-    : ` ${count} banked bonus stamps were added too.`
+    ? " Your bonus stamp was added too."
+    : ` ${count} bonus stamps were added too.`
 }
+
+function remainingLine(remaining: number): string {
+  return `${remaining} more to your reward.`
+}
+
+/** Receipt voice: a fact, mono and upper case on screen ("4 OF 8"). */
+function receiptLine(count: number, total: number): string | null {
+  if (total <= 0) return null
+  return `${Math.min(Math.max(count, 0), total)} OF ${total}`
+}
+
+const FULL_CARD_HEADLINE = "Your card is full."
+const OPEN_REWARD_LINE = "Open your reward to see when you can collect it."
 
 function venueStampIndex(result: IssuedStamp, total: number): number {
   const bonusCount = Math.max(result.bonusStampsApplied, 0)
@@ -285,63 +321,59 @@ function venueStampIndex(result: IssuedStamp, total: number): number {
 }
 
 /**
- * How the visit was confirmed, when that is worth saying. A code-confirmed
- * stamp says so; an unverified one says so and, when the page knew the grace,
- * how many more the venue will take without a location check.
+ * The stamp result, which owns the screen (brief S2/S3). It confirms the
+ * stamp, the updated progress and what is left, then one quiet line for when
+ * the next stamp opens. How the visit was confirmed (location, venue code, or
+ * one of the stamps a venue allows without a location check) is not repeated
+ * here: the guest already did it, and the server keeps the record.
  */
-function verificationCopy(
-  result: IssuedStamp,
-  unverifiedGraceRemaining: number | undefined
-): string {
-  if (result.verification === "venue_code") {
-    return " Confirmed using today's venue code."
-  }
-  if (result.verification !== "unverified") return ""
-  if (unverifiedGraceRemaining === undefined) {
-    return " Added without a location check."
-  }
-  const left = Math.max(unverifiedGraceRemaining - 1, 0)
-  if (left === 0) {
-    return " Added without a location check. Next time, location or the venue code is needed."
-  }
-  return left === 1
-    ? " Added without a location check. 1 more can be added without one."
-    : ` Added without a location check. ${left} more can be added without one.`
-}
-
 function issuedCopy(
   result: IssuedStamp,
   total: number,
-  unverifiedGraceRemaining: number | undefined
-): Pick<StampChoreographyView, "announcement" | "statusTitle" | "statusBody"> {
+  nextStampFrom: string | null | undefined
+): Pick<
+  StampChoreographyView,
+  "announcement" | "statusTitle" | "statusBody" | "statusReceipt" | "outcome"
+> {
   const complete = total > 0 && result.newStampCount >= total
-  const extra =
-    bonusCopy(result.bonusStampsApplied) +
-    verificationCopy(result, unverifiedGraceRemaining)
+  const bonus = bonusCopy(result.bonusStampsApplied)
+  const statusReceipt = receiptLine(result.newStampCount, total)
   // The card is full but the server issued no reward behind the final stamp
   // (reward_unlocked is false). Confirm the stamp and the full card, never an
   // unlock; the reward itself is sorted server-side.
   if (complete && !result.rewardUnlocked) {
     return {
-      announcement: `Stamp added. That's the full card. ${FULL_CARD_REWARD_PENDING_COPY}`,
-      statusTitle: "That's the full card.",
-      statusBody: `${FULL_CARD_REWARD_PENDING_COPY}${extra}`,
+      announcement: `Stamp added. ${FULL_CARD_HEADLINE} ${FULL_CARD_REWARD_PENDING_COPY}`,
+      statusTitle: FULL_CARD_HEADLINE,
+      statusBody: "Your stamps are safe.",
+      statusReceipt,
+      outcome: {
+        headline: FULL_CARD_HEADLINE,
+        supportLine: `${FULL_CARD_REWARD_PENDING_COPY}${bonus}`,
+      },
     }
   }
   if (complete) {
     return {
-      announcement:
-        "Stamp added. That's the full card, your reward is unlocked.",
-      statusTitle: "That's the full card.",
-      statusBody: `Your reward is unlocked.${extra}`,
+      announcement: `Stamp added. ${FULL_CARD_HEADLINE} Your reward is unlocked.`,
+      statusTitle: FULL_CARD_HEADLINE,
+      statusBody: OPEN_REWARD_LINE,
+      statusReceipt,
+      outcome: {
+        headline: FULL_CARD_HEADLINE,
+        supportLine: `Your reward is unlocked.${bonus}`,
+      },
     }
   }
 
   const remaining = Math.max(total - result.newStampCount, 0)
+  const supportLine = `${remainingLine(remaining)}${bonus}`
   return {
-    announcement: `Stamp added. That's ${result.newStampCount} of ${total}.`,
-    statusTitle: `Stamp ${result.newStampCount} of ${total} added.`,
-    statusBody: `${remaining} to go. Your next scan window opens after the venue's daily reset.${extra}`,
+    announcement: `Stamp added. ${supportLine}`,
+    statusTitle: "Stamp added.",
+    statusBody: nextStampLine(nextStampFrom),
+    statusReceipt,
+    outcome: { headline: "Stamp added.", supportLine },
   }
 }
 
@@ -356,6 +388,64 @@ function blockedBody(
   return state.message
 }
 
+/** Band copy for a refusal: the situation in guest words, then what to do. */
+function blockedTitle(
+  state: Extract<StampChoreographyState, { phase: "blocked" }>,
+  venueName: string | undefined
+): string {
+  return state.locationIssue
+    ? LOCATION_ISSUE_COPY[state.locationIssue].title
+    : blockReasonTitle(state.reason, venueName)
+}
+
+/**
+ * The resting band: ready to stamp (S1), the location check (S4), or today's
+ * stamp already on the card (S5), with the full card held when its reward is
+ * unlocked (S3 after a reload).
+ */
+function restingCopy(
+  closed: boolean,
+  fallback: VenueCodeFallbackView,
+  input: StampViewInput
+): Pick<
+  StampChoreographyView,
+  "buttonLabel" | "statusTitle" | "statusBody" | "statusReceipt"
+> {
+  if (closed && input.rewardUnlocked) {
+    return {
+      buttonLabel: "Reward unlocked",
+      statusTitle: FULL_CARD_HEADLINE,
+      statusBody: OPEN_REWARD_LINE,
+      statusReceipt: receiptLine(input.current, input.total),
+    }
+  }
+  if (closed) {
+    const remaining = Math.max(input.total - input.current, 0)
+    return {
+      buttonLabel: "Stamp added",
+      statusTitle: "You've got today's stamp.",
+      statusBody:
+        remaining > 0 ? remainingLine(remaining) : "Your stamps are safe.",
+      statusReceipt: receiptLine(input.current, input.total),
+    }
+  }
+  if (fallback.locationControls) {
+    return {
+      buttonLabel: "Stamp my card",
+      statusTitle: `We need to check you're at ${input.venueName?.trim() || "the venue"}.`,
+      statusBody:
+        "Share your location, or ask a team member for today's venue code.",
+      statusReceipt: null,
+    }
+  }
+  return {
+    buttonLabel: "Stamp my card",
+    statusTitle: "Ready for today's stamp.",
+    statusBody: "Tap the stamp, or press and hold.",
+    statusReceipt: null,
+  }
+}
+
 export function stampChoreographyView(
   state: StampChoreographyState,
   input: StampViewInput
@@ -366,6 +456,17 @@ export function stampChoreographyView(
   const printing = state.phase === "printing"
   const closed = !input.canStamp && state.phase === "idle"
   const fallback = venueCodeFallback(state, input)
+  const common = {
+    ...fallback,
+    displayCurrent,
+    dates: displayDates(input, result),
+    slamIndex: -1,
+    pendingIndex: -1,
+    cardComplete,
+    statusReceipt: null,
+    outcome: null,
+    rewardSlammed: false,
+  }
 
   // The browser is being asked for a fix. Nothing has been sent, so the card
   // does not ink and the venue code stays open; only the band says what is
@@ -376,12 +477,7 @@ export function stampChoreographyView(
     input.canStamp
   ) {
     return {
-      ...fallback,
-      displayCurrent,
-      dates: displayDates(input, result),
-      slamIndex: -1,
-      pendingIndex: -1,
-      cardComplete,
+      ...common,
       secured: false,
       pending: false,
       confirmed: false,
@@ -392,19 +488,14 @@ export function stampChoreographyView(
       statusBody:
         "Allow location if your phone asks. Or enter today's venue code instead.",
       rewardUnlocked: false,
-      rewardSlammed: false,
     }
   }
 
   if (state.phase === "checking") {
     const pendingIndex = pendingSlotIndex(input, state.startedCurrent)
     return {
-      ...fallback,
-      displayCurrent,
-      dates: displayDates(input, result),
-      slamIndex: -1,
+      ...common,
       pendingIndex,
-      cardComplete,
       secured: true,
       pending: true,
       confirmed: false,
@@ -414,46 +505,31 @@ export function stampChoreographyView(
       statusTitle: "Checking today's stamp.",
       statusBody:
         pendingIndex >= 0
-          ? `Slot ${pendingIndex + 1} is inking. It lands once the venue confirms.`
-          : "It lands once the venue confirms.",
+          ? `Stamp ${pendingIndex + 1} goes on your card once it's confirmed.`
+          : "Your stamp goes on your card once it's confirmed.",
       rewardUnlocked: false,
-      rewardSlammed: false,
     }
   }
 
   if (state.phase === "blocked") {
+    const title = blockedTitle(state, input.venueName)
     return {
-      ...fallback,
-      displayCurrent,
-      dates: displayDates(input, result),
-      slamIndex: -1,
-      pendingIndex: -1,
-      cardComplete,
+      ...common,
       secured: false,
       pending: false,
       confirmed: false,
       ariaBusy: false,
-      buttonLabel: "Try today's stamp again",
-      announcement: `Stamp not added. ${state.locationIssue ? `${LOCATION_ISSUE_COPY[state.locationIssue].title}. ` : ""}${state.message}`,
-      statusTitle: state.locationIssue
-        ? LOCATION_ISSUE_COPY[state.locationIssue].title
-        : state.reason === "location_out_of_range"
-          ? "You appear to be outside the pub"
-          : "Stamp not added.",
+      buttonLabel: "Try again",
+      announcement: `Stamp not added. ${state.locationIssue ? `${title}. ` : ""}${state.message}`,
+      statusTitle: title,
       statusBody: blockedBody(state, fallback),
       rewardUnlocked: false,
-      rewardSlammed: false,
     }
   }
 
   if (state.phase === "unknown") {
     return {
-      ...fallback,
-      displayCurrent,
-      dates: displayDates(input, result),
-      slamIndex: -1,
-      pendingIndex: -1,
-      cardComplete,
+      ...common,
       secured: true,
       pending: true,
       confirmed: false,
@@ -464,18 +540,12 @@ export function stampChoreographyView(
       statusBody:
         "We couldn't confirm the result. Refresh before trying another stamp.",
       rewardUnlocked: false,
-      rewardSlammed: false,
     }
   }
 
   if (state.phase === "closed") {
     return {
-      ...fallback,
-      displayCurrent,
-      dates: displayDates(input, result),
-      slamIndex: -1,
-      pendingIndex: -1,
-      cardComplete,
+      ...common,
       secured: true,
       pending: false,
       confirmed: false,
@@ -486,75 +556,32 @@ export function stampChoreographyView(
       statusBody:
         "No new stamp was confirmed. Check your card before trying again.",
       rewardUnlocked: input.rewardUnlocked,
-      rewardSlammed: false,
     }
   }
 
   if (result) {
-    const copy = issuedCopy(result, input.total, input.unverifiedGraceRemaining)
     return {
-      ...fallback,
-      displayCurrent,
-      dates: displayDates(input, result),
+      ...common,
       slamIndex: printing ? venueStampIndex(result, input.total) : -1,
-      pendingIndex: -1,
-      cardComplete,
       secured: true,
       pending: false,
       confirmed: true,
       ariaBusy: printing,
       buttonLabel: "Stamp added",
-      ...copy,
+      ...issuedCopy(result, input.total, input.nextStampFrom),
       rewardUnlocked: result.rewardUnlocked || input.rewardUnlocked,
       rewardSlammed: printing && cardComplete && result.rewardUnlocked,
     }
   }
 
-  if (closed && input.rewardUnlocked) {
-    return {
-      ...fallback,
-      displayCurrent,
-      dates: displayDates(input, result),
-      slamIndex: -1,
-      pendingIndex: -1,
-      cardComplete,
-      secured: true,
-      pending: false,
-      confirmed: true,
-      ariaBusy: false,
-      buttonLabel: "Reward unlocked",
-      announcement: "",
-      statusTitle: "That's the full card.",
-      statusBody: "Your reward is ready to open.",
-      rewardUnlocked: true,
-      rewardSlammed: false,
-    }
-  }
-
   return {
-    ...fallback,
-    displayCurrent,
-    dates: displayDates(input, result),
-    slamIndex: -1,
-    pendingIndex: -1,
-    cardComplete,
+    ...common,
     secured: closed,
     pending: false,
     confirmed: closed,
     ariaBusy: false,
-    buttonLabel: closed ? "Stamp added" : "Add today's stamp",
     announcement: "",
-    statusTitle: closed
-      ? "You're stamped for today."
-      : fallback.locationControls
-        ? "Confirm you're at the venue."
-        : "Ready for today's stamp.",
-    statusBody: closed
-      ? "Come back after the venue's next daily reset."
-      : fallback.locationControls
-        ? "Use your phone's location, or enter today's code from a team member."
-        : "Tap the stamp, or press and hold, to print today's mark.",
+    ...restingCopy(closed, fallback, input),
     rewardUnlocked: input.rewardUnlocked,
-    rewardSlammed: false,
   }
 }

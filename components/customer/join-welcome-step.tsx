@@ -3,54 +3,54 @@ import Link from "next/link"
 import { CustomerFlowShell } from "@/components/customer/customer-flow-system"
 import { JoinActionBar } from "@/components/customer/join-action-bar"
 import { JoinOfferJourney } from "@/components/customer/join-offer-journey"
+import { JoinOfferReminder } from "@/components/customer/join-offer-reminder"
 import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
 import { Button } from "@/components/ui/button"
 import {
   JOIN_WELCOME_HOW_IT_WORKS,
   JOIN_WELCOME_HOW_IT_WORKS_LABEL,
-  JOIN_WELCOME_EMAIL_REASSURANCE,
   JOIN_WELCOME_PHONE_REASSURANCE,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
 import type { CustomerExperience } from "@/lib/customer/experience/types"
+import type { PendingJoinOffer } from "@/lib/customer/pending-join-offer"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
-
-const ONBOARDING_STEPS = 3
 
 /**
  * Step 1 of the join wizard. One offer card, one action, and the supporting
  * detail folded away beneath it: the customer at the counter should read the
  * venue, see the stamp journey, and tap once — without scrolling on a 667px
- * phone. "How it works" and the venue terms stay one tap away.
+ * phone. "How it works" and the venue terms stay one tap away. A pending
+ * offer shows as a small reminder, never a second call to action.
  */
 export function WelcomeStep({
   exp,
   vm,
   referralCode,
+  pendingOffer,
 }: {
   exp: Extract<CustomerExperience, { kind: "join_welcome" }>
   vm: CustomerExperienceViewModel
   referralCode?: string
+  pendingOffer?: PendingJoinOffer | null
 }) {
   return (
     <CustomerFlowShell
       eyebrow={vm.eyebrow}
       title={vm.headline}
       description={vm.supportLine}
-      progress={{ step: 1, total: ONBOARDING_STEPS, label: "Keep your card" }}
+      // No step count yet: it is not known how many steps this guest has.
+      progress={{ label: "Your card" }}
       dense
       screenLabel="Customer join"
     >
+      {pendingOffer ? (
+        <JoinOfferReminder offer={pendingOffer} venueName={exp.merchant.name} />
+      ) : null}
       <JoinOfferJourney merchant={exp.merchant} card={exp.card} />
       {vm.primaryAction ? (
-        <JoinActionBar
-          note={
-            exp.emailSignIn
-              ? JOIN_WELCOME_EMAIL_REASSURANCE
-              : JOIN_WELCOME_PHONE_REASSURANCE
-          }
-        >
-          {/* Always the phone step: email is only the phone code's fallback. */}
+        <JoinActionBar note={JOIN_WELCOME_PHONE_REASSURANCE}>
+          {/* Always the phone step; only the code step offers a fallback. */}
           <Button asChild size="lg" className="w-full">
             <Link
               href={buildCustomerJoinHref(exp.merchant.slug, {
@@ -77,7 +77,7 @@ export function WelcomeStep({
           oneTransactionPerStamp: exp.card.oneTransactionPerStamp,
           rewardPool: exp.card.rewardPool,
         }}
-        triggerLabel="View full venue terms"
+        triggerLabel="View venue terms"
         triggerClassName="focus-ring inline-flex min-h-11 w-fit items-center text-xs font-bold underline underline-offset-4"
       />
     </CustomerFlowShell>

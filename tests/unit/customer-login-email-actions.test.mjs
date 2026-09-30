@@ -166,7 +166,7 @@ test("Given email sign-in is off When any login email action is posted Then it r
       form({ email: "guest@example.com", otp: "123456" })
     )
     assert.equal(result.fields.method, "phone")
-    assert.match(result.errors.form, /use your phone number instead/i)
+    assert.match(result.errors.form, /use your mobile number/i)
   }
   const switched = await actions.switchCustomerLoginMethodAction(
     {},
@@ -259,7 +259,7 @@ test("Given the email provider fails When a code is requested Then the delay cop
 
   assert.equal(
     result.errors.form,
-    "Email codes are delayed. Try again shortly or use your phone."
+    "Email is slow right now. Try again shortly, or go back to the text code."
   )
   assert.equal(result.fields.otpSent, undefined)
   // The sign-in module records customer_login_code_send_failed itself.
@@ -276,7 +276,7 @@ test("Given a resend When posted Then it goes to the pending wallet address, nev
     form({ resend: "1", email: "attacker@example.com" })
   )
 
-  assert.equal(result.message, "Use the latest code we sent.")
+  assert.equal(result.message, "New code sent. Use the latest one.")
   assert.equal(state.calls[1][1].email, "guest@example.com")
 
   // A join challenge is not this page's to resend.
@@ -285,7 +285,7 @@ test("Given a resend When posted Then it goes to the pending wallet address, nev
     {},
     form({ resend: "1" })
   )
-  assert.equal(joinPending.errors.email, "Request a new email code.")
+  assert.equal(joinPending.errors.email, "Your code expired. Send a new one.")
   assert.equal(state.calls.filter(([name]) => name === "start").length, 1)
 })
 
@@ -332,8 +332,7 @@ test("Given a verified email no wallet holds When the code is confirmed Then it 
 
   assert.deepEqual(result, {
     fields: { method: "email", email: "guest@example.com", noCards: true },
-    message:
-      "No wallet uses this email yet. Scan a venue QR to join, or sign in with your phone.",
+    message: "You can use your mobile number instead.",
   })
   assert.ok(!state.calls.some(([name]) => name === "session"))
   assert.deepEqual(state.events, [
@@ -360,7 +359,10 @@ test("Given a wrong, expired or over-limit code When it is checked Then no walle
     codeState,
     form({ otp: "000000" })
   )
-  assert.equal(wrong.errors.otp, "That code was not accepted.")
+  assert.equal(
+    wrong.errors.otp,
+    "That code didn't work. Check it and try again."
+  )
   assert.deepEqual(wrong.fields, {
     method: "email",
     email: "guest@example.com",
@@ -374,14 +376,14 @@ test("Given a wrong, expired or over-limit code When it is checked Then no walle
     codeState,
     form({ otp: "000000" })
   )
-  assert.match(limited.errors.form, /Too many code attempts/)
+  assert.match(limited.errors.form, /Too many tries/)
 
   state.check = { status: "expired" }
   const expired = await verifyCustomerLoginEmailAction(
     codeState,
     form({ otp: "000000" })
   )
-  assert.equal(expired.errors.email, "Request a new email code.")
+  assert.equal(expired.errors.email, "Your code expired. Send a new one.")
   assert.equal(expired.fields.otpSent, undefined)
 
   assert.ok(!state.calls.some(([name]) => name === "find"))
@@ -540,6 +542,71 @@ test("Given a phone code is still pending When the customer leaves the email fal
     { fields: { method: "phone" } }
   )
   assert.ok(!state.calls.some(([name]) => name === "clearPhone"))
+})
+
+test("Given a WhatsApp code is pending When the customer goes back to the text code Then the phone step keeps the cookie's channel and its text fallback", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const actions = await loadActions()
+  const { state } = actions
+  const nowSeconds = Math.floor(Date.now() / 1_000)
+  state.phonePending = {
+    purpose: "wallet",
+    phone: "+447700900123",
+    channel: "whatsapp",
+    issuedAt: nowSeconds - 40,
+  }
+
+  // A posted channel is ignored: only the signed pending cookie counts.
+  const back = await actions.switchCustomerLoginMethodAction(
+    {},
+    form({ method: "phone", channel: "sms" })
+  )
+  assert.equal(back.fields.channel, "whatsapp")
+  assert.equal(back.fields.otpSent, true)
+
+  // A code that went by text stays on text; a cookie minted before the
+  // channel existed names none.
+  state.phonePending = { ...state.phonePending, channel: "sms" }
+  assert.equal(
+    (
+      await actions.switchCustomerLoginMethodAction(
+        {},
+        form({ method: "phone", channel: "whatsapp" })
+      )
+    ).fields.channel,
+    "sms"
+  )
+  state.phonePending = {
+    purpose: "wallet",
+    phone: "+447700900123",
+    issuedAt: nowSeconds - 40,
+  }
+  assert.equal(
+    "channel" in
+      (
+        await actions.switchCustomerLoginMethodAction(
+          {},
+          form({ method: "phone" })
+        )
+      ).fields,
+    false
+  )
+
+  // The fallback gate's phone step carries it too.
+  state.gate = {
+    open: false,
+    phoneCode: {
+      phone: "+447700900123",
+      channel: "whatsapp",
+      issuedAt: nowSeconds - 10,
+    },
+  }
+  const refused = await actions.switchCustomerLoginMethodAction(
+    {},
+    form({ method: "email" })
+  )
+  assert.equal(refused.fields.method, "phone")
+  assert.equal(refused.fields.channel, "whatsapp")
 })
 
 test("Given the server has not opened email When the switch, request or edit is posted Then each answers with the phone step and touches no email state", async () => {

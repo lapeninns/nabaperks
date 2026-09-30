@@ -27,6 +27,7 @@ import {
 import { isEmailAddress } from "@/lib/customer/profile-fields"
 import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
+import type { PendingPhoneChannel } from "@/lib/customer/session-cookie-core"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
 
@@ -46,18 +47,16 @@ import { logger } from "@/lib/observability/logger"
  * passing fault never costs the customer their code.
  */
 
-const EMAIL_SIGN_IN_OFF =
-  "Email sign-in isn't available just now. Use your phone number instead."
+const EMAIL_SIGN_IN_OFF = "Use your mobile number to open your cards."
 const EMAIL_DELAYED =
-  "Email codes are delayed. Try again shortly or use your phone."
+  "Email is slow right now. Try again shortly, or go back to the text code."
 const INVALID_EMAIL = "Enter a valid email address."
-const CODE_EXPIRED = "Request a new email code."
+const CODE_EXPIRED = "Your code expired. Send a new one."
 const SIGN_IN_RETRY =
   "We couldn't sign you in just now. Enter the same code again shortly."
 const REQUEST_MESSAGE = "If a code arrives at that address, enter it here."
-const RESEND_MESSAGE = "Use the latest code we sent."
-const NO_WALLET_MESSAGE =
-  "No wallet uses this email yet. Scan a venue QR to join, or sign in with your phone."
+const RESEND_MESSAGE = "New code sent. Use the latest one."
+const NO_WALLET_MESSAGE = "You can use your mobile number instead."
 
 type LoginState = CustomerLoginOtpState
 
@@ -152,13 +151,13 @@ export async function verifyCustomerLoginEmailAction(
   if (result.status === "invalid_code") {
     return {
       fields: codeFields,
-      errors: { otp: "That code was not accepted." },
+      errors: { otp: "That code didn't work. Check it and try again." },
     }
   }
   if (result.status === "rate_limited") {
     return {
       fields: codeFields,
-      errors: { form: "Too many code attempts. Request a new code shortly." },
+      errors: { form: "Too many tries. Send a new code in a few minutes." },
     }
   }
 
@@ -254,10 +253,16 @@ export async function switchCustomerLoginMethodAction(
 /**
  * The phone step: the code step, with the server's wait, while a wallet phone
  * code is pending, else the number form. The same answer whatever address a
- * refused email request named.
+ * refused email request named. The channel comes from the signed pending
+ * cookie, never the form, so a code sent on WhatsApp keeps "Text me instead"
+ * and its resend stays on the channel that actually carried it.
  */
 function phoneStep(
-  phoneCode: { readonly phone: string; readonly issuedAt: number } | null
+  phoneCode: {
+    readonly phone: string
+    readonly issuedAt: number
+    readonly channel?: PendingPhoneChannel
+  } | null
 ): LoginState {
   if (!phoneCode) return { fields: { method: "phone" } }
   return {
@@ -265,6 +270,7 @@ function phoneStep(
       method: "phone",
       contact: phoneCode.phone,
       otpSent: true,
+      ...(phoneCode.channel ? { channel: phoneCode.channel } : {}),
       ...phoneCodeStepTiming(phoneCode.issuedAt, Date.now()),
     },
   }

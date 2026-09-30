@@ -88,7 +88,7 @@ export function StampPressButton({
   confirmed = false,
   pending = false,
   holdMs = 600,
-  label = "Add today's stamp",
+  label = "Stamp my card",
 }: {
   onStamp: () => void
   venueName?: string

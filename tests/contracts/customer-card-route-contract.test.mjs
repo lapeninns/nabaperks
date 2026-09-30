@@ -140,8 +140,11 @@ test("Given a card membership is owned When card detail is loaded Then only acti
   }
   // The card face keys off the stamp-cycle reward; issued rewards ride the gift
   // rail. Both pickers must feed the loader so the two rails stay separate.
-  assert.match(loader, /pickStampBlockingUnlockedReward\(unlockedRewards\)/)
-  assert.match(loader, /pickIssuedUnlockedReward\(unlockedRewards\)/)
+  // Picked from the unlocked rewards once their photo-ID reason is resolved
+  // with the stated date of birth.
+  assert.match(loader, /const rewards = unlockedRewards\.map\(/)
+  assert.match(loader, /pickStampBlockingUnlockedReward\(rewards\)/)
+  assert.match(loader, /pickIssuedUnlockedReward\(rewards\)/)
 })
 
 test("Given merchant, card, and billing status can block loyalty When the card loader returns facts Then availability is centralized", () => {

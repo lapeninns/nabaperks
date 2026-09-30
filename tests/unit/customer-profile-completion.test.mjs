@@ -48,11 +48,13 @@ test("Given verified email and saved details When phone is unverified Then colle
 
   assert.equal(completion.complete, false)
   assert.equal(completion.needsPhoneVerification, true)
+  // Details were saved before this step, so the count stays honest: the
+  // mobile number is the second of two steps, never "Step 1 of 1".
   assert.deepEqual(collectionSetup(completion), {
     stage: "phone",
     outstanding: true,
-    step: 1,
-    total: 1,
+    step: 2,
+    total: 2,
   })
 })
 

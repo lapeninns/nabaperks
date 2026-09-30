@@ -31,7 +31,10 @@ test("Given a DB-free harness lane When it mounts the profile marketing section 
     path.join(projectRoot, "app", "dev")
   )) {
     const source = readFileSync(filePath, "utf8")
-    for (const match of source.matchAll(/<CustomerProfileMarketing\b[^>]*>/g)) {
+    // The section is mounted directly, or through "Messages from venues".
+    for (const match of source.matchAll(
+      /<CustomerProfile(?:Marketing|MessagesSection)\b[^>]*>/g
+    )) {
       mounts.push({
         file: path.relative(projectRoot, filePath).split(path.sep).join("/"),
         tag: match[0],

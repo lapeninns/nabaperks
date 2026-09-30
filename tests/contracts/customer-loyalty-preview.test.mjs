@@ -18,7 +18,12 @@ test("Given the public merchant preview has no QR context When CTA copy renders 
 
   assert.match(preview, /buildCustomerJoinHref\(merchantSlug/)
   assert.match(preview, /referralCode: ref/)
-  assert.match(preview, />\s*Join rewards\s*<\/Link>/)
+  assert.match(preview, />\s*Save my card\s*<\/Link>/)
+  assert.match(preview, /title="Save your card"/)
+  // No stamp can be collected without a QR, and no calendar jargon or
+  // simplicity promise (guest journey J1, no-QR variant).
+  assert.doesNotMatch(preview, /Collect your stamp"/)
+  assert.doesNotMatch(preview, /trading day|No app, no plastic/)
   assert.match(preview, /<CustomerReceipt[\s\S]*\bcompact\b/)
   // The journey preview uses the same non-compact treatment as the q-valid
   // welcome step (production-polish VCU-P2-02/03): reward patch inline with

@@ -297,7 +297,7 @@ test.describe("touch input zoom", () => {
       "/dev/home-harness/stamp?mode=location-blocked"
     )
 
-    await page.getByRole("button", { name: /add today's stamp/i }).click()
+    await page.getByRole("button", { name: /stamp my card/i }).click()
 
     const code = page.locator('input[name="code"]')
     await expect(code).toBeVisible()

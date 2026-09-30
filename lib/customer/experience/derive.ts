@@ -1,4 +1,5 @@
 import { CARD_LOAD_FAILED_DESCRIPTION } from "@/lib/copy/product-copy"
+import { maskedMobile } from "@/lib/customer/login-copy"
 import type { OtpChannel } from "@/lib/customer/otp-channel-core"
 import { pickByPriority } from "./priorities"
 import {
@@ -16,7 +17,6 @@ import {
   type LocationRequirement,
   type ProfileGate,
   type RewardView,
-  type StampEmailPrompt,
   externalAccessProblem,
   type InternalAccessProblem,
 } from "./types"
@@ -72,6 +72,8 @@ export type CardContext =
       reward: {
         view: RewardView
         redeemable: boolean
+        /** Redeemable only once a setup step on the reward page is done. */
+        needsSetup?: boolean
       } | null
       /** Issued reward (birthday/merchant) to show as a distinct gift chip. */
       giftReward?: {
@@ -80,6 +82,7 @@ export type CardContext =
         source: CardGift["source"]
         availableFrom: string | null
         redeemable: boolean
+        needsSetup?: boolean
       } | null
       rewardTerms: string
       stampDates: string[]
@@ -91,7 +94,8 @@ export type CardContext =
       /** Shareable "Bring a Regular" join link (opaque referral_code), or absent. */
       referralShareUrl?: string
       referralBonusBank?: ReferralBonusBank
-      emailPrompt?: StampEmailPrompt | null
+      /** When the next stamp opens, loaded only straight after a stamp. */
+      nextStampFrom?: string | null
     }
 
 export type StampContext =
@@ -117,6 +121,8 @@ export type StampContext =
       total?: number
       stampDates?: string[]
       todayLabel?: string
+      /** When the stamp after today's opens (ISO), if the loader knew. */
+      nextStampFrom?: string | null
     }
 
 export type RewardContext =
@@ -154,6 +160,8 @@ export type JoinContext =
       card: JoinCard
       qrId?: string
       step?: string
+      /** A one-off notice for the step (`notice=code_expired`). */
+      notice?: "code_expired"
       hasSession: boolean
       pendingOtp: boolean
       pendingPhone?: string
@@ -248,6 +256,7 @@ function deriveCard(context: CardContext): CustomerExperience {
         rewardName: giftReward.name,
         source: giftReward.source,
         redeemable: giftReward.redeemable,
+        needsSetup: giftReward.redeemable && giftReward.needsSetup === true,
         availableFrom: giftReward.availableFrom,
       }
     : null
@@ -263,6 +272,7 @@ function deriveCard(context: CardContext): CustomerExperience {
     total: context.total,
     slamIndex: context.justStamped ? context.current - 1 : -1,
     reward: rewardStatus,
+    rewardNeedsSetup: rewardStatus === "ready" && reward?.needsSetup === true,
     rewardId: reward?.view.rewardId,
     rewardName: reward?.view.rewardName,
     rewardTerms: reward?.view.rewardTerms ?? context.rewardTerms,
@@ -277,7 +287,7 @@ function deriveCard(context: CardContext): CustomerExperience {
     justRedeemed: context.justRedeemed,
     referralShareUrl: context.referralShareUrl,
     referralBonusBank: context.referralBonusBank,
-    emailPrompt: context.justStamped ? (context.emailPrompt ?? null) : null,
+    nextStampFrom: context.justStamped ? (context.nextStampFrom ?? null) : null,
   }
 }
 
@@ -288,6 +298,7 @@ function stampCardProgress(context: {
   total?: number
   stampDates?: string[]
   todayLabel?: string
+  nextStampFrom?: string | null
   location: LocationRequirement
 }) {
   return {
@@ -297,6 +308,7 @@ function stampCardProgress(context: {
     total: context.total ?? 0,
     stampDates: context.stampDates ?? [],
     todayLabel: context.todayLabel ?? "",
+    nextStampFrom: context.nextStampFrom ?? null,
   }
 }
 
@@ -317,6 +329,7 @@ function stampScreenExperience(
     total?: number
     stampDates?: string[]
     todayLabel?: string
+    nextStampFrom?: string | null
   },
   reward?: {
     rewardId: string
@@ -526,6 +539,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
           phone: true,
           email: false,
         },
+        rewardMayNeedPhotoId: joinCardMayNeedPhotoId(context.card),
       }
     case "join_email_choice":
       return context.emailHandoff
@@ -549,7 +563,6 @@ function deriveJoin(context: JoinContext): CustomerExperience {
             merchant: context.merchant,
             card: context.card,
             qrId: context.qrId,
-            emailSignIn: joinEmailMode(context) !== "off",
           }
         : joinPhone(context)
     default:
@@ -602,6 +615,12 @@ function joinContactKind(
 }
 
 function joinPhone(context: AvailableJoinContext): CustomerExperience {
+  // "Wrong number? Change it" opens this step with the pending code's number
+  // (the loader passes it only for an explicit `step=phone`).
+  const prefillPhone =
+    context.step === "phone" && !context.pendingOtp && context.pendingPhone
+      ? ukNationalPhone(context.pendingPhone)
+      : undefined
   return {
     kind: "join_phone",
     merchant: context.merchant,
@@ -609,7 +628,31 @@ function joinPhone(context: AvailableJoinContext): CustomerExperience {
     channel: context.primaryChannel ?? "whatsapp",
     qrId: context.qrId,
     emailSignIn: joinEmailMode(context) !== "off",
+    ...(context.notice ? { notice: context.notice } : {}),
+    ...(prefillPhone ? { prefillPhone } : {}),
   }
+}
+
+/** "+447700900123" as "07700 900123"; anything else is not prefilled. */
+function ukNationalPhone(e164: string): string | undefined {
+  const match = /^\+44(\d{10})$/.exec(e164)
+  if (!match) return undefined
+  const national = `0${match[1]}`
+  return `${national.slice(0, 5)} ${national.slice(5)}`
+}
+
+/**
+ * Whether a reward on this card may be age checked at collection: an active
+ * reward-pool item, or a collection-window upgrade, requires it. Only what the
+ * card data says; nothing is assumed when it is absent.
+ */
+function joinCardMayNeedPhotoId(card: JoinCard): boolean {
+  return (
+    (card.rewardPool ?? []).some((item) => item.requiresAgeCheck === true) ||
+    (card.collectionWindows ?? []).some(
+      (window) => window.upgrade?.requiresAgeCheck === true
+    )
+  )
 }
 
 function joinEmail(context: AvailableJoinContext): CustomerExperience {
@@ -625,18 +668,23 @@ function joinEmail(context: AvailableJoinContext): CustomerExperience {
   }
 }
 
-/** When a phone code step may offer email: never while email sign-in is off. */
+/**
+ * When the phone code was sent, which times the step's "Send a new code"
+ * wait, and when it may offer email: never while email sign-in is off.
+ */
 function phoneCodeFallback(context: AvailableJoinContext): {
   emailFallbackInSeconds?: number
   phoneCodeSentAt?: number
 } {
-  if (joinEmailMode(context) === "off") return {}
-  if (context.pendingPhoneEmailFallbackInSeconds === undefined) return {}
+  const sentAt =
+    context.pendingPhoneSentAt === undefined
+      ? {}
+      : { phoneCodeSentAt: context.pendingPhoneSentAt }
+  if (joinEmailMode(context) === "off") return sentAt
+  if (context.pendingPhoneEmailFallbackInSeconds === undefined) return sentAt
   return {
     emailFallbackInSeconds: context.pendingPhoneEmailFallbackInSeconds,
-    ...(context.pendingPhoneSentAt === undefined
-      ? {}
-      : { phoneCodeSentAt: context.pendingPhoneSentAt }),
+    ...sentAt,
   }
 }
 
@@ -655,6 +703,9 @@ function joinOtp(context: AvailableJoinContext): CustomerExperience {
     : {
         method: "phone",
         last4: context.pendingPhone?.slice(-4) ?? "",
+        maskedNumber: context.pendingPhone
+          ? maskedMobile(context.pendingPhone)
+          : "",
         channel: context.pendingChannel ?? "sms",
         ...phoneCodeFallback(context),
       }

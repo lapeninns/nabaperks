@@ -68,13 +68,14 @@ export function describeCustomerRewardCollection() {
   }) => {
     await gotoHydratedPage(page, `${HARNESS}?state=details-unverified-email`)
     await expect(
-      page.getByRole("heading", { name: "Complete your details" })
+      page.getByRole("heading", { name: "Add your name and date of birth" })
     ).toBeVisible()
     await expect(page.getByLabel("Full name")).toBeVisible()
     await expect(page.getByLabel("Date of birth")).toBeVisible()
-    await expect(page.getByLabel("Email address")).toHaveValue(
-      "alex@example.test"
-    )
+    // One requirement per screen (R3): the saved, unverified email waits for
+    // its own step after the details, so neither it nor its code shows here.
+    await expect(page.getByLabel("Email address")).toHaveCount(0)
+    await expect(page.getByText("alex@example.test")).toHaveCount(0)
     await expect(page.getByLabel("Email code")).toHaveCount(0)
     await expect(
       page.getByRole("img", { name: /QR code for collecting/i })
@@ -184,10 +185,13 @@ export function describeCustomerRewardCollection() {
 
     await gotoHydratedPage(page, `${HARNESS}?state=details`)
     await expect(
-      page.getByRole("heading", { name: "Complete your details", level: 1 })
+      page.getByRole("heading", {
+        name: "Add your name and date of birth",
+        level: 1,
+      })
     ).toBeVisible()
     await expect(page.getByRole("img", { name: /QR code/i })).toHaveCount(0)
-    await expect(page.getByText(/Show this code to the team/)).toHaveCount(0)
+    await expect(page.getByText(/Show this at the counter/)).toHaveCount(0)
     // The reward stays named as context.
     await expect(
       page.getByText("A mystery reward at Old Crown Girton")
@@ -198,17 +202,39 @@ export function describeCustomerRewardCollection() {
 
     await gotoHydratedPage(page, `${HARNESS}?state=email`)
     await expect(
-      page.getByRole("heading", { name: "Verify your email", level: 1 })
+      page.getByRole("heading", { name: "Confirm your email", level: 1 })
     ).toBeVisible()
     await expect(page.getByText("Step 2 of 2")).toBeVisible()
     await expect(page.getByLabel("Email code")).toBeVisible()
     await expect(page.getByRole("img", { name: /QR code/i })).toHaveCount(0)
 
-    // An already-verified email is a step this customer never sees, so there is
-    // no progress readout to mislead them.
+    // Joined by email with nothing else saved: details then the mobile
+    // number, counted from the first step.
+    await gotoHydratedPage(page, `${HARNESS}?state=email-first`)
+    await expect(page.getByText("Step 1 of 2")).toBeVisible()
+    await gotoHydratedPage(page, `${HARNESS}?state=phone`)
+    await expect(
+      page.getByRole("heading", {
+        name: "Confirm your mobile number",
+        level: 1,
+      })
+    ).toBeVisible()
+    await expect(page.getByText("Step 2 of 2")).toBeVisible()
+    // The reward stays on screen while the phone step is pending.
+    await expect(
+      page.getByText("A mystery reward at Old Crown Girton")
+    ).toBeVisible()
+    await expect(page.getByText("Name and date of birth saved")).toBeVisible()
+    await expect(page.getByText("Email confirmed")).toBeVisible()
+
+    // An already-confirmed email is a step this customer never sees, so a
+    // single step has no progress readout (never "Step 1 of 1").
     await gotoHydratedPage(page, `${HARNESS}?state=details-verified-email`)
     await expect(
-      page.getByRole("heading", { name: "Complete your details", level: 1 })
+      page.getByRole("heading", {
+        name: "Add your name and date of birth",
+        level: 1,
+      })
     ).toBeVisible()
     await expect(page.getByText(/Step \d of \d/)).toHaveCount(0)
   })
@@ -219,23 +245,26 @@ export function describeCustomerRewardCollection() {
     await page.setViewportSize({ width: 390, height: 844 })
 
     await gotoHydratedPage(page, `${HARNESS}?waiting=1&state=details`)
-    const prepare = page.getByRole("link", { name: "Get ready to collect" })
+    const prepare = page.getByRole("link", { name: "Get it ready" })
     await expect(prepare).toBeVisible()
     // The waiting reward never shows a code, whatever the customer prepares.
     await expect(page.getByRole("img", { name: /QR code/i })).toHaveCount(0)
 
     await gotoHydratedPage(page, `${HARNESS}?waiting=1&state=ready`)
-    await expect(
-      page.getByRole("link", { name: "Get ready to collect" })
-    ).toHaveCount(0)
+    await expect(page.getByRole("link", { name: "Get it ready" })).toHaveCount(
+      0
+    )
 
     // Preparing opens the same requirements and returns to the reward.
     await gotoHydratedPage(page, `${HARNESS}?waiting=1&state=details&prepare=1`)
     await expect(
-      page.getByRole("heading", { name: "Complete your details", level: 1 })
+      page.getByRole("heading", {
+        name: "Add your name and date of birth",
+        level: 1,
+      })
     ).toBeVisible()
     await expect(
-      page.getByText(/does not change when your reward opens/)
+      page.getByText(/Getting it ready now doesn't change the date\./)
     ).toBeVisible()
     await expect(
       page.getByRole("link", { name: "Back to your reward" })
@@ -258,10 +287,10 @@ export function describeCustomerRewardCollection() {
       image?.dispatchEvent(new Event("error"))
     })
 
-    const retry = page.getByRole("button", { name: "Show a fresh QR" })
+    const retry = page.getByRole("button", { name: "Try again" })
     await expect(retry).toBeVisible()
     await expect(
-      page.getByText("We could not show your reward code")
+      page.getByText("We couldn't show your reward code")
     ).toBeVisible()
     await retry.click()
     await expect(page.getByRole("img", { name: /QR code/i })).toBeVisible()

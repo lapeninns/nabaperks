@@ -11,7 +11,7 @@ import {
 import { clearPendingEmailSignIn } from "@/lib/customer/email-sign-in"
 import { findCustomerByVerifiedPhone } from "@/lib/customer/identity"
 import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
-import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
+import { normalizePhone } from "@/lib/customer/phone"
 import {
   clearAllCustomerSessions,
   clearCustomerSession,
@@ -19,7 +19,12 @@ import {
   getPendingPhoneVerification,
   setPendingPhoneVerification,
 } from "@/lib/customer/session"
-import { primaryOtpChannel } from "@/lib/customer/otp-channel-core"
+import { LOGIN_MESSAGES } from "@/lib/customer/login-copy"
+import {
+  parseOtpChannel,
+  primaryOtpChannel,
+  type OtpChannel,
+} from "@/lib/customer/otp-channel-core"
 import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
 import {
   checkCustomerPhoneVerification,
@@ -69,6 +74,11 @@ export type CustomerLoginOtpState = {
      * picked a method, so the screen stays on it instead of reordering.
      */
     method?: "phone" | "email"
+    /**
+     * The channel that carried the pending phone code, so the code step names
+     * it and offers a text when it went by WhatsApp.
+     */
+    channel?: OtpChannel
     /** The address the customer typed, to refill the field after a change. */
     email?: string
     /** Masked on the server ("j***@example.com") for the email code step. */
@@ -96,11 +106,10 @@ export async function requestCustomerLoginOtpAction(
 ): Promise<CustomerLoginOtpState> {
   const rawContact = value(formData, "contact")
   const requestHeaders = await headers()
-  const country = defaultCountryFromHeaders(requestHeaders)
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
   const clientIp = trustedClientIp(requestHeaders)
   const deviceHash = customerDeviceHashFromHeaders(requestHeaders)
-  const normalized = normalizePhone(rawContact, country)
+  const normalized = normalizePhone(rawContact)
 
   if (!normalized.ok) {
     return {
@@ -121,9 +130,11 @@ export async function requestCustomerLoginOtpAction(
 
   // Same primary channel as the join flow (WhatsApp by default), same
   // automatic fallback; the pending cookie records where the code went.
-  const requestedChannel = primaryOtpChannel(
-    process.env.CUSTOMER_OTP_PRIMARY_CHANNEL
-  )
+  // "Text me instead" names SMS on a resend.
+  const requestedChannel =
+    parseOtpChannel(value(formData, "channel")) ??
+    primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL)
+  const isResend = value(formData, "resend") === "1"
   let sentChannel = requestedChannel
   if (admitted) {
     const verification = await startCustomerPhoneVerification(
@@ -136,9 +147,7 @@ export async function requestCustomerLoginOtpAction(
       await openEmailFallback("wallet", "phone_send_failed")
       return {
         fields: { contact, phoneSendFailed: true },
-        errors: {
-          form: "We couldn't send a code just now. Try again shortly.",
-        },
+        errors: { form: LOGIN_MESSAGES.sendFailed },
       }
     }
     sentChannel = verification.channel
@@ -159,9 +168,7 @@ export async function requestCustomerLoginOtpAction(
 
     return {
       fields: { contact, phoneSendFailed: true },
-      errors: {
-        form: "Verification code could not be sent. Try again shortly.",
-      },
+      errors: { form: LOGIN_MESSAGES.sendFailed },
     }
   }
 
@@ -174,20 +181,23 @@ export async function requestCustomerLoginOtpAction(
     metadata: { method: "phone", surface: "home_login" },
   })
 
+  // The same answer whether or not the number holds a card; the code step
+  // names where the code went, so a first send needs no status line.
   return {
-    fields: loginPhoneCodeFields(pendingCode),
-    message:
-      "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
+    fields: loginPhoneCodeFields({ ...pendingCode, channel: sentChannel }),
+    ...(isResend ? { message: LOGIN_MESSAGES.newCodeSent } : {}),
   }
 }
 
 function loginPhoneCodeFields(pending: {
   readonly phone: string
   readonly issuedAt: number
+  readonly channel?: OtpChannel
 }): NonNullable<CustomerLoginOtpState["fields"]> {
   return {
     contact: pending.phone,
     otpSent: true,
+    ...(pending.channel ? { channel: pending.channel } : {}),
     ...phoneCodeStepTiming(pending.issuedAt, Date.now()),
   }
 }
@@ -219,7 +229,12 @@ export async function verifyCustomerLoginOtpAction(
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
 
   if (!pending || pending.purpose !== "wallet") {
-    return { errors: { contact: "Request a new phone code." } }
+    // Back to the number, kept as the code step showed it, so the guest can
+    // send a new code without typing it again.
+    return {
+      fields: { contact: value(formData, "contact") },
+      errors: { contact: LOGIN_MESSAGES.codeExpired },
+    }
   }
 
   const contact = pending.phone
@@ -229,7 +244,7 @@ export async function verifyCustomerLoginOtpAction(
   if (!/^\d{4,8}$/.test(otp)) {
     return {
       fields: codeStep,
-      errors: { otp: "Enter the verification code." },
+      errors: { otp: LOGIN_MESSAGES.codeMalformed },
     }
   }
 
@@ -242,7 +257,7 @@ export async function verifyCustomerLoginOtpAction(
     if (error instanceof RateLimitError) {
       return {
         fields: codeStep,
-        errors: { form: "Too many code attempts. Request a new code shortly." },
+        errors: { form: LOGIN_MESSAGES.tooManyTries },
       }
     }
 
@@ -259,16 +274,14 @@ export async function verifyCustomerLoginOtpAction(
   if (verification.status === "unavailable") {
     return {
       fields: codeStep,
-      errors: {
-        form: "We couldn't check that code. Try again or request a new one.",
-      },
+      errors: { form: LOGIN_MESSAGES.checkFailed },
     }
   }
 
   if (verification.status === "rejected") {
     return {
       fields: codeStep,
-      errors: { form: "That code was not accepted." },
+      errors: { otp: LOGIN_MESSAGES.codeRejected },
     }
   }
 
@@ -286,11 +299,7 @@ export async function verifyCustomerLoginOtpAction(
       eventName: "customer_login_no_wallet",
       metadata: { method: "phone", surface: "home_login" },
     })
-    return {
-      fields: { contact, noCards: true },
-      message:
-        "No cards found for that number yet. Scan a venue QR to join first.",
-    }
+    return { fields: { contact, noCards: true } }
   }
 
   let access: "authenticated" | "recovery"
@@ -304,9 +313,7 @@ export async function verifyCustomerLoginOtpAction(
   } catch {
     return {
       fields: codeStep,
-      errors: {
-        form: "We couldn't confirm account continuity. Try again shortly.",
-      },
+      errors: { form: LOGIN_MESSAGES.signInFailed },
     }
   }
 

@@ -26,7 +26,7 @@ test("bank copy explains the venue stamp lands before available referral bonuses
   )
   assert.equal(
     copy.ruleSummary,
-    "Venue stamp first. Up to 2 referral bonus stamps can land per venue trading day; the rest stay banked."
+    "Venue stamp first. Up to 2 referral bonus stamps can land each day; the rest stay banked for a later visit."
   )
 })
 
@@ -38,7 +38,7 @@ test("bank copy shows no referral bonuses apply when the daily cap is already us
   assert.equal(copy.stats[2]?.value, "0")
   assert.equal(
     copy.detail,
-    "Your venue stamp can still land today. Referral bonus limit is full, so these stay banked for another venue trading day."
+    "Your venue stamp can still land today. Referral bonus limit is full, so these stay banked for a later visit."
   )
   assert.equal(
     copy.compactDetail,
@@ -46,7 +46,7 @@ test("bank copy shows no referral bonuses apply when the daily cap is already us
   )
   assert.equal(
     copy.ruleSummary,
-    "Venue stamp first. Up to 2 referral bonus stamps can land per venue trading day; the rest stay banked."
+    "Venue stamp first. Up to 2 referral bonus stamps can land each day; the rest stay banked for a later visit."
   )
 })
 
@@ -57,14 +57,33 @@ test("bank copy distinguishes applied bonuses when nothing is waiting", () => {
   assert.equal(copy.badgeLabel, "1 / 2 today")
   assert.equal(
     copy.detail,
-    "You still keep your venue stamp separately. Referral bonuses are capped at 2 per venue trading day."
+    "You still keep your venue stamp separately. Referral bonuses are limited to 2 a day."
   )
   assert.equal(
     copy.compactDetail,
-    "Venue stamps are separate. Referral bonus limit: 2 per venue trading day."
+    "Venue stamps are separate. Referral bonus limit: 2 a day."
   )
   assert.equal(
     copy.ruleSummary,
     "Venue stamps stay separate from the 2-per-day referral bonus limit."
   )
+})
+
+test("bank copy never uses the internal trading-day vocabulary", () => {
+  for (const bank of [
+    { banked: 0, awardedToday: 1 },
+    { banked: 3, awardedToday: 0 },
+    { banked: 3, awardedToday: 2 },
+    { banked: 1, awardedToday: 1 },
+  ]) {
+    const copy = referralBonusBankCopy(bank)
+    for (const line of [
+      copy.headline,
+      copy.detail,
+      copy.compactDetail,
+      copy.ruleSummary,
+    ]) {
+      assert.doesNotMatch(line, /trading day|daily reset|—|!/)
+    }
+  }
 })

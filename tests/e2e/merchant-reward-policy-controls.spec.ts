@@ -47,13 +47,14 @@ test.describe("@merchant-flow reward policy controls", () => {
       await page.setViewportSize({ width, height: 900 })
       await page.goto("/dev/home-harness/profile")
 
+      // Reminders by phone sit inside "Messages from venues" on the profile.
       await expect(
-        page.getByRole("heading", { name: "WhatsApp or text" })
+        page.getByRole("heading", { name: "Reminders by phone" })
       ).toBeVisible()
-      await expect(page.getByText("Phone messages: On")).toBeVisible()
-      await expect(page.getByLabel("Preferred channel")).toHaveValue("whatsapp")
+      await expect(page.getByText("Reminders: On")).toBeVisible()
+      await expect(page.getByLabel("Send them by")).toHaveValue("whatsapp")
       await expect(
-        page.getByText("WhatsApp is currently unavailable")
+        page.getByText("WhatsApp isn't reaching your number just now.")
       ).toBeVisible()
       await expect(page.locator("html")).toHaveJSProperty(
         "scrollWidth",
