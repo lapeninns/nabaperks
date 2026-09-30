@@ -23,7 +23,7 @@ export type CustomerEmailAuditInput = {
 
 type CustomerContactAuditInput = {
   readonly customerId: string
-  readonly action: CustomerEmailAuditAction | "customer_phone_attached"
+  readonly action: CustomerEmailAuditAction
   readonly surface: ContactEventSurface | null
   readonly hmacRepairOnly?: boolean
   readonly reason?: CustomerEmailAuditInput["reason"]
@@ -47,25 +47,6 @@ export async function recordCustomerEmailAudit(
   await recordCustomerContactAudit(supabase, {
     ...input,
     failureEvent: "customer_email_audit_failed",
-  })
-}
-
-/**
- * The same evidence for a verified phone added to an email-only wallet. The
- * row never holds the number, its HMAC, last four digits or the code.
- *
- * Unlike the email writer this reports whether the row was written: the
- * phone is added only after its audit row exists, and a failed write makes
- * the caller take its staged phone off again.
- */
-export async function recordCustomerPhoneAttachedAudit(
-  supabase: ServiceRoleClient,
-  input: { readonly customerId: string; readonly surface: ContactEventSurface }
-): Promise<boolean> {
-  return recordCustomerContactAudit(supabase, {
-    ...input,
-    action: "customer_phone_attached",
-    failureEvent: "customer_phone_audit_failed",
   })
 }
 
