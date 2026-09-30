@@ -2,6 +2,13 @@ import { createHmac, randomUUID } from "node:crypto"
 
 import { expect, test, type APIRequestContext } from "@playwright/test"
 
+// A 401 here is only environmental when a developer points the suite at their
+// own dev server (PLAYWRIGHT_REUSE_EXISTING_SERVER=1) that lacks the harness
+// secrets. The harness server always has them, so in CI a 401 is a regression
+// and must fail rather than skip.
+const REUSING_CALLER_SERVER =
+  process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
+
 const AUTH_HOOK_SECRET = `v1,${"whsec"}_${"dGVzdC1ob29rLXNlY3JldA=="}`
 
 type HookPath = "/api/auth/hooks/send-email" | "/api/auth/hooks/send-sms"
@@ -68,7 +75,7 @@ test.describe("Supabase auth hook routes", () => {
     })
 
     test.skip(
-      response.status() === 401,
+      REUSING_CALLER_SERVER && response.status() === 401,
       "existing dev server is not using the Playwright test hook secret"
     )
     expect(response.status()).toBe(400)
@@ -88,7 +95,7 @@ test.describe("Supabase auth hook routes", () => {
     })
 
     test.skip(
-      response.status() === 401,
+      REUSING_CALLER_SERVER && response.status() === 401,
       "existing dev server is not using the Playwright test hook secret"
     )
     expect(response.status()).toBe(400)
@@ -110,7 +117,7 @@ test.describe("Supabase auth hook routes", () => {
     })
 
     test.skip(
-      response.status() === 401,
+      REUSING_CALLER_SERVER && response.status() === 401,
       "existing dev server is not using the Playwright test hook secret"
     )
     expect(response.status()).toBe(400)
@@ -132,7 +139,7 @@ test.describe("Supabase auth hook routes", () => {
     })
 
     test.skip(
-      response.status() === 401,
+      REUSING_CALLER_SERVER && response.status() === 401,
       "existing dev server is not using the Playwright test hook secret"
     )
     expect(response.status()).toBe(400)
@@ -151,7 +158,7 @@ test.describe("Supabase auth hook routes", () => {
     })
 
     test.skip(
-      response.status() === 401,
+      REUSING_CALLER_SERVER && response.status() === 401,
       "existing dev server is not using the Playwright test hook secret"
     )
     expect(response.status()).toBe(400)

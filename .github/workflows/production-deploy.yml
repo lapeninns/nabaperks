@@ -102,6 +102,7 @@ jobs:
         with:
           ref: ${{ inputs.expected_revision }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Download the exact parent-attempt database stage
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -134,12 +135,10 @@ jobs:
           team_metadata="$(pnpm exec vercel api \
             "/v2/teams/$CANONICAL_VERCEL_TEAM_ID" \
             --scope="$CANONICAL_VERCEL_SCOPE" \
-            --token="$VERCEL_TOKEN" \
             --raw)"
           metadata="$(pnpm exec vercel api \
             "/v9/projects/$CANONICAL_VERCEL_PROJECT_ID" \
             --scope="$CANONICAL_VERCEL_SCOPE" \
-            --token="$VERCEL_TOKEN" \
             --raw)"
           jq -e \
             --arg id "$CANONICAL_VERCEL_TEAM_ID" \
@@ -264,8 +263,7 @@ jobs:
             --yes \
             --project="$CANONICAL_VERCEL_PROJECT_ID" \
             --scope="$CANONICAL_VERCEL_SCOPE" \
-            --meta githubCommitSha="$EXPECTED_REVISION" \
-            --token="$VERCEL_TOKEN")"
+            --meta githubCommitSha="$EXPECTED_REVISION")"
           case "$deployment_url" in
             https://*) ;;
             *) echo "::error::Vercel returned no staged deployment URL."; exit 1 ;;
@@ -306,6 +304,7 @@ jobs:
         env:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           deployment_host="${DEPLOYMENT_URL#https://}"
           case "$deployment_host" in
@@ -314,7 +313,6 @@ jobs:
           deployment_metadata="$(pnpm exec vercel api \
             "/v13/deployments/$deployment_host" \
             --scope="$CANONICAL_VERCEL_SCOPE" \
-            --token="$VERCEL_TOKEN" \
             --raw)"
           candidate_file="$RUNNER_TEMP/release-candidate.json"
           node scripts/release/candidate.mjs <<<"$deployment_metadata" > "$candidate_file"
@@ -335,11 +333,18 @@ jobs:
           node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage candidate-ready \
             --manifest "$RUNNER_TEMP/release-ledger/candidate-ready.json" \
             --evidence "$RUNNER_TEMP/release-ledger/candidate-ready-evidence.json"
+          # Main may have moved while this job waited or staged. Promoting an
+          # older revision over a newer main would be a stale release, so the
+          # live ref is re-read immediately before the irreversible step.
+          live_main="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$live_main" != "$EXPECTED_REVISION" ]]; then
+            echo "::error::main moved to ${live_main} before promotion of ${EXPECTED_REVISION}; refusing a stale release."
+            exit 1
+          fi
           pnpm exec vercel promote "$deployment_id" \
             --yes \
             --timeout=3m \
-            --scope="$CANONICAL_VERCEL_SCOPE" \
-            --token="$VERCEL_TOKEN"
+            --scope="$CANONICAL_VERCEL_SCOPE"
           node scripts/release/deployed-baseline.mjs "$RUNNER_TEMP/release-ledger/promoted-alias.json"
           jq -e --slurpfile candidate "$candidate_file" \
             '.deploymentId == $candidate[0].deploymentId and .revision == $candidate[0].revision' \
@@ -385,13 +390,13 @@ jobs:
           jq -e \
             'type == "array" and length == 1 and .[0].pre_request == "private.enforce_passwordless_data_api_session"' \
             "$readback_file" >/dev/null
-          api_keys_file="$RUNNER_TEMP/supabase-api-keys.json"
-          pnpm exec supabase projects api-keys \
-            --project-ref "$SUPABASE_PROJECT_REF" \
-            --output json > "$api_keys_file"
-          guard_probe_key="$(jq -er \
-            '.[] | select(.name == "service_role" and .type == "legacy") | .api_key' \
-            "$api_keys_file")"
+          # Never persist the full key listing: it holds every project key and
+          # only the selected one is masked. Extract it in-process instead.
+          guard_probe_key="$(set -o pipefail
+            pnpm exec supabase projects api-keys \
+              --project-ref "$SUPABASE_PROJECT_REF" \
+              --output json \
+              | jq -er '.[] | select(.name == "service_role" and .type == "legacy") | .api_key')"
           test -n "$guard_probe_key"
           printf '::add-mask::%s\n' "$guard_probe_key"
           guard_probe_file="$RUNNER_TEMP/data-api-guard-probe.json"

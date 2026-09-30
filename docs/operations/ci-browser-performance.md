@@ -21,8 +21,9 @@ remove the system package installation step.
 unmerged PR; that is no longer the state. Rollback is a reviewed revert
 restoring the prior browser matrix and runner setup, not a pending decision.
 
-E2E now uses eight packs per browser, covering the same original 32 shards in
-ascending groups of four. All four browser projects remain selected. Each shard
+E2E now uses four packs per browser, covering the same original 32 shards in
+ascending groups of eight (`scripts/ci/run-browser-pack.mjs`; the earlier
+eight-pack layout was widened after this section was first written). All four browser projects remain selected. Each shard
 retains one worker, its original denominator and selection, a fresh Playwright
 server, and wrapper cleanup. A pack first lists the selected tests and compares
 the complete identity multiplicities against its executed JSON reports. Failed,

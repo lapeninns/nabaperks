@@ -115,10 +115,23 @@ test("manual release requires the outer confirmation and exact main tip", () => 
     assert.notEqual(run({ ...manual, [key]: value }), 0, key)
 })
 
+const ELIGIBLE_SOURCE =
+  "github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.path == '.github/workflows/ci.yml')"
+
 test("one outer lock spans successful database application through public verification", () => {
-  assert.match(
-    owner,
-    /concurrency:\n  group: production-release\n  cancel-in-progress: false/
+  // Only an eligible source joins the shared lock; an ineligible CI completion
+  // gets a private group so it cannot displace a pending release.
+  assert.ok(
+    owner.includes(
+      `concurrency:\n  group: \${{ (${ELIGIBLE_SOURCE}) && 'production-release' || format('production-release-ineligible-{0}', github.run_id) }}\n  cancel-in-progress: false`
+    ),
+    "release lock must be conditional on the same eligibility as preflight"
+  )
+  assert.ok(
+    owner.includes(
+      `  preflight:\n    name: Production database preflight\n    if: \${{ ${ELIGIBLE_SOURCE} }}\n`
+    ),
+    "ineligible sources must skip rather than fail the release"
   )
   assert.match(
     owner,
@@ -159,4 +172,83 @@ test("downstream smoke authenticates actual deployed candidate instead of outer 
       smoke.indexOf("Verify public liveness")
   )
   assert.match(smoke, /actions: read/)
+})
+
+const sourceStep = owner
+  .match(
+    /      - name: Require an approved automatic or manual source\n        run: \|\n([\s\S]*?)\n      - name:/
+  )?.[1]
+  ?.split("\n")
+  .map((line) => line.replace(/^          /, ""))
+  .join("\n")
+
+function runSource(env) {
+  return spawnSync(
+    "/bin/bash",
+    ["--noprofile", "--norc", "-e", "-o", "pipefail", "-c", sourceStep],
+    { env: { PATH: "/usr/bin:/bin", ...env }, encoding: "utf8", timeout: 5000 }
+  ).status
+}
+
+test("database preflight re-proves the automatic source identity in the shell", () => {
+  assert.ok(sourceStep, "must execute the real database preflight step")
+  const eligible = {
+    GITHUB_EVENT_NAME: "workflow_run",
+    GITHUB_REPOSITORY: "lapeninns/nabaperks",
+    EXPECTED_REVISION: sha,
+    SOURCE_CONCLUSION: "success",
+    SOURCE_EVENT: "push",
+    SOURCE_BRANCH: "main",
+    SOURCE_REPOSITORY: "lapeninns/nabaperks",
+    SOURCE_PATH: ".github/workflows/ci.yml",
+  }
+  assert.equal(runSource(eligible), 0)
+  for (const [name, value] of [
+    ["SOURCE_CONCLUSION", "failure"],
+    ["SOURCE_CONCLUSION", "cancelled"],
+    ["SOURCE_EVENT", "pull_request"],
+    ["SOURCE_BRANCH", "feature"],
+    ["SOURCE_REPOSITORY", "attacker/nabaperks"],
+    ["SOURCE_PATH", ".github/workflows/other.yml"],
+    ["EXPECTED_REVISION", "main"],
+    ["EXPECTED_REVISION", `${sha}; true`],
+  ])
+    assert.notEqual(runSource({ ...eligible, [name]: value }), 0, name)
+  const manual = {
+    GITHUB_EVENT_NAME: "workflow_dispatch",
+    GITHUB_REF: "refs/heads/main",
+    GITHUB_SHA: sha,
+    EXPECTED_REVISION: sha,
+    CONFIRMATION: "PROMOTE_PRODUCTION_DATABASE",
+  }
+  assert.equal(runSource(manual), 0)
+  assert.notEqual(runSource({ ...manual, CONFIRMATION: "yes" }), 0)
+  assert.notEqual(runSource({ ...manual, GITHUB_REF: "refs/heads/x" }), 0)
+  assert.notEqual(
+    runSource({ ...manual, EXPECTED_REVISION: "b".repeat(40) }),
+    0
+  )
+  assert.notEqual(runSource({ ...manual, GITHUB_EVENT_NAME: "schedule" }), 0)
+})
+
+test("promotion re-reads live main immediately before the irreversible step", () => {
+  const promote = deploy.indexOf('pnpm exec vercel promote "$deployment_id"')
+  const recheck = deploy.lastIndexOf(
+    'live_main="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main"',
+    promote
+  )
+  assert.ok(recheck > 0 && recheck < promote)
+  assert.ok(deploy.slice(recheck, promote).includes("refusing a stale release"))
+  assert.doesNotMatch(deploy, /--token=/)
+})
+
+test("database writes re-read live main before the first irreversible step", () => {
+  const push = owner.indexOf("run: supabase db push --linked --include-all")
+  const recheck = owner.lastIndexOf(
+    'live_main="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main"',
+    push
+  )
+  const dryRun = owner.indexOf("supabase db push --linked --dry-run")
+  assert.ok(dryRun > 0 && recheck > dryRun && recheck < push)
+  assert.ok(owner.slice(recheck, push).includes("refusing a stale release"))
 })

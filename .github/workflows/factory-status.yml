@@ -14,8 +14,12 @@ permissions:
   checks: read
   pull-requests: read
 
+# Pull-request-triggered reports are grouped per pull request. All
+# workflow_run and dispatch reports share one group per event type and still
+# supersede each other, which is acceptable because the report is one global
+# delivery summary where only the newest matters.
 concurrency:
-  group: delivery-decision-report
+  group: delivery-decision-report-${{ github.event.pull_request.number || github.event_name }}
   cancel-in-progress: true
 
 jobs:

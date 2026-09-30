@@ -16,8 +16,15 @@ on:
         required: true
         type: string
 
+# Only an eligible source may enter the serialized release group. GitHub
+# replaces an older *pending* run when a newer one queues in the same group, so
+# a CI completion that can never release (failed or cancelled CI, a pull
+# request or fork branch named main) must not be able to displace a legitimate
+# pending release. Ineligible runs get a private group and the preflight below
+# skips them, so they finish as skipped instead of as a failed promotion.
+# Keep this expression identical to the preflight `if:`.
 concurrency:
-  group: production-release
+  group: ${{ (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.path == '.github/workflows/ci.yml')) && 'production-release' || format('production-release-ineligible-{0}', github.run_id) }}
   cancel-in-progress: false
 
 permissions:
@@ -27,6 +34,7 @@ permissions:
 jobs:
   preflight:
     name: Production database preflight
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.path == '.github/workflows/ci.yml') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -34,12 +42,24 @@ jobs:
       CONFIRMATION: ${{ inputs.confirmation }}
       GH_TOKEN: ${{ github.token }}
       SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+      SOURCE_EVENT: ${{ github.event.workflow_run.event || '' }}
+      SOURCE_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
+      SOURCE_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name || '' }}
+      SOURCE_PATH: ${{ github.event.workflow_run.path || '' }}
     steps:
+      # The job-level `if:` only decides eligibility; this step re-proves the
+      # full source identity so a mistaken expression edit cannot release.
       - name: Require an approved automatic or manual source
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
             test "$SOURCE_CONCLUSION" = "success"
+            test "$SOURCE_EVENT" = "push"
+            test "$SOURCE_BRANCH" = "main"
+            test "$SOURCE_REPOSITORY" = "$GITHUB_REPOSITORY"
+            test "$SOURCE_PATH" = ".github/workflows/ci.yml"
+            [[ "$EXPECTED_REVISION" =~ ^[a-f0-9]{40}$ ]]
           else
+            test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
             test "$GITHUB_REF" = "refs/heads/main"
             test "$EXPECTED_REVISION" = "$GITHUB_SHA"
             test "$CONFIRMATION" = "PROMOTE_PRODUCTION_DATABASE"
@@ -103,6 +123,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Verify immutable source and cost-neutral target
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_REVISION"
@@ -296,11 +317,11 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .nvmrc
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
       - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
         with:
           version: 2.106.0
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           artifact-ids: ${{ needs.baseline.outputs.artifact_id }}
           path: ${{ runner.temp }}/release-baseline
@@ -402,7 +423,7 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_revision }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .nvmrc
@@ -421,12 +442,12 @@ jobs:
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_DB_PASSWORD"
           test -n "$SUPABASE_PROJECT_REF"
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           artifact-ids: ${{ needs.baseline.outputs.artifact_id }}
           path: ${{ runner.temp }}/release-baseline
           merge-multiple: true
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           artifact-ids: ${{ needs.qualification.outputs.artifact_id }}
           path: ${{ runner.temp }}/release-qualification
@@ -451,7 +472,16 @@ jobs:
       - name: Recheck qualification and the unchanged live alias before database writes
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          # Main may have moved during the approval wait. Refuse here, before
+          # the first irreversible write, rather than after migrations applied
+          # (production-deploy.yml repeats this check before promotion).
+          live_main="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$live_main" != "$EXPECTED_REVISION" ]]; then
+            echo "::error::main moved to ${live_main} before database writes for ${EXPECTED_REVISION}; refusing a stale release."
+            exit 1
+          fi
           baseline="$(jq -er '.revision' "$RUNNER_TEMP/release-ledger/baseline.json")"
           node scripts/release/stage-ledger.mjs verify --baseline "$baseline" --stage qualified \
             --manifest "$RUNNER_TEMP/release-ledger/qualified.json" \

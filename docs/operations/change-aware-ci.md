@@ -83,6 +83,12 @@ Independent security checks retain their existing provider contexts.
 
 ## Qualification before selection authority
 
+> Superseded (30 September 2026): CI-input changes now run every workload and
+> rely on code-owner review; the targeted/full comparison and staged-input
+> qualification described below are being retired. Five staged copies had
+> fallen behind the live files, so they were no longer "future proposals".
+> See `docs/decisions/ci-qualification-replacement.md`.
+
 On pull requests, policy installation and changes to selection, browser execution, test mapping
 or browser policy run the whole suite plus the bounded targeted comparison.
 `package.json` is included because it owns the full visual test command.

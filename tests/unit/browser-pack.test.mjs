@@ -5,7 +5,7 @@ import {
   comparePackInventory,
   runBrowserPack,
 } from "../../scripts/ci/browser-pack.mjs"
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 
@@ -119,4 +119,41 @@ test("pilot comparison detects missing identities and changed partitions", () =>
       }),
     /partition/
   )
+})
+
+test("a shard that selects no tests fails instead of passing empty", async () => {
+  // Playwright exits 0 for an empty --shard slice (the "No tests found" check
+  // is bypassed once --shard is set), so the pack must refuse an empty report.
+  const root = mkdtempSync(join(tmpdir(), "pack-empty-"))
+  try {
+    for (const listOnly of [true, false])
+      await assert.rejects(
+        () =>
+          runBrowserPack(
+            {
+              project: "chromium",
+              shards: ["1/32"],
+              output: join(root, String(listOnly)),
+              listOnly,
+            },
+            {
+              env: {},
+              run: (_command, _args, { env }) => {
+                writeFileSync(
+                  env.PLAYWRIGHT_JSON_OUTPUT_NAME,
+                  JSON.stringify({ suites: [], errors: [], stats: {} })
+                )
+                return {
+                  status: 0,
+                  cleanupVerified: true,
+                  unexpectedSurvivors: false,
+                }
+              },
+            }
+          ),
+        /contains no tests/
+      )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })

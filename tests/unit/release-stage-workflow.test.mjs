@@ -184,8 +184,8 @@ test("application consumes exact attempt chain and records every stage around re
   )
 })
 
-test("actual database guard rejects stale ledger or changed live alias before a following mutation", () => {
-  for (const mode of ["valid", "stale", "changed-alias"]) {
+test("actual database guard rejects stale ledger, moved main or changed live alias before a following mutation", () => {
+  for (const mode of ["valid", "stale", "changed-alias", "main-moved"]) {
     const root = mkdtempSync(join(tmpdir(), "release-database-guard-"))
     try {
       mkdirSync(join(root, "release-ledger"))
@@ -211,6 +211,14 @@ test("actual database guard rejects stale ledger or changed live alias before a 
         '#!/bin/sh\ncase "$1" in\n *stage-ledger.mjs) test "$MODE" != stale ;;\n *deployed-baseline.mjs) cp "$LIVE_FIXTURE" "$2" ;;\n *) exit 99 ;;\nesac\n',
         { mode: 0o700 }
       )
+      // Live main as returned by the GitHub API for refs/heads/main.
+      writeFileSync(
+        join(root, "gh"),
+        '#!/bin/sh\ntest "$2" = "repos/$GITHUB_REPOSITORY/git/ref/heads/main" || exit 98\nif [ "$MODE" = main-moved ]; then echo "' +
+          "c".repeat(40) +
+          '"; else echo "$EXPECTED_REVISION"; fi\n',
+        { mode: 0o700 }
+      )
       const script =
         step(
           database,
@@ -226,6 +234,8 @@ test("actual database guard rejects stale ledger or changed live alias before a 
             RUNNER_TEMP: root,
             MODE: mode,
             LIVE_FIXTURE: join(root, "live.json"),
+            GITHUB_REPOSITORY: "lapeninns/nabaperks",
+            EXPECTED_REVISION: "a".repeat(40),
           },
           encoding: "utf8",
         }

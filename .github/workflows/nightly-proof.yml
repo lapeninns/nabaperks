@@ -11,9 +11,10 @@ name: Local CI nightly proof
 # `nightlyProof.maxAgeHours` (36)? - and that question has an answer even when
 # nobody has opened a pull request.
 #
-# ADVISORY AT CUTOVER STEP 1, ON PURPOSE. No machine is provisioned yet, so an
-# enforcing monitor would fire a guaranteed false alarm every single day until
-# the agent exists, and a daily false alarm is how a real one gets ignored. It
+# ADVISORY AT CUTOVER STEP 1, ON PURPOSE. When this was written no machine was
+# provisioned (one now exists; see docs/operations/ci-remediation-2026-09-30.md),
+# and an enforcing monitor would fire a guaranteed false alarm every day, which
+# is how a real one gets ignored. It
 # is inert three ways: the job is skipped entirely until an operator sets the
 # repository variable LOCAL_CI_MODE, the job carries `continue-on-error: true`,
 # and scripts/check-nightly-proof.mjs reads `nightlyProof.enforcement` from

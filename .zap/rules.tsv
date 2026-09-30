@@ -1,1 +1,35 @@
-# ZAP baseline rules are intentionally empty; new findings stay visible.
+# ZAP baseline policy for the required `zap-baseline` root.
+# Format: <rule id><TAB><IGNORE|WARN|FAIL><TAB><reason>. Policy and exception
+# governance: docs/operations/zap-baseline-policy.md.
+#
+# FAIL: regressions that block a merge. Every rule below passed on main at
+# 89406771 (CI run 36695945554), so the policy starts green on today's app.
+10003	FAIL	Vulnerable JS library served to browsers
+10010	FAIL	Cookie without HttpOnly
+10020	FAIL	Anti-clickjacking header missing
+10021	FAIL	X-Content-Type-Options header missing
+10023	FAIL	Debug error messages disclosed
+10024	FAIL	Sensitive information in URL
+10037	FAIL	X-Powered-By leaks server technology
+10038	FAIL	Content-Security-Policy header not set
+10040	FAIL	Secure page includes mixed content
+10054	FAIL	Cookie without SameSite attribute
+10063	FAIL	Permissions-Policy header not set
+10098	FAIL	Cross-domain misconfiguration (permissive CORS)
+10099	FAIL	Source code disclosure
+10115	FAIL	Script served from a known malicious domain
+90022	FAIL	Application error disclosure
+90033	FAIL	Loosely scoped cookie
+#
+# WARN exceptions: present on main at 89406771, reported but not blocking.
+# Each needs an owner, a reason and an expiry (YYYY-MM-DD); an expired entry
+# fails tests/contracts/zap-baseline-policy.test.mjs until it is re-reviewed.
+10019	WARN	owner=lapeninns expires=2026-12-31 Content-Type missing on bodiless redirects and 304s
+10031	WARN	owner=lapeninns expires=2026-12-31 Needs review: confirm reflected query values are output-encoded
+10044	WARN	owner=lapeninns expires=2026-12-31 Large App Router redirect payloads; review for leaked data
+10049	WARN	owner=lapeninns expires=2026-12-31 Informational cacheability of dynamic pages
+10055	WARN	owner=lapeninns expires=2026-12-31 CSP wildcard directive; tighten with the CSP hardening work
+10109	WARN	owner=lapeninns expires=2026-12-31 Informational: modern web application detected
+10112	WARN	owner=lapeninns expires=2026-12-31 Informational: session management response identified
+10202	WARN	owner=lapeninns expires=2026-12-31 Needs review: Next.js Server Actions compare Origin with Host; confirm every other form endpoint
+90004	WARN	owner=lapeninns expires=2026-12-31 COEP not deployed; would block third-party embeds

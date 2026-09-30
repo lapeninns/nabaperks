@@ -20,6 +20,13 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    # Playwright runs inside a digest-pinned browser image in CI, so a
+    # lockfile-only bump can never pass (it failed every weekly group run in
+    # September 2026). Bump it deliberately with the image instead:
+    # docs/operations/ci-toolchain-updates.md.
+    ignore:
+      - dependency-name: "@playwright/test"
+      - dependency-name: "playwright"
     groups:
       production-minor-patch:
         dependency-type: production
@@ -29,7 +36,11 @@ updates:
         update-types: ["minor", "patch"]
 
   - package-ecosystem: github-actions
-    directory: "/"
+    # "/" alone scans .github/workflows only; the composite actions pin
+    # third-party actions too.
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: weekly
       day: monday
