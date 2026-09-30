@@ -1,9 +1,14 @@
 import packageJson from "@/package.json"
 import productionSlos from "@/config/production-slos.json"
 
+import { CUSTOMER_LEGAL_VERSION } from "@/lib/legal/content"
 import { checkDatabaseReadiness } from "@/lib/observability/readiness"
 import { checkOperationalReadiness } from "@/lib/observability/operational-signals"
 import { logger } from "@/lib/observability/logger"
+import {
+  checkConfigurationReadiness,
+  checkLegalTermsReadiness,
+} from "@/lib/observability/release-readiness"
 import {
   REQUEST_ID_HEADER,
   resolveRequestId,
@@ -46,19 +51,27 @@ export async function GET(request: Request): Promise<Response> {
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     allowLoopback,
   }
-  const [database, operational] = await Promise.all([
+  const [database, operational, legalTerms] = await Promise.all([
     checkDatabaseReadiness(readinessOptions),
     checkOperationalReadiness({
       ...readinessOptions,
       thresholds: productionSlos.thresholds,
       requireCronHealth: targetEnvironment !== "staging",
     }),
+    // Every join records CUSTOMER_LEGAL_VERSION; without its snapshot trigger
+    // the database stores an older terms snapshot under it (QA BUG-006).
+    checkLegalTermsReadiness({
+      ...readinessOptions,
+      legalVersion: CUSTOMER_LEGAL_VERSION,
+    }),
   ])
   const checks = {
     database: database.database,
     operational: operational.operational,
+    legalTerms: legalTerms.legalTerms,
+    configuration: checkConfigurationReadiness(process.env).configuration,
   }
-  const ready = checks.database === "ok" && checks.operational === "ok"
+  const ready = Object.values(checks).every((status) => status === "ok")
   const durationMs = Math.round(performance.now() - startedAt)
 
   if (!ready) {

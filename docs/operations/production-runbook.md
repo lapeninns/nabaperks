@@ -369,6 +369,89 @@ uses the existing CLI build/deploy/promote path so database admission and
 migration application finish before application promotion. Repository pushes
 alone must never publish an application that requires a missing database RPC.
 
+### Migrations before the app
+
+Apply a release's migrations before its application build, as the
+`Production database promotion` workflow does. A manual or out-of-band
+promotion (a local `vercel promote`, a preview deployment against an older
+database, or a promotion after a partial migration apply) must first pass the
+pre-flight below on the target database. All of these checks are read-only.
+
+- **Terms snapshot pre-flight.** Every join records `CUSTOMER_LEGAL_VERSION`
+  from `lib/legal/content.ts`. Confirm the target database has the snapshot
+  function and trigger for the current `CUSTOMER_LEGAL_VERSION`. Their names
+  take the version with `-` removed and `.` replaced by `_`: the function
+  `public.apply_customer_legal_terms_snapshot_v<version>()` and the trigger
+  `customer_terms_apply_v<version>_snapshot` on
+  `public.customer_loyalty_terms_acceptances`. For `2026-09-28.1` they are
+  `public.apply_customer_legal_terms_snapshot_v20260928_1()` and
+  `customer_terms_apply_v20260928_1_snapshot`:
+
+  ```sql
+  select to_regprocedure(
+           'public.apply_customer_legal_terms_snapshot_v20260928_1()'
+         ) is not null as function_installed,
+         exists (
+           select 1 from pg_trigger
+           where tgrelid = 'public.customer_loyalty_terms_acceptances'::regclass
+             and tgname = 'customer_terms_apply_v20260928_1_snapshot'
+             and tgenabled <> 'D'
+         ) as trigger_installed;
+  ```
+
+  Both must be `true`. Without the trigger, every join that records the
+  version stores the join function's older built-in snapshot under it,
+  silently and permanently. From `20261009150000`, `/api/readiness` runs the
+  same check through `public.customer_legal_terms_snapshot_installed(version)`
+  and answers 503 with `checks.legalTerms` `snapshot_missing`, and the staging
+  release proof refuses a staging database without the trigger. Ship the
+  snapshot migration for a future version in an earlier release than the
+  application change that sends it.
+
+- **Log out on all devices.** Migrations before the app. If the app ever runs
+  ahead of `20261005100600`, "Log out on all devices" signs out only the
+  device that pressed it (its own session is revoked and its cookie cleared).
+  Other devices stay signed in until the migration lands, and the server logs
+  `customer_log_out_all_devices_unavailable`. From `20261009130100` onwards,
+  "Log out on all devices" also withdraws device trust, and from
+  `20261009130000` a new sign-in on a browser retires that browser's earlier
+  sessions. Both migrations are safe to apply before or after the app. The
+  application built from #384 is otherwise compatible with the older schema
+  only for #384's own migration; later migrations in the same range (the
+  terms snapshots above and `20261009110000` below) are not optional for it.
+
+The `20261009*` migrations in this release batch:
+
+- `20261009100000` (reward preset batch), `20261009100100` (rate-limit
+  window as `bigint`), `20261009100200` (referrals need a verified referee
+  phone), `20261009110100` (verified-email index), `20261009120000`
+  (per-source email sign-in admission), `20261009130000` and
+  `20261009130100`: signatures, grants and results the deployed application
+  uses are unchanged, so they are safe before or after the app.
+- `20261009100300` turns on the verified-phone requirement for reward
+  collection in the database. A reward held by a wallet without a verified
+  phone then reads as a setup block ("Complete your profile before
+  redeeming") in the staff console and is not offered for `reward_ready`.
+- `20261009110000` adds `attach_verified_customer_phone`. The new application
+  attaches phones only through it, so apply it before that application is
+  promoted. After the release, count erased wallets that still hold a phone
+  and record the result; expect `0`, and pass any customer ids (never contact
+  values) to support for review:
+
+  ```sql
+  select count(*) as erased_with_phone
+  from public.customers
+  where email like 'erased+%@privacy.invalid'
+    and (phone_hmac is not null or phone_verified_at is not null);
+  ```
+
+- `20261009110100` aborts with `23505` without changing anything when two
+  verified addresses collide under the new normalised key. Support resolves
+  the duplicate first; then apply it again.
+- `20261009150000` adds `customer_legal_terms_snapshot_installed`, which the
+  new `/api/readiness` calls. Apply it before the application; until then
+  readiness answers 503 with `checks.legalTerms` `error`.
+
 Evidence expires after one hour across the whole chain. If approval waiting,
 main advancement, provider drift or a partial rerun invalidates it, start a
 fresh complete outer run after reviewing the actual completed stages. A stale
@@ -711,20 +794,23 @@ welcome note tells them the code screen offers email after 30 seconds.
   and `tests/unit/legal-activation.test.mjs`, as the 2026-09-26 activation did.
   The terms in force until then describe joining by phone only, and joins
   record that version, so the text must not change under it.
-  **Satisfied by version `2026-09-28`** (customer terms `CT-2026-09-28`,
-  effective 28 September 2026, snapshot migration
-  `20261007100000_loyalty_terms_snapshot_v20260928.sql`), once both that
-  migration and the application build that sends `2026-09-28` are live in
-  the environment. Apply the migration before the build: until it is applied,
-  a join recording `2026-09-28` stores the join function's older default
-  snapshot instead of the 2026-09-28 venue terms text. Before promoting the
-  build, confirm the target database has
-  `public.apply_customer_legal_terms_snapshot_v20260928()`. From
-  `20261007100100_require_terms_version_snapshot.sql` onwards, a join that
-  sends a dated version from 2026-09-26 with no
-  `customer_terms_apply_v<date>_snapshot` trigger is refused with error
-  `55000` instead of storing the older snapshot; that guard ships with the
-  2026-09-28 snapshot, so it protects later versions, not this one.
+  **Satisfied by version `2026-09-28.1`** (customer terms `CT-2026-09-28.1`,
+  effective 28 September 2026, snapshot migrations
+  `20261007100000_loyalty_terms_snapshot_v20260928.sql` and
+  `20261007100300_loyalty_terms_snapshot_v20260928_1.sql`), once those
+  migrations and the application build that sends `2026-09-28.1` are live in
+  the environment. Apply the migrations before the build: until the snapshot
+  trigger for the version the build sends is installed, every join recording
+  that version stores the join function's older built-in snapshot instead of
+  the venue terms text. Before promoting the build, run the
+  [terms snapshot pre-flight](#migrations-before-the-app) for the current
+  `CUSTOMER_LEGAL_VERSION`. From
+  `20261007100300_loyalty_terms_snapshot_v20260928_1.sql` onwards, a join
+  that sends a dated version from 2026-09-26, with or without a `.N` suffix,
+  and has no `customer_terms_apply_v<version>_snapshot` trigger is refused
+  with error `55000`. The earlier `20261007100100` guard covered plain dates
+  only, and each guard shipped with the snapshot it should have protected, so
+  neither protects the rollout of its own version.
   A later change to how customers join or sign in needs another version.
 - **Rollback:** while `full` has never run in the environment, set the mode
   back to `off` and redeploy. Collected and verified emails stay in place; no
