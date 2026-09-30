@@ -32,9 +32,20 @@ export function provisionDisposablePlatform() {
       // Never emit stdout: docker pg_dump returns a binary database archive.
       const detail = stripVTControlCharacters(result.stderr?.toString() ?? "")
         .replace(/([a-z][a-z\d+.-]*:\/\/)[^\s/]+@/gi, "$1[redacted]@")
+        .replace(/\b(Bearer)\s+[^\s]+/gi, "$1 [redacted]")
+        .replace(
+          /\b(password|access_token|SUPABASE_ACCESS_TOKEN)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s]+)/gi,
+          "$1=[redacted]"
+        )
         .slice(-2048)
+      const operation =
+        command === "docker"
+          ? (args.find((arg) =>
+              ["psql", "pg_dump", "createdb", "pg_restore"].includes(arg)
+            ) ?? args[0])
+          : args[0]
       throw new Error(
-        `Disposable platform ${command} ${args[0]} failed ` +
+        `Disposable platform ${command} ${operation} failed ` +
           `(exit=${result.status}, signal=${result.signal ?? "none"}, ` +
           `code=${result.error?.code ?? "none"}): ${detail}`
       )

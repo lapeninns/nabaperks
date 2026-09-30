@@ -12,7 +12,12 @@ import test from "node:test"
 import { provisionDisposablePlatform } from "../../scripts/release/disposable-platform.mjs"
 
 function withFailedPlatform(
-  { cleanupFails = false, noisy = false, registry = "ghcr.io" },
+  {
+    cleanupFails = false,
+    noisy = false,
+    registry = "ghcr.io",
+    startSucceeds = false,
+  },
   check
 ) {
   const root = mkdtempSync(join(tmpdir(), "platform-command-test-"))
@@ -32,12 +37,20 @@ fs.writeFileSync(${JSON.stringify(record)}, JSON.stringify({
 if (command === "init") {
   fs.mkdirSync("supabase");
   fs.writeFileSync("supabase/config.toml", 'project_id = "fixture"\\nport = 54321\\n');
-} else if (command === "start" || (command === "stop" && ${cleanupFails})) {
+} else if ((command === "start" && !${startSucceeds}) || (command === "stop" && ${cleanupFails})) {
   process.stdout.write("binary-dump-must-not-be-logged");
   process.stderr.write(${noisy} ? "x".repeat(10000) : "");
-  process.stderr.write(command + " HTTP 502 https://user:private-password@localhost/test");
+  process.stderr.write(command + " HTTP 502 https://user:private-password@localhost/test Authorization: Bearer private-bearer password=private-dsn");
   process.exit(1);
 }
+`,
+    { mode: 0o700 }
+  )
+  writeFileSync(
+    join(root, "docker"),
+    `#!${process.execPath}
+process.stderr.write("psql connection refused");
+process.exit(1);
 `,
     { mode: 0o700 }
   )
@@ -85,7 +98,7 @@ test("disposable startup preserves the reviewed registry without provider creden
     assert.match(error.message, /HTTP 502/)
     assert.doesNotMatch(
       error.message,
-      /private-password|binary-dump-must-not-be-logged/
+      /private-password|private-bearer|private-dsn|binary-dump-must-not-be-logged/
     )
   })
 })
@@ -99,7 +112,7 @@ test("disposable failure diagnostics are bounded and retain startup and cleanup 
     assert.ok(error.message.length < 5000)
     assert.doesNotMatch(
       error.message,
-      /private-password|binary-dump-must-not-be-logged/
+      /private-password|private-bearer|private-dsn|binary-dump-must-not-be-logged/
     )
   })
 })
@@ -108,5 +121,13 @@ test("disposable commands do not inherit an arbitrary host registry", () => {
   withFailedPlatform({ registry: "private.example.test" }, (_error, record) => {
     assert.equal(record.registry, undefined)
     assert.equal(record.hasSecret, false)
+  })
+})
+
+test("disposable Docker failures identify the database operation without logging its arguments", () => {
+  withFailedPlatform({ startSucceeds: true }, (error) => {
+    assert.match(error.message, /docker psql failed/)
+    assert.match(error.message, /connection refused/)
+    assert.doesNotMatch(error.message, /select|supabase_db_/)
   })
 })
