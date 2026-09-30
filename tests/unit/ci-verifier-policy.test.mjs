@@ -11,10 +11,6 @@ import { join, dirname } from "node:path"
 import { tmpdir } from "node:os"
 import { git, readAt, readChanges } from "../../scripts/ci/impact-git.mjs"
 import {
-  fullPlan,
-  validateComparisonPlan,
-} from "../../scripts/ci/impact-comparison-plan.mjs"
-import {
   browserEnvironmentFromWorkflow,
   candidateBrowserEnvironment,
 } from "../../scripts/ci/impact-browser-environment.mjs"
@@ -210,31 +206,4 @@ test("documentation evidence requires the candidate's complete changed file and 
       ),
     /candidate file\/blob inventory/
   )
-})
-
-test("the foundation cannot authorise forged selective plans", () => {
-  const identity = {
-    repository: "lapeninns/nabaperks",
-    event: "pull_request",
-    baseSha: "a".repeat(40),
-    headSha: "b".repeat(40),
-    candidateSha: "c".repeat(40),
-  }
-  const plan = fullPlan(identity, "Full qualification only")
-  assert.equal(validateComparisonPlan(plan, identity).profile, "full")
-  for (const profile of ["documentation", "public-pages"])
-    assert.throws(
-      () =>
-        validateComparisonPlan(
-          {
-            ...plan,
-            profile,
-            changes: [{ path: "README.md" }],
-            changeDigest: "a".repeat(64),
-            policyDigest: "b".repeat(64),
-          },
-          identity
-        ),
-      /all application workloads/
-    )
 })

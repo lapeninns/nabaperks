@@ -87,7 +87,9 @@ Independent security checks retain their existing provider contexts.
 > rely on code-owner review; the targeted/full comparison and staged-input
 > qualification described below are being retired. Five staged copies had
 > fallen behind the live files, so they were no longer "future proposals".
-> See `docs/decisions/ci-qualification-replacement.md`.
+> See `docs/decisions/ci-qualification-replacement.md`. The staged inputs, the
+> workflow copy and the comparison tools named below were removed on
+> 30 September 2026; the section is kept as history only.
 
 On pull requests, policy installation and changes to selection, browser execution, test mapping
 or browser policy run the whole suite plus the bounded targeted comparison.

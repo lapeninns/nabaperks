@@ -51,8 +51,9 @@ Decisions that changed under review:
   greyscale receipt and the 320–1024 breakpoint matrix to `visual.spec.ts`,
   and the numbers / more / billing / paused lanes to the a11y sweep. Those
   two files sit in the CI selection dependency graph, so editing them turns
-  a product PR into a qualification-policy change that needs a
-  `config/ci-qualification-inputs/<path>.source` review. The console specs
+  a product PR into a qualification-policy change (at the time, a
+  `config/ci-qualification-inputs/<path>.source` review; since 30 September
+  2026 such PRs simply run every workload). The console specs
   register their lanes through `tests/e2e/helpers/console-harness.ts`
   instead, and the per-lane axe checks live in the flow specs.
 

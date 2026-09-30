@@ -11,8 +11,7 @@ appears in exactly these places, and they must change in one pull request:
 1. `package.json` and `pnpm-lock.yaml` (`@playwright/test`, `playwright`,
    `playwright-core`);
 2. the three `container.image` lines in `.github/workflows/ci.yml`
-   (`e2e`, `a11y`, `targeted-browser`) and the copy in
-   `config/ci-qualification-workflow.yml` while it exists;
+   (`e2e`, `a11y`, `targeted-browser`);
 3. `BROWSER_IMAGE_VERSION` in `scripts/ci/check-browser-image.mjs`;
 4. the local plane (`ops/local-ci/image/Dockerfile`, `ops/local-ci/profiles/*`,
    `config/local-ci-contract.json`), which is advisory.

@@ -2,6 +2,14 @@
 
 Owner: Lapen Inns product operations.
 
+> **Historical record.** The exact-tree qualification, the targeted/full
+> comparison and every tool this page describes for them
+> (`qualification-source.mjs`, `compare-targeted-evidence.mjs`, the staged
+> `config/ci-qualification-inputs/` and `config/ci-qualification-workflow.yml`)
+> were retired in #418 and removed on 30 September 2026. Do not follow the
+> procedures below. Current behaviour: CI-input changes run every workload and
+> need code-owner review; see `docs/decisions/ci-qualification-replacement.md`.
+
 This foundation stages the reviewed CI toolchain and a proposed workflow contract
 before enabling selective checks. The active workflow and release process retain
 all required workloads. Browser evidence gains configuration metadata. The
@@ -72,16 +80,8 @@ must execute its verifier and dependency lock from that reviewed base. Missing
 foundation code stops the integration before application jobs start. There is no
 legacy verifier fallback, candidate execution sandbox or Docker requirement.
 
-For an operator readback, provide `CI_IMPACT_PLAN`, `CI_COMPARISON_NEEDS`, the
-standard repository/base/head/candidate environment identity and
-`CI_COMPARISON_CANDIDATE_TREE`, then run:
-
-```bash
-node scripts/ci/compare-targeted-evidence.mjs /path/to/downloaded-evidence
-```
-
-The evidence directory contains `full-e2e`, `full-a11y`, `full-visual`, `targeted`
-and `documentation/documentation.json`. The resulting `selection-comparison.json`
-binds its verdict to the candidate. Provider run identity, review approval and
+The operator readback tool for this comparison
+(`scripts/ci/compare-targeted-evidence.mjs`) no longer exists; there is no
+comparison verdict to read back. Provider run identity, review approval and
 the source checkout remain separate evidence; local comparison cannot establish
 merge or production readiness.

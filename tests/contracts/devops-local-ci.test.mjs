@@ -43,7 +43,6 @@ const HOSTED_JOBS = Object.freeze([
   "documentation",
   "targeted-browser",
   "targeted-visual",
-  "selection-comparison",
   "fast",
   "quality",
   "build",
@@ -223,7 +222,6 @@ test("hosted proof is complete and shadow observation cannot hold release open",
       "documentation",
       "targeted-browser",
       "targeted-visual",
-      "selection-comparison",
     ]
   )
   assert.match(releaseGate, /CI_REQUIRED_EVIDENCE: \$\{\{ toJSON\(needs\) \}\}/)

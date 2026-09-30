@@ -1,6 +1,8 @@
 # Replace exact-tree CI qualification with full validation and owner review
 
-Status: accepted in the repository, pending activation (see "Landing sequence").
+Status: active. Staged in #416, activated in #418 and released to production
+(`368e5e1a`, 30 September 2026). The gate accepts the comparison job as absent
+(#423) and the machinery is removed by the follow-up cleanup PR.
 Date: 30 September 2026. Findings: R01, R02, R03, R05 (original report F1, F6).
 
 ## Context
@@ -101,5 +103,9 @@ than a ruleset swap:
    `compare-targeted-evidence.mjs`, `reviewed-documentation.mjs`, the staged
    inputs and the workflow copy, and update the verifier's expected job set.
 
-Rollback of step 2 is a reviewed revert, which re-enables the comparison
-requirement; it does not require re-staging.
+Rollback: step 3 removed the comparison job, its verifier and the staged
+inputs, so reverting step 2 alone would re-require a comparison that no job can
+produce and leave `Release gate` permanently failing. To restore the old
+policy, revert step 3 (#424) first, then step 2 (#418), each as its own
+reviewed PR. #423 can stay: it accepts the comparison job whether present or
+absent.

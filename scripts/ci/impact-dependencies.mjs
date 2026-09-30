@@ -7,7 +7,6 @@ const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const ENTRYPOINTS = [
   "scripts/ci/plan-checks.mjs",
   "scripts/ci/verify-impact-evidence.mjs",
-  "scripts/ci/compare-targeted-evidence.mjs",
   "scripts/ci/run-targeted-checks.mjs",
   "scripts/ci/browser-workload.mjs",
   "scripts/ci/run-browser-pack.mjs",
