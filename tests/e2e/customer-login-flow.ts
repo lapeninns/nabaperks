@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
-import { parsePhoneNumberWithError } from "libphonenumber-js"
 
+import { disposableUkMobile } from "./helpers/customer-join-live-db"
 import { openPhoneLoginStep } from "./helpers/customer-login-phone"
 import { dismissPwaInstall } from "./helpers/harness"
 
@@ -23,16 +23,6 @@ const GENERIC_REQUEST_MESSAGE =
 const DEV_OTP = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const WRONG_OTP = DEV_OTP === "000000" ? "111111" : "000000"
 const SESSION_COOKIE = "nabaperks_customer_session"
-
-function unusedUkMobile() {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    const candidate = `074${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`
-    try {
-      if (parsePhoneNumberWithError(candidate, "GB").isValid()) return candidate
-    } catch {}
-  }
-  return "07911123456"
-}
 
 export function describeCustomerLoginAntiEnumeration() {
   test.describe("@customer-flow wallet login (anti-enumeration)", () => {
@@ -59,7 +49,9 @@ export function describeCustomerLoginAntiEnumeration() {
       ).toBeVisible()
       await openPhoneLoginStep(page)
 
-      await page.locator("#contact").fill(unusedUkMobile())
+      // A fresh number holds no wallet; the helper refuses unless nothing
+      // could text it (QA BUG-052).
+      await page.locator("#contact").fill(disposableUkMobile().national)
       await page.getByRole("button", { name: "Send code" }).click()
 
       await expect(page.getByText(GENERIC_REQUEST_MESSAGE)).toBeVisible()
