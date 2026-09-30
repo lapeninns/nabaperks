@@ -51,6 +51,7 @@ import { classifyJoinRpcFailure } from "@/lib/customer/join-rpc-error"
 import {
   enforceCustomerOtpSendRateLimit,
   enforceCustomerOtpVerifyRateLimit,
+  releaseCustomerOtpVerifyAdmission,
 } from "@/lib/customer/otp-rate-limit"
 import {
   RateLimitError,
@@ -335,6 +336,11 @@ export async function verifyCustomerOtpAction(
   }
 
   const verification = await checkCustomerPhoneVerification(contact, otp)
+  // Only a rejected code counts towards the limit (QA BUG-030): an approved
+  // one gives back the attempt the admission above reserved.
+  if (verification.status === "approved") {
+    await releaseCustomerOtpVerifyAdmission({ phone: contact, requestIdentity })
+  }
 
   if (verification.status === "unavailable") {
     return {
