@@ -253,7 +253,9 @@ function resolveJoinJourney(
 export const config = {
   // Run only on stateful surfaces. Public brochure pages stay outside Proxy so
   // they can be served from the framework/CDN cache without an auth refresh,
-  // request nonce, or device cookie making the response private.
+  // request nonce, or device cookie making the response private. That includes
+  // the prerendered /demo: its build-time HTML carries no per-request nonce,
+  // so the Proxy CSP would block its inline scripts (QA BUG-061).
   matcher: [
     "/api/:path*",
     "/app/:path*",
@@ -261,7 +263,6 @@ export const config = {
     "/auth/:path*",
     "/card/:path*",
     "/claim/:path*",
-    "/demo/:path*",
     "/dev/:path*",
     "/home/:path*",
     "/login",
