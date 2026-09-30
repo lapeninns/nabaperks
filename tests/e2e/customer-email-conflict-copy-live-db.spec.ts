@@ -14,7 +14,7 @@ import {
   type BrowserCustomerSession,
 } from "./helpers/customer-readback-live-db"
 import { pickSeedCustomerSetup } from "./helpers/customer-readback-seed"
-import { dismissPwaInstall } from "./helpers/harness"
+import { dismissPwaInstall, waitForHydratedPage } from "./helpers/harness"
 
 /**
  * QA BUG-005 (38c42a1..2c45031): a phone wallet confirms an email that another
@@ -138,6 +138,8 @@ test.describe("@customer-flow email conflict copy on the profile and reward gate
 })
 
 async function confirmCode(page: Page): Promise<void> {
+  // A fill before hydration posts an empty code under the harness webServer.
+  await waitForHydratedPage(page)
   await page.getByLabel("Email code").fill(DEV_OTP)
   await page.getByRole("button", { name: "Confirm email" }).click()
 }
