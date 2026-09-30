@@ -12,6 +12,8 @@ import {
 } from "@/lib/customer/session"
 import { RateLimitError } from "@/lib/security/rate-limit"
 
+const EXPIRED = "This code has expired. Start again with your mobile number."
+
 export type CustomerAccessRecoveryState = {
   errors?: {
     code?: string
@@ -32,7 +34,7 @@ export async function verifyCustomerAccessRecoveryAction(
   void state
   const code = value(formData, "code")
   if (!/^\d{6}$/.test(code)) {
-    return { errors: { code: "Enter the six-digit code from your email." } }
+    return { errors: { code: "Enter the 6-digit code from your email." } }
   }
 
   let result: Awaited<ReturnType<typeof verifyCustomerAccessRecovery>>
@@ -42,7 +44,7 @@ export async function verifyCustomerAccessRecoveryAction(
     if (error instanceof RateLimitError) {
       return {
         errors: {
-          form: "Too many code attempts. Request a new code shortly.",
+          form: "Too many tries. Send a new code in a few minutes.",
         },
       }
     }
@@ -50,13 +52,13 @@ export async function verifyCustomerAccessRecoveryAction(
   }
 
   if (result.status === "rejected") {
-    return { errors: { code: "That code didn't match. Check your email." } }
+    return {
+      errors: { code: "That code didn't work. Check it and try again." },
+    }
   }
   if (result.status === "unavailable") {
     return {
-      errors: {
-        form: "This recovery attempt has expired. Start again with your phone.",
-      },
+      errors: { form: EXPIRED },
     }
   }
 
@@ -76,20 +78,13 @@ export async function resendCustomerAccessRecoveryAction(
   try {
     const sent = await resendCustomerAccessRecovery()
     return sent
-      ? {
-          message:
-            "A fresh code has been sent to the email already on the account.",
-        }
-      : {
-          errors: {
-            form: "This recovery attempt has expired. Start again with your phone.",
-          },
-        }
+      ? { message: "New code sent. Use the latest one." }
+      : { errors: { form: EXPIRED } }
   } catch (error) {
     if (error instanceof RateLimitError) {
       return {
         errors: {
-          form: "Too many recovery emails. Try again later.",
+          form: "Too many codes requested. Try again in a few minutes.",
         },
       }
     }

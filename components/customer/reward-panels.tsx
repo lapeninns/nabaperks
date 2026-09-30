@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
+import { ArrowDown01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
@@ -11,6 +11,7 @@ import { RewardTicket, StatusBanner } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import {
+  collectionDoneChecklist,
   collectionSetup,
   type CollectionSetup,
 } from "@/lib/customer/experience/collection-stage"
@@ -21,6 +22,7 @@ import {
 import { formatRedeemedProofLine } from "@/lib/customer/experience/redeemed-proof"
 import type {
   CustomerExperience,
+  ProfileGate,
   RewardView,
 } from "@/lib/customer/experience/types"
 import {
@@ -60,20 +62,22 @@ export function RewardWaitingPanel({ exp }: { exp: WaitingExperience }) {
         expiryText={formatCollectionDeadline(exp.reward.expiresAt)}
         collectionWindowText={collectionWindowCopy(exp.reward)}
       />
-      <StatusBanner title="Give it a day to breathe" tone="warning">
-        {waitingRewardTiming(exp.reward.availableFrom)}
-      </StatusBanner>
-      {/* Offered only where something is genuinely outstanding: a customer
-          whose details are already saved and verified sees no extra step. */}
+      {/* The date is the server's and setup never moves it, so the offer to
+          get ready is worded as something the guest can do now, not sooner. */}
       {setup?.outstanding ? (
-        <Button asChild size="lg" className="w-full">
-          <Link href={`/reward/${exp.reward.rewardId}?prepare=1`}>
-            Get ready to collect
-          </Link>
-        </Button>
+        <>
+          <p className="text-center text-sm leading-6 text-muted-foreground">
+            You can get it ready now.
+          </p>
+          <Button asChild size="lg" className="w-full">
+            <Link href={`/reward/${exp.reward.rewardId}?prepare=1`}>
+              Get it ready
+            </Link>
+          </Button>
+        </>
       ) : null}
       <Button asChild size="lg" variant="secondary" className="w-full">
-        <Link href={`/card/${exp.reward.membershipId}`}>Return to card</Link>
+        <Link href={`/card/${exp.reward.membershipId}`}>Back to my card</Link>
       </Button>
     </CustomerReceipt>
   )
@@ -83,8 +87,8 @@ export function RewardWaitingPanel({ exp }: { exp: WaitingExperience }) {
  * The optional early step from a waiting reward: the same collection details
  * the ready reward asks for, completed before the reward opens. It reuses the
  * existing gate form and its server actions, so nothing here can move the
- * reward's timing or make it collectable sooner — the panel says so in as many
- * words, and there is no QR on this screen.
+ * reward's timing or make it collectable sooner, and there is no QR on this
+ * screen. The date is stated once, as the server gave it.
  */
 function RewardPreparePanel({ exp }: { exp: WaitingExperience }) {
   const gate = exp.profileGate
@@ -97,15 +101,15 @@ function RewardPreparePanel({ exp }: { exp: WaitingExperience }) {
     <section className="grid gap-4">
       {gate && setup?.outstanding ? (
         <>
+          <CollectionDoneList gate={gate} />
           <CustomerProfileGateForm rewardId={exp.reward.rewardId} gate={gate} />
           <p className="text-center text-xs leading-5 text-muted-foreground">
-            Finishing this now does not change when your reward opens.{" "}
-            {waitingRewardTiming(exp.reward.availableFrom)}
+            {waitingRewardTiming(exp.reward.availableFrom)} Getting it ready now
+            doesn&apos;t change the date.
           </p>
         </>
       ) : (
         <StatusBanner title="Your details are ready" tone="success">
-          Nothing else to complete.{" "}
           {waitingRewardTiming(exp.reward.availableFrom)}
         </StatusBanner>
       )}
@@ -127,7 +131,7 @@ export function RewardReadyPanel({
   const setup = collectionSetup(exp.profileGate, exp.reward.requiresAgeCheck)
 
   return setup.outstanding ? (
-    <RewardCollectionSetupPanel exp={exp} setup={setup} />
+    <RewardCollectionSetupPanel exp={exp} />
   ) : (
     <RewardCollectionPanel exp={exp} setup={setup} qrSrc={qrSrc} />
   )
@@ -135,29 +139,43 @@ export function RewardReadyPanel({
 
 /**
  * Collection requirements that are still outstanding. The shell headline is the
- * step ("Complete your details" / "Verify your email") and the reward stays
- * named beside it as context, so nothing on the screen tells the customer to
- * present a code they cannot produce yet.
+ * next unmet requirement and the reward stays named beside it as context, so
+ * nothing on the screen tells the customer to present a code they cannot
+ * produce yet. What is already done shows as a ticked list, never as fields.
  */
-function RewardCollectionSetupPanel({
-  exp,
-  setup,
-}: {
-  exp: ReadyExperience
-  setup: CollectionSetup
-}) {
+function RewardCollectionSetupPanel({ exp }: { exp: ReadyExperience }) {
   return (
     <section className="grid gap-4">
+      <CollectionDoneList gate={exp.profileGate} />
       <CustomerProfileGateForm
         rewardId={exp.reward.rewardId}
         gate={exp.profileGate}
       />
-      {setup.stage === "details" ? (
-        <p className="text-center text-xs leading-5 text-muted-foreground">
-          Complete these details before showing your reward code.
-        </p>
-      ) : null}
     </section>
+  )
+}
+
+/** The compact "done" checklist: each met requirement with a tick. */
+function CollectionDoneList({ gate }: { gate: ProfileGate }) {
+  const done = collectionDoneChecklist(gate)
+  if (done.length === 0) return null
+
+  return (
+    <ul
+      className="grid gap-1 rounded-lg border-2 border-dashed border-border px-3 py-2"
+      aria-label="Already done"
+      data-collection-done
+    >
+      {done.map((item) => (
+        <li
+          key={item}
+          className="flex items-center gap-2 text-sm leading-6 text-ink-soft"
+        >
+          <Icon icon={Tick02Icon} size={16} className="text-leaf" />
+          {item}
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -260,20 +278,24 @@ export function RedeemedProofPanel({
   const receipt = (
     <CustomerReceipt
       venueName={exp.merchantName}
-      eyebrow="Redeemed"
+      // "Collect" throughout, never the internal "redeem" (R5).
+      eyebrow="Reward collected"
       footerLeft={cardNumber(exp.reward.membershipId)}
-      footerRight="REDEEMED"
+      footerRight="COLLECTED"
     >
       <RewardTicket
         headingLevel="h2"
         state="redeemed"
+        eyebrow="Collected"
         name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}
         sealSlammed={exp.justRedeemed}
       />
-      <StatusBanner title="Reward collected." tone="success">
-        The team has scanned your code. A new stamp cycle has started.
-      </StatusBanner>
+      {/* The shell headline says "Collected. Enjoy."; this adds only what
+          changed on the card and, below, when and where. */}
+      <p className="text-center text-sm leading-6 text-muted-foreground">
+        Your card has started again from the first stamp.
+      </p>
       {proofLine ? (
         <p className="mono-id text-center tracking-[0.08em] text-muted-foreground">
           {proofLine}

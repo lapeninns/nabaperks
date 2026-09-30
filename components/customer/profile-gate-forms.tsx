@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react"
 
 import {
+  clearProfileEmailAction,
   resendProfileEmailAction,
   saveProfileForRedeemAction,
   verifyProfileEmailAction,
@@ -38,15 +39,30 @@ export function CustomerProfileGateForm({
     verifyProfileEmailAction,
     initialState
   )
+  // The email stage starts with the address itself when none is on file; the
+  // code (or the offer to send one) follows once an address is saved.
+  const emailAddressMissing = stage === "email" && !gate.email
   const freshVerifyState = useFreshVerifyState(
     verifyState,
-    stage !== "email" ? null : codePending ? "code" : "send"
+    stage !== "email" || emailAddressMissing
+      ? null
+      : codePending
+        ? "code"
+        : "send"
   )
 
   if (stage === "phone") {
-    return <CustomerProfileAddPhone action={rewardPhoneAction} />
+    // The shell keeps the reward named above this step, and a confirmed
+    // number revalidates this route, so the guest stays on the reward. Any
+    // follow-up (a fresh sign-in, a stamps link) returns here, not to Profile.
+    return (
+      <CustomerProfileAddPhone
+        action={rewardPhoneAction}
+        returnTo={`/reward/${rewardId}`}
+      />
+    )
   }
-  if (stage === "email") {
+  if (stage === "email" && !emailAddressMissing) {
     return (
       <ProfileEmailStep
         rewardId={rewardId}
@@ -61,6 +77,7 @@ export function CustomerProfileGateForm({
     <ProfileDetailsStep
       rewardId={rewardId}
       gate={gate}
+      emailOnly={emailAddressMissing}
       // Only a refused (conflict) address is answered here: it is the one
       // refusal that removes the address from the gate (QA BUG-005).
       emailNotConfirmed={gate.email ? undefined : freshVerifyState.errors?.form}
@@ -97,13 +114,22 @@ function useFreshVerifyState(
   return state === staleState ? initialState : state
 }
 
+/**
+ * One requirement per screen. The details step asks for name and date of
+ * birth only (`part=details`); the email is its own step after it. With
+ * `emailOnly`, name and date of birth are already saved: they ride along as
+ * hidden fields for the same server action, and the form asks only for the
+ * address.
+ */
 function ProfileDetailsStep({
   rewardId,
   gate,
+  emailOnly,
   emailNotConfirmed,
 }: {
   rewardId: string
   gate: ProfileGate
+  emailOnly: boolean
   /** Why the last emailed code did not confirm the address, if it did not. */
   emailNotConfirmed?: string
 }) {
@@ -111,20 +137,20 @@ function ProfileDetailsStep({
     saveProfileForRedeemAction,
     initialState
   )
+  const askEmail = emailOnly && !gate.emailLocked
 
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="rewardId" value={rewardId} />
+      {emailOnly ? null : <input type="hidden" name="part" value="details" />}
 
-      {/* The screen headline already names this step, so the lead says only
-          what the details are for. Checking photo ID is a separate thing the
-          venue does in person and is never mentioned here. */}
+      {/* The screen headline names this step, so the lead says only what the
+          fields on this screen are for. Photo ID and later steps are not
+          mentioned here: they are shown when they are next. */}
       <p className="text-sm leading-6 text-muted-foreground">
-        Venues need your name and date of birth before a reward can be handed
-        over.
-        {gate.emailLocked
-          ? null
-          : " A verified email is also required. We'll send a one-time code to confirm your address."}
+        {emailOnly
+          ? "Add your email address. We'll send you a code to confirm it."
+          : "Venues need your name and date of birth before handing over a reward."}
       </p>
 
       {emailNotConfirmed ? (
@@ -133,34 +159,41 @@ function ProfileDetailsStep({
         </StatusBanner>
       ) : null}
 
-      <Field
-        label="Full name"
-        name="fullName"
-        autoComplete="name"
-        defaultValue={state.fields?.fullName ?? gate.fullName ?? ""}
-        error={state.errors?.fullName}
-      />
-      <Field
-        label="Date of birth"
-        name="dateOfBirth"
-        type="date"
-        autoComplete="bday"
-        max={latestAdultBirthDate()}
-        defaultValue={state.fields?.dateOfBirth ?? gate.dateOfBirth ?? ""}
-        error={state.errors?.dateOfBirth}
-      />
-      {gate.emailLocked && gate.email ? (
+      {emailOnly ? (
         <>
-          <StatusBanner title="Verified email" tone="neutral">
-            {gate.email} is verified and locked for account security.
-          </StatusBanner>
-          {state.errors?.email ? (
-            <StatusBanner title="Code not sent" tone="warning">
-              {state.errors.email}
-            </StatusBanner>
-          ) : null}
+          <input type="hidden" name="fullName" value={gate.fullName ?? ""} />
+          <input
+            type="hidden"
+            name="dateOfBirth"
+            value={gate.dateOfBirth ?? ""}
+          />
         </>
       ) : (
+        <>
+          <Field
+            label="Full name"
+            name="fullName"
+            autoComplete="name"
+            defaultValue={state.fields?.fullName ?? gate.fullName ?? ""}
+            error={state.errors?.fullName}
+          />
+          <Field
+            label="Date of birth"
+            name="dateOfBirth"
+            type="date"
+            autoComplete="bday"
+            max={latestAdultBirthDate()}
+            defaultValue={state.fields?.dateOfBirth ?? gate.dateOfBirth ?? ""}
+            error={state.errors?.dateOfBirth}
+          />
+        </>
+      )}
+      {emailOnly && (state.errors?.fullName || state.errors?.dateOfBirth) ? (
+        <StatusBanner tone="warning" title="Details not saved">
+          {state.errors.fullName ?? state.errors.dateOfBirth}
+        </StatusBanner>
+      ) : null}
+      {askEmail ? (
         <Field
           label="Email address"
           name="email"
@@ -168,11 +201,15 @@ function ProfileDetailsStep({
           inputMode="email"
           autoComplete="email"
           required
-          hint="Verify your email before collecting a reward."
+          hint="We'll send you a code to confirm it."
           defaultValue={state.fields?.email ?? gate.email ?? ""}
           error={state.errors?.email}
         />
-      )}
+      ) : state.errors?.email ? (
+        <StatusBanner title="Code not sent" tone="warning">
+          {state.errors.email}
+        </StatusBanner>
+      ) : null}
 
       {state.errors?.form ? (
         <StatusBanner tone="warning" title="Details not saved">
@@ -224,8 +261,7 @@ function ProfileEmailStep({
     return (
       <div className="grid gap-4">
         <p className="text-sm leading-6 text-muted-foreground">
-          {email ?? "Your email"} is not confirmed yet. We&apos;ll email you a
-          code to confirm it. Your details are already saved.
+          We&apos;ll send a code to {email ?? "your email"} to confirm it.
         </p>
         {state.errors?.otp ? (
           <p className="text-sm text-destructive">{state.errors.otp}</p>
@@ -254,8 +290,7 @@ function ProfileEmailStep({
   return (
     <div className="grid gap-4">
       <p className="text-sm leading-6 text-muted-foreground">
-        Enter the code we sent{email ? ` to ${email}` : ""}. This confirms the
-        address only — your details are already saved.
+        Enter the code we sent{email ? ` to ${email}` : ""}.
       </p>
 
       <form action={action} className="grid gap-4">
@@ -303,7 +338,7 @@ function ProfileEmailStep({
 
       {/* size="sm" keeps these on the tap contract at the queuing moment —
           declared 36px on fine pointers, 44px floor on touch (CUS-P2-10). */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <form action={resendAction}>
           <input type="hidden" name="rewardId" value={rewardId} />
           <Button
@@ -312,7 +347,15 @@ function ProfileEmailStep({
             size="sm"
             disabled={resendPending}
           >
-            {resendPending ? "Sending…" : "Email me a code"}
+            {resendPending ? "Sending…" : "Send a new code"}
+          </Button>
+        </form>
+        {/* Releases the unconfirmed address only; a confirmed email is never
+            cleared from here (the server action refuses it). */}
+        <form action={clearProfileEmailAction}>
+          <input type="hidden" name="rewardId" value={rewardId} />
+          <Button type="submit" variant="link" size="sm">
+            Change email
           </Button>
         </form>
       </div>

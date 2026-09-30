@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  collectionDoneChecklist,
   collectionProgressVisible,
   collectionSetup,
 } from "@/lib/customer/experience/collection-stage"
@@ -121,10 +122,11 @@ test("a waiting reward renders its authoritative London instant through the real
   })
 
   assert.equal(experience.kind, "reward_waiting")
+  // Capitalised as formatted ("Tue 27 Oct"), never lower-cased mid-sentence.
   assert.deepEqual(getCustomerExperienceViewModel(experience), {
-    eyebrow: "Reward",
+    eyebrow: "Your reward",
     headline: "Mystery round",
-    supportLine: "Unlocked — ready tue 27 oct at 05:30.",
+    supportLine: "Ready from Tue 27 Oct, 05:30.",
   })
 })
 
@@ -234,8 +236,11 @@ test("each collection stage leads with the one step that customer must take", ()
     )
 
   // A customer who cannot produce a code is never told to present one.
-  assert.equal(headlineFor(MISSING_DETAILS).headline, "Complete your details")
-  assert.equal(headlineFor(UNVERIFIED_EMAIL).headline, "Verify your email")
+  assert.equal(
+    headlineFor(MISSING_DETAILS).headline,
+    "Add your name and date of birth"
+  )
+  assert.equal(headlineFor(UNVERIFIED_EMAIL).headline, "Confirm your email")
   for (const gate of [MISSING_DETAILS, UNVERIFIED_EMAIL]) {
     const vm = headlineFor(gate)
     assert.equal(vm.supportLine, "Mystery round at The Test Arms")
@@ -263,8 +268,8 @@ test("collection progress counts only the steps this customer still has", () => 
   assert.deepEqual([awaitingCode.step, awaitingCode.total], [2, 2])
   assert.equal(collectionProgressVisible(awaitingCode), true)
 
-  // An already-verified email is a step this customer is never asked for, so a
-  // one-step setup shows no progress readout at all.
+  // An already-confirmed email is a step this customer is never asked for, so
+  // a one-step setup shows no progress readout at all (never "Step 1 of 1").
   const lockedEmail = collectionSetup(
     profileGate({ complete: false, fullName: null, dateOfBirth: null })
   )
@@ -297,7 +302,7 @@ test("missing profile details precede an unverified email", () => {
       step: 1,
       total: 2,
     })
-    // Once these fields are saved the same unverified email is the final step.
+    // Once these fields are saved the same unconfirmed email is the final step.
     assert.equal(collectionSetup(UNVERIFIED_EMAIL).stage, "email")
     const verifiedEmail = {
       ...gate,
@@ -330,7 +335,7 @@ test("a waiting reward offers early preparation without becoming collectable", (
   // no collection eligibility comes with it.
   assert.equal(
     getCustomerExperienceViewModel(experience).headline,
-    "Complete your details"
+    "Add your name and date of birth"
   )
 
   // Without the flag the same facts stay the ordinary waiting screen.
@@ -341,4 +346,174 @@ test("a waiting reward offers early preparation without becoming collectable", (
     }).preparing,
     false
   )
+})
+
+test("collection setup counts the mobile number from the first step and never shrinks", () => {
+  // Joined by phone: details, then email. The phone is never a step.
+  const phoneFirst = { ...MISSING_DETAILS, needsPhoneVerification: false }
+  assert.deepEqual(collectionSetup(phoneFirst), {
+    stage: "details",
+    outstanding: true,
+    step: 1,
+    total: 2,
+  })
+  assert.deepEqual(
+    collectionSetup({
+      ...phoneFirst,
+      fullName: "A Customer",
+      dateOfBirth: "1990-01-01",
+      email: "customer@example.com",
+      needsEmailVerification: true,
+    }),
+    { stage: "email", outstanding: true, step: 2, total: 2 }
+  )
+
+  // Joined by email: details, then the mobile number (2 steps throughout).
+  const emailFirst = {
+    ...MISSING_DETAILS,
+    email: "customer@example.com",
+    emailLocked: true,
+    needsPhoneVerification: true,
+  }
+  assert.deepEqual(collectionSetup(emailFirst), {
+    stage: "details",
+    outstanding: true,
+    step: 1,
+    total: 2,
+  })
+  const emailFirstPhone = collectionSetup({
+    ...emailFirst,
+    fullName: "A Customer",
+    dateOfBirth: "1990-01-01",
+  })
+  assert.deepEqual(emailFirstPhone, {
+    stage: "phone",
+    outstanding: true,
+    step: 2,
+    total: 2,
+  })
+  assert.equal(collectionProgressVisible(emailFirstPhone), true)
+
+  // Nothing confirmed yet: details, email, mobile number, counted 1-2-3 of 3
+  // from the start.
+  const nothing = { ...MISSING_DETAILS, needsPhoneVerification: true }
+  const steps = [
+    collectionSetup(nothing),
+    collectionSetup({
+      ...nothing,
+      fullName: "A Customer",
+      dateOfBirth: "1990-01-01",
+    }),
+    collectionSetup({
+      ...nothing,
+      fullName: "A Customer",
+      dateOfBirth: "1990-01-01",
+      email: "customer@example.com",
+      needsEmailVerification: true,
+    }),
+  ]
+  assert.deepEqual(
+    steps.map((setup) => [setup.stage, setup.step, setup.total]),
+    [
+      ["details", 1, 3],
+      // An address is still missing: the email step begins with it.
+      ["email", 2, 3],
+      ["email", 2, 3],
+    ]
+  )
+})
+
+test("a setup of one step shows no progress, so never Step 1 of 1", () => {
+  const onlyPhone = collectionSetup(
+    profileGate({ complete: false, needsPhoneVerification: true })
+  )
+  // Details were saved earlier and count as step one, already done.
+  assert.deepEqual(
+    [onlyPhone.stage, onlyPhone.step, onlyPhone.total],
+    ["phone", 2, 2]
+  )
+
+  const onlyDetails = collectionSetup(
+    profileGate({
+      complete: false,
+      fullName: null,
+      needsPhoneVerification: false,
+    })
+  )
+  assert.equal(onlyDetails.total, 1)
+  assert.equal(collectionProgressVisible(onlyDetails), false)
+})
+
+test("completed requirements are listed as done, never asked again", () => {
+  assert.deepEqual(
+    collectionDoneChecklist(
+      profileGate({ complete: false, needsPhoneVerification: true })
+    ),
+    ["Name and date of birth saved", "Email confirmed"]
+  )
+  assert.deepEqual(
+    collectionDoneChecklist({
+      ...MISSING_DETAILS,
+      needsPhoneVerification: false,
+    }),
+    ["Mobile number confirmed"]
+  )
+  assert.deepEqual(collectionDoneChecklist(profileGate()), [])
+})
+
+test("reward view models speak in guest words", () => {
+  const collected = getCustomerExperienceViewModel(
+    deriveCustomerExperience({
+      entry: "reward",
+      context: rewardContext({
+        status: "redeemed",
+        availableForReview: true,
+        redeemedAt: "2026-07-01T12:00:00.000Z",
+      }),
+    })
+  )
+  assert.equal(collected.headline, "Collected. Enjoy.")
+  assert.equal(collected.primaryAction?.label, "Back to my card")
+
+  const expired = getCustomerExperienceViewModel({
+    kind: "unavailable",
+    reason: "This reward has expired.",
+    subject: "reward",
+  })
+  assert.equal(expired.headline, "This reward isn't available")
+  assert.equal(expired.supportLine, "This reward has expired.")
+  assert.notEqual(expired.headline, "Card unavailable")
+  assert.equal(expired.primaryAction?.href, "/home")
+
+  const signedOut = getCustomerExperienceViewModel({
+    kind: "unavailable",
+    reason: "Sign in with your number to open this card.",
+    recovery: { loginHref: "/home/login?next=%2Freward%2Fr1" },
+    subject: "reward",
+  })
+  assert.equal(signedOut.headline, "Sign in to see this reward")
+  assert.equal(signedOut.primaryAction?.href, "/home/login?next=%2Freward%2Fr1")
+
+  const phoneStep = getCustomerExperienceViewModel(
+    deriveCustomerExperience({
+      entry: "reward",
+      context: rewardContext({
+        availableForReview: true,
+        profileGate: profileGate({
+          complete: false,
+          needsPhoneVerification: true,
+        }),
+      }),
+    })
+  )
+  assert.equal(phoneStep.headline, "Confirm your mobile number")
+  // The reward stays named while the phone step is pending.
+  assert.equal(phoneStep.supportLine, "Mystery round at The Test Arms")
+
+  for (const vm of [collected, expired, signedOut, phoneStep]) {
+    assert.doesNotMatch(
+      `${vm.eyebrow} ${vm.headline} ${vm.supportLine ?? ""}`,
+      /wallet|verified|locked|trading day|—|!/i
+    )
+  }
 })

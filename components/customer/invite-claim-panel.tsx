@@ -58,7 +58,7 @@ function InviteAvailable({
       </h1>
       <p className="mt-3 text-ink-soft">
         {venue} has invited you to their loyalty card. Collect two welcome
-        stamps — there&apos;s no app to download.
+        stamps.
         {nextStep ? ` ${nextStep}` : null}
       </p>
       <form action={startAction} className="mt-5">

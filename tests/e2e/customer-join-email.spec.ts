@@ -21,28 +21,32 @@ test.describe("@customer-flow @a11y join by email screens", () => {
   }) => {
     await gotoHydratedPage(page, "/dev/welcome-offer?surface=email&offer=none")
     const shell = page.locator('[data-screen-label="Customer join"]')
-    await expect(shell.getByText("Verify · Email")).toBeVisible()
+    // The step is named in the header pill and on the step label (J4).
+    await expect(shell.locator("header").getByText("Your email")).toBeVisible()
     await expect(
-      page.getByRole("heading", { name: "Get your code by email instead" })
+      shell.locator(":scope > div", { hasText: /^Your email$/ })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Get your code by email" })
     ).toBeVisible()
     const email = page.getByLabel("Email address")
     await expect(email).toHaveAttribute("type", "email")
     await expect(email).toHaveAttribute("autocomplete", "email")
     await expect(
       page.getByText(
-        "Works over the venue's Wi-Fi, even with no mobile signal."
+        "Useful when there's no mobile signal. Works on the venue's Wi-Fi."
       )
     ).toBeVisible()
     await expect(
-      page.getByRole("button", { name: "Send my code" })
+      page.getByRole("button", { name: "Send code by email" })
     ).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "Use my phone number instead" })
+      page.getByRole("link", { name: "Use my mobile number" })
     ).toHaveAttribute("href", /step=phone/)
     await expectNoAxeViolations(page, "join email step")
   })
 
-  test("an offer in progress on the email step says it needs a phone number", async ({
+  test("an offer in progress on the email step keeps to the email, with no phone policy on the fallback", async ({
     page,
   }) => {
     await gotoHydratedPage(
@@ -50,14 +54,15 @@ test.describe("@customer-flow @a11y join by email screens", () => {
       "/dev/welcome-offer?surface=email&offer=attached"
     )
     await expect(
-      page.getByText("This offer needs a phone number")
-    ).toBeVisible()
+      page.getByText("This offer needs a mobile number")
+    ).toHaveCount(0)
+    await expect(page.getByText(/confirmed mobile number/)).toHaveCount(0)
     await expect(
-      page.getByRole("heading", { name: "Save your card with your email" })
+      page.getByRole("heading", { name: "Get your code by email" })
     ).toBeVisible()
   })
 
-  test("the email code step shows the masked address, resend and both ways out", async ({
+  test("the email code step shows the masked address, then a new code, another email and the phone, in that order", async ({
     page,
   }) => {
     await gotoHydratedPage(
@@ -67,13 +72,15 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     await expect(page.getByText("j***@example.com")).toBeVisible()
     await expect(page.getByLabel("Your code")).toBeVisible()
     await expect(
-      page.getByRole("button", { name: "Resend code" })
+      page.getByRole("button", { name: "Send a new code" })
     ).toBeEnabled()
+    await expect(page.getByText("Sent to j***@example.com.")).toBeVisible()
+    await expect(page.getByRole("button", { name: "Continue" })).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "Use a different email" })
+      page.getByRole("link", { name: "Change email" })
     ).toHaveAttribute("href", /step=email/)
     await expect(
-      page.getByRole("link", { name: "Use my phone instead" })
+      page.getByRole("link", { name: "Use my mobile number" })
     ).toHaveAttribute("href", /step=phone/)
     await expectNoAxeViolations(page, "join email code step")
   })
@@ -85,62 +92,69 @@ test.describe("@customer-flow @a11y join by email screens", () => {
       page,
       "/dev/welcome-offer?surface=email-code-delayed&offer=none"
     )
-    await expect(page.getByText("Not sent yet to")).toBeVisible()
-    await expect(page.getByText("Sent to", { exact: true })).toHaveCount(0)
+    await expect(
+      page.getByText("We couldn't email j***@example.com yet.", {
+        exact: false,
+      })
+    ).toBeVisible()
+    await expect(page.getByText("Sent to j***@example.com.")).toHaveCount(0)
     await expect(
       page.getByText(
-        "Email codes are delayed. Try again shortly or use your phone."
+        "Email is slow right now. Try again shortly, or go back to the text code."
       )
     ).toBeVisible()
     await expect(
-      page.getByText("It's in the email we just sent you.")
-    ).toHaveCount(0)
-    await expect(
-      page.getByRole("button", { name: "Resend code" })
+      page.getByRole("button", { name: "Send a new code" })
     ).toBeEnabled()
     await expect(
-      page.getByRole("link", { name: "Use my phone instead" })
+      page.getByRole("link", { name: "Use my mobile number" })
     ).toHaveAttribute("href", /step=phone/)
     await expectNoAxeViolations(page, "join email code step, send delayed")
   })
 
-  test("the choice screen offers both answers equally, and only mode full can start a wallet", async ({
+  test("a confirmed email is never a choice: one action per case, and no choice copy", async ({
     page,
   }) => {
+    // Mode existing (J7): no card uses the email; one way back to the phone.
     await gotoHydratedPage(
       page,
-      "/dev/welcome-offer?surface=email-choice&offer=none"
+      "/dev/welcome-offer?surface=email-no-card-existing&offer=none"
     )
     await expect(
-      page.getByRole("heading", {
-        name: "Continue with your email",
-      })
+      page.getByRole("heading", { name: "No card uses this email" })
     ).toBeVisible()
-    const create = page.getByRole("button", {
-      name: "Continue with email",
-    })
-    const phone = page.getByRole("button", {
-      name: "Open my existing wallet with my phone",
-    })
-    await expect(create).toBeVisible()
-    await expect(phone).toBeVisible()
-    await expect(create).toBeEnabled()
-    await expect(phone).toBeEnabled()
-    await expectNoAxeViolations(page, "join email choice")
+    await expect(
+      page.getByText("Join with your mobile number instead.")
+    ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Use my mobile number" })
+    ).toHaveCount(1)
+    await expect(page.getByRole("button", { name: /Continue/ })).toHaveCount(0)
+    await expect(page.getByText(/wallet/i)).toHaveCount(0)
+    await expectNoAxeViolations(page, "join no card for this email")
 
+    // A handoff left by the previous build (mode full): one Continue.
     await gotoHydratedPage(
       page,
-      "/dev/welcome-offer?surface=email-choice-existing&offer=none"
+      "/dev/welcome-offer?surface=email-confirmed&offer=none"
     )
     await expect(
-      page.getByRole("heading", { name: "No wallet uses this email yet" })
+      page.getByRole("heading", { name: "Email confirmed" })
     ).toBeVisible()
     await expect(
-      page.getByRole("button", { name: /Continue with email/ })
+      page.getByRole("button", { name: "Continue", exact: true })
+    ).toHaveCount(1)
+    // The mobile number appears only beside an error, never as a second choice.
+    await expect(
+      page.getByRole("button", { name: "Use my mobile number" })
     ).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: "Use my phone instead" })
-    ).toBeVisible()
+      page.getByRole("button", { name: /existing wallet|Use my phone/ })
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("link", { name: "Use a different email" })
+    ).toHaveCount(0)
+    await expectNoAxeViolations(page, "join email confirmed")
   })
 
   test("phone leads in every mode, from the welcome CTA to the contact step, with no hydration errors", async ({
@@ -154,17 +168,15 @@ test.describe("@customer-flow @a11y join by email screens", () => {
         `/dev/welcome-offer?surface=${surface}&offer=none`
       )
       await expect(
-        page.getByRole("link", { name: "Claim my first stamp" })
+        page.getByRole("link", { name: "Get my first stamp" })
       ).toHaveAttribute("href", /step=phone/)
-      await expect(page.getByText(/your email/i)).toHaveCount(0)
-      // Only while email is on, the note tells an email-joined customer
-      // where email is, so they do not verify a phone and start a new wallet.
+      // The welcome never mentions email, in any mode (J1).
+      await expect(page.getByText(/email/i)).toHaveCount(0)
       await expect(
         page.getByText(
-          "Joined by email? The code screen offers email after 30 seconds.",
-          { exact: false }
+          "Been here before? Use the same mobile number and your card opens."
         )
-      ).toHaveCount(surface === "welcome-email" ? 1 : 0)
+      ).toBeVisible()
     }
 
     for (const surface of ["contact", "contact-existing", "phone"]) {
@@ -172,8 +184,14 @@ test.describe("@customer-flow @a11y join by email screens", () => {
         page,
         `/dev/welcome-offer?surface=${surface}&offer=none`
       )
-      await expect(page.getByLabel("UK phone number")).toBeVisible()
-      await expect(page.getByText("Verify · Phone")).toBeVisible()
+      await expect(page.getByLabel("UK mobile number")).toBeVisible()
+      const shell = page.locator('[data-screen-label="Customer join"]')
+      await expect(
+        shell.locator("header").getByText("Your number")
+      ).toBeVisible()
+      await expect(
+        shell.locator(":scope > div", { hasText: /^Your number$/ })
+      ).toBeVisible()
       await expect(page.getByLabel("Email address")).toHaveCount(0)
       await expect(page.getByRole("link", { name: /email/i })).toHaveCount(0)
       await expect(page.getByRole("button", { name: /email/i })).toHaveCount(0)
@@ -202,13 +220,13 @@ test.describe("@customer-flow @a11y join by email screens", () => {
     await expect(fallback).toBeVisible()
     // Beside the phone's own recovery, not in place of it.
     await expect(
-      page.getByRole("button", { name: "Resend code" })
+      page.getByRole("button", { name: "Send a new code" })
     ).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "Wrong number? Use a different one" })
+      page.getByRole("link", { name: "Wrong number? Change it" })
     ).toBeVisible()
     const wrongNumber = await page
-      .getByRole("link", { name: "Wrong number? Use a different one" })
+      .getByRole("link", { name: "Wrong number? Change it" })
       .boundingBox()
     expect((await fallback.boundingBox())!.y).toBeGreaterThan(wrongNumber!.y)
     // The QR and referral travel with it.
@@ -262,9 +280,7 @@ test.describe("@customer-flow @a11y join by email screens", () => {
       page,
       "/dev/welcome-offer?surface=email-after-code&offer=none"
     )
-    const phone = page.getByRole("link", {
-      name: "Use my phone number instead",
-    })
+    const phone = page.getByRole("link", { name: "Back to the text code" })
     await expect(phone).toBeVisible()
     await expect(phone).not.toHaveAttribute("href", /step=/)
   })
@@ -276,8 +292,12 @@ test.describe("@customer-flow @a11y join by email screens", () => {
       page,
       "/dev/welcome-offer?surface=email-code-after-code&offer=none"
     )
-    await expect(page.getByText("Not sent yet to")).toBeVisible()
-    const phone = page.getByRole("link", { name: "Use my phone instead" })
+    await expect(
+      page.getByText("We couldn't email j***@example.com yet.", {
+        exact: false,
+      })
+    ).toBeVisible()
+    const phone = page.getByRole("link", { name: "Back to the text code" })
     await expect(phone).toBeVisible()
     await expect(phone).not.toHaveAttribute("href", /step=/)
   })

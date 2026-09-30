@@ -10,10 +10,14 @@ export type NormalizedPhone = {
 
 export type NormalizePhoneResult =
   | { ok: true; phone: NormalizedPhone }
-  | {
-      ok: false
-      error: "Enter a UK phone number." | "Enter a valid phone number."
-    }
+  | { ok: false; error: typeof UK_MOBILE_NUMBER_ERROR }
+
+/**
+ * The one answer for a number we cannot use, invalid or from outside the UK:
+ * what to type, with an example (designer brief J2).
+ */
+export const UK_MOBILE_NUMBER_ERROR =
+  "Enter a UK mobile number, like 07700 900123."
 
 export function normalizePhone(raw: string): NormalizePhoneResult {
   const parsed = parsePhoneNumberFromString(raw, {
@@ -21,12 +25,8 @@ export function normalizePhone(raw: string): NormalizePhoneResult {
     extract: false,
   })
 
-  if (!parsed?.isValid()) {
-    return { ok: false, error: "Enter a valid phone number." }
-  }
-
-  if (parsed.country !== "GB") {
-    return { ok: false, error: "Enter a UK phone number." }
+  if (!parsed?.isValid() || parsed.country !== "GB") {
+    return { ok: false, error: UK_MOBILE_NUMBER_ERROR }
   }
 
   return {

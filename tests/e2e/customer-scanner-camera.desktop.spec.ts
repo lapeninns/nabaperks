@@ -40,9 +40,9 @@ test.describe("customer QR scanner camera states", () => {
 
     expect(response?.status()).toBe(200)
     await expect(
-      page.getByRole("heading", { level: 1, name: "Scan venue QR" })
+      page.getByRole("heading", { level: 1, name: "Scan the venue QR" })
     ).toBeVisible()
-    await expect(page.getByText("Camera unavailable")).toBeVisible()
+    await expect(page.getByText("We can't use your camera")).toBeVisible()
     await expect(
       page.getByText(
         "We could not open your camera. Allow camera access, then try again."

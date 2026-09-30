@@ -62,10 +62,18 @@ test("birthday autosave serializes requests and disables fields while saving", (
   assert.match(form, /disabled=\{pending\}/)
 })
 
-test("R-6: the dashboard renders the prompt only when a DOB is missing", () => {
+test("R-6: the dashboard offers the birthday only when a DOB is missing", () => {
+  // The birthday is one candidate of home's single optional suggestion; the
+  // priority itself is unit tested in tests/unit/home-setup-suggestion.test.mjs.
   const page = read("app", "home", "(authed)", "page.tsx")
-  assert.match(page, /HomeBirthdayPrompt/)
-  assert.match(page, /needsBirthday/)
+  assert.match(page, /homeSetupSuggestionCandidates\(/)
+  assert.match(page, /hasBirthday: Boolean\(customer\.dateOfBirth\)/)
+  assert.match(page, /<HomeSetupSuggestion/)
+  const suggestion = read("lib", "customer", "home-setup-suggestion.ts")
+  assert.match(
+    suggestion,
+    /if \(!facts\.hasBirthday\) candidates\.push\("birthday"\)/
+  )
 })
 
 test("the notification catalog carries both issued marketing types", () => {

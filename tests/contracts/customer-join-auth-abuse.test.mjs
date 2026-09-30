@@ -12,7 +12,9 @@ function read(...segments) {
 
 test("Given join and wallet OTP provider failures When actions are inspected Then both flows keep retryable feedback in-form", () => {
   const join = read("app", "m", "[merchantSlug]", "join", "actions.ts")
-  const wallet = read("app", "home", "actions.ts")
+  // Sign-in's answers are worded in lib/customer/login-copy.ts.
+  const wallet =
+    read("app", "home", "actions.ts") + read("lib", "customer", "login-copy.ts")
 
   for (const action of [join, wallet]) {
     assert.match(action, /verification\.status === "unavailable"/)

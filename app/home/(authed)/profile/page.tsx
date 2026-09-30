@@ -8,42 +8,58 @@ import { PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
 import { CustomerProfileAccountSection } from "@/components/customer/profile-account-section"
 import { CustomerProfileAddPhone } from "@/components/customer/profile-add-phone"
-import { CustomerProfileMarketing } from "@/components/customer/profile-marketing-consent"
-import { PhoneMessagingSettings } from "@/components/customer/phone-messaging-settings"
-import { PushNotificationSettingsDisclosure } from "@/components/customer/push-notification-settings-disclosure"
+import { ProfileContactNotice } from "@/components/customer/profile-contact-notice"
+import { CustomerProfileMessagesSection } from "@/components/customer/profile-messages-section"
+import { CustomerProfilePreviousStamps } from "@/components/customer/profile-previous-stamps"
 import { StatusBanner } from "@/components/loyalty"
-import {
-  emailPromptReason,
-  emailSignInEnabled,
-} from "@/lib/customer/email-auth-mode"
+import { emailPromptReason } from "@/lib/customer/email-auth-mode"
 import { emailPromptOpening } from "@/lib/customer/email-prompt-opening"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  CONTACT_NOTICE_PARAM,
+  previousStampsMethod,
+} from "@/lib/customer/previous-stamps"
 import { getCustomerProfile } from "@/lib/customer/profile"
 import { getPendingEmailVerification } from "@/lib/customer/session"
 import { formatMonthYear } from "@/lib/customer/format"
-import { customerSignInMethodsLabel } from "@/lib/customer/sign-in-methods"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 export const metadata = {
   title: "Your details · Nabaperks",
 }
 
-export default async function HomeProfilePage() {
+/** Why the details matter, only while something a reward needs is missing. */
+const FINISH_DETAILS_COPY =
+  "Collecting a reward needs your name, date of birth, and a confirmed mobile number and email. You can keep collecting stamps meanwhile."
+
+type HomeProfilePageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+/**
+ * The guest's profile, in the order of the brief: your details and contact
+ * (one card), messages from venues (optional), previous stamps (optional),
+ * then sign out. Phone is the only way in, so the page never names email as
+ * a sign-in route or describes the email rollout setting.
+ */
+export default async function HomeProfilePage({
+  searchParams,
+}: HomeProfilePageProps) {
   const profile = await getCustomerProfile()
 
   if (!profile) {
     redirect(customerLoginHref("/home/profile"))
   }
 
+  const params = await searchParams
   const incomplete =
     !profile.fullName ||
     !profile.dateOfBirth ||
     !profile.emailVerified ||
     !profile.phoneVerified
-  // An email-only wallet: no phone, so no phone messages or phone marketing
-  // until one is added from the contact details section.
+  // A card started with an email: no phone, so no phone reminders or phone
+  // offers until one is added from the Contact group.
   const hasPhone = profile.phoneVerified
-  const emailSignInOn = emailSignInEnabled()
   // The code step opens only while a code for the saved address is pending
   // for this customer, the rule the home prompt uses (QA BUG-036).
   const emailCodeSentAt = profile.needsEmailVerification
@@ -58,14 +74,12 @@ export default async function HomeProfilePage() {
       <PageTitle
         eyebrow="My Nabaperks"
         title="Your details"
-        description="Your contact details and the information needed to collect rewards."
+        description="What a venue needs to hand over a reward, and the messages you get."
       />
 
       {incomplete ? (
         <StatusBanner title="Finish your details" tone="warning">
-          Complete your name and date of birth, and verify your email and phone
-          number before collecting a reward. You can keep earning stamps
-          meanwhile.
+          {FINISH_DETAILS_COPY}
         </StatusBanner>
       ) : null}
 
@@ -84,28 +98,32 @@ export default async function HomeProfilePage() {
         addPhone={<CustomerProfileAddPhone hasPhone={hasPhone} />}
       />
 
-      <CustomerProfileMarketing
+      <CustomerProfileMessagesSection
         consents={profile.consents}
         hasPhone={hasPhone}
+        phoneMessagingPreferences={profile.phoneMessagingPreferences}
       />
 
-      {hasPhone ? (
-        <PhoneMessagingSettings
-          preferences={profile.phoneMessagingPreferences}
-        />
-      ) : null}
-
-      <PushNotificationSettingsDisclosure />
+      <CustomerProfilePreviousStamps
+        method={previousStampsMethod({
+          phoneVerified: profile.phoneVerified,
+          emailVerified: profile.emailVerified,
+        })}
+        notice={
+          <ProfileContactNotice
+            value={params[CONTACT_NOTICE_PARAM]}
+            confirmed={{
+              phone: profile.phoneVerified,
+              email: profile.emailVerified,
+            }}
+          />
+        }
+      />
 
       <CustomerProfileAccountSection
         memberSinceLabel={formatMonthYear(profile.memberSince)}
         venueLabel={venueLabel}
-        signInWith={customerSignInMethodsLabel({
-          hasPhone,
-          hasVerifiedEmail: profile.emailVerified,
-          emailSignInEnabled: emailSignInOn,
-        })}
-        emailSignInPaused={!hasPhone && !emailSignInOn}
+        signInWith={hasPhone ? "your mobile number" : undefined}
         signOutAction={signOutCustomerAction}
         signOutAllAction={signOutAllCustomerDevicesAction}
       />

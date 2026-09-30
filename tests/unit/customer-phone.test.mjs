@@ -15,7 +15,7 @@ test("Given a valid non-GB phone When it is normalized Then it is rejected befor
 
   assert.deepEqual(result, {
     ok: false,
-    error: "Enter a UK phone number.",
+    error: "Enter a UK mobile number, like 07700 900123.",
   })
 })
 
@@ -60,7 +60,7 @@ for (const input of ["0", "44", "+44", "07400123", "call 07400 123456"]) {
   test(`Given invalid phone ${input} When normalized Then it is rejected`, () => {
     assert.deepEqual(normalizePhone(input), {
       ok: false,
-      error: "Enter a valid phone number.",
+      error: "Enter a UK mobile number, like 07700 900123.",
     })
   })
 }

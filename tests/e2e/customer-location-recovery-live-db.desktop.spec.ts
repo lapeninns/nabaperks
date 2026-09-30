@@ -76,12 +76,12 @@ test.describe("location recovery with the real local stamp action", () => {
       await page.goto(`/card/${fixture.membershipId}/stamp?qr=${fixture.qrId}`)
       const root = page.locator("[data-stamp-phase]")
       await root
-        .getByRole("button", { name: "Use my location", exact: true })
+        .getByRole("button", { name: "Share my location", exact: true })
         .click()
       await expect(
         root.getByText("Location access is blocked", { exact: true })
       ).toBeVisible()
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(root).not.toHaveAttribute("aria-busy", "true")
       const read = async () => {
         const [row] = await sql`
@@ -95,16 +95,19 @@ test.describe("location recovery with the real local stamp action", () => {
       const [beforeAttempts] =
         await sql`select count(*)::int as n from public.rate_limit_buckets where bucket_key = ${`selfstamp-attempt:${fixture.membershipId}`}`
       expect(beforeAttempts.n).toBe(0)
-      await root.getByRole("button", { name: "Try Again", exact: true }).click()
+      await root.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
       expect(await read()).toEqual({ earned: 2, unverified: 0, verified: 1 })
       const [afterAttempts] =
         await sql`select count from public.rate_limit_buckets where bucket_key = ${`selfstamp-attempt:${fixture.membershipId}`}`
       expect(afterAttempts.count).toBe(1)
       await page.reload()
-      await expect(page.locator("[data-stamp-phase]")).toContainText(
-        "You're stamped for today."
-      )
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "You've already got today's stamp",
+        })
+      ).toBeVisible()
       expect(await read()).toEqual({ earned: 2, unverified: 0, verified: 1 })
       expect(errors).toEqual([])
     } finally {
@@ -178,7 +181,7 @@ test.describe("location recovery with the real local stamp action", () => {
       await page.goto(`/card/${fixture.membershipId}/stamp?qr=${fixture.qrId}`)
       const root = page.locator("[data-stamp-phase]")
       await root
-        .getByRole("button", { name: "Use my location", exact: true })
+        .getByRole("button", { name: "Share my location", exact: true })
         .click()
       await expect(
         root.getByText("Location isn't accurate enough", { exact: true })
@@ -189,7 +192,7 @@ test.describe("location recovery with the real local stamp action", () => {
         await sql`select count(*)::int as n from public.rate_limit_buckets where bucket_key = ${`selfstamp-attempt:${fixture.membershipId}`}`
       expect(beforeAttempts.n).toBe(0)
       const fallback = root.getByRole("button", {
-        name: "Add without location",
+        name: "Add my stamp without location",
         exact: true,
       })
       await root
@@ -205,15 +208,19 @@ test.describe("location recovery with the real local stamp action", () => {
         button.click()
       })
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
-      await expect(root).toContainText("Added without a location check.")
+      // The result never counts down stamps allowed without location.
+      await expect(root).not.toContainText("location check")
       expect(await read()).toEqual({ earned: 2, unverified: 1, verified: 0 })
       const [afterAttempts] =
         await sql`select count from public.rate_limit_buckets where bucket_key = ${`selfstamp-attempt:${fixture.membershipId}`}`
       expect(afterAttempts.count).toBe(1)
       await page.reload()
-      await expect(page.locator("[data-stamp-phase]")).toContainText(
-        "You're stamped for today."
-      )
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "You've already got today's stamp",
+        })
+      ).toBeVisible()
       expect(await read()).toEqual({ earned: 2, unverified: 1, verified: 0 })
       expect(errors).toEqual([])
     } finally {

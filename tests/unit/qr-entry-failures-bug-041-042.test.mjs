@@ -158,9 +158,10 @@ test("Given the database is unreachable When the QR is scanned Then the page ask
   })
 
   assert.equal(answer.redirect, undefined)
-  assert.doesNotMatch(answer.text, /This loyalty card is unavailable/)
+  assert.doesNotMatch(answer.text, /This QR isn't working/)
   assert.doesNotMatch(answer.text, /current loyalty QR/)
-  assert.match(answer.text, /We can't load this right now/)
+  assert.match(answer.text, /We couldn't load this card/)
+  assert.match(answer.text, /Check your signal or Wi-Fi, then try again\./)
   assert.match(answer.text, /Try again/)
   assert.deepEqual(
     answer.logs.map(({ event, fields }) => ({
@@ -184,7 +185,11 @@ test("Given an inactive QR When it is scanned Then it is still reported as unava
     membership: async () => null,
   })
 
-  assert.match(answer.text, /This loyalty card is unavailable/)
+  assert.match(answer.text, /This QR isn't working/)
+  assert.match(
+    answer.text,
+    /Ask a member of staff for the current loyalty QR\./
+  )
   assert.deepEqual(answer.logs, [])
 })
 

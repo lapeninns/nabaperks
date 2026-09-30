@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import { emailPromptOpening } from "@/lib/customer/email-prompt-opening"
+import { getCustomerExperienceViewModel } from "@/lib/customer/experience/copy"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 
 function cardContext(overrides = {}) {
@@ -274,31 +275,65 @@ test("a foreign card and a missing card are byte-identical to the customer", () 
   assert.notDeepEqual(anonymous, missing)
 })
 
-test("Given no verified email When a card is derived Then the add-your-email card shows only straight after a stamp", () => {
-  const emailPrompt = {
-    reason: "rewards",
-    initialEmail: "alex@example.test",
-    codePending: true,
-  }
+test("Given a stamp just landed When a card is derived Then it carries when the next stamp opens and no contact prompt", () => {
+  const nextStampFrom = "2026-10-01T05:00:00.000Z"
 
   const stamped = deriveCustomerExperience({
     entry: "card",
-    context: cardContext({ justStamped: true, emailPrompt }),
+    context: cardContext({ justStamped: true, nextStampFrom }),
   })
-  // Where the prompt opens (a pending code) rides through unchanged.
-  assert.deepEqual(stamped.emailPrompt, emailPrompt)
+  assert.equal(stamped.nextStampFrom, nextStampFrom)
+  // The stamp result stands alone: nothing asks for an email or phone here.
+  assert.equal("emailPrompt" in stamped, false)
 
   const revisited = deriveCustomerExperience({
     entry: "card",
-    context: cardContext({ justStamped: false, emailPrompt }),
+    context: cardContext({ justStamped: false, nextStampFrom }),
   })
-  assert.equal(revisited.emailPrompt, null)
+  assert.equal(revisited.nextStampFrom, null)
+})
 
-  const verified = deriveCustomerExperience({
-    entry: "card",
-    context: cardContext({ justStamped: true, emailPrompt: null }),
-  })
-  assert.equal(verified.emailPrompt, null)
+test("Given a card When its view model is built Then it says where the guest is on it, and welcomes a new guest without asking for anything", () => {
+  const collecting = getCustomerExperienceViewModel(
+    deriveCustomerExperience({ entry: "card", context: cardContext() })
+  )
+  assert.equal(collecting.headline, "Regulars Card")
+  assert.equal(collecting.supportLine, "3 more to your reward.")
+  assert.equal(collecting.primaryAction, undefined)
+
+  const joined = getCustomerExperienceViewModel(
+    deriveCustomerExperience({
+      entry: "card",
+      context: cardContext({ justJoined: true, justStamped: true, current: 1 }),
+    })
+  )
+  assert.equal(joined.headline, "Welcome to The Test Arms")
+  assert.equal(joined.supportLine, "4 more to your reward.")
+  assert.doesNotMatch(
+    `${joined.headline} ${joined.supportLine}`,
+    /email|phone|birthday|profile|set ?up/i
+  )
+
+  const unlocked = getCustomerExperienceViewModel(
+    deriveCustomerExperience({
+      entry: "card",
+      context: cardContext({
+        current: 5,
+        reward: {
+          view: {
+            rewardId: "reward_1",
+            membershipId: "membership_1",
+            rewardName: "Mystery round",
+            rewardTerms: "Ask at the bar.",
+            redeemableFrom: null,
+            availableFrom: null,
+          },
+          redeemable: true,
+        },
+      }),
+    })
+  )
+  assert.equal(unlocked.supportLine, "Your reward is unlocked.")
 })
 
 test("Given a pending email code When the email prompt's opening is chosen Then it opens at the code step only for this customer's saved address", () => {
@@ -333,4 +368,64 @@ test("Given a pending email code When the email prompt's opening is chosen Then 
       codePending: false,
     }
   )
+})
+
+test("a reward held only by setup is flagged so the card never reads it as a code to show", () => {
+  const setup = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      current: 5,
+      total: 5,
+      reward: {
+        view: rewardView({ redeemableFrom: null }),
+        redeemable: true,
+        needsSetup: true,
+      },
+      giftReward: {
+        id: "gift_3",
+        name: "Birthday fizz",
+        source: "birthday_month",
+        availableFrom: null,
+        redeemable: true,
+        needsSetup: true,
+      },
+    }),
+  })
+
+  assert.equal(setup.kind, "card_collecting")
+  // Still points at the reward page, which walks the guest through setup.
+  assert.equal(setup.reward, "ready")
+  assert.equal(setup.rewardNeedsSetup, true)
+  assert.equal(setup.gift?.needsSetup, true)
+
+  const ready = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      current: 5,
+      total: 5,
+      reward: { view: rewardView({ redeemableFrom: null }), redeemable: true },
+    }),
+  })
+  assert.equal(ready.rewardNeedsSetup, false)
+
+  // A waiting reward never claims setup, whatever the loader passed.
+  const waiting = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      current: 5,
+      total: 5,
+      reward: { view: rewardView(), redeemable: false, needsSetup: true },
+      giftReward: {
+        id: "gift_4",
+        name: "Birthday fizz",
+        source: "birthday_month",
+        availableFrom: "2099-01-01T00:00:00.000Z",
+        redeemable: false,
+        needsSetup: true,
+      },
+    }),
+  })
+  assert.equal(waiting.reward, "waiting")
+  assert.equal(waiting.rewardNeedsSetup, false)
+  assert.equal(waiting.gift?.needsSetup, false)
 })

@@ -1,13 +1,7 @@
 import { notFound } from "next/navigation"
-import { GiftIcon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
-import {
-  QuietReward,
-  RedeemableReward,
-} from "@/components/customer/reward-list-cards"
-import { formatDate } from "@/lib/customer/format"
-import { formatCollectionAvailability } from "@/lib/customer/reward-collection-state"
+import { PageTitle } from "@/components/brand"
+import { RewardListSections } from "@/components/customer/reward-list-cards"
 
 import { HOME_HARNESS_REWARDS } from "../fixtures"
 
@@ -15,109 +9,40 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * Rewards wallet harness — mirrors app/home/(authed)/rewards/page.tsx but fed by
- * static fixtures so the issued-reward badges + expiry notes render with no auth
- * or DB. Kept a faithful copy of the section layout (the real page keeps its own
- * note-building so its source-contract test stays anchored there).
+ * Rewards tab harness: the real grouped sections fed by static fixtures, so
+ * every group (ready to collect, needs setting up, on the way, collected, no
+ * longer available) and the issued-reward badges render with no auth or DB.
+ * `?empty=1` shows the empty state.
  */
-export default function HomeHarnessRewardsPage() {
+export default async function HomeHarnessRewardsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ empty?: string }>
+}) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
 
-  const { redeemable, upcoming, redeemed, expired } = HOME_HARNESS_REWARDS
-  const hasAny =
-    redeemable.length + upcoming.length + redeemed.length + expired.length > 0
+  const params = searchParams ? await searchParams : {}
+  const rewards =
+    params.empty === "1"
+      ? {
+          redeemable: [],
+          needsSetup: [],
+          upcoming: [],
+          redeemed: [],
+          expired: [],
+        }
+      : HOME_HARNESS_REWARDS
 
   return (
     <div className="grid gap-6">
       <PageTitle
         eyebrow="My Nabaperks"
         title="Rewards"
-        description="Rewards you've earned across every venue, ready for merchant scan, on the way, and ones you've enjoyed."
+        description="Rewards from all your cards: ready to collect, on the way, and ones you've enjoyed."
       />
-
-      {!hasAny ? (
-        <EmptyState
-          title="No rewards yet"
-          description="Keep collecting stamps. When you complete a card, the reward lands here."
-          icon={GiftIcon}
-        />
-      ) : (
-        <div className="grid gap-8">
-          {redeemable.length > 0 ? (
-            <section className="grid gap-4">
-              <SectionHeader eyebrow="Ready for scan" title="Show these now" />
-              {redeemable.map((reward) => (
-                <RedeemableReward key={reward.rewardId} reward={reward} />
-              ))}
-            </section>
-          ) : null}
-
-          {upcoming.length > 0 ? (
-            <section className="grid gap-4">
-              <SectionHeader
-                eyebrow="Coming soon"
-                title="Almost there"
-                description="Unlocked, but not redeemable just yet."
-              />
-              {upcoming.map((reward) => (
-                <QuietReward
-                  key={reward.rewardId}
-                  reward={reward}
-                  tone="sun"
-                  note={
-                    formatCollectionAvailability(reward.availableFrom) ??
-                    "Collection timing will appear here."
-                  }
-                />
-              ))}
-            </section>
-          ) : null}
-
-          {redeemed.length > 0 ? (
-            <section className="grid gap-4">
-              <SectionHeader eyebrow="History" title="Redeemed" />
-              {redeemed.map((reward) => (
-                <QuietReward
-                  key={reward.rewardId}
-                  reward={reward}
-                  tone="plain"
-                  note={
-                    reward.redeemedAt
-                      ? `Redeemed ${formatDate(reward.redeemedAt)}.`
-                      : "Redeemed."
-                  }
-                />
-              ))}
-            </section>
-          ) : null}
-
-          {expired.length > 0 ? (
-            <section className="grid gap-4">
-              <SectionHeader
-                eyebrow="History"
-                title="Expired"
-                description="Rewards that are no longer available to scan."
-              />
-              {expired.map((reward) => (
-                <QuietReward
-                  key={reward.rewardId}
-                  reward={reward}
-                  tone="plain"
-                  note={
-                    reward.expiredAt
-                      ? `Expired ${formatDate(reward.expiredAt)}.`
-                      : reward.expiresAt
-                        ? `Expired ${formatDate(reward.expiresAt)}.`
-                        : "Expired."
-                  }
-                />
-              ))}
-            </section>
-          ) : null}
-        </div>
-      )}
+      <RewardListSections rewards={rewards} />
     </div>
   )
 }

@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
 
 import { CustomerCardExperience } from "@/components/customer/customer-card-experience"
+import { ProfileContactNotice } from "@/components/customer/profile-contact-notice"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadRewardExperienceContext } from "@/lib/customer/experience/load-reward"
+import type { ProfileGate } from "@/lib/customer/experience/types"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const dynamic = "force-dynamic"
@@ -18,6 +20,7 @@ type RewardPageProps = {
   searchParams: Promise<{
     reward?: string | string[]
     prepare?: string | string[]
+    contact?: string | string[]
   }>
 }
 
@@ -34,7 +37,13 @@ export default async function RewardPage({
     // and are untouched by this flag.
     prepare: firstParam(query.prepare) === "1",
   })
-  const experience = deriveCustomerExperience({ entry: "reward", context })
+  const derived = deriveCustomerExperience({ entry: "reward", context })
+  // Every dead end on this route is about a reward, so its copy says so
+  // rather than "Card unavailable".
+  const experience =
+    derived.kind === "unavailable"
+      ? { ...derived, subject: "reward" as const }
+      : derived
 
   // The reward entry never derives `card_collecting` (see `deriveReward`), so
   // the discount-pass rail cannot render here. It should not: this screen has
@@ -46,8 +55,32 @@ export default async function RewardPage({
       experience={experience}
       offerPasses={[]}
       offerClaimNotice={null}
+      // The reward gate's phone step redirects back here with `?contact=`
+      // once the number is confirmed, because the gate then moves past the
+      // step and unmounts the form that would have shown it.
+      notice={
+        <ProfileContactNotice
+          value={query.contact}
+          confirmed={confirmedContacts(
+            "profileGate" in context ? context.profileGate : undefined
+          )}
+        />
+      }
     />
   )
+}
+
+/**
+ * What the reward gate read from the server: the phone is confirmed unless
+ * the gate still asks for it, the email once it is locked. No gate (a
+ * redeemed or blocked reward) backs no notice.
+ */
+function confirmedContacts(gate: ProfileGate | undefined) {
+  if (!gate) return { phone: false, email: false }
+  return {
+    phone: gate.needsPhoneVerification !== true,
+    email: gate.emailLocked,
+  }
 }
 
 function firstParam(value: string | string[] | undefined) {

@@ -88,6 +88,7 @@ const HOME_STAMP_EVENT_LIMIT = 12
 const EMPTY_SUMMARY: HomeSummary = {
   cardCount: 0,
   redeemableCount: 0,
+  setupRewardCount: 0,
   stampAvailableCount: 0,
 }
 
@@ -338,6 +339,9 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
         ? { stampRewardId: rewards.stampRewardId }
         : {}),
       stampRewardName: rewards.stampRewardName,
+      ...(rewards.stampRewardId && rewards.stampRewardNeedsSetup
+        ? { stampRewardNeedsSetup: true }
+        : {}),
       revealedRewardName: rewards.revealedRewardName,
       revealedRewardAvailableFrom: rewards.revealedRewardAvailableFrom,
       gift: rewards.gift,

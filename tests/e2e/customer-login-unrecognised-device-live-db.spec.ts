@@ -72,9 +72,9 @@ test.describe("@customer-flow customer login on an unrecognised device", () => {
       await page.goto("/home/login")
       await openPhoneLoginStep(page)
       await page.fill("#contact", phone.national)
-      await page.getByRole("button", { name: "Send code" }).click()
+      await page.getByRole("button", { name: "Send my code" }).click()
       await page.fill("#otp", DEV_OTP)
-      await page.getByRole("button", { name: "Open my cards" }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
 
       // Previously this landed on /home/recover and stopped there.
       await expect(page).toHaveURL(/\/home(?:\?|$)/)

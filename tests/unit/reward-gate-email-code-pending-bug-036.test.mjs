@@ -69,6 +69,7 @@ const bundle = await build({
             "export async function saveProfileForRedeemAction() { return {} }",
             "export async function verifyProfileEmailAction() { return {} }",
             "export async function resendProfileEmailAction() { return {} }",
+            "export async function clearProfileEmailAction() {}",
             "export async function rewardPhoneAction() { return {} }",
             "export async function profilePhoneAction() { return {} }",
           ].join("\n"),
@@ -115,7 +116,7 @@ test("Given an unverified gate email and no pending code When the reward gate re
   assert.doesNotMatch(copy, /code we sent/i)
   assert.doesNotMatch(copy, /Email code/)
   assert.doesNotMatch(copy, /Confirm email/)
-  assert.match(copy, /alex@example\.test is not confirmed yet/)
+  assert.match(copy, /We'll send a code to alex@example\.test to confirm it\./)
   assert.match(copy, /Send me a code/)
   assert.doesNotMatch(copy, /!/)
 })
@@ -159,4 +160,58 @@ test("Given the send-a-code request failed When the reward gate renders without 
   assert.match(copy, /Code not sent/)
   assert.match(copy, /We couldn't email a code just now/)
   assert.doesNotMatch(copy, /code we sent/i)
+})
+
+test("Given name and date of birth are saved but no email When the reward gate renders Then it asks only for the email address", () => {
+  const copy = text({
+    ...emailStepGate,
+    needsEmailVerification: false,
+    email: null,
+  })
+
+  assert.match(copy, /Add your email address\. We'll send you a code/)
+  assert.match(copy, /Email address/)
+  // Saved details are recognised, never shown as fields to fill again.
+  assert.doesNotMatch(copy, /Full name/)
+  assert.doesNotMatch(copy, /Date of birth/)
+  assert.doesNotMatch(copy, /Email code/)
+})
+
+test("Given nothing is saved When the reward gate renders Then the lead names only the details on screen", () => {
+  const copy = text({
+    ...emailStepGate,
+    needsEmailVerification: false,
+    fullName: null,
+    dateOfBirth: null,
+    email: null,
+  })
+
+  assert.match(copy, /Full name/)
+  assert.match(copy, /Date of birth/)
+  // One requirement per screen (R3): the email is its own next step, not a
+  // second field on this one.
+  assert.doesNotMatch(copy, /Email address/)
+  // No later step (mobile number, photo ID) is announced ahead of time, and
+  // no confirmed email is described as "verified and locked".
+  assert.doesNotMatch(copy, /phone|mobile|photo ID|locked|verified/i)
+})
+
+test("Given a code is pending When the reward gate renders Then the guest can send a new code or change the email", () => {
+  const copy = text({ ...emailStepGate, emailCodePending: true })
+
+  assert.match(copy, /Send a new code/)
+  assert.match(copy, /Change email/)
+  assert.doesNotMatch(copy, /—/)
+})
+
+test("Given name and date of birth are saved and no email is on file When the reward gate renders Then the email is its own step", () => {
+  const copy = text({
+    ...emailStepGate,
+    needsEmailVerification: false,
+    email: null,
+  })
+
+  assert.match(copy, /Email address/)
+  assert.doesNotMatch(copy, /Full name/)
+  assert.doesNotMatch(copy, /Date of birth/)
 })

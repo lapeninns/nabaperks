@@ -29,8 +29,7 @@ const WRONG_OTP = DEV_OTP === "000000" ? "111111" : "000000"
 // that value, so a real code is required to exercise the production digest
 // comparison. Kept distinct from WRONG_OTP so the reject case stays meaningful.
 const REAL_RECOVERY_CODE = DEV_OTP === "314159" ? "271828" : "314159"
-const NO_EMAIL_COPY =
-  /We can't safely open this existing wallet on a new device because it has no verified recovery email/i
+const NO_EMAIL_COPY = /We can't open these cards in this browser/i
 
 export function describeCustomerAccessRecovery() {
   test.describe("@customer-flow wallet access recovery", () => {
@@ -56,7 +55,7 @@ export function describeCustomerAccessRecovery() {
 
       await expect(page).toHaveURL(/\/home\/login/)
       await expect(
-        page.getByRole("heading", { name: "Welcome back" })
+        page.getByRole("heading", { name: "Open my cards" })
       ).toBeVisible()
     })
 
@@ -79,18 +78,16 @@ export function describeCustomerAccessRecovery() {
       ).toBeLessThan(400)
 
       await expect(
-        page.getByRole("heading", { name: "Confirm this is your wallet" })
+        page.getByRole("heading", { name: "Confirm it's you" })
       ).toBeVisible()
-      await expect(page.getByLabel("Email code")).toBeVisible()
+      await expect(page.getByLabel("Your code")).toBeVisible()
       await expect(page.locator("#recovery-code")).toBeVisible()
+      await expect(page.getByRole("button", { name: "Continue" })).toBeVisible()
       await expect(
-        page.getByRole("button", { name: "Open my wallet" })
+        page.getByRole("button", { name: "Send a new code" })
       ).toBeVisible()
       await expect(
-        page.getByRole("button", { name: "Send a fresh email code" })
-      ).toBeVisible()
-      await expect(
-        page.getByRole("link", { name: "Start again with a different phone" })
+        page.getByRole("link", { name: "Start again with a different number" })
       ).toHaveAttribute("href", "/home/login")
     })
 
@@ -133,10 +130,10 @@ export function describeCustomerAccessRecovery() {
               candidate.url().includes("/home/recover") &&
               candidate.request().method() === "POST"
           ),
-          page.getByRole("button", { name: "Open my wallet" }).click(),
+          page.getByRole("button", { name: "Continue" }).click(),
         ])
 
-        await expect(page.getByText(/That code didn't match/i)).toBeVisible()
+        await expect(page.getByText(/That code didn't work/i)).toBeVisible()
         await expect(page.locator("#recovery-code")).toBeVisible()
 
         const cookies = await context.cookies()
@@ -202,7 +199,7 @@ export function describeCustomerAccessRecovery() {
               candidate.url().includes("/home/recover") &&
               candidate.request().method() === "POST"
           ),
-          page.getByRole("button", { name: "Open my wallet" }).click(),
+          page.getByRole("button", { name: "Continue" }).click(),
         ])
 
         await expect
@@ -263,7 +260,7 @@ export function describeCustomerAccessRecovery() {
       await expect(page.getByText(NO_EMAIL_COPY)).toBeVisible()
       await expect(page.locator("#recovery-code")).toHaveCount(0)
       await expect(
-        page.getByRole("link", { name: "Try another phone number" })
+        page.getByRole("link", { name: "Try a different number" })
       ).toHaveAttribute("href", "/home/login")
 
       const cookies = await context.cookies()
@@ -304,12 +301,10 @@ export function describeCustomerAccessRecovery() {
           "/home/recover must respond successfully; a 4xx or 5xx is an application regression"
         ).toBeLessThan(400)
 
-        await page
-          .getByRole("button", { name: "Send a fresh email code" })
-          .click()
+        await page.getByRole("button", { name: "Send a new code" }).click()
         await expect(
           page.getByText(
-            /A fresh code has been sent|couldn't send a new code|Too many recovery emails|recovery attempt has expired/i
+            /New code sent|couldn't send a new code|Too many codes requested|code has expired/i
           )
         ).toBeVisible()
 

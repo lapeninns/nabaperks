@@ -15,8 +15,8 @@ export default function CustomerRewardError({
   return (
     <CustomerShell className="grid content-center">
       <CustomerErrorState
-        title="Reward unavailable"
-        description="This reward could not be loaded safely. Return to the customer card or ask a team member for help."
+        title="We couldn't load this reward"
+        description="Something went wrong. Your stamps and rewards are safe. Try again, or ask a member of staff for help."
         reset={() => recoverFromBoundaryError(error, reset)}
         secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />

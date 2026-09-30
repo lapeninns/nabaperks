@@ -81,17 +81,26 @@ test("Given the customer entry segments When their error boundaries are inspecte
       /secondaryAction=\{\{ label: (?:".+"|OPEN_MY_CARDS_LABEL), href: "\/(home|scan)" \}\}/,
       `${label} boundary must offer a secondary recovery path`
     )
-    // Calm branded copy, never the framework default error text and never
-    // exclamation marks (customer copy contract).
-    assert.doesNotMatch(
-      source,
-      /Something went wrong/i,
-      `${label} boundary must not use framework default copy`
-    )
+    // Calm branded copy, never the framework default error text alone and
+    // never exclamation marks (customer copy contract). The guest journey
+    // brief's boundary headline "Something went wrong" is allowed only with
+    // its reassurance, "Your stamps are safe.", in the same boundary.
+    if (/Something went wrong/i.test(source)) {
+      assert.match(
+        source,
+        /Your stamps are safe\./,
+        `${label} boundary must pair its headline with "Your stamps are safe."`
+      )
+    }
     assert.doesNotMatch(
       source,
       /!"|!\s*</,
       `${label} boundary copy must not use exclamation marks`
+    )
+    assert.doesNotMatch(
+      source,
+      /—/,
+      `${label} boundary copy must not use em dashes`
     )
   }
 })

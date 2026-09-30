@@ -106,15 +106,19 @@ export function toStampBlockReason(
   return "unknown"
 }
 
-/** Calm, customer-facing copy for each typed block reason. */
+/**
+ * Calm, customer-facing copy for each typed block reason: what happened and
+ * what to do, in guest words. No trading days, resets, verification or
+ * redemption vocabulary, and no em dashes.
+ */
 export function blockReasonCopy(reason: CustomerBlockReason): string {
   switch (reason) {
     case "already_stamped_today":
-      return "You're already stamped for this venue trading day. Try again after the venue's next daily reset."
+      return "You've already got today's stamp. Come back on your next visit."
     case "reward_ready_first":
-      return "Your reward is ready — redeem it before collecting more stamps."
+      return "Your reward is ready. Collect it before you add more stamps."
     case "reward_daily_cap":
-      return "You've collected a reward here in this venue trading day. Your next reward is available after the venue's daily reset."
+      return "You've already collected a reward here today. You can collect the next one on your next visit."
     case "billing_required":
       return "This venue isn't taking stamps yet."
     case "rate_limited":
@@ -122,19 +126,19 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
     case "pool_unavailable":
       return "Your reward is almost ready. The venue is still finishing its reward setup, so ask a team member."
     case "unauthenticated":
-      return "Verify your identity from the venue QR before continuing."
+      return "Sign in with your mobile number, then scan the QR at the counter again."
     case "profile_incomplete":
-      return "Add your name, date of birth and a verified email before collection."
+      return "Finish getting your reward ready before you collect it."
     case "location_out_of_range":
       // Positive evidence of absence: the device reported a position and it is
       // not the venue. Named plainly, without accusing anyone of anything — and
       // with the fallback, because a customer at the counter with a wobbly fix
       // can be told today's code by a team member.
-      return "Location couldn't confirm you're at the venue. Try again, or ask a team member for today's code."
+      return "We couldn't confirm you're at the venue. Try again, or ask a team member for today's venue code."
     case "location_required":
       // The grace budget is spent. The copy has to name the fix, because the
       // customer is standing in the venue and the phone is the problem.
-      return "Turn on location for this venue and scan again, or ask a team member for today's code."
+      return "Turn on location for this site and try again, or ask a team member for today's venue code."
     case "location_blocked":
       // Same situation, decided on the phone before any request was spent:
       // the browser gave no fix and the grace is already used up.
@@ -158,5 +162,48 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
       return LOYALTY_PROGRAMME_UNAVAILABLE
     case "unknown":
       return "That didn't go through. Try again or ask the venue team."
+  }
+}
+
+/**
+ * The short headline over a refused stamp, naming the situation in guest words
+ * ("Stamps are paused at The Old Crown"). The body is {@link blockReasonCopy}.
+ * `venueName` falls back to "the venue" when the screen does not know it.
+ */
+export function blockReasonTitle(
+  reason: CustomerBlockReason | undefined,
+  venueName?: string
+): string {
+  const venue = venueName?.trim() || "the venue"
+  switch (reason) {
+    case "already_stamped_today":
+      return "You've already got today's stamp"
+    case "billing_required":
+    case "unavailable":
+      return `Stamps are paused at ${venue}`
+    case "rate_limited":
+    case "venue_code_rate_limited":
+      return "Too many tries just now"
+    case "location_out_of_range":
+      return `We couldn't confirm you're at ${venue}`
+    case "location_required":
+    case "location_blocked":
+      return `We need to check you're at ${venue}`
+    case "venue_code_rejected":
+    case "venue_code_format":
+      return "That code didn't work"
+    case "venue_code_locked":
+      return "Too many code tries"
+    case "venue_code_refusal_missing":
+      return "Scan the QR first"
+    case "unauthenticated":
+      return "Sign in to add your stamp"
+    case "reward_ready_first":
+    case "reward_daily_cap":
+    case "pool_unavailable":
+    case "profile_incomplete":
+    case "unknown":
+    case undefined:
+      return "Stamp not added"
   }
 }

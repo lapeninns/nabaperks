@@ -15,26 +15,24 @@ test.describe("customer stamp choreography — reduced motion", () => {
     await page.goto(HARNESS)
     const root = page.locator("[data-stamp-phase]")
 
-    await root.getByRole("button", { name: "Add today's stamp" }).click()
+    await root.getByRole("button", { name: "Stamp my card" }).click()
     await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
     await expect(
       root.getByRole("list", { name: /4 of 5 stamps earned/ })
     ).toBeVisible()
-    await expect(root.getByText("Stamp 4 of 5 added.")).toBeVisible()
+    await expect(root.locator("[data-stamp-receipt]")).toHaveText("4 OF 5")
     await expect(root.locator('[role="status"]')).toHaveText(
-      "Stamp added. That's 4 of 5."
+      "Stamp added. 1 more to your reward."
     )
 
     const spatialAnimationCount = await root.evaluate((element) => {
-      return element
-        .getAnimations({ subtree: true })
-        .filter((animation) => {
-          if (!(animation.effect instanceof KeyframeEffect)) return false
-          return animation.effect.getKeyframes().some((frame) => {
-            const transform = frame.transform
-            return typeof transform === "string" && transform !== "none"
-          })
-        }).length
+      return element.getAnimations({ subtree: true }).filter((animation) => {
+        if (!(animation.effect instanceof KeyframeEffect)) return false
+        return animation.effect.getKeyframes().some((frame) => {
+          const transform = frame.transform
+          return typeof transform === "string" && transform !== "none"
+        })
+      }).length
     })
     expect(spatialAnimationCount).toBe(0)
   })

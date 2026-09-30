@@ -9,7 +9,6 @@ import {
 import { Icon } from "@/components/brand"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import { GoogleReviewButton } from "@/components/customer/google-review-button"
-import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
 import { JoinFirstStampRecoveryPanel } from "@/components/customer/join-first-stamp-recovery-panel"
 import {
   CustomerActionNote,
@@ -21,7 +20,7 @@ import {
 import { ReferralBonusBankNotice } from "@/components/customer/referral-bonus-bank-panels"
 import { CustomerTabBar } from "@/components/layout"
 import { ReferralSharePanel } from "@/components/customer/referral-share-panel"
-import { StampCollector } from "@/components/customer/stamp-collector"
+import { StampScreen } from "@/components/customer/stamp-screen"
 import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import {
   RedeemedProofPanel,
@@ -35,7 +34,11 @@ import {
 } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import { SEALED_REWARD_NAME, SEALED_REWARD_NOTE } from "@/lib/copy/product-copy"
+import {
+  OPEN_MY_CARDS_LABEL,
+  SEALED_REWARD_NAME,
+  SEALED_REWARD_NOTE,
+} from "@/lib/copy/product-copy"
 import {
   collectionProgressVisible,
   collectionSetup,
@@ -45,6 +48,12 @@ import {
   waitingRewardTiming,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
+import { cardRewardTicket } from "@/lib/customer/experience/card-reward"
+import { nextStampLine } from "@/lib/customer/experience/next-stamp"
+import {
+  REWARD_NEEDS_SETUP_ACTION,
+  REWARD_NEEDS_SETUP_LINE,
+} from "@/lib/customer/home-dashboard"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
 import {
@@ -59,7 +68,6 @@ import type { OfferClaimNotice } from "@/lib/customer/offer-pass-view"
 import type {
   CustomerExperience,
   CustomerExperienceKind,
-  StampEmailPrompt,
 } from "@/lib/customer/experience/types"
 
 /**
@@ -84,7 +92,7 @@ export function CustomerCardExperience({
   offerPasses,
   offerClaimNotice,
   qrSrc,
-  stampEmailPrompt = null,
+  notice,
 }: {
   experience: CustomerExperience
   offerPasses: readonly CustomerOfferPass[]
@@ -92,12 +100,26 @@ export function CustomerCardExperience({
   /** Harness-only reward QR source override; production never passes it. */
   qrSrc?: string
   /**
-   * The stamp screen's server-loaded "Add your email" ask (null when the
-   * customer is not asked), shown once a stamp lands on this visit.
+   * A confirmation carried back by a redirect (the reward gate's `?contact=`
+   * after a mobile number is confirmed), shown above the panel.
    */
-  stampEmailPrompt?: StampEmailPrompt | null
+  notice?: ReactNode
 }) {
   const vm = getCustomerExperienceViewModel(experience)
+
+  if (
+    experience.kind === "stamp_confirm" ||
+    experience.kind === "card_stamped_today"
+  ) {
+    // The stamp screen's headline follows the stamp result once it lands, so
+    // it owns its shell (components/customer/stamp-screen.tsx).
+    return (
+      <>
+        <StampScreen exp={experience} vm={vm} />
+        <CustomerTabBar />
+      </>
+    )
+  }
 
   return (
     <>
@@ -114,13 +136,13 @@ export function CustomerCardExperience({
         landscapeCompact={landscapeCompact(experience)}
         screenLabel={screenLabelFor(experience.kind)}
       >
+        {notice}
         <ExperiencePanel
           experience={experience}
           vm={vm}
           offerPasses={offerPasses}
           offerClaimNotice={offerClaimNotice}
           qrSrc={qrSrc}
-          stampEmailPrompt={stampEmailPrompt}
         />
       </CustomerFlowShell>
       <CustomerTabBar />
@@ -134,14 +156,12 @@ function ExperiencePanel({
   offerPasses,
   offerClaimNotice,
   qrSrc,
-  stampEmailPrompt,
 }: {
   experience: CustomerExperience
   vm: CustomerExperienceViewModel
   offerPasses: readonly CustomerOfferPass[]
   offerClaimNotice: OfferClaimNotice | null
   qrSrc?: string
-  stampEmailPrompt: StampEmailPrompt | null
 }) {
   switch (experience.kind) {
     case "card_collecting":
@@ -151,11 +171,6 @@ function ExperiencePanel({
           offerPasses={offerPasses}
           offerClaimNotice={offerClaimNotice}
         />
-      )
-    case "card_stamped_today":
-    case "stamp_confirm":
-      return (
-        <StampScreenPanel exp={experience} emailPrompt={stampEmailPrompt} />
       )
     case "stamp_unmatched":
       return <StampUnmatchedPanel exp={experience} />
@@ -183,19 +198,15 @@ function CardProgressPanel({
   offerClaimNotice: OfferClaimNotice | null
 }) {
   const cardComplete = exp.total > 0 && exp.current >= exp.total
-  const rewardState: RewardTicketState =
-    exp.reward === "ready"
-      ? "ready"
-      : exp.reward === "waiting"
-        ? "waiting"
-        : "sealed"
+  // A reward held only by setup is unlocked, never shown as ready.
+  const rewardState: RewardTicketState = cardRewardTicket(exp)
   const rewardName =
     rewardState === "sealed"
       ? SEALED_REWARD_NAME
       : (exp.rewardName ?? "Your reward")
   const walletReward = exp.walletReward
   const rewardReadyDate =
-    rewardState === "waiting" && walletReward?.availableFrom
+    exp.reward === "waiting" && walletReward?.availableFrom
       ? formatCollectionAvailableLabel(walletReward.availableFrom)
       : null
   // The bottom band is purely informational only in the "stamp secured" case;
@@ -209,6 +220,7 @@ function CardProgressPanel({
 
   const rewardDescription = cardRewardDescription({
     state: rewardState,
+    needsSetup: exp.reward === "ready" && exp.rewardNeedsSetup === true,
     hasPrimaryAction,
     terms: exp.rewardTerms,
     availableFrom: walletReward?.availableFrom ?? null,
@@ -226,7 +238,7 @@ function CardProgressPanel({
         className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
       >
         <Icon icon={ArrowLeft01Icon} size={16} />
-        Your cards
+        {OPEN_MY_CARDS_LABEL}
       </Link>
 
       {offerClaimNotice ? (
@@ -262,26 +274,38 @@ function CardProgressPanel({
           // progress stays the first focal point rather than being pushed down.
           <>
             {exp.justStamped && cardComplete ? (
-              // All stamps collected — the headline beat: the seal lifts, and
-              // the ticket below shows the now-revealed reward.
+              // All stamps collected: the seal lifts, and the ticket below
+              // shows the now-revealed reward.
               <RewardCelebration
-                title="That's the full card."
+                title="Your card is full."
                 message={completedCardMessage(exp, walletReward?.availableFrom)}
               />
             ) : exp.justJoined &&
               !exp.firstStampRecovery &&
               !offerClaimNotice ? (
-              <StampCelebration>
-                <StatusBanner
-                  title={`Welcome to ${exp.merchantName}.`}
-                  tone="success"
-                  className="text-center"
-                >
-                  {exp.justStamped
-                    ? "You're in, your first stamp is on the card."
-                    : "You're in. Scan the venue QR in store to collect your first stamp."}
-                </StatusBanner>
-              </StampCelebration>
+              // The welcome stands alone: nothing is asked of the guest here.
+              // The shell headline already says "Welcome to {Venue}", so the
+              // banner names the outcome instead of repeating it.
+              exp.justStamped ? (
+                <StampCelebration>
+                  <StatusBanner
+                    title="Your first stamp is on your card."
+                    tone="success"
+                    className="text-center"
+                  />
+                </StampCelebration>
+              ) : (
+                <StampCelebration>
+                  <StatusBanner
+                    title="Your card is saved."
+                    tone="success"
+                    className="text-center"
+                  >
+                    Scan the QR at the counter on your next visit to get your
+                    first stamp.
+                  </StatusBanner>
+                </StampCelebration>
+              )
             ) : exp.justStamped ? (
               <StampCelebration>
                 <StatusBanner
@@ -289,18 +313,18 @@ function CardProgressPanel({
                   tone="success"
                   className="text-center"
                 >
-                  That&apos;s one. Your progress is saved.
+                  Today&apos;s stamp is on your card.
                 </StatusBanner>
               </StampCelebration>
             ) : null}
 
             {exp.justRedeemed ? (
               <StatusBanner
-                title="Reward redeemed."
+                title="Reward collected."
                 tone="success"
                 className="text-center"
               >
-                New stamp cycle started.
+                Your next card has started.
               </StatusBanner>
             ) : null}
           </>
@@ -321,7 +345,9 @@ function CardProgressPanel({
         <ReferralBonusBankNotice bank={exp.referralBonusBank} />
       ) : null}
 
-      {exp.referralShareUrl ? (
+      {/* Invite a friend: below the card progress, and only once the guest
+          has a stamp of their own. Never on the welcome moment itself. */}
+      {exp.referralShareUrl && exp.current > 0 && !exp.justJoined ? (
         <ReferralSharePanel
           url={exp.referralShareUrl}
           membershipId={exp.membershipId}
@@ -330,20 +356,7 @@ function CardProgressPanel({
         />
       ) : null}
 
-      {/* Asks after a stamp only, and only without a verified email. Sits
-          below the stamp card, so the stamp itself is never held up by it.
-          Always mounted (reason null when not asking): the prompt's actions
-          re-render this page after the stamp flag has left the URL, and the
-          guest must still see the code step and the confirmation. The
-          server's reason, prefill and pending code spread over the defaults,
-          so it opens where the /home prompt would. */}
-      <HomeEmailPrompt
-        surface="stamp_prompt"
-        reason={null}
-        {...exp.emailPrompt}
-      />
-
-      {exp.googleReviewUrl ? (
+      {exp.googleReviewUrl && !exp.justJoined ? (
         <GoogleReviewButton
           url={exp.googleReviewUrl}
           venueName={exp.merchantName}
@@ -357,15 +370,23 @@ function CardProgressPanel({
 
 function cardRewardDescription({
   state,
+  needsSetup,
   hasPrimaryAction,
   terms,
   availableFrom,
 }: {
   state: RewardTicketState
+  needsSetup: boolean
   hasPrimaryAction: boolean
   terms: string
   availableFrom: string | null
 }): ReactNode {
+  // Unlocked but held by a setup step: never "show it at the counter".
+  if (needsSetup) {
+    return hasPrimaryAction
+      ? REWARD_NEEDS_SETUP_LINE
+      : `${terms} ${REWARD_NEEDS_SETUP_LINE}`
+  }
   if (state === "sealed") {
     return hasPrimaryAction
       ? SEALED_REWARD_NOTE
@@ -374,9 +395,9 @@ function cardRewardDescription({
   if (state === "waiting") {
     return hasPrimaryAction
       ? undefined
-      : `${terms} Give it a day to breathe. ${waitingRewardTiming(availableFrom)}`
+      : `${terms} ${waitingRewardTiming(availableFrom)}`
   }
-  return hasPrimaryAction ? terms : `${terms} Reward ready for merchant scan.`
+  return hasPrimaryAction ? terms : `${terms} Show your reward at the counter.`
 }
 
 function completedCardMessage(
@@ -384,7 +405,10 @@ function completedCardMessage(
   availableFrom: string | null | undefined
 ): string {
   if (exp.reward === "ready") {
-    return "Your reward is ready, claim it at the counter while you're here."
+    // Unlocked but held by a setup step: never read as a code to show.
+    return exp.rewardNeedsSetup
+      ? REWARD_NEEDS_SETUP_LINE
+      : "Your reward is ready to collect."
   }
   return (
     formatCollectionAvailability(availableFrom ?? null) ??
@@ -407,33 +431,31 @@ function CardPrimaryAction({
       membershipId={exp.membershipId}
       recovery={exp.firstStampRecovery}
     />
-  ) : exp.reward === "ready" && exp.rewardId ? (
-    <Button asChild size="lg" variant="reward" className="w-full">
-      <Link href={`/reward/${exp.rewardId}`}>Open reward QR</Link>
-    </Button>
-  ) : exp.reward === "waiting" ? (
-    <StatusNotice
-      title="Give it a day to breathe"
-      message={waitingRewardTiming(exp.walletReward?.availableFrom ?? null)}
-    />
-  ) : exp.justStamped ? (
-    // Today's stamp is already on the card — confirm it instead of
-    // prompting another scan, which would read as a failure.
-    <StatusBanner title="Stamp secured." tone="success">
-      Your next scan window opens after the venue&apos;s daily reset.
-    </StatusBanner>
-  ) : (
-    // One action and one line: the instruction lives in the button,
-    // so the card stays inside the first screen (the stamp-per-day rule
-    // is in the card details disclosure below).
+  ) : exp.rewardId && (exp.reward === "ready" || exp.reward === "waiting") ? (
+    // The one thing to do on this card: see the unlocked reward. Its own
+    // screen says when it can be collected and what it still needs.
     <div className="grid gap-1.5">
-      <Button asChild size="lg" variant="secondary" className="w-full">
-        <Link href="/scan">Scan to stamp</Link>
+      <Button asChild size="lg" variant="reward" className="w-full">
+        <Link href={`/reward/${exp.rewardId}`}>See my reward</Link>
       </Button>
-      <p className="text-center text-xs leading-5 text-muted-foreground">
-        Use the printed QR at the venue to add today&apos;s stamp.
-      </p>
+      {exp.reward === "waiting" ? (
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          {waitingRewardTiming(exp.walletReward?.availableFrom ?? null)}
+        </p>
+      ) : null}
     </div>
+  ) : exp.justStamped ? (
+    // Today's stamp is already on the card: say when the next one opens,
+    // instead of prompting another scan, which would read as a failure.
+    <p className="text-center text-sm leading-5 text-ink-soft">
+      {nextStampLine(exp.nextStampFrom)}
+    </p>
+  ) : (
+    // Nothing to do on the card itself, so no primary action: one quiet
+    // line saying how today's stamp is added.
+    <p className="text-center text-sm leading-5 text-ink-soft">
+      Scan the QR at the counter to get today&apos;s stamp.
+    </p>
   )
 }
 
@@ -459,7 +481,9 @@ function CardGiftChip({
       </p>
       {gift.redeemable ? (
         <Button asChild size="sm" variant="reward" className="w-full">
-          <Link href={`/reward/${gift.rewardId}`}>Open gift QR</Link>
+          <Link href={`/reward/${gift.rewardId}`}>
+            {gift.needsSetup ? REWARD_NEEDS_SETUP_ACTION : "Open gift QR"}
+          </Link>
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">
@@ -531,7 +555,7 @@ function OfferClaimBanner({
 /**
  * Secondary technical details (card number, stamp rule) tucked behind a quiet
  * disclosure so the dashboard reads as a reward, not a contract. Collapsed by
- * default — one calm line until the customer asks for the specifics.
+ * default: one calm line until the customer asks for the specifics.
  */
 function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
   return (
@@ -547,75 +571,10 @@ function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
       <dl className="mono-id mt-2 grid gap-1.5 tracking-[0.08em] text-muted-foreground">
         <div className="flex justify-between gap-3">
           <dt>{cardNumber}</dt>
-          <dd>One stamp per venue trading day</dd>
+          <dd>One stamp a day</dd>
         </div>
       </dl>
     </details>
-  )
-}
-
-/**
- * The stamp screen — the live card with the interactive stamp disc. Both
- * `stamp_confirm` (ready to stamp) and `card_stamped_today` (already stamped)
- * render through this one component, so the {@link StampCollector} instance is
- * preserved when the server refreshes from one state to the other after a stamp
- * lands — no panel swap, no flash, the celebration stays put.
- */
-function StampScreenPanel({
-  exp,
-  emailPrompt,
-}: {
-  exp: Extract<
-    CustomerExperience,
-    { kind: "stamp_confirm" | "card_stamped_today" }
-  >
-  emailPrompt: StampEmailPrompt | null
-}) {
-  // Once the final stamp has unlocked a (not-yet-redeemable) reward, the screen
-  // holds on the completed card and offers a calm tap-through to the reward,
-  // rather than swapping straight to the waiting voucher.
-  const unlockedReward =
-    exp.kind === "card_stamped_today" ? exp.reward : undefined
-
-  return (
-    <section className="grid gap-5 short:gap-4">
-      <StampCollector
-        membershipId={exp.membershipId}
-        qrId={exp.qrId}
-        canStamp={exp.kind === "stamp_confirm"}
-        venueName={exp.merchantName}
-        cardName={exp.cardName}
-        current={exp.current}
-        total={exp.total}
-        stampDates={exp.stampDates}
-        todayLabel={exp.todayLabel}
-        rewardName={SEALED_REWARD_NAME}
-        rewardUnlocked={Boolean(unlockedReward)}
-        location={exp.location}
-        // The compact "Add your email" card straight after a stamp, as on the
-        // card after the join's first stamp (QA BUG-020). Always passed, with
-        // the server's reason or null, so an engaged prompt keeps its step
-        // when its action re-renders this screen.
-        afterStamp={
-          <HomeEmailPrompt
-            surface="stamp_prompt"
-            reason={null}
-            {...emailPrompt}
-          />
-        }
-      />
-      {unlockedReward ? (
-        <Button asChild size="lg" variant="reward" className="w-full">
-          <Link href={`/reward/${unlockedReward.rewardId}`}>
-            See your reward
-          </Link>
-        </Button>
-      ) : (
-        <Button asChild size="lg" variant="secondary" className="w-full">
-          <Link href={`/card/${exp.membershipId}`}>Back to card</Link>
-        </Button>
-      )}
-    </section>
   )
 }
 
@@ -633,12 +592,12 @@ function StampUnmatchedPanel({
   const band =
     exp.problem === "missing"
       ? {
-          title: "No venue QR on this visit.",
-          body: "Scan the printed QR at the counter and today's stamp button appears right here.",
+          title: "Scan the QR at the counter.",
+          body: "Today's stamp button appears here once you scan it.",
         }
       : {
           title: "Stamp not added.",
-          body: "That code belongs to another venue or has been replaced. Scan the printed QR at the counter again, or ask a team member.",
+          body: "This QR is for another venue or has been replaced. Scan the QR at the counter again, or ask a team member.",
         }
 
   return (
@@ -669,7 +628,7 @@ function StampUnmatchedPanel({
           </section>
         }
       />
-      <UnavailableRecoveryActions />
+      <UnavailableRecoveryActions scanLabel="Scan the QR" />
     </section>
   )
 }
@@ -710,20 +669,6 @@ function PrimaryLink({
     <Button asChild size="lg" variant={variant} className="w-full">
       <Link href={action.href}>{action.label}</Link>
     </Button>
-  )
-}
-
-function StatusNotice({
-  title = "Stamps unavailable",
-  message,
-}: {
-  title?: string
-  message: string
-}) {
-  return (
-    <StatusBanner title={title} tone="warning">
-      {message}
-    </StatusBanner>
   )
 }
 

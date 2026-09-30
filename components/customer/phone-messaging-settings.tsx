@@ -15,13 +15,21 @@ import type { PhoneMessagingPreferences } from "@/lib/customer/profile"
 const initialState: PhoneMessagingState = {}
 const CHANNEL_LABEL = {
   whatsapp: "WhatsApp",
-  sms: "Text message (SMS)",
+  sms: "Text message",
 } as const
 
+/**
+ * Reminders about stamps and rewards by phone (not offers, which are the
+ * marketing toggles). One switch, and the WhatsApp-or-text choice only while
+ * reminders are on: with them off there is nothing for the choice to steer.
+ * `embedded` drops the card and header inside "Messages from venues".
+ */
 export function PhoneMessagingSettings({
   preferences,
+  embedded = false,
 }: {
   readonly preferences: PhoneMessagingPreferences | null
+  readonly embedded?: boolean
 }) {
   const [state, action, pending] = useActionState(
     updateHomePhoneMessagingAction,
@@ -30,31 +38,33 @@ export function PhoneMessagingSettings({
 
   return (
     <section
-      className="surface-card grid gap-4 p-5"
-      aria-label="Phone messages"
+      className={embedded ? "grid gap-4" : "surface-card grid gap-4 p-5"}
+      aria-label="Reminders by phone"
     >
-      <SectionHeader eyebrow="Phone messages" title="WhatsApp or text" />
+      {embedded ? (
+        <h3 className="eyebrow">Reminders by phone</h3>
+      ) : (
+        <SectionHeader eyebrow="Reminders" title="WhatsApp or text" />
+      )}
       <p className="text-sm leading-6 text-muted-foreground">
-        Choose how to receive reward updates and reminders. Offers still depend
-        on your marketing choices above. Reply STOP to switch phone messages
-        off.
+        Reminders about your stamps and rewards. Offers depend on your choices
+        above. Reply STOP to switch these off.
       </p>
       {preferences ? (
         <>
           <div className="grid gap-1 text-sm" aria-live="polite">
             <p className="font-bold">
-              Phone messages: {preferences.phoneMessagesEnabled ? "On" : "Off"}
+              Reminders: {preferences.phoneMessagesEnabled ? "On" : "Off"}
             </p>
-            <p>
-              Preferred channel:{" "}
-              {CHANNEL_LABEL[preferences.preferredPhoneChannel]}
-            </p>
+            {preferences.phoneMessagesEnabled ? (
+              <p>Sent by {CHANNEL_LABEL[preferences.preferredPhoneChannel]}</p>
+            ) : null}
             {preferences.phoneMessagesEnabled &&
             preferences.preferredPhoneChannel === "whatsapp" &&
             preferences.whatsappUnavailableAt ? (
               <p className="text-muted-foreground">
-                WhatsApp is currently unavailable for your number. Messages can
-                use text instead.
+                WhatsApp isn&apos;t reaching your number just now. Reminders can
+                go by text instead.
               </p>
             ) : null}
           </div>
@@ -64,9 +74,9 @@ export function PhoneMessagingSettings({
               disabled={pending}
               className="grid min-w-0 gap-4"
             >
-              <legend className="sr-only">Phone message preferences</legend>
+              <legend className="sr-only">Reminders by phone</legend>
               <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4 text-sm font-bold">
-                Receive phone messages
+                Send me reminders by phone
                 <input
                   name="phoneMessagesEnabled"
                   type="checkbox"
@@ -74,19 +84,26 @@ export function PhoneMessagingSettings({
                   className="focus-ring size-5 shrink-0 accent-primary disabled:opacity-60"
                 />
               </label>
-              <FormField id="preferred-phone-channel" label="Preferred channel">
-                <SelectField
+              {preferences.phoneMessagesEnabled ? (
+                <FormField id="preferred-phone-channel" label="Send them by">
+                  <SelectField
+                    name="preferredPhoneChannel"
+                    defaultValue={preferences.preferredPhoneChannel}
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="sms">Text message</option>
+                  </SelectField>
+                </FormField>
+              ) : (
+                // The standing choice is kept while reminders are off.
+                <input
+                  type="hidden"
                   name="preferredPhoneChannel"
-                  defaultValue={preferences.preferredPhoneChannel}
-                >
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="sms">Text message (SMS)</option>
-                </SelectField>
-              </FormField>
+                  value={preferences.preferredPhoneChannel}
+                />
+              )}
             </fieldset>
-            <SubmitButton pendingLabel="Saving…">
-              Save phone preferences
-            </SubmitButton>
+            <SubmitButton pendingLabel="Saving…">Save reminders</SubmitButton>
             <p
               role="status"
               aria-live="polite"
@@ -98,7 +115,7 @@ export function PhoneMessagingSettings({
         </>
       ) : (
         <p role="status" className="text-sm text-muted-foreground">
-          We couldn&apos;t load your phone preferences. Reload to try again.
+          We couldn&apos;t load your reminders. Reload to try again.
         </p>
       )}
     </section>

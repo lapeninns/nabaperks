@@ -37,8 +37,8 @@ async function expectControlsInsideScreen(page: Page) {
 }
 
 async function requestCode(page: Page) {
-  await page.getByLabel("Phone number", { exact: true }).fill("07700900123")
-  await page.getByRole("button", { name: "Send code", exact: true }).click()
+  await page.getByLabel("UK mobile number", { exact: true }).fill("07700900123")
+  await page.getByRole("button", { name: "Send my code", exact: true }).click()
   await expect(
     page.getByRole("heading", { name: "Enter your code" })
   ).toBeVisible()
@@ -60,7 +60,7 @@ export function describeCustomerMobileLayout() {
           `/dev/home-harness/home?dob=set&reward=ready&long=${long}`
         )
         await page.evaluate(() => document.fonts.ready)
-        const banner = page.getByRole("link", { name: /^Open reward QR for/ })
+        const banner = page.locator('a[data-reward-banner="ready"]')
         await expect(banner).toBeVisible()
         await expectControlsInsideScreen(page)
         const bounds = await banner.boundingBox()
@@ -70,13 +70,13 @@ export function describeCustomerMobileLayout() {
       await gotoHydratedPage(page, "/dev/customer-login")
       await requestCode(page)
       await page.evaluate(() => window.scrollTo(0, 0))
-      const primary = page.getByRole("button", { name: "Open my cards" })
-      const resend = page.getByRole("button", { name: "Resend code" })
+      const primary = page.getByRole("button", { name: "Continue" })
+      const resend = page.getByRole("button", { name: "Send a new code" })
       expect((await primary.boundingBox())!.y).toBeLessThan(
         (await resend.boundingBox())!.y
       )
       if (height >= 568) await expect(primary).toBeInViewport({ ratio: 1 })
-      await page.getByLabel("Phone code").fill("424242")
+      await page.getByLabel("Your code").fill("424242")
       await primary.click({ trial: true })
       await expectControlsInsideScreen(page)
       expect(errors).toEqual([])
@@ -101,7 +101,7 @@ export function describeCustomerMobileLayout() {
           return document.fonts.ready
         })
         const action = page.getByRole("button", {
-          name: state === "ready" ? "Add today's stamp" : "Use my location",
+          name: state === "ready" ? "Stamp my card" : "Share my location",
           exact: true,
         })
         const box = (await action.boundingBox())!
@@ -183,7 +183,7 @@ export function describeCustomerMobileLayout() {
       )
       await page.evaluate(() => document.fonts.ready)
       await page
-        .getByRole("button", { name: "Use my location", exact: true })
+        .getByRole("button", { name: "Share my location", exact: true })
         .click()
       const root = page.locator("[data-stamp-phase]")
       await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
@@ -203,7 +203,7 @@ export function describeCustomerMobileLayout() {
       }
       expect((await submit.boundingBox())!.y).toBeLessThan(
         (await root
-          .getByRole("button", { name: "Try Again", exact: true })
+          .getByRole("button", { name: "Try again", exact: true })
           .boundingBox())!.y
       )
       await expectControlsInsideScreen(page)
@@ -215,32 +215,36 @@ export function describeCustomerMobileLayout() {
   }) => {
     await gotoHydratedPage(page, "/dev/customer-login")
     await requestCode(page)
-    await page.getByLabel("Phone code").fill("000000")
-    await page.getByRole("button", { name: "Open my cards" }).click()
+    await page.getByLabel("Your code").fill("000000")
+    await page.getByRole("button", { name: "Continue" }).click()
     await expect(page.locator("main").getByRole("alert")).toContainText(
-      "That code was not accepted."
+      "That code didn't work. Check it and try again."
     )
-    await page.getByRole("button", { name: "Resend code" }).click()
+    await page.getByRole("button", { name: "Send a new code" }).click()
     await expect(
-      page.getByRole("status").filter({ hasText: /If a code arrives/ })
+      page
+        .getByRole("status")
+        .filter({ hasText: /If a new code arrives, use the latest one\./ })
     ).toBeVisible()
     await expect(page.locator("main").getByRole("alert")).toHaveCount(0)
-    await page
-      .getByRole("button", { name: "Wrong number? Use a different one" })
-      .click()
-    const phone = page.getByLabel("Phone number", { exact: true })
+    await page.getByRole("button", { name: "Wrong number? Change it" }).click()
+    const phone = page.getByLabel("UK mobile number", { exact: true })
     await expect(phone).toBeFocused()
-    await expect(page.getByLabel("Phone code")).toHaveCount(0)
+    await expect(page.getByLabel("Your code")).toHaveCount(0)
     await phone.fill("123")
-    await page.getByRole("button", { name: "Send code", exact: true }).click()
+    await page
+      .getByRole("button", { name: "Send my code", exact: true })
+      .click()
     await expect(page.locator("main").getByRole("alert")).toContainText(
-      "Enter a valid phone number."
+      "Enter a UK mobile number, like 07700 900123."
     )
     await phone.fill("07700900456")
-    await page.getByRole("button", { name: "Send code", exact: true }).click()
-    await expect(page.getByText("Phone ending 0456")).toBeVisible()
-    await page.getByLabel("Phone code").fill("424242")
-    await page.getByRole("button", { name: "Open my cards" }).click()
+    await page
+      .getByRole("button", { name: "Send my code", exact: true })
+      .click()
+    await expect(page.getByText(/to 07•••• ••456\./)).toBeVisible()
+    await page.getByLabel("Your code").fill("424242")
+    await page.getByRole("button", { name: "Continue" }).click()
     await expect(page.getByRole("status")).toContainText(
       "Display verification complete"
     )
@@ -263,27 +267,27 @@ export function describeCustomerMobileLayout() {
       await gotoHydratedPage(page, `/dev/customer-login?scenario=${scenario}`)
       await requestCode(page)
       if (scenario === "resend-error") {
-        await page.getByRole("button", { name: "Resend code" }).click()
+        await page.getByRole("button", { name: "Send a new code" }).click()
         await expect(page.locator("main").getByRole("alert")).toContainText(
           "couldn't send a code"
         )
       } else {
-        await page.getByLabel("Phone code").fill("424242")
-        await page.getByRole("button", { name: "Open my cards" }).click()
+        await page.getByLabel("Your code").fill("424242")
+        await page.getByRole("button", { name: "Continue" }).click()
         if (scenario === "verify-error") {
           await expect(page.locator("main").getByRole("alert")).toContainText(
             "couldn't check that code"
           )
           await expect(
-            page.getByRole("button", { name: "Resend code" })
+            page.getByRole("button", { name: "Send a new code" })
           ).toBeVisible()
           continue
         }
         await expect(
           page.getByText(
             scenario === "expired"
-              ? "Request a new phone code."
-              : /No cards found/
+              ? "Your code expired. Send a new one."
+              : /couldn't find any cards/
           )
         ).toBeVisible()
         if (scenario === "unknown") {
@@ -291,13 +295,13 @@ export function describeCustomerMobileLayout() {
             page.getByRole("link", { name: "Scan a venue QR" })
           ).toHaveAttribute("href", "/scan")
           await expect(
-            page.getByRole("button", { name: "Send code", exact: true })
+            page.getByRole("button", { name: "Send my code", exact: true })
           ).toHaveCount(0)
           continue
         }
       }
       await expect(
-        page.getByRole("button", { name: "Send code", exact: true })
+        page.getByRole("button", { name: "Send my code", exact: true })
       ).toBeVisible()
     }
   })
@@ -316,7 +320,7 @@ export function describeCustomerMobileLayout() {
     expect((await how.boundingBox())!.height).toBeGreaterThanOrEqual(44)
     await how.click()
     await expect(page.locator("details[open] ol")).toBeVisible()
-    const terms = page.getByRole("button", { name: "View full venue terms" })
+    const terms = page.getByRole("button", { name: "View venue terms" })
     expect((await terms.boundingBox())!.height).toBeGreaterThanOrEqual(44)
     await terms.click()
     await expect(page.getByRole("dialog")).toBeVisible()
@@ -326,9 +330,7 @@ export function describeCustomerMobileLayout() {
     const details = page.locator("summary").filter({ hasText: "Card details" })
     expect((await details.boundingBox())!.height).toBeGreaterThanOrEqual(44)
     await details.click()
-    await expect(page.locator("details[open]")).toContainText(
-      "One stamp per venue trading day"
-    )
+    await expect(page.locator("details[open]")).toContainText("One stamp a day")
     expect(errors).toEqual([])
   })
 }

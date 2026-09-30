@@ -15,15 +15,15 @@ import {
 const CHANNEL_COPY = {
   email: {
     label: "Email",
-    helper: "Reward updates and offers by email.",
+    helper: "Offers from your venues by email.",
   },
   sms: {
-    label: "SMS",
-    helper: "Occasional offers by text message.",
+    label: "Text",
+    helper: "Offers from your venues by text message.",
   },
   whatsapp: {
     label: "WhatsApp",
-    helper: "Updates and offers on WhatsApp.",
+    helper: "Offers from your venues on WhatsApp.",
   },
 } as const satisfies Record<
   DisplayMarketingChannel,
@@ -116,7 +116,7 @@ function MarketingChannelRow({
         </p>
       </div>
       <label className="-m-3 mt-0.5 inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center p-3">
-        <span className="sr-only">Receive {label} updates</span>
+        <span className="sr-only">Offers by {label}</span>
         <input
           type="checkbox"
           name="optedIn"

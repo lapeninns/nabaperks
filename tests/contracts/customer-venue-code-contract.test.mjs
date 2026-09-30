@@ -211,6 +211,6 @@ test("the location refusal copy names the fallback", () => {
     'case "location_required":',
     'case "venue_code_rejected":'
   )
-  assert.match(outOfRange, /today's code/)
-  assert.match(required, /today's code/)
+  assert.match(outOfRange, /today's venue code/)
+  assert.match(required, /today's venue code/)
 })

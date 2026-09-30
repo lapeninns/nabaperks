@@ -1,11 +1,12 @@
 "use client"
 
 import { useCallback, useState } from "react"
-import Link from "next/link"
 
-import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
-import { StampCollector } from "@/components/customer/stamp-collector"
-import { Button } from "@/components/ui/button"
+import {
+  StampScreen,
+  type StampScreenExperience,
+} from "@/components/customer/stamp-screen"
+import { getCustomerExperienceViewModel } from "@/lib/customer/experience/copy"
 import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
 
 import type { HarnessMode } from "./modes"
@@ -111,6 +112,17 @@ const VERIFY_MODES: Partial<
   },
 }
 
+/**
+ * When the next stamp opens, as the server would pass it (Europe/London 06:00
+ * the next day). The "-next-visit" lanes pass null, as when the venue's day
+ * start could not be read.
+ */
+const NEXT_STAMP_FROM = "2026-07-17T05:00:00.000Z"
+const NEXT_VISIT_MODES = new Set<HarnessMode>([
+  "success-next-visit",
+  "closed-next-visit",
+])
+
 const LOCATION_REFUSED: SelfStampActionState = {
   status: "error",
   reason: "location_out_of_range",
@@ -145,7 +157,9 @@ export function StampHarnessClient({
     ["12 Jul", "13 Jul", "14 Jul", "15 Jul", "16 Jul"].slice(0, startingCurrent)
   )
   const [canStamp, setCanStamp] = useState(
-    mode !== "closed" && mode !== "reloaded-final"
+    mode !== "closed" &&
+      mode !== "closed-next-visit" &&
+      mode !== "reloaded-final"
   )
   const [rewardReady, setRewardReady] = useState(mode === "reloaded-final")
   const [submitCount, setSubmitCount] = useState(0)
@@ -257,56 +271,63 @@ export function StampHarnessClient({
     }
   }, [mode])
 
+  // The real stamp screen (shell, headline, collector, card link), fed the
+  // experience the stamp route would derive from this lane's state.
+  const location = verify
+    ? {
+        requireGeofence: true,
+        geofenceRadiusMeters: 150,
+        firstVerifiedVisit: 3,
+        nextVisitNumber: 4,
+        unverifiedGraceRemaining: verify.unverifiedGraceRemaining,
+      }
+    : { requireGeofence: false, geofenceRadiusMeters: 150 }
+  const base = {
+    membershipId: "mem_harness_stamp",
+    merchantName: "Old Crown Girton",
+    qrId: "old-crown",
+    location,
+    cardName: "Mystery Visit Card",
+    current,
+    total: 5,
+    stampDates,
+    todayLabel: "16 Jul",
+    nextStampFrom: NEXT_VISIT_MODES.has(mode) ? null : NEXT_STAMP_FROM,
+  }
+  const experience: StampScreenExperience = canStamp
+    ? { kind: "stamp_confirm", ...base }
+    : {
+        kind: "card_stamped_today",
+        ...base,
+        ...(rewardReady
+          ? {
+              reward: {
+                rewardId: "rwd_harness_stamp",
+                rewardName: "Mystery reward",
+                redeemableFrom: null,
+              },
+            }
+          : {}),
+      }
+
   return (
-    <section className="mx-auto grid w-full max-w-customer gap-5 px-4 py-8">
+    <>
       <div className="sr-only" aria-hidden="true">
         <span data-submit-count>{submitCount}</span>
         <span data-refresh-count>{refreshCount}</span>
         <span data-last-location-status>{lastLocationStatus}</span>
       </div>
-      <StampCollector
-        membershipId="mem_harness_stamp"
-        qrId="old-crown"
-        canStamp={canStamp}
-        venueName="Old Crown Girton"
-        cardName="Mystery Visit Card"
-        current={current}
-        total={5}
-        stampDates={stampDates}
-        todayLabel="16 Jul"
-        rewardName="Mystery reward"
-        rewardUnlocked={rewardReady}
-        location={
-          verify
-            ? {
-                requireGeofence: true,
-                geofenceRadiusMeters: 150,
-                firstVerifiedVisit: 3,
-                nextVisitNumber: 4,
-                unverifiedGraceRemaining: verify.unverifiedGraceRemaining,
-              }
-            : { requireGeofence: false, geofenceRadiusMeters: 150 }
-        }
-        submitStamp={submitStamp}
-        submitVenueCode={submitVenueCode}
-        refreshCard={refreshCard}
-        // As StampScreenPanel passes it for a signed-in member without a
-        // verified email; the prompt's own actions are never submitted here.
-        afterStamp={
-          mode === "email-prompt" ? (
-            <HomeEmailPrompt surface="stamp_prompt" reason="rewards" />
-          ) : undefined
-        }
+      <StampScreen
+        exp={experience}
+        vm={getCustomerExperienceViewModel(experience)}
+        overrides={{
+          submitStamp,
+          submitVenueCode,
+          refreshCard,
+          cardHref: "/dev/home-harness/home",
+          rewardHref: "/dev/home-harness/rewards",
+        }}
       />
-      {rewardReady ? (
-        <Button asChild size="lg" variant="reward" className="w-full">
-          <Link href="/dev/home-harness/rewards">See your reward</Link>
-        </Button>
-      ) : (
-        <Button asChild size="lg" variant="secondary" className="w-full">
-          <Link href="/dev/home-harness/home">Back to card</Link>
-        </Button>
-      )}
-    </section>
+    </>
   )
 }

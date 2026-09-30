@@ -178,6 +178,7 @@ function loadActions() {
       "next/cache":
         'import { state } from "fixture-state"; export function revalidatePath(path) { state.revalidated.push(path) }',
       "next/server": "export function after() {}",
+      "next/navigation": "export function redirect() {}",
       "@/lib/rewards/issue-birthday":
         "export function triggerBirthdayIssuanceForCustomer() {}",
       "@/lib/customer/consent":
@@ -218,6 +219,8 @@ function loadActions() {
       "@/lib/customer/email-confirmation",
       "@/lib/customer/profile-fields",
       "@/lib/customer/uk-calendar",
+      "@/lib/customer/previous-stamps",
+      "@/lib/navigation/safe-next-path",
     ])
   )
 }
@@ -241,7 +244,7 @@ test("Given a stale code When device one confirms it Then it is told the code ex
     form({ intent: "verify", surface: "home_prompt", otp: "123456" })
   )
 
-  const expired = { otp: "That code has expired. Email me a new code." }
+  const expired = { otp: "That code has expired. Send a new code." }
   assert.deepEqual(profileAnswer, { errors: expired })
   assert.deepEqual(promptAnswer, {
     step: "code",

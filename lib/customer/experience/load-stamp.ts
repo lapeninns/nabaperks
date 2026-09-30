@@ -16,6 +16,7 @@ import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 import type { StampContext } from "./derive"
+import { loadNextStampFrom } from "./load-next-stamp"
 import { loadProfileGate } from "./load-profile-gate"
 
 const DEFAULT_LOCATION = { requireGeofence: false, geofenceRadiusMeters: 150 }
@@ -167,10 +168,14 @@ export async function loadStampExperienceContext(
       )
     : Promise.resolve({ ok: true as const, value: null })
   const tradingDate = await getVenueTradingDate(cardState.merchant.id)
-  const [progress, stampedToday] = await Promise.all([
+  const [cardProgress, stampedToday, nextStampFrom] = await Promise.all([
     loadCardProgress(cardState, tradingDate),
     isStampedToday(membershipId, tradingDate),
+    // When the stamp after today's opens, for the stamp-added and
+    // already-stamped lines. Display only; null falls back to "next visit".
+    loadNextStampFrom(cardState.merchant.id, tradingDate),
   ])
+  const progress = { ...cardProgress, nextStampFrom }
 
   if (stampedToday) {
     return {

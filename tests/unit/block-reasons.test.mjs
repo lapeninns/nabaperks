@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   blockReasonCopy,
+  blockReasonTitle,
   stampBlockReasonFromSqlState,
   toStampBlockReason,
 } from "@/lib/customer/experience/block-reasons"
@@ -67,11 +68,70 @@ test("Given an unknown RPC message When it is mapped Then generic recovery copy 
   )
 })
 
-test("Given a same-day stamp block When copy is rendered Then the venue reset is named exactly", () => {
+test("Given a same-day stamp block When copy is rendered Then it says so in guest words, without trading days or resets", () => {
   assert.equal(
     blockReasonCopy("already_stamped_today"),
-    "You're already stamped for this venue trading day. Try again after the venue's next daily reset."
+    "You've already got today's stamp. Come back on your next visit."
   )
+})
+
+test("Given every customer block reason When copy and titles are rendered Then they avoid internal vocabulary, em dashes and exclamation marks", () => {
+  const reasons = [
+    "already_stamped_today",
+    "reward_ready_first",
+    "reward_daily_cap",
+    "billing_required",
+    "rate_limited",
+    "pool_unavailable",
+    "unauthenticated",
+    "profile_incomplete",
+    "location_required",
+    "location_out_of_range",
+    "location_blocked",
+    "venue_code_rejected",
+    "venue_code_refusal_missing",
+    "venue_code_locked",
+    "venue_code_format",
+    "venue_code_rate_limited",
+    "unavailable",
+    "unknown",
+    undefined,
+  ]
+  for (const reason of reasons) {
+    const lines = [blockReasonTitle(reason, "The Old Crown")]
+    if (reason) lines.push(blockReasonCopy(reason))
+    for (const line of lines) {
+      assert.doesNotMatch(
+        line,
+        /trading day|daily reset|verif|redeem|merchant scan|wallet|\u2014|!/i,
+        `${reason}: ${line}`
+      )
+    }
+  }
+  assert.doesNotMatch(
+    blockReasonCopy("unauthenticated"),
+    /Verify your identity from the venue QR/
+  )
+})
+
+test("Given a refusal When its title is rendered Then it names the situation at this venue", () => {
+  assert.equal(
+    blockReasonTitle("billing_required", "The Old Crown"),
+    "Stamps are paused at The Old Crown"
+  )
+  assert.equal(
+    blockReasonTitle("unavailable", "The Old Crown"),
+    "Stamps are paused at The Old Crown"
+  )
+  assert.equal(
+    blockReasonTitle("already_stamped_today"),
+    "You've already got today's stamp"
+  )
+  assert.equal(
+    blockReasonTitle("location_out_of_range"),
+    "We couldn't confirm you're at the venue"
+  )
+  assert.equal(blockReasonTitle(undefined), "Stamp not added")
 })
 
 test("Given a stamp refusal SQLSTATE When it is mapped Then the code decides the reason", () => {

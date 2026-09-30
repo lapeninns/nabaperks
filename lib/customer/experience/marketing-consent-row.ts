@@ -5,7 +5,7 @@
  * the component stays declarative and this logic can be triangulated directly:
  *
  *  - Feedback: the toggle gives a quiet, polite confirmation ("Saved") once a save
- *    lands, and a warning ("Couldn't save — try again") when it fails — instead of
+ *    lands, and a warning ("Couldn't save. Try again.") when it fails, instead of
  *    only a transient disabled dim.
  *  - Control/state sync: the checkbox is controlled from server truth, not left
  *    uncontrolled (defaultChecked). The action returns the standing value — the new
@@ -71,10 +71,10 @@ export const MARKETING_CONSENT_REFUSAL_NOTICE: Record<
   string
 > = {
   needs_verified_phone:
-    "Add a phone number first to get offers by text or WhatsApp.",
+    "Add your mobile number first to get offers by text or WhatsApp.",
   needs_verified_email: "Confirm your email first to get offers by email.",
   no_memberships:
-    "Join a venue first. You choose updates when you join and can change them here afterwards.",
+    "Join a venue first. You choose offers when you join and can change them here afterwards.",
 }
 
 /**
@@ -103,7 +103,7 @@ export function marketingConsentChannels({
     return {
       channels,
       notice:
-        "Confirm your email or add a phone number to choose updates from your venues.",
+        "Confirm your email or add your mobile number to choose offers from your venues.",
     }
   }
   return { channels, notice: null }
@@ -118,9 +118,9 @@ const DISPLAY_CHANNEL_ORDER: readonly DisplayMarketingChannel[] = [
 /** Why a standing opt-in can be turned off but not back on. */
 export const MARKETING_CONSENT_WITHDRAW_ONLY_NOTICE = {
   email:
-    "Your email is not confirmed, so you can only turn email updates off. Confirm an email address to turn them on again.",
+    "Your email is not confirmed, so you can only turn email offers off. Confirm an email address to turn them on again.",
   phone:
-    "Your phone number is not verified, so you can only turn text and WhatsApp updates off. Add your phone number to turn them on again.",
+    "Your mobile number is not confirmed, so you can only turn text and WhatsApp offers off. Add your mobile number to turn them on again.",
 } as const
 
 /**
@@ -229,7 +229,7 @@ export function marketingConsentRowState({
       message: MARKETING_CONSENT_REFUSAL_NOTICE[state.refusal] ?? "",
     }
   }
-  if (state.error) return { checked, message: "Couldn't save — try again" }
+  if (state.error) return { checked, message: "Couldn't save. Try again." }
   if (typeof state.optedIn === "boolean") return { checked, message: "Saved" }
   return { checked, message: "" }
 }

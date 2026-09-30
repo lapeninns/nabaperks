@@ -66,16 +66,16 @@ export function registerCustomerVenueCodeLiveDbTests() {
         await context.setGeolocation(FAR_FROM_VENUE)
 
         // 1. The member scans from far away. This visit must confirm location,
-        //    so the screen offers "Use my location" and the code side by side;
+        //    so the screen offers "Share my location" and the code side by side;
         //    the location check refuses the far fix.
         await page.goto(
           `/card/${fixture.membershipId}/stamp?qr=${fixture.qrId}`
         )
         const root = page.locator("[data-stamp-phase]")
         await expect(
-          root.getByRole("button", { name: "Enter venue code" })
+          root.getByRole("button", { name: "Enter the venue code instead" })
         ).toBeVisible()
-        await root.getByRole("button", { name: "Use my location" }).click()
+        await root.getByRole("button", { name: "Share my location" }).click()
         await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
         await expect(root.locator("[data-stamp-status-band]")).toContainText(
           "ask a team member for today's code"
@@ -110,15 +110,18 @@ export function registerCustomerVenueCodeLiveDbTests() {
         await root.getByLabel("Today's code from a team member").fill(shownCode)
         await root.getByRole("button", { name: "Add my stamp" }).click()
         await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
-        await expect(
-          root.getByText(`Stamp 2 of ${fixture.stampsRequired} added.`)
-        ).toBeVisible()
+        await expect(root.locator("[data-stamp-receipt]")).toHaveText(
+          `2 OF ${fixture.stampsRequired}`
+        )
 
         // 4. The persisted outcome survives a reload, and the evidence is durable.
         await page.reload()
-        await expect(page.locator("[data-stamp-phase]")).toContainText(
-          "You're stamped for today."
-        )
+        await expect(
+          page.getByRole("heading", {
+            level: 1,
+            name: "You've already got today's stamp",
+          })
+        ).toBeVisible()
         const state = await readVenueCodeStampState(sql, fixture)
         expect(state.earned).toBe(2)
         expect(state.venueCodeStamps).toBe(1)

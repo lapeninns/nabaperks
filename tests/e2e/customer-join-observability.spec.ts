@@ -50,16 +50,17 @@ test.describe("durable join funnel", () => {
       const activeFixture = fixture
 
       await openTermsStep(page, fixture, phone)
-      await page.getByLabel(/Loyalty terms/i).check()
-      await page.getByRole("button", { name: "Get my first stamp" }).click()
+      await page.getByLabel(/Card terms/i).check()
+      await page.getByRole("button", { name: "Add my first stamp" }).click()
       await expect(page).toHaveURL(/\/card\/[^?]+/)
 
       const joined = await readJoinedMembership(sql, fixture, phone)
       if (!joined) throw new Error("Join did not create a membership.")
       await expect(page).toHaveURL(new RegExp(`/card/${joined.membership_id}`))
 
-      await expect.poll(async () => {
-        const rows = await sql<readonly FunnelKeyRow[]>`
+      await expect
+        .poll(async () => {
+          const rows = await sql<readonly FunnelKeyRow[]>`
             select metadata ->> 'funnel_key' as funnel_key
             from public.product_events
             where merchant_id = ${activeFixture.merchantId}::uuid
@@ -67,8 +68,9 @@ test.describe("durable join funnel", () => {
               and metadata ->> 'step' = 'welcome'
             order by occurred_at desc
             limit 1`
-        return rows.at(0)?.funnel_key
-      }).toMatch(/^ana_v1_[A-Za-z0-9_-]{43}$/)
+          return rows.at(0)?.funnel_key
+        })
+        .toMatch(/^ana_v1_[A-Za-z0-9_-]{43}$/)
 
       const keyRows = await sql<readonly FunnelKeyRow[]>`
         select metadata ->> 'funnel_key' as funnel_key

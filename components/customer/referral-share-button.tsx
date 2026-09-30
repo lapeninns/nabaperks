@@ -28,7 +28,7 @@ export function ReferralShareButton({
     void recordReferralShare(membershipId)
     const shareData = {
       title: "Bring a Regular",
-      text: `Join me on the ${venueName} loyalty card — collect your first stamp and my card gets a bonus stamp too.`,
+      text: `Join me on the ${venueName} loyalty card. Collect your first stamp and my card gets a bonus stamp too.`,
       url,
     }
     try {

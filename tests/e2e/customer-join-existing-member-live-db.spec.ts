@@ -49,9 +49,9 @@ test.describe("@customer-flow existing member join live DB", () => {
           url.pathname === `/card/${activeFixture.membershipId}/stamp` &&
           url.searchParams.get("qr") === activeFixture.activeQrId
       )
-      await expect(readMerchantMembershipCount(sql, activeFixture)).resolves.toBe(
-        1
-      )
+      await expect(
+        readMerchantMembershipCount(sql, activeFixture)
+      ).resolves.toBe(1)
     } finally {
       await cleanupPublicQrRouterFixture(sql, fixture)
       await sql.end()

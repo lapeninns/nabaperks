@@ -21,7 +21,11 @@ function row(overrides = {}) {
 
 test("stamp-cycle and issued rewards land on separate rails", () => {
   const counts = buildRewardCountsByMembership([
-    row({ id: "stamp_ready", source: "stamp_cycle", reward_name: "Free coffee" }),
+    row({
+      id: "stamp_ready",
+      source: "stamp_cycle",
+      reward_name: "Free coffee",
+    }),
     row({
       id: "bday_ready",
       source: "birthday_month",
@@ -92,7 +96,11 @@ test("getTopRedeemable surfaces a redeemable gift when there is no earned reward
 
 test("getTopRedeemable prefers the earned stamp reward over a gift on the same card", () => {
   const counts = buildRewardCountsByMembership([
-    row({ id: "stamp_ready", source: "stamp_cycle", reward_name: "Free coffee" }),
+    row({
+      id: "stamp_ready",
+      source: "stamp_cycle",
+      reward_name: "Free coffee",
+    }),
     row({
       id: "gift_ready",
       source: "birthday_month",
@@ -169,4 +177,59 @@ test("a stamp reward blocked by the venue is neither ready nor soon on Home", ()
   assert.equal(mem.stampRewardId, null)
   assert.equal(mem.revealedRewardName, null)
   assert.equal(mem.stampUnlocked, 1)
+})
+
+test("a stamp reward held only by setup keeps its link but is flagged as needing setup", () => {
+  const counts = buildRewardCountsByMembership([
+    row({
+      id: "stamp_setup",
+      collection_state: "blocked",
+      collection_reason: "Complete your profile before redeeming",
+      reward_name: "Free coffee",
+    }),
+  ])
+  const mem = counts.get("mem_1")
+
+  assert.equal(mem.stampRewardId, "stamp_setup")
+  assert.equal(mem.stampRewardNeedsSetup, true)
+
+  const top = getTopRedeemable(
+    [{ membershipId: "mem_1", businessName: "Old Crown" }],
+    counts
+  )
+  assert.equal(top?.rewardId, "stamp_setup")
+  assert.equal(top?.needsSetup, true)
+})
+
+test("a photo-ID counter check is ready to collect, not a setup step", () => {
+  const counts = buildRewardCountsByMembership([
+    row({
+      id: "stamp_id",
+      collection_state: "blocked",
+      collection_reason:
+        "Customer must have verified photo ID and be 18 or over to redeem",
+    }),
+  ])
+
+  assert.equal(counts.get("mem_1").stampRewardNeedsSetup, false)
+})
+
+test("the home banner leads with a reward ready now over one that needs setup", () => {
+  const counts = buildRewardCountsByMembership([
+    row({
+      id: "setup_first_card",
+      membership_id: "mem_1",
+      collection_state: "blocked",
+      collection_reason: "Verified email required for reward collection",
+    }),
+    row({ id: "ready_second_card", membership_id: "mem_2" }),
+  ])
+  const cards = [
+    { membershipId: "mem_1", businessName: "Old Crown" },
+    { membershipId: "mem_2", businessName: "The Anchor" },
+  ]
+
+  const top = getTopRedeemable(cards, counts)
+  assert.equal(top?.rewardId, "ready_second_card")
+  assert.equal(top?.needsSetup, false)
 })

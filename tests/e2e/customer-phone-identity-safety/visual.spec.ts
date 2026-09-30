@@ -66,7 +66,7 @@ test.describe("pending phone privacy", () => {
       ])
       await page.reload()
       await expect(
-        page.getByRole("heading", { name: "Your first stamp is ready" })
+        page.getByRole("heading", { name: "Get your first stamp" })
       ).toBeVisible()
       await expect(page.locator("#otp")).toHaveCount(0)
     } finally {

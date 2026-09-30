@@ -8,11 +8,12 @@ import {
   CustomerReceipt,
 } from "@/components/customer/customer-flow-system"
 import { Button } from "@/components/ui/button"
-import {
-  CARD_LOAD_FAILED_DESCRIPTION,
-  CARD_LOAD_FAILED_TITLE,
-  OPEN_MY_CARDS_LABEL,
-} from "@/lib/copy/product-copy"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
+
+/** Guest journey Q3: a network or service failure, said in guest words. */
+export const CUSTOMER_LOAD_FAILED_TITLE = "We couldn't load this card"
+export const CUSTOMER_LOAD_FAILED_DESCRIPTION =
+  "Check your signal or Wi-Fi, then try again."
 
 /**
  * The join page or a venue QR could not load its venue and card because a
@@ -29,19 +30,15 @@ export function CustomerLoadFailed({
 }) {
   return (
     <CustomerFlowShell
-      eyebrow="Try again shortly"
+      eyebrow="Try again"
       className="content-center"
       screenLabel={screenLabel}
     >
-      <CustomerReceipt
-        venueName="Nabaperks"
-        eyebrow="Try again shortly"
-        hideFooter
-      >
+      <CustomerReceipt venueName="Nabaperks" eyebrow="Try again" hideFooter>
         <EmptyState
           icon={AlertDiamondIcon}
-          title={CARD_LOAD_FAILED_TITLE}
-          description={CARD_LOAD_FAILED_DESCRIPTION}
+          title={CUSTOMER_LOAD_FAILED_TITLE}
+          description={CUSTOMER_LOAD_FAILED_DESCRIPTION}
           headingLevel={1}
           className="w-full"
           actions={

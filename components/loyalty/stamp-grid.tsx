@@ -48,7 +48,7 @@ export function RewardChip({
   const ready = slotState === "ready"
   const revealed = slotState === "revealed"
   const statusLabel = ready
-    ? "ready for merchant scan"
+    ? "ready to collect"
     : revealed
       ? "unlocked"
       : "sealed"

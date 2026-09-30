@@ -31,7 +31,7 @@ const ICON_PX: Record<RewardSealSize, number> = {
 const DEFAULT_LABEL: Record<RewardSealState, string> = {
   sealed: MYSTERY_REWARD_SEALED_LABEL,
   waiting: "Reward unlocked, resting until it's ready",
-  ready: "Reward ready for merchant scan",
+  ready: "Reward ready to collect",
   redeemed: "Reward redeemed",
 }
 

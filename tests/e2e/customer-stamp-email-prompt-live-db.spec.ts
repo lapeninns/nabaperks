@@ -11,11 +11,12 @@ import { dismissPwaInstall } from "./helpers/harness"
 import { installRewardCustomerSession } from "./helpers/reward-id-check-sessions"
 
 /**
- * The compact "Add your email" card straight after an ordinary stamp (QA
- * BUG-020): a phone-only member on a later visit stamps on the real stamp
- * screen, and the card appears below the stamp card once the server has
- * confirmed the stamp. Before this, only the join's first stamp (which lands
- * on /card?stamp=issued) ever showed it.
+ * The stamp result owns the stamp screen (guest journey redesign, brief S2):
+ * a phone-only member on a later visit stamps on the real stamp screen and
+ * sees "Stamp added.", the updated progress and when the next stamp opens,
+ * with no "Add your email" card or other contact prompt stacked on it. The
+ * optional email suggestion now waits for /home. This replaces the QA BUG-020
+ * check that the prompt appeared here.
  *
  * Opt-in: CUSTOMER_FLOW_E2E=1 with local Supabase (SUPABASE_DB_URL) and the
  * dev server's CUSTOMER_SESSION_SECRET.
@@ -37,7 +38,7 @@ test.describe("@customer-flow post-stamp email prompt (live database)", () => {
   test.skip(Boolean(reason), reason)
   test.use({ serviceWorkers: "block" })
 
-  test("a phone-only member sees the add-email card after a stamp on the stamp screen", async ({
+  test("a phone-only member's stamp result stands alone on the stamp screen", async ({
     context,
     page,
     baseURL,
@@ -66,18 +67,20 @@ test.describe("@customer-flow post-stamp email prompt (live database)", () => {
       // Nothing is asked before the stamp.
       await expect(page.getByTestId("email-prompt")).toHaveCount(0)
 
-      await root.getByRole("button", { name: "Add today's stamp" }).click()
+      await root.getByRole("button", { name: "Stamp my card" }).click()
       await expect(root).toHaveAttribute("data-stamp-phase", "confirmed")
       await expect(
-        root.getByText(`Stamp 2 of ${fixture.stampsRequired} added.`)
+        page.getByRole("heading", { level: 1, name: "Stamp added." })
       ).toBeVisible()
+      await expect(root.locator("[data-stamp-receipt]")).toHaveText(
+        `2 OF ${fixture.stampsRequired}`
+      )
+      await expect(root.getByText(/^Next stamp from /)).toBeVisible()
 
-      const prompt = page.getByTestId("email-prompt")
-      await expect(prompt).toBeVisible()
-      await expect(
-        prompt.getByRole("heading", { name: "Add your email" })
-      ).toBeVisible()
-      await expect(prompt.getByLabel("Email", { exact: true })).toHaveValue("")
+      // Nothing competes with the stamp, including after the refresh the
+      // stamp action triggers.
+      await page.waitForLoadState("networkidle")
+      await expect(page.getByTestId("email-prompt")).toHaveCount(0)
 
       await expect(countEarnedStamps(sql, fixture)).resolves.toBe(2)
     } finally {

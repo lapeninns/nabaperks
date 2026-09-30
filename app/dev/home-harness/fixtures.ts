@@ -3,8 +3,9 @@ import type { CustomerRewards } from "@/lib/customer/rewards"
 /**
  * DB-free wallet fixtures for the /dev/home-harness rewards lane. Literal only
  * (no Date/now) so the harness is deterministic. Exercises every source: an
- * earned stamp reward, a birthday treat, a merchant-sent gift (each in the
- * ready-for-scan bucket), plus redeemed + expired history.
+ * earned stamp reward, a birthday treat, a merchant-sent gift (each ready to
+ * collect), an unlocked reward still needing setup, one on the way, plus
+ * collected and expired history.
  */
 export const HOME_HARNESS_REWARDS: CustomerRewards = {
   redeemable: [
@@ -45,13 +46,31 @@ export const HOME_HARNESS_REWARDS: CustomerRewards = {
       membershipId: "mem_2",
       businessName: "The Anchor",
       rewardName: "Manager's thank-you drink",
-      rewardTerms: "A drink on us — thanks for being a regular.",
+      rewardTerms: "A drink on us. Thanks for being a regular.",
       source: "merchant_direct",
       collectionState: "ready",
       collectionReason: null,
       availableFrom: "2026-07-01T09:00:00.000Z",
       redeemableFrom: "2026-07-01",
       expiresAt: "2026-08-15T12:00:00.000Z",
+      expiredAt: null,
+      redeemedAt: null,
+      createdAt: "2026-07-01T09:00:00.000Z",
+    },
+  ],
+  needsSetup: [
+    {
+      rewardId: "rwd_setup",
+      membershipId: "mem_2",
+      businessName: "The Anchor",
+      rewardName: "A mystery reward",
+      rewardTerms: "The venue team confirms the eligible item.",
+      source: "stamp_cycle",
+      collectionState: "blocked",
+      collectionReason: "Complete your profile before redeeming",
+      availableFrom: "2026-07-01T09:00:00.000Z",
+      redeemableFrom: "2026-07-01",
+      expiresAt: null,
       expiredAt: null,
       redeemedAt: null,
       createdAt: "2026-07-01T09:00:00.000Z",

@@ -17,7 +17,7 @@ import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
-  title: "My Nabaperks · sign in",
+  title: "Open my cards · Nabaperks",
 }
 
 type HomeLoginPageProps = {
@@ -68,6 +68,7 @@ async function pendingPhoneCodeStep(): Promise<CustomerLoginOtpState> {
       method: "phone",
       contact: pending.phone,
       otpSent: true,
+      ...(pending.channel ? { channel: pending.channel } : {}),
       ...phoneCodeStepTiming(pending.issuedAt, Date.now()),
     },
   }

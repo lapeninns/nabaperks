@@ -3,6 +3,8 @@
 import { notFound } from "next/navigation"
 
 import type { CustomerLoginOtpState } from "@/app/home/actions"
+import { LOGIN_MESSAGES } from "@/lib/customer/login-copy"
+import { parseOtpChannel } from "@/lib/customer/otp-channel-core"
 import { PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS } from "@/lib/customer/phone-code-email-fallback"
 import { isEmailAddress } from "@/lib/customer/profile-fields"
 
@@ -63,22 +65,26 @@ async function requestLoginFixture(
   if (!/^\+?\d{10,13}$/.test(contact)) {
     return {
       fields: { contact },
-      errors: { contact: "Enter a valid phone number." },
+      errors: { contact: "Enter a UK mobile number, like 07700 900123." },
     }
   }
+  // As the real action stores it: E.164, so the code step masks it the same.
+  const e164 = /^0\d{10}$/.test(contact) ? `+44${contact.slice(1)}` : contact
   if (
     scenario === "send-error" ||
     (scenario === "resend-error" && state.fields?.otpSent)
   ) {
     return {
-      fields: { contact, phoneSendFailed: true },
-      errors: { form: "We couldn't send a code just now. Try again shortly." },
+      fields: { contact: e164, phoneSendFailed: true },
+      errors: { form: LOGIN_MESSAGES.sendFailed },
     }
   }
   return {
     fields: {
-      contact,
+      contact: e164,
       otpSent: true,
+      // As if WhatsApp is the primary channel; "Text me instead" sends SMS.
+      channel: parseOtpChannel(data.get("channel")) ?? "whatsapp",
       emailFallbackInSeconds: PHONE_CODE_EMAIL_FALLBACK_DELAY_SECONDS,
       // Each send is newer than the last, as the pending cookie's issue time
       // is, so a resend restarts the email fallback's wait.
@@ -87,8 +93,9 @@ async function requestLoginFixture(
         (state.fields?.phoneCodeSentAt ?? 0) + 1
       ),
     },
-    message:
-      "If a code arrives for that number, enter it here. Otherwise scan a venue QR to join first.",
+    ...(data.get("resend") === "1"
+      ? { message: LOGIN_MESSAGES.newCodeSent }
+      : {}),
   }
 }
 
@@ -102,34 +109,38 @@ async function verifyLoginFixture(
   // The real action works the wait out again from the pending code cookie;
   // the same code keeps its send time, so the step keeps counting down.
   const codeTiming = {
+    channel: state.fields?.channel,
     emailFallbackInSeconds: state.fields?.emailFallbackInSeconds,
     phoneCodeSentAt: state.fields?.phoneCodeSentAt,
   }
-  if (scenario === "expired")
-    return { errors: { contact: "Request a new phone code." } }
+  if (scenario === "expired") {
+    return {
+      fields: { contact },
+      errors: { contact: LOGIN_MESSAGES.codeExpired },
+    }
+  }
   if (scenario === "verify-error") {
     return {
       fields: { contact, otpSent: true, ...codeTiming },
-      errors: {
-        form: "We couldn't check that code. Try again or request a new one.",
-      },
+      errors: { form: LOGIN_MESSAGES.checkFailed },
+    }
+  }
+  if (scenario === "sign-in-error") {
+    return {
+      fields: { contact, otpSent: true, ...codeTiming },
+      errors: { form: LOGIN_MESSAGES.signInFailed },
     }
   }
   if (data.get("otp") !== DISPLAY_OTP) {
     return {
       fields: { contact, otpSent: true, ...codeTiming },
-      errors: { otp: "That code was not accepted." },
+      errors: { otp: LOGIN_MESSAGES.codeRejected },
     }
   }
+  if (scenario === "unknown") return { fields: { contact, noCards: true } }
   return {
-    fields: {
-      contact,
-      ...(scenario === "unknown" ? { noCards: true } : {}),
-    },
-    message:
-      scenario === "unknown"
-        ? "No cards found for that number yet. Scan a venue QR to join first."
-        : "Display verification complete. No session was created.",
+    fields: { contact },
+    message: "Display verification complete. No session was created.",
   }
 }
 
@@ -159,7 +170,7 @@ async function requestEmailLoginFixture(
     return {
       fields: { method: "email", email },
       errors: {
-        form: "Email codes are delayed. Try again shortly or use your phone.",
+        form: "Email is slow right now. Try again shortly, or go back to the text code.",
       },
     }
   }
@@ -172,7 +183,7 @@ async function requestEmailLoginFixture(
       retryAt: Math.floor(Date.now() / 1_000) + 60,
     },
     message: isResend
-      ? "Use the latest code we sent."
+      ? "New code sent. Use the latest one."
       : "If a code arrives at that address, enter it here.",
   }
 }
@@ -187,13 +198,13 @@ async function verifyEmailLoginFixture(
   if (scenario === "email-expired") {
     return {
       fields: { method: "email", email },
-      errors: { email: "Request a new email code." },
+      errors: { email: "Your code expired. Send a new one." },
     }
   }
   if (data.get("otp") !== DISPLAY_OTP) {
     return {
       fields: { ...state.fields, method: "email", otpSent: true },
-      errors: { otp: "That code was not accepted." },
+      errors: { otp: LOGIN_MESSAGES.codeRejected },
     }
   }
   return {
@@ -204,7 +215,7 @@ async function verifyEmailLoginFixture(
     },
     message:
       scenario === "email-unknown"
-        ? "No wallet uses this email yet. Scan a venue QR to join, or sign in with your phone."
+        ? "You can use your mobile number instead."
         : "Display verification complete. No session was created.",
   }
 }

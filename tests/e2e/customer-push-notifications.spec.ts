@@ -106,7 +106,7 @@ test.describe("customer push notifications", () => {
     }
   })
 
-  test("harness Enable push posts a subscription when the browser can fake one", async ({
+  test("harness Turn on notifications posts a subscription when the browser can fake one", async ({
     context,
     page,
   }) => {
@@ -169,7 +169,9 @@ test.describe("customer push notifications", () => {
       // Production also requires both keys; without these a regression that
       // drops them still shows "Push is on" while the real endpoint 400s.
       expect(typeof payload?.subscription?.keys?.p256dh).toBe("string")
-      expect(payload?.subscription?.keys?.p256dh?.length ?? 0).toBeGreaterThan(19)
+      expect(payload?.subscription?.keys?.p256dh?.length ?? 0).toBeGreaterThan(
+        19
+      )
       expect(typeof payload?.subscription?.keys?.auth).toBe("string")
       expect(payload?.subscription?.keys?.auth?.length ?? 0).toBeGreaterThan(7)
       expect(typeof payload?.permissionState).toBe("string")
@@ -194,7 +196,7 @@ test.describe("customer push notifications", () => {
       { timeout: 15_000 }
     )
 
-    const enable = page.getByRole("button", { name: "Enable push" })
+    const enable = page.getByRole("button", { name: "Turn on notifications" })
     if (!(await enable.isEnabled())) {
       // "Push needs attention" means initialisation threw despite the installed
       // serviceWorker and PushManager fakes. That is a regression in the happy

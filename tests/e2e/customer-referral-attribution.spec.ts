@@ -74,7 +74,7 @@ test.describe("@customer-flow referral attribution live DB", () => {
         )}`
       )
       await expect(
-        page.getByRole("heading", { name: "Save your stamp to your number" })
+        page.getByRole("heading", { name: "Enter your mobile number" })
       ).toBeVisible()
       await page.locator("#contact").fill(friendPhone.national)
       await page.getByRole("button", { name: "Send my code" }).click()
@@ -82,11 +82,11 @@ test.describe("@customer-flow referral attribution live DB", () => {
         page.getByRole("heading", { name: "Enter your code" })
       ).toBeVisible()
       await page.locator("#otp").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Check code" }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
       await expect(
-        page.getByRole("heading", { name: "Save your loyalty card" })
+        page.getByRole("heading", { name: /^Join the card at / })
       ).toBeVisible()
-      await page.getByLabel(/Loyalty terms/i).check()
+      await page.getByLabel(/Card terms/i).check()
       await Promise.all([
         page.waitForURL((url) => url.pathname.startsWith("/card/")),
         page.getByRole("button", { name: "Save my card" }).click(),
@@ -151,18 +151,18 @@ test.describe("@customer-flow referral attribution live DB", () => {
       await page.goto(
         `${publicQrPath(fixture.activeQrId)}?ref=${encodeURIComponent(referrer.referralCode)}`
       )
-      await page.getByRole("link", { name: "Claim my first stamp" }).click()
+      await page.getByRole("link", { name: "Get my first stamp" }).click()
       expect(new URL(page.url()).searchParams.get("ref")).toBe(
         referrer.referralCode
       )
       await page.locator("#contact").fill(friendPhone.national)
       await page.getByRole("button", { name: "Send my code" }).click()
       await page.locator("#otp").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Check code" }).click()
-      await page.getByLabel(/Loyalty terms/i).check()
+      await page.getByRole("button", { name: "Continue" }).click()
+      await page.getByLabel(/Card terms/i).check()
       await Promise.all([
         page.waitForURL((url) => url.pathname.startsWith("/card/")),
-        page.getByRole("button", { name: "Get my first stamp" }).click(),
+        page.getByRole("button", { name: "Add my first stamp" }).click(),
       ])
 
       const joined = await readJoinedMembership(sql, fixture, friendPhone)

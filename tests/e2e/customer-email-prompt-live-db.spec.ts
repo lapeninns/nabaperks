@@ -31,7 +31,7 @@ import { dismissPwaInstall } from "./helpers/harness"
  * dev server's CUSTOMER_SESSION_SECRET and CUSTOMER_EMAIL_HMAC_SECRET.
  */
 
-const CONFLICT_COPY = "This email is already used by another Nabaperks wallet."
+const CONFLICT_COPY = "This email is used by another card."
 const PENDING_EMAIL_COOKIE = "nabaperks_pending_email"
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
@@ -205,8 +205,14 @@ function uniqueEmail(prefix: string): string {
   return `${prefix}-${randomUUID().slice(0, 12)}@example.test`
 }
 
-// A guest with one card, a phone and an unverified email; optionally a second
-// wallet (no card) that already holds the same email verified.
+// A guest with one card, a confirmed phone, a birthday and an unverified
+// email; optionally a second wallet (no card) that already holds the same
+// email verified. Home shows one setup suggestion, and an unconfirmed phone
+// outranks the email ask (designer brief, section H), so the phone is
+// confirmed here to make the email prompt the one on offer. The holder keeps
+// its own confirmed phone, so the two can never be brought together
+// (link_verified_customer_wallets answers `conflict`) and the refusal is the
+// only outcome.
 async function seedWallet(
   sql: Sql,
   input: {
@@ -231,6 +237,7 @@ async function seedWallet(
         email,
         phone_hmac,
         phone_last4,
+        phone_verified_at,
         full_name,
         date_of_birth
       )
@@ -239,6 +246,7 @@ async function seedWallet(
         ${input.guestEmail},
         ${randomBytes(32).toString("hex")},
         '0000',
+        now(),
         'Email Prompt Browser',
         date '1990-01-01'
       )`
@@ -249,6 +257,9 @@ async function seedWallet(
           email,
           email_hmac,
           email_verified_at,
+          phone_hmac,
+          phone_last4,
+          phone_verified_at,
           full_name,
           date_of_birth
         )
@@ -256,6 +267,9 @@ async function seedWallet(
           ${input.holder.id}::uuid,
           ${input.holder.email},
           ${customerEmailHmac(input.holder.email)},
+          now(),
+          ${randomBytes(32).toString("hex")},
+          '0001',
           now(),
           'Email Prompt Holder',
           date '1990-01-01'

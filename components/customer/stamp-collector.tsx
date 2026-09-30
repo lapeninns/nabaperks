@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useReducer, useRef, useState, type ReactNode } from "react"
+import { useEffect, useReducer, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import {
@@ -15,6 +15,7 @@ import {
   type StampLocationCapture,
 } from "@/components/customer/self-service-forms"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
+import { useReportStampOutcome } from "@/components/customer/stamp-screen-outcome"
 import { VenueCodeForm } from "@/components/customer/venue-code-form"
 import { VerifyVisitControls } from "@/components/customer/verify-visit-controls"
 import {
@@ -63,11 +64,10 @@ export type StampCollectorProps = {
   submitVenueCode?: StampSubmitter
   refreshCard?: () => void
   /**
-   * Shown below the card once the server has confirmed a stamp on this visit
-   * (the compact "Add your email" prompt), never before it. Kept inside the
-   * collector so it stays mounted across the refreshes that follow a stamp.
+   * When the stamp after this visit's opens (ISO, server-computed from the
+   * venue's day start). Absent or null: "on your next visit".
    */
-  afterStamp?: ReactNode
+  nextStampFrom?: string | null
 }
 
 /**
@@ -123,7 +123,20 @@ function StampStatusBand({
               : "border-line bg-secondary/45"
       )}
     >
-      <p className="font-extrabold text-balance">{view.statusTitle}</p>
+      {view.statusReceipt ? (
+        // Receipt voice for the fact ("4 OF 8"); the title is announced
+        // through the live region and, once landed, carried by the headline.
+        // It keeps the title's 20px line, so the swap never moves the body
+        // line below it (no layout shift as the stamp lands).
+        <p
+          className="mono-id min-h-5 leading-5 tracking-[0.08em] text-ink"
+          data-stamp-receipt
+        >
+          {view.statusReceipt}
+        </p>
+      ) : (
+        <p className="font-extrabold text-balance">{view.statusTitle}</p>
+      )}
       <p className="text-sm leading-5 font-medium text-ink-soft">
         {view.statusBody}
       </p>
@@ -147,7 +160,7 @@ export function StampCollector({
   submitStamp = selfStampAction,
   submitVenueCode = venueCodeStampAction,
   refreshCard,
-  afterStamp,
+  nextStampFrom,
 }: StampCollectorProps) {
   const router = useRouter()
   const reduceMotion = useReducedMotionHook()
@@ -176,7 +189,7 @@ export function StampCollector({
   const recoveryCaptureRef = useRef<StampLocationCapture | null>(null)
   const refresh = refreshCard ?? router.refresh
   // The server answered `issued` (or the readback found the stamp): only then
-  // does anything after the stamp appear.
+  // does the card keep the dates the stamp landed on.
   const stampLanded = state.phase === "printing" || state.phase === "confirmed"
   const view = stampChoreographyView(state, {
     canStamp,
@@ -191,8 +204,12 @@ export function StampCollector({
     rewardUnlocked: authoritativeRewardUnlocked,
     verificationRequired,
     acquiringLocation,
-    unverifiedGraceRemaining: location.unverifiedGraceRemaining,
+    venueName,
+    nextStampFrom,
   })
+  // The stamp result owns the screen once it lands: the headline above the
+  // card follows it (see StampOutcomeProvider).
+  useReportStampOutcome(view.outcome)
 
   useEffect(() => {
     if (state.phase !== "unknown") return
@@ -276,7 +293,7 @@ export function StampCollector({
 
   /**
    * Send the stamp request. The capture, when there is one, was taken by
-   * "Use my location" on the customer's tap — this never asks the browser
+   * "Share my location" on the customer's tap — this never asks the browser
    * itself, so a stamp press before the verified-visit threshold carries no
    * location and a verified visit carries exactly the reading the customer
    * just gave.
@@ -503,9 +520,6 @@ export function StampCollector({
           </div>
         }
       />
-      {afterStamp && stampLanded ? (
-        <div className="mt-5 short:mt-4">{afterStamp}</div>
-      ) : null}
     </div>
   )
 }

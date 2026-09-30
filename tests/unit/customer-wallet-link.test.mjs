@@ -11,6 +11,8 @@ async function load() {
       "export const customerEmailHmac=()=> 'email-hmac'",
     "@/lib/customer/phone-pii":
       "export const customerPhoneHmac=()=> 'phone-hmac'",
+    "@/lib/customer/previous-stamps":
+      "export const walletLinkFailureCopy=(status,method)=>status+':'+method",
     "@/lib/customer/session": `import {state} from 'fixture';export const getCustomerSession=async()=>state.session;export const setCustomerSession=async(...args)=>state.cookies.push(args)`,
     "@/lib/supabase/server": `import {state} from 'fixture';export const createSupabaseServiceRoleClient=()=>({rpc:async(...args)=>{state.calls.push(args);return {data:state.data,error:state.error}}})`,
   }
@@ -104,4 +106,13 @@ test("Given a database failure When linking is attempted Then no session is issu
     WalletLinkError
   )
   assert.deepEqual(state.cookies, [])
+})
+
+test("Given a refused link When its copy is asked for Then it comes from the previous-stamps copy for the proven contact", async () => {
+  const { walletLinkFailureMessage } = await load()
+  assert.equal(walletLinkFailureMessage("conflict"), "conflict:phone")
+  assert.equal(
+    walletLinkFailureMessage("reauthenticate", "email"),
+    "reauthenticate:email"
+  )
 })

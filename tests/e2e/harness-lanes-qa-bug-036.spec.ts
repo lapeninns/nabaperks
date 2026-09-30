@@ -33,7 +33,7 @@ test.describe("QA BUG-036 harness lanes", () => {
       page.getByRole("button", { name: "Continue without email", exact: true })
     ).toBeVisible()
     await expect(page.getByText(/code we sent/i)).toHaveCount(0)
-    await expect(page.getByLabel("Email code")).toHaveCount(0)
+    await expect(page.getByLabel("Your code")).toHaveCount(0)
   })
 
   test("profile: the default lane still asks for the pending code", async ({
@@ -46,7 +46,7 @@ test.describe("QA BUG-036 harness lanes", () => {
         exact: false,
       })
     ).toBeVisible()
-    await expect(page.getByLabel("Email code")).toBeVisible()
+    await expect(page.getByLabel("Your code")).toBeVisible()
   })
 
   test("reward gate: with no code pending the email step offers to send one", async ({
@@ -58,9 +58,7 @@ test.describe("QA BUG-036 harness lanes", () => {
     )
 
     await expect(
-      page.getByText("alex@example.test is not confirmed yet.", {
-        exact: false,
-      })
+      page.getByText("We'll send a code to alex@example.test to confirm it.")
     ).toBeVisible()
     await expect(
       page.getByRole("button", { name: "Send me a code", exact: true })

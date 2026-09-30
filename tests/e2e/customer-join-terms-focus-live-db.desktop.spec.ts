@@ -100,7 +100,7 @@ for (const viewport of [
         })
 
         const heading = page.getByRole("heading", {
-          name: "Collect your first stamp",
+          name: /^Join the card at /,
         })
         await heading.click()
 

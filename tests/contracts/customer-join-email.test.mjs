@@ -225,46 +225,65 @@ test("Given the join email modules When the app is scanned Then no client compon
 
 test("Given the join email screens When they are read Then they carry the agreed copy and controls", () => {
   const forms = read("components", "customer", "join-email-forms.tsx")
+  const confirmed = read("components", "customer", "join-email-confirmed.tsx")
   const otp = read("components", "customer", "join-email-otp-form.tsx")
   const copy = read("lib", "customer", "experience", "copy.ts")
 
+  // J4: one field, one button, and the way back to the phone code.
   assert.match(forms, /type="email"/)
   assert.match(forms, /autoComplete="email"/)
-  assert.match(forms, /OTP_SEND_LABEL/)
-  assert.match(forms, /JOIN_EMAIL_WIFI_HINT/)
+  assert.match(forms, /"Send code by email"/)
   assert.match(
     copy,
-    /"Works over the venue's Wi-Fi, even with no mobile signal\."/
+    /JOIN_EMAIL_WIFI_HINT =\s*"Useful when there's no mobile signal\. Works on the venue's Wi-Fi\."/
   )
+  assert.match(copy, /JOIN_EMAIL_FALLBACK_HEADLINE = "Get your code by email"/)
+  assert.doesNotMatch(forms, /wallet|verify your phone|older stamps/i)
 
-  const choice = forms.slice(
-    forms.indexOf("export function CustomerEmailChoiceForm")
-  )
-  assert.match(choice, /\{canCreate \? \(\s*<form\s+action=\{createAction\}/)
-  assert.match(choice, /Continue with email/)
-  assert.match(choice, /Open my existing wallet with my phone/)
-  // Mode existing (D9): phone only, with its own heading, since a yes/no
-  // question with one answer would not make sense.
-  assert.match(choice, /: "Use my phone instead"\}/)
-  assert.match(copy, /headline: "No wallet uses this email yet"/)
+  // No choice screen: the three competing actions and their copy are gone
+  // (J7 and the owner rule "never ask the guest to repeat a decision").
+  assert.doesNotMatch(forms, /CustomerEmailChoiceForm/)
+  for (const source of [forms, confirmed, copy]) {
+    assert.doesNotMatch(source, /Continue with email/)
+    assert.doesNotMatch(source, /Open my existing wallet with my phone/)
+    assert.doesNotMatch(source, /Continue with your email/)
+    assert.doesNotMatch(source, /No wallet uses this email yet/)
+  }
+  assert.doesNotMatch(confirmed, /Use a different email/)
+  // Each case has exactly one action: J7's way back to the phone, or the
+  // legacy handoff's Continue (the phone appears only beside an error).
+  assert.match(copy, /headline: "No card uses this email"/)
+  assert.match(copy, /supportLine: "Join with your mobile number instead\."/)
   assert.match(
-    copy,
-    /"Use the phone number you joined with\. You can add this email to your wallet once you're signed in\."/
+    confirmed,
+    /if \(!canCreate\) return <div className="grid gap-4">\{phoneForm\(true\)\}<\/div>/
   )
-  assert.match(choice, /action=\{switchJoinToPhoneAction\}/)
-  assert.equal((choice.match(/variant="outline"/g) ?? []).length, 1)
-  assert.doesNotMatch(choice, /variant="default"/)
+  assert.match(confirmed, /action=\{switchJoinToPhoneAction\}/)
+  assert.match(confirmed, /action=\{continueAction\}/)
+  assert.match(
+    confirmed,
+    /\{state\.errors\?\.form \? phoneForm\(false\) : null\}/
+  )
 
-  // The code step: masked address, shared code field, a countdown on the
-  // server's resend time, and both ways out.
-  assert.match(otp, /Sent to /)
+  // J5, the code step: shared code field, a countdown on the server's resend
+  // time, then the quiet ways out in order.
   assert.match(otp, /CustomerOtpInput/)
   assert.match(otp, /useOtpRetryCountdown/)
   assert.match(otp, /name="resend" value="1"/)
   assert.doesNotMatch(otp, /name="email"/)
-  assert.match(otp, /Use a different email/)
-  assert.match(otp, /Use my phone instead/)
+  const resend = otp.indexOf('"Send a new code"')
+  const change = otp.indexOf("Change email")
+  const back = otp.lastIndexOf("JOIN_EMAIL_BACK_TO_PHONE_CODE_LABEL")
+  assert.ok(resend > 0 && resend < change && change < back)
+  assert.match(
+    copy,
+    /JOIN_EMAIL_BACK_TO_PHONE_CODE_LABEL =\s*"Back to the text code"/
+  )
   assert.match(otp, /JOIN_EMAIL_SPAM_HINT/)
+  assert.match(
+    copy,
+    /JOIN_EMAIL_SPAM_HINT = "Not there\? Check spam or junk\."/
+  )
   assert.match(otp, /SPAM_HINT_AFTER_MS = 30_000/)
 })
 
@@ -272,7 +291,7 @@ test("Given any email mode When the contact step renders Then it is the phone fo
   const wizard = read("components", "customer", "join-wizard.tsx")
   const contact = wizard.slice(
     wizard.indexOf("function ContactStep("),
-    wizard.indexOf('/** Where "What do I get?" goes')
+    wizard.indexOf("function PhoneStep(")
   )
   const phoneBranch = contact.slice(
     contact.indexOf('if (exp.kind === "join_phone")'),
@@ -282,7 +301,10 @@ test("Given any email mode When the contact step renders Then it is the phone fo
   assert.doesNotMatch(phoneBranch, /alternate=|email/i)
   // The email step, reached only from the fallback, keeps phone one tap away:
   // back to a phone code still pending, else the number form.
-  assert.match(contact, /<EmailStep[\s\S]*Use my phone number instead/)
+  assert.match(
+    contact,
+    /<EmailStep[\s\S]*exp\.phoneCodePending\s*\?\s*JOIN_EMAIL_BACK_TO_PHONE_CODE_LABEL\s*:\s*JOIN_USE_MOBILE_NUMBER_LABEL/
+  )
   assert.match(contact, /step: exp\.phoneCodePending \? undefined : "phone"/)
   const loader = read("lib", "customer", "experience", "load-join.ts")
   assert.match(loader, /phoneCodePending: phoneCode !== null/)
@@ -322,6 +344,9 @@ test("Given any email mode When the contact step renders Then it is the phone fo
   assert.doesNotMatch(welcome, /step: "email"/)
   const copy = read("lib", "customer", "experience", "copy.ts")
   assert.doesNotMatch(copy, /step: exp\.contactStep|Save it with your email/)
+  // Nor does the welcome mention email at all (J1).
+  assert.doesNotMatch(welcome, /EMAIL|email/)
+  assert.doesNotMatch(copy, /JOIN_WELCOME_EMAIL_REASSURANCE|Joined by email/)
 
   // The phone code step passes the server's fallback time and the email step
   // (keeping the QR and referral params) to the form.
@@ -343,9 +368,10 @@ test("Given a phone code was sent When the code step renders Then email appears 
   const phoneFallback = derive.slice(
     derive.indexOf("function phoneCodeFallback(")
   )
+  // Email off: only the send time, which times "Send a new code"; no email.
   assert.match(
     phoneFallback,
-    /joinEmailMode\(context\) === "off"\) return \{\}/
+    /joinEmailMode\(context\) === "off"\) return sentAt/
   )
   assert.match(
     phoneFallback,
@@ -363,29 +389,33 @@ test("Given a phone code was sent When the code step renders Then email appears 
   assert.match(phoneOtp, /useEmailFallbackReady\(inSeconds\)/)
   assert.match(phoneOtp, /PHONE_CODE_EMAIL_FALLBACK_LABEL/)
   // Added below the phone's own recovery, never in place of it.
+  // J3 order: a new code, text instead, a different number, then email.
+  let previous = -1
   for (const recovery of [
-    "Resend code",
-    "Wrong number? Use a different one",
-    "OTP_TEXT_FALLBACK_LABEL",
+    "Send a new code",
+    "{OTP_TEXT_FALLBACK_LABEL}",
+    "Wrong number? Change it",
+    "<EmailFallback",
   ]) {
-    assert.ok(
-      phoneOtp.indexOf(recovery) !== -1 &&
-        phoneOtp.indexOf(recovery) < phoneOtp.indexOf("<EmailFallback"),
-      recovery
-    )
+    const at = phoneOtp.indexOf(recovery)
+    assert.ok(at > previous, recovery)
+    previous = at
   }
+  // Before the server's wait ends: one calm line, never a ticking number.
+  assert.match(phoneOtp, /PHONE_CODE_EMAIL_FALLBACK_PENDING/)
   const copy = read("lib", "customer", "experience", "copy.ts")
   assert.match(
     copy,
-    /PHONE_CODE_EMAIL_FALLBACK_LABEL =\s*"Not received a code\? Use your email instead"/
+    /PHONE_CODE_EMAIL_FALLBACK_LABEL =\s*"No code\? Get one by email instead"/
   )
   assert.match(
     copy,
-    /JOIN_EMAIL_FALLBACK_HEADLINE =\s*"Get your code by email instead"/
+    /PHONE_CODE_EMAIL_FALLBACK_PENDING =\s*"If nothing arrives, more options appear shortly\."/
   )
+  assert.match(copy, /JOIN_EMAIL_FALLBACK_HEADLINE = "Get your code by email"/)
 
   // The channel is not named: the code may have gone by WhatsApp.
-  assert.match(copy, /eyebrow: "No code yet\?"/)
+  assert.match(copy, /eyebrow: "Your email"/)
   assert.doesNotMatch(copy, /No text yet/)
 
   // Hidden in the server render and on hydration, then the server's seconds

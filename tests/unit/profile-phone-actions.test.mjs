@@ -11,15 +11,24 @@ import { build } from "esbuild"
 const REAL = [
   "@/lib/customer/experience/otp-field",
   "@/lib/customer/otp-channel-core",
+  "@/lib/customer/email-auth-mode",
+  "@/lib/customer/previous-stamps",
+  "@/lib/navigation/safe-next-path",
 ]
+
+const CONFLICT_COPY =
+  "This number is used by another card. Sign in with that number, or ask staff for help."
 
 const STUBS = {
   "@/lib/customer/wallet-link": `import { state } from "fixture-state";
     export async function linkWalletAfterContactVerification(method,contact) {
       state.calls.push(["link",method,contact]); return state.link ?? {status:"conflict"};
     }
-    export function walletLinkFailureMessage() {
-      return "This phone number is already used by another Nabaperks wallet. Sign in with that number, or ask the venue for help.";
+    export function walletLinkFailureMessage(status, method) {
+      state.calls.push(["linkCopy", status, method]);
+      return status === "conflict"
+        ? "This number is used by another card. Sign in with that number, or ask staff for help."
+        : "link copy " + status;
     }`,
   "fixture-state": `export const state = {
     calls: [],
@@ -33,6 +42,7 @@ const STUBS = {
     verifyLimited: false,
     check: { status: "approved" },
     attach: { status: "attached", customer: { id: "customer-1", phoneLast4: "0123" } },
+    throwOn: null,
   };`,
   "server-only": "",
   "@/lib/customer/phone-verification-state": `import { state } from "fixture-state";
@@ -40,22 +50,38 @@ const STUBS = {
   "next/cache": `import { state } from "fixture-state";
     export function revalidatePath(path) { state.revalidated.push(path) }`,
   "next/headers": "export async function headers() { return new Headers() }",
+  "next/navigation": `export class RedirectSignal extends Error {
+      constructor(url) { super("NEXT_REDIRECT " + url); this.url = url }
+    }
+    export function redirect(url) { throw new RedirectSignal(url) }`,
   "@/lib/customer/contact-events": `import { state } from "fixture-state";
     export function recordCustomerContactEvent(input) { state.events.push(input) }`,
   "@/lib/customer/identity": `import { state } from "fixture-state";
     export async function getCurrentCustomer() { return state.customer }
-    export async function attachVerifiedPhoneToCustomer(input) { state.calls.push(["attach", input]); return state.attach }`,
+    export async function attachVerifiedPhoneToCustomer(input) {
+      state.calls.push(["attach", input]);
+      if (state.throwOn === "attach") throw new Error("rpc failed");
+      return state.attach
+    }`,
   "@/lib/customer/otp-rate-limit": `import { state } from "fixture-state";
     import { RateLimitError } from "@/lib/security/rate-limit";
-    export async function enforceCustomerOtpSendRateLimit(input) { state.calls.push(["admit", input.scope, input.phone]); return state.admitted }
-    export async function enforceCustomerOtpVerifyRateLimit(input) { state.calls.push(["verifyLimit", input.phone]); if (state.verifyLimited) throw new RateLimitError() }
+    export async function enforceCustomerOtpSendRateLimit(input) {
+      state.calls.push(["admit", input.scope, input.phone]);
+      if (state.throwOn === "admit") throw new Error("store down");
+      return state.admitted
+    }
+    export async function enforceCustomerOtpVerifyRateLimit(input) {
+      state.calls.push(["verifyLimit", input.phone]);
+      if (state.verifyLimited) throw new RateLimitError();
+      if (state.throwOn === "verifyLimit") throw new Error("store down")
+    }
     export async function releaseCustomerOtpVerifyAdmission(input) { state.calls.push(["verifyRelease", input.phone]) }`,
   "@/lib/customer/phone": `export function defaultCountryFromHeaders() { return "GB" }
     export function normalizePhone(raw) {
       const digits = raw.replace(/\\s/g, "")
       return /^07\\d{9}$/.test(digits)
         ? { ok: true, phone: { e164: "+44" + digits.slice(1), country: "GB", last4: digits.slice(-4) } }
-        : { ok: false, error: "Enter a valid phone number." }
+        : { ok: false, error: "Enter a UK mobile number, like 07700 900123." }
     }`,
   "@/lib/customer/session": `import { state } from "fixture-state";
     export async function setPendingPhoneVerification(input) { state.calls.push(["setPending", input]); state.pending = { ...input, phoneHmac: "h" } }
@@ -159,12 +185,16 @@ test("Given an email-only wallet When a phone code is requested Then it is admit
   process.env.CUSTOMER_OTP_PRIMARY_CHANNEL = "sms"
   const { profilePhoneAction, state } = await loadActions()
 
+  const before = Math.floor(Date.now() / 1_000)
   const result = await profilePhoneAction(
     START,
     form({ intent: "request", phone: "07700 900123" })
   )
 
-  assert.deepEqual(result, {
+  // The send time drives the code step's "Send a new code" wait.
+  const { codeSentAt, ...answer } = result
+  assert.ok(codeSentAt >= before && codeSentAt <= before + 1)
+  assert.deepEqual(answer, {
     step: "code",
     phone: "+447700900123",
     channel: "sms",
@@ -202,7 +232,9 @@ test("Given the phone step When the number is invalid, the provider is down, or 
   const { profilePhoneAction, state } = actions
 
   const invalid = await profilePhoneAction(START, form({ phone: "123" }))
-  assert.deepEqual(invalid.errors, { phone: "Enter a valid phone number." })
+  assert.deepEqual(invalid.errors, {
+    phone: "Enter a UK mobile number, like 07700 900123.",
+  })
 
   state.sent = { status: "unavailable" }
   const down = await profilePhoneAction(START, form({ phone: "07700900123" }))
@@ -216,7 +248,7 @@ test("Given the phone step When the number is invalid, the provider is down, or 
   )
   assert.deepEqual(already, {
     step: "attached",
-    message: "Your wallet already has a phone number.",
+    message: "Your mobile number is already confirmed.",
   })
 
   state.customer = null
@@ -224,7 +256,14 @@ test("Given the phone step When the number is invalid, the provider is down, or 
     START,
     form({ phone: "07700900123" })
   )
-  assert.equal(signedOut.errors.form, "Sign in to add a phone number.")
+  assert.equal(
+    signedOut.errors.form,
+    "Sign in again to add your mobile number."
+  )
+  // The typed number survives every refusal.
+  assert.equal(invalid.phone, "123")
+  assert.equal(down.phone, "07700900123")
+  assert.equal(signedOut.phone, "07700900123")
   assert.ok(!state.calls.some(([name]) => name === "setPending"))
 })
 
@@ -244,7 +283,8 @@ test("Given a code for this wallet When it is confirmed Then the phone is attach
 
   assert.deepEqual(result, {
     step: "attached",
-    message: "Your phone number is added. You can sign in with it too.",
+    verifiedNow: true,
+    message: "Your mobile number is confirmed. You can use it to sign in.",
   })
   assert.deepEqual(state.calls, [
     ["verifyLimit", "+447700900123"],
@@ -264,7 +304,7 @@ test("Given a code for this wallet When it is confirmed Then the phone is attach
   assert.deepEqual(state.events, [])
 })
 
-test("Given a pending code for another wallet or purpose When it is confirmed Then nothing is checked or attached", async () => {
+test("Given a lapsed, missing or foreign pending code When it is confirmed Then nothing is checked or attached and the number is kept", async () => {
   const { profilePhoneAction, state } = await loadActions()
   for (const pending of [
     null,
@@ -279,12 +319,14 @@ test("Given a pending code for another wallet or purpose When it is confirmed Th
   ]) {
     state.pending = pending
     const result = await profilePhoneAction(
-      { step: "code" },
-      form({ intent: "verify", otp: "123456" })
+      { step: "code", phone: "+447700900123" },
+      // The code step posts the number it showed.
+      form({ intent: "verify", otp: "123456", phone: "+447700900123" })
     )
     assert.deepEqual(result, {
       step: "phone",
-      errors: { phone: "Request a new code." },
+      phone: "+447700900123",
+      errors: { phone: "Your code expired. Send a new one." },
     })
   }
   assert.deepEqual(state.calls, [])
@@ -307,10 +349,15 @@ test("Given another wallet holds the phone When the code is confirmed Then nothi
 
   assert.deepEqual(result, {
     step: "phone",
-    errors: {
-      form: "This phone number is already used by another Nabaperks wallet. Sign in with that number, or ask the venue for help.",
-    },
+    phone: "+447700900123",
+    errors: { form: CONFLICT_COPY },
   })
+  assert.ok(
+    state.calls.some(
+      ([name, status, method]) =>
+        name === "linkCopy" && status === "conflict" && method === "phone"
+    )
+  )
   assert.deepEqual(state.events, [
     {
       eventName: "customer_contact_conflict",
@@ -361,14 +408,17 @@ test("Given a wrong, malformed or over-limit code When it is checked Then nothin
     { step: "code" },
     form({ intent: "verify", otp: "12" })
   )
-  assert.equal(malformed.errors.otp, "Enter the code from your message.")
+  assert.equal(malformed.errors.otp, "Enter the code we sent you.")
 
   state.check = { status: "rejected" }
   const wrong = await profilePhoneAction(
     { step: "code" },
     form({ intent: "verify", otp: "000000" })
   )
-  assert.equal(wrong.errors.otp, "That code was not accepted.")
+  assert.equal(
+    wrong.errors.otp,
+    "That code didn't work. Check it and try again."
+  )
   assert.equal(wrong.step, "code")
 
   state.check = { status: "unavailable" }
@@ -383,7 +433,7 @@ test("Given a wrong, malformed or over-limit code When it is checked Then nothin
     { step: "code" },
     form({ intent: "verify", otp: "000000" })
   )
-  assert.match(limited.errors.form, /Too many code attempts/)
+  assert.match(limited.errors.form, /Too many tries/)
 
   assert.ok(!state.calls.some(([name]) => name === "attach"))
   assert.deepEqual(state.pending, pending)
@@ -421,7 +471,10 @@ test("Given a WhatsApp code When the customer resends Then the pending number an
     form({ intent: "request", resend: "1", phone: "tampered" })
   )
 
-  assert.deepEqual(result, {
+  // A resend restarts the code step's wait from its own send time.
+  const { codeSentAt, ...answer } = result
+  assert.equal(typeof codeSentAt, "number")
+  assert.deepEqual(answer, {
     step: "code",
     phone: "+447700900123",
     channel: "whatsapp",
@@ -466,7 +519,9 @@ test("Given another wallet's pending code When a resend is posted Then the poste
   )
 
   // The stubbed normaliser takes national numbers only.
-  assert.deepEqual(result.errors, { phone: "Enter a valid phone number." })
+  assert.deepEqual(result.errors, {
+    phone: "Enter a UK mobile number, like 07700 900123.",
+  })
   assert.ok(!state.calls.some(([name]) => name === "send"))
 })
 
@@ -482,7 +537,8 @@ test("Given the wallet is erased while the code is checked When it is confirmed 
 
   assert.deepEqual(result, {
     step: "phone",
-    errors: { form: "Sign in to add a phone number." },
+    phone: "+447700900123",
+    errors: { form: "Sign in again to add your mobile number." },
   })
   assert.equal(state.pending, null)
   assert.deepEqual(state.revalidated, [])
@@ -503,7 +559,7 @@ test("Given a wrong code on a WhatsApp code step When it is refused Then the ste
     step: "code",
     phone: "+447700900123",
     channel: "whatsapp",
-    errors: { otp: "That code was not accepted." },
+    errors: { otp: "That code didn't work. Check it and try again." },
   })
 })
 
@@ -521,10 +577,219 @@ test("Given the phone could not be audited When the code is confirmed Then the c
     step: "phone",
     phone: "+447700900123",
     errors: {
-      form: "We couldn't add this phone number just now. Try again shortly.",
+      form: "We couldn't save your number just now. Send a new code and try again.",
     },
   })
   assert.equal(state.pending, null)
   assert.deepEqual(state.revalidated, [])
   assert.deepEqual(state.events, [])
+})
+
+const PENDING = {
+  purpose: "attach",
+  phone: "+447700900123",
+  country: "GB",
+  customerId: "customer-1",
+}
+
+for (const [status, copy] of [
+  ["reauthenticate", "link copy reauthenticate"],
+  ["requires_review", "link copy requires_review"],
+]) {
+  test(`Given linking answers ${status} When the code is confirmed Then the number is kept and the recovery is offered`, async () => {
+    const { profilePhoneAction, state } = await loadActions()
+    state.pending = PENDING
+    state.attach = { status: "contact_conflict" }
+    state.link = { status }
+
+    const result = await profilePhoneAction(
+      { step: "code" },
+      form({ intent: "verify", otp: "123456" })
+    )
+
+    assert.deepEqual(result, {
+      step: "phone",
+      phone: "+447700900123",
+      errors: { form: copy },
+      recovery: status,
+    })
+    assert.equal(state.pending, null)
+  })
+}
+
+test("Given a complementary card When linking succeeds Then the copy says the stamps are together without promising email sign-in while email is off", async () => {
+  delete process.env.CUSTOMER_EMAIL_AUTH_MODE
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = PENDING
+  state.attach = { status: "contact_conflict" }
+  state.link = { status: "linked", customerId: "customer-2" }
+
+  const off = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+  assert.equal(
+    off.message,
+    "Your stamps are together now. Sign in with your mobile number."
+  )
+  assert.doesNotMatch(off.message, /email|wallet/i)
+
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "existing"
+  try {
+    state.pending = PENDING
+    const on = await profilePhoneAction(
+      { step: "code" },
+      form({ intent: "verify", otp: "123456" })
+    )
+    assert.match(on.message, /^Your stamps are together now\./)
+    assert.match(on.message, /get one by email/)
+  } finally {
+    delete process.env.CUSTOMER_EMAIL_AUTH_MODE
+  }
+})
+
+test("Given the verify limiter itself fails When a code is confirmed Then the code step answers and the pending code is kept", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = PENDING
+  state.throwOn = "verifyLimit"
+
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+
+  assert.deepEqual(result, {
+    step: "code",
+    phone: "+447700900123",
+    errors: {
+      form: "We couldn't check that code. Try again, or send a new code.",
+    },
+  })
+  assert.deepEqual(state.pending, PENDING)
+  assert.ok(!state.calls.some(([name]) => name === "attach"))
+})
+
+test("Given the attach RPC throws When an approved code is confirmed Then the spent code is cleared and the number is kept", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = PENDING
+  state.throwOn = "attach"
+
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+
+  assert.deepEqual(result, {
+    step: "phone",
+    phone: "+447700900123",
+    errors: {
+      form: "We couldn't save your number just now. Send a new code and try again.",
+    },
+  })
+  assert.equal(state.pending, null)
+  assert.deepEqual(state.revalidated, [])
+})
+
+test("Given the send limiter fails When a code is requested Then the number is kept and no code is pending", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.throwOn = "admit"
+
+  const result = await profilePhoneAction(
+    START,
+    form({ intent: "request", phone: "07700 900123" })
+  )
+
+  assert.deepEqual(result, {
+    step: "phone",
+    phone: "07700 900123",
+    errors: { form: "We couldn't send a code just now. Try again." },
+  })
+  assert.equal(state.pending, null)
+})
+
+test("Given the reward gate names where the guest was When the number is confirmed Then it redirects back with a notice", async () => {
+  const { rewardPhoneAction, state } = await loadActions()
+
+  state.pending = PENDING
+  await assert.rejects(
+    rewardPhoneAction(
+      { step: "code" },
+      form({ intent: "verify", otp: "123456", returnTo: "/reward/r-1" })
+    ),
+    (error) => error.url === "/reward/r-1?contact=phone-added"
+  )
+
+  state.pending = PENDING
+  state.attach = { status: "contact_conflict" }
+  state.link = { status: "linked", customerId: "customer-2" }
+  await assert.rejects(
+    rewardPhoneAction(
+      { step: "code" },
+      form({ intent: "verify", otp: "123456", returnTo: "/reward/r-1" })
+    ),
+    (error) => error.url === "/reward/r-1?contact=stamps-together"
+  )
+
+  // An off-site returnTo falls back to the profile.
+  state.pending = PENDING
+  state.attach = { status: "attached" }
+  await assert.rejects(
+    rewardPhoneAction(
+      { step: "code" },
+      form({
+        intent: "verify",
+        otp: "123456",
+        returnTo: "https://evil.example/x",
+      })
+    ),
+    (error) => error.url === "/home/profile?contact=phone-added"
+  )
+})
+
+test("Given the previous-stamps task When its number is confirmed with nothing to bring over Then it returns to the task with that notice", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = PENDING
+
+  await assert.rejects(
+    profilePhoneAction(
+      { step: "code" },
+      form({
+        intent: "verify",
+        otp: "123456",
+        task: "previous",
+        returnTo: "/home/profile#previous-stamps",
+      })
+    ),
+    (error) =>
+      error.url === "/home/profile?contact=nothing-found-phone#previous-stamps"
+  )
+})
+
+test("Given a stale previous-stamps form When the card already has a confirmed number Then it answers in place and never claims nothing was found", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.customer = { id: "customer-1", phoneLast4: "4567" }
+  state.phoneVerified = true
+
+  const result = await profilePhoneAction(
+    START,
+    form({
+      phone: "07700900123",
+      task: "previous",
+      returnTo: "/home/profile#previous-stamps",
+    })
+  )
+  assert.deepEqual(result, {
+    step: "attached",
+    message: "Your mobile number is already confirmed.",
+  })
+})
+
+test("Given no returnTo When the Contact form confirms a number Then it answers in place", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = PENDING
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+  assert.equal(result.step, "attached")
 })

@@ -81,6 +81,26 @@ const COMPLETE_WITH_GIFT: HomeCard = {
   },
 }
 
+const COMPLETE_NEEDS_SETUP: HomeCard = {
+  ...BASE,
+  membershipId: "mem_harness_4",
+  currentStamps: 5,
+  stampsRemaining: 0,
+  stampDates: ["28 Jun", "29 Jun", "30 Jun", "1 Jul", "2 Jul"],
+  unlockedRewards: 1,
+  stampRewardId: "reward_setup",
+  stampRewardName: "A mystery reward",
+  stampRewardNeedsSetup: true,
+  gift: {
+    rewardId: "gift_setup",
+    rewardName: "Birthday fizz",
+    source: "birthday_month",
+    redeemable: true,
+    needsSetup: true,
+    availableFrom: "2026-07-01T05:00:00Z",
+  },
+}
+
 export default function GiftChipHarnessPage() {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -91,7 +111,7 @@ export default function GiftChipHarnessPage() {
       <PageTitle
         eyebrow="Harness"
         title="Card + gift rails"
-        description="The stamp card and an issued gift are shown as separate rails — an incomplete card never claims 'reward ready' because a gift is waiting."
+        description="The stamp card and an issued gift are shown as separate rails. An incomplete card never claims 'reward ready' because a gift is waiting."
       />
 
       <section className="grid gap-4">
@@ -124,6 +144,14 @@ export default function GiftChipHarnessPage() {
           title="An earned reward and a gift can sit side by side"
         />
         <HomeCardTile card={COMPLETE_WITH_GIFT} offerPasses={[]} />
+      </section>
+
+      <section className="grid gap-4">
+        <SectionHeader
+          eyebrow="Completed card · setup needed"
+          title="A reward held by setup is never shown as ready"
+        />
+        <HomeCardTile card={COMPLETE_NEEDS_SETUP} offerPasses={[]} />
       </section>
     </div>
   )

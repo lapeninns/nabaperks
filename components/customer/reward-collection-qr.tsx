@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react"
 
 import { QrFrame, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { REWARD_CODE_BRIGHTNESS_HINT } from "@/lib/customer/experience/copy"
 import {
   rewardQrCacheBustedSrc,
   rewardQrRefreshIntervalMs,
@@ -12,7 +13,7 @@ import {
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 /** The one instruction that sits beside the code. */
-const SHOW_COLLECTION_CODE_INSTRUCTION = "Show this code to the team."
+const SHOW_COLLECTION_CODE_INSTRUCTION = "Show this at the counter."
 
 /**
  * The customer-held reward QR. The encoded scan token has a 10-minute TTL
@@ -89,22 +90,22 @@ export function RewardCollectionQr({
     <div className="grid gap-3 short:gap-2 squat:flex squat:items-center squat:gap-4">
       {errored ? (
         <StatusBanner
-          title="We could not show your reward code"
+          title="We couldn't show your reward code"
           tone="warning"
           className="squat:flex-1"
         >
           <span className="grid gap-3">
-            <span>Pull down to refresh, or ask a team member.</span>
+            <span>Try again, or ask a member of staff.</span>
             {suggestSignIn ? (
               <span>
-                Still not showing? You may be signed out on this phone —{" "}
+                Still not showing? You may be signed out on this phone.{" "}
                 <Link
                   // The shared helper mirrors load-reward.ts's expired-session
                   // redirect target and routes `next` through safeNextPath.
                   href={customerLoginHref(`/reward/${rewardId}`)}
                   className="font-bold underline underline-offset-4"
                 >
-                  sign in again
+                  Sign in again
                 </Link>{" "}
                 to bring it back.
               </span>
@@ -116,7 +117,7 @@ export function RewardCollectionQr({
               className="w-full"
               onClick={retry}
             >
-              Show a fresh QR
+              Try again
             </Button>
           </span>
         </StatusBanner>
@@ -157,12 +158,14 @@ export function RewardCollectionQr({
         >
           {SHOW_COLLECTION_CODE_INSTRUCTION}
         </p>
+        <p className="text-center text-xs leading-5 text-muted-foreground squat:text-left">
+          {REWARD_CODE_BRIGHTNESS_HINT}
+        </p>
         {/* The identity requirement belongs beside the code, not behind the
             disclosure: it is what the customer has to have in their hand. */}
         {idCheckRequired ? (
           <StatusBanner title="Photo ID needed" tone="warning">
-            Have your photo ID ready. The team checks it before handing your
-            reward over.
+            Staff will check photo ID.
           </StatusBanner>
         ) : null}
       </div>

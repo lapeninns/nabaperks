@@ -6,8 +6,7 @@ import { expect, type Locator, type Page } from "@playwright/test"
  * helpers drive that wait with Playwright's clock: install it before the
  * first navigation, then fast-forward past the wait on the code step.
  */
-export const EMAIL_FALLBACK_LABEL =
-  "Not received a code? Use your email instead"
+export const EMAIL_FALLBACK_LABEL = "No code? Get one by email instead"
 
 /** Past the 30-second wait, with room for the whole-second send time. */
 const PAST_FALLBACK_WAIT_MS = 31_000

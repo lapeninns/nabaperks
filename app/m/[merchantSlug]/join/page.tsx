@@ -26,6 +26,7 @@ type MerchantJoinPageProps = {
   searchParams: Promise<{
     qr?: string
     step?: string
+    notice?: string
     membership?: string
     ref?: string
   }>
@@ -84,6 +85,7 @@ export default async function MerchantJoinPage({
   }
 
   const pendingOffer = [
+    "join_welcome",
     "join_phone",
     "join_email",
     "join_email_choice",

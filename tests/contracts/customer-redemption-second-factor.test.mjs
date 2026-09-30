@@ -32,7 +32,19 @@ test("reward collection requires a verified profile email without per-reward ass
   assert.doesNotMatch(form, /Continue without email/)
   assert.doesNotMatch(form, /independent security check for your reward/)
   assert.match(actions, /currentCustomer\.emailVerifiedAt/)
-  assert.match(actions, /submittedEmail \|\| lockedVerifiedEmail/)
+  // The email step keeps only a verified address it was not given; the
+  // details step (name and date of birth alone) keeps the address on file
+  // and never sends a code.
+  assert.match(actions, /submittedEmail \|\| keptEmail/)
+  assert.match(
+    actions,
+    /: currentCustomer\?\.email && currentCustomer\.emailVerifiedAt/
+  )
+  assert.match(actions, /if \(!email && !detailsOnly\) errors\.email =/)
+  assert.match(
+    actions,
+    /savedEmail && emailVerificationRequired && !detailsOnly/
+  )
   assert.doesNotMatch(
     actions,
     /hasRewardEmailAssurance|recordRewardEmailAssurance/

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
+import { getCustomerExperienceViewModel } from "@/lib/customer/experience/copy"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 
 function locationRequirement(overrides = {}) {
@@ -122,7 +123,106 @@ test("valid QR proof renders the stamp confirmation with live card progress", ()
     total: 5,
     stampDates: ["30 Jun"],
     todayLabel: "30 Jun",
+    nextStampFrom: null,
   })
+})
+
+test("the next stamp time rides from the loader onto both stamp-screen states", () => {
+  const nextStampFrom = "2026-10-01T05:00:00.000Z"
+  for (const context of [
+    stampContext({ qrValid: true, qrMissing: false, qrId: "qr_1" }),
+    stampContext({ alreadyStampedToday: true, qrMissing: false, qrId: "qr_1" }),
+  ]) {
+    const experience = deriveCustomerExperience({
+      entry: "stamp",
+      context: { ...context, nextStampFrom },
+    })
+    assert.equal(experience.nextStampFrom, nextStampFrom, experience.kind)
+  }
+})
+
+test("S1: the ready screen is today's stamp at this venue", () => {
+  const vm = getCustomerExperienceViewModel(
+    deriveCustomerExperience({
+      entry: "stamp",
+      context: stampContext({ qrValid: true, qrMissing: false, qrId: "qr_1" }),
+    })
+  )
+  assert.equal(vm.headline, "Today's stamp")
+  assert.equal(vm.supportLine, "The Test Arms")
+  assert.equal(vm.primaryAction, undefined, "the stamp press is the primary")
+})
+
+test("S5: already stamped names the next stamp as a date and time, or the next visit", () => {
+  const stamped = (nextStampFrom) =>
+    getCustomerExperienceViewModel(
+      deriveCustomerExperience({
+        entry: "stamp",
+        context: stampContext({
+          alreadyStampedToday: true,
+          qrMissing: false,
+          qrId: "qr_1",
+          nextStampFrom,
+        }),
+      })
+    )
+
+  const known = stamped("2026-10-01T05:00:00.000Z")
+  assert.equal(known.headline, "You've already got today's stamp")
+  assert.equal(known.supportLine, "Next stamp from Thu 1 Oct, 06:00.")
+  assert.deepEqual(known.primaryAction, {
+    label: "View my card",
+    href: "/card/membership_1",
+  })
+
+  const unknown = stamped(null)
+  assert.equal(unknown.supportLine, "Come back on your next visit.")
+
+  for (const vm of [known, unknown]) {
+    assert.doesNotMatch(
+      `${vm.headline} ${vm.supportLine}`,
+      /tomorrow|trading day|daily reset|!|\u2014/i
+    )
+  }
+})
+
+test("S3 after a reload: a held full card leads with the unlocked reward", () => {
+  const vm = getCustomerExperienceViewModel(
+    deriveCustomerExperience({
+      entry: "stamp",
+      context: stampContext({
+        unlockedReward: rewardView(),
+        qrMissing: false,
+        qrId: "qr_1",
+      }),
+    })
+  )
+  assert.equal(vm.headline, "Your card is full.")
+  assert.equal(vm.supportLine, "Your reward is unlocked.")
+  assert.deepEqual(vm.primaryAction, {
+    label: "See my reward",
+    href: "/reward/reward_1",
+  })
+})
+
+test("S6: a missing or foreign QR says what to scan and that stamps are safe", () => {
+  const missing = getCustomerExperienceViewModel(
+    deriveCustomerExperience({ entry: "stamp", context: stampContext() })
+  )
+  assert.equal(missing.headline, "Scan the QR at The Test Arms")
+  assert.equal(missing.supportLine, "Your stamps are safe.")
+
+  const unmatched = getCustomerExperienceViewModel(
+    deriveCustomerExperience({
+      entry: "stamp",
+      context: stampContext({ qrMissing: false, qrId: "bad-qr" }),
+    })
+  )
+  assert.equal(unmatched.headline, "This QR doesn't match your card")
+  assert.equal(unmatched.supportLine, "Your stamps are safe.")
+  for (const vm of [missing, unmatched]) {
+    assert.doesNotMatch(`${vm.headline} ${vm.supportLine}`, /\u2014/)
+  }
 })
 
 test("already stamped memberships render today's stamped card instead of another stamp form", () => {

@@ -10,10 +10,8 @@ import {
   CustomerStampCard,
   type FlowProgress,
 } from "@/components/customer/customer-flow-system"
-import type {
-  CustomerEmailChoiceFormProps,
-  CustomerEmailFormProps,
-} from "@/components/customer/join-email-forms"
+import type { CustomerEmailFormProps } from "@/components/customer/join-email-forms"
+import type { CustomerEmailConfirmedProps } from "@/components/customer/join-email-confirmed"
 import type { CustomerEmailOtpFormProps } from "@/components/customer/join-email-otp-form"
 import type {
   CustomerIdentityFormProps,
@@ -31,19 +29,17 @@ import {
 } from "@/lib/copy/product-copy"
 import {
   getCustomerExperienceViewModel,
+  JOIN_EMAIL_BACK_TO_PHONE_CODE_LABEL,
+  JOIN_USE_MOBILE_NUMBER_LABEL,
   joinUnlockingRewardHook,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
 import type {
   CustomerExperience,
   JoinCard,
-  JoinContactMethod,
   JoinMerchant,
 } from "@/lib/customer/experience/types"
-import {
-  buildCustomerJoinHref,
-  buildCustomerMerchantHref,
-} from "@/lib/navigation/customer-join-intent"
+import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const CustomerIdentityForm = dynamic<CustomerIdentityFormProps>(() =>
   import("@/components/customer/join-forms").then(
@@ -65,9 +61,9 @@ const CustomerEmailForm = dynamic<CustomerEmailFormProps>(() =>
     (module) => module.CustomerEmailForm
   )
 )
-const CustomerEmailChoiceForm = dynamic<CustomerEmailChoiceFormProps>(() =>
-  import("@/components/customer/join-email-forms").then(
-    (module) => module.CustomerEmailChoiceForm
+const CustomerEmailConfirmed = dynamic<CustomerEmailConfirmedProps>(() =>
+  import("@/components/customer/join-email-confirmed").then(
+    (module) => module.CustomerEmailConfirmed
   )
 )
 const CustomerEmailOtpForm = dynamic<CustomerEmailOtpFormProps>(() =>
@@ -81,8 +77,8 @@ type EmailExperience = Extract<CustomerExperience, { kind: "join_email" }>
 
 /**
  * Step wizard for the join flow — one job per screen (welcome → phone → code
- * → terms, with email as the phone code's fallback), plus the email choice, returning-member and unavailable
- * states. The route page derives a join {@link CustomerExperience}; this maps
+ * → terms, with email as the phone code's fallback), plus the confirmed-email
+ * (no card for this email), returning-member and unavailable states. The route page derives a join {@link CustomerExperience}; this maps
  * it to chrome + the step. Backend order: verify phone or email → terms →
  * membership + first stamp (via QR join).
  */
@@ -100,7 +96,12 @@ export function JoinWizard({
   switch (experience.kind) {
     case "join_welcome":
       return (
-        <WelcomeStep exp={experience} vm={vm} referralCode={referralCode} />
+        <WelcomeStep
+          exp={experience}
+          vm={vm}
+          referralCode={referralCode}
+          pendingOffer={pendingOffer}
+        />
       )
     case "join_phone":
     case "join_email":
@@ -189,27 +190,14 @@ function ContactStep({
               step: exp.phoneCodePending ? undefined : "phone",
             })}
           >
-            Use my phone number instead
+            {exp.phoneCodePending
+              ? JOIN_EMAIL_BACK_TO_PHONE_CODE_LABEL
+              : JOIN_USE_MOBILE_NUMBER_LABEL}
           </Link>
         </Button>
       }
     />
   )
-}
-
-/** Where "What do I get?" goes: the QR welcome, or the venue page. */
-function joinBackHref(
-  merchantSlug: string,
-  qrId: string | undefined,
-  referralCode: string | undefined
-): string {
-  return qrId
-    ? buildCustomerJoinHref(merchantSlug, {
-        qrId,
-        referralCode,
-        step: "welcome",
-      })
-    : buildCustomerMerchantHref(merchantSlug, referralCode)
 }
 
 function PhoneStep({
@@ -239,6 +227,8 @@ function PhoneStep({
         qrId={exp.qrId}
         channel={exp.channel}
         referralCode={referralCode}
+        notice={exp.notice}
+        prefillPhone={exp.prefillPhone}
         emailStepHref={
           exp.emailSignIn
             ? buildCustomerJoinHref(exp.merchant.slug, {
@@ -272,15 +262,12 @@ function EmailStep({
       pendingOffer={pendingOffer}
       venueName={exp.merchant.name}
       progress={joinProgress("join_email", Boolean(exp.qrId))}
-      method="email"
       dense
     >
-      {pendingOffer ? (
-        <StatusBanner tone="neutral" title="This offer needs a phone number">
-          It is added to wallets with a confirmed phone number. Use your phone
-          number to be sure of it.
-        </StatusBanner>
-      ) : (
+      {/* The fallback's one job is the email. A pending offer shows only
+          the shell's reminder chip, as on the other steps; the server says
+          honestly at join if the offer cannot be added. */}
+      {pendingOffer ? null : (
         <UnlockingReminder merchant={exp.merchant} card={exp.card} />
       )}
       <CustomerEmailForm
@@ -288,7 +275,6 @@ function EmailStep({
         qrId={exp.qrId}
         referralCode={referralCode}
         alternate={alternate}
-        backHref={joinBackHref(exp.merchant.slug, exp.qrId, referralCode)}
       />
     </JoinShell>
   )
@@ -311,20 +297,13 @@ function EmailChoiceStep({
       pendingOffer={pendingOffer}
       venueName={exp.merchant.name}
       progress={joinProgress("join_email_choice", Boolean(exp.qrId))}
-      method="email"
       dense
     >
-      <CustomerEmailChoiceForm
+      <CustomerEmailConfirmed
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
         referralCode={referralCode}
-        maskedEmail={exp.maskedEmail}
         canCreate={exp.canCreate}
-        differentEmailHref={buildCustomerJoinHref(exp.merchant.slug, {
-          qrId: exp.qrId,
-          referralCode,
-          step: "email",
-        })}
       />
     </JoinShell>
   )
@@ -347,7 +326,6 @@ function OtpStep({
       pendingOffer={pendingOffer}
       venueName={exp.merchant.name}
       progress={joinProgress("join_otp", Boolean(exp.qrId))}
-      method={exp.contact.method}
       dense
     >
       {exp.contact.method === "email" ? (
@@ -355,7 +333,6 @@ function OtpStep({
           merchantSlug={exp.merchant.slug}
           qrId={exp.qrId}
           referralCode={referralCode}
-          maskedEmail={exp.contact.maskedEmail}
           resendAvailableAt={exp.contact.resendAvailableAt}
           deliveryDelayed={exp.contact.deliveryDelayed}
           emailStepHref={buildCustomerJoinHref(exp.merchant.slug, {
@@ -369,12 +346,12 @@ function OtpStep({
             referralCode,
             step: exp.contact.phoneCodePending ? undefined : "phone",
           })}
+          phoneCodePending={exp.contact.phoneCodePending}
         />
       ) : (
         <CustomerOtpForm
           merchantSlug={exp.merchant.slug}
           qrId={exp.qrId}
-          contactLast4={exp.contact.last4}
           channel={exp.contact.channel}
           referralCode={referralCode}
           emailFallbackInSeconds={exp.contact.emailFallbackInSeconds}
@@ -421,6 +398,7 @@ function TermsStep({
         card={exp.card}
         referralCode={referralCode}
         contactChannels={exp.contactChannels}
+        rewardMayNeedPhotoId={exp.rewardMayNeedPhotoId}
       />
     </JoinShell>
   )
@@ -479,7 +457,7 @@ function UnlockingReminder({
 }
 
 /**
- * Terms step, QR journey: the outcome of accepting in one line. The full
+ * Terms step, QR journey: the card with its first slot still empty. The full
  * stamp card with stamp one printed is what the card page shows next, so the
  * pitch here stays a strip and the consent form stays above the fold.
  */
@@ -494,8 +472,8 @@ function TermsFirstStampPreview({
     <JoinOfferStrip
       merchant={merchant}
       card={card}
-      eyebrow="Your first stamp"
-      hook="Lands on your card the moment you accept."
+      eyebrow="Stamp 1 of your card"
+      hook={joinUnlockingRewardHook(card.stampsRequired)}
     />
   )
 }
@@ -583,12 +561,9 @@ function JoinShell({
   children,
   pendingOffer,
   venueName,
-  method = "phone",
 }: {
   pendingOffer?: PendingJoinOffer | null
   venueName?: string
-  /** The contact method this screen uses, for the offer-in-progress title. */
-  method?: JoinContactMethod
   vm: CustomerExperienceViewModel
   progress?: FlowProgress
   centered?: boolean
@@ -598,13 +573,7 @@ function JoinShell({
   return (
     <CustomerFlowShell
       eyebrow={vm.eyebrow}
-      title={
-        pendingOffer && progress?.step === 1
-          ? method === "email"
-            ? "Save your card with your email"
-            : "Save your card to your number"
-          : vm.headline
-      }
+      title={vm.headline}
       description={vm.supportLine}
       progress={progress}
       dense={dense}
@@ -620,10 +589,13 @@ function JoinShell({
 }
 
 /**
- * Step position for each onboarding screen on a 3-step scale that matches the
- * "three quick steps" promise: 1 Invite (welcome) → 2 Verification (phone or
- * email, the code and the email choice share this step) → 3 Consent (terms +
- * first stamp).
+ * Progress for each onboarding screen. "Step x of y" shows only when it is
+ * true for this guest: a returning guest, or an email guest whose email
+ * already has a card here, goes from the code straight to their stamp and
+ * never reaches a third step. So the welcome, number, email and code screens
+ * carry only their label, and the count appears from the terms step, the
+ * last one for everyone who reaches it. Labels are the guest's words for the
+ * step, never "verify".
  */
 function joinProgress(
   kind:
@@ -635,25 +607,18 @@ function joinProgress(
     | "join_terms",
   hasQr = true
 ): FlowProgress {
-  const step = {
-    join_welcome: 1,
-    join_phone: hasQr ? 2 : 1,
-    join_email: hasQr ? 2 : 1,
-    join_email_choice: 2,
-    join_otp: 2,
-    join_terms: 3,
-  }[kind]
-
   const label = {
-    join_welcome: "Keep your card",
-    join_phone: "Verify · Phone",
-    join_email: "Verify · Email",
-    join_email_choice: "Verify · Email",
-    join_otp: "Verify · Code",
-    join_terms: hasQr ? "Collect your stamp" : "Keep your card",
+    join_welcome: "Your card",
+    join_phone: "Your number",
+    join_email: "Your email",
+    join_email_choice: "Your email",
+    join_otp: "Your code",
+    join_terms: hasQr ? "First stamp" : "Your card",
   }[kind]
 
-  return { step, total: ONBOARDING_STEPS, label }
+  return kind === "join_terms"
+    ? { step: ONBOARDING_STEPS, total: ONBOARDING_STEPS, label }
+    : { label }
 }
 
 function UnavailableJoin() {

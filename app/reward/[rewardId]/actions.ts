@@ -33,9 +33,14 @@ export type ProfileGateActionState = {
 }
 
 /**
- * Step one of the redeem-time profile gate: capture Name + DOB and required email.
- * When a new/unverified email is entered, kick off email verification and let
- * the re-rendered reward panel show the "enter your code" step.
+ * The redeem-time profile gate's save, for its two form steps:
+ *
+ * - `part=details`: name and date of birth alone (the email is its own step
+ *   after this one). The address on file, if any, is kept as it is and no
+ *   code is sent from here; the email step offers one.
+ * - otherwise, the email address (name and date of birth ride along as saved
+ *   hidden fields). A new or unverified address starts email verification so
+ *   the re-rendered reward panel shows the "enter your code" step.
  */
 export async function saveProfileForRedeemAction(
   _state: ProfileGateActionState,
@@ -44,17 +49,19 @@ export async function saveProfileForRedeemAction(
   const rewardId = value(formData, "rewardId")
   const fullName = value(formData, "fullName")
   const dateOfBirth = value(formData, "dateOfBirth")
-  const submittedEmail = value(formData, "email")
+  const detailsOnly = value(formData, "part") === "details"
+  const submittedEmail = detailsOnly ? "" : value(formData, "email")
   const currentCustomer = submittedEmail ? null : await getCurrentCustomer()
-  const lockedVerifiedEmail =
-    currentCustomer?.email && currentCustomer.emailVerifiedAt
+  const keptEmail = detailsOnly
+    ? (currentCustomer?.email?.trim() ?? "")
+    : currentCustomer?.email && currentCustomer.emailVerifiedAt
       ? currentCustomer.email.trim()
       : ""
-  const email = submittedEmail || lockedVerifiedEmail
+  const email = submittedEmail || keptEmail
   const fields = { fullName, dateOfBirth, email }
 
   const errors = validateProfileFields({ fullName, dateOfBirth, email })
-  if (!email) errors.email = "Enter your email address."
+  if (!email && !detailsOnly) errors.email = "Enter your email address."
   if (Object.keys(errors).length > 0) return { fields, errors }
 
   let emailVerificationRequired = false
@@ -75,7 +82,8 @@ export async function saveProfileForRedeemAction(
     }
   }
 
-  if (savedEmail && emailVerificationRequired) {
+  // A details-only save never sends a code: the email step asks for it.
+  if (savedEmail && emailVerificationRequired && !detailsOnly) {
     try {
       await startCustomerEmailVerification(savedEmail)
     } catch {

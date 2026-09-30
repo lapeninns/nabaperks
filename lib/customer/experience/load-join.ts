@@ -26,8 +26,10 @@ import {
   emailFallbackOpen,
   phoneCodeEmailFallbackInSeconds,
 } from "@/lib/customer/phone-code-email-fallback"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
+import { parseCustomerJoinNotice } from "@/lib/navigation/customer-join-intent"
 import { logger } from "@/lib/observability/logger"
 import {
   normalizeRequestId,
@@ -39,6 +41,7 @@ import type { JoinContext } from "./derive"
 type JoinSearchParams = {
   qr?: string
   step?: string
+  notice?: string
 }
 
 /**
@@ -134,6 +137,7 @@ export async function loadJoinExperienceContext(
   // can issue the first stamp), so default it cheaply and resolve the real value
   // only once a session exists.
   const baseLocation = { requireGeofence: false, geofenceRadiusMeters: 150 }
+  const notice = parseCustomerJoinNotice(searchParams.notice)
   const base = {
     merchantId: context.merchant.id,
     qrCodeId: "qrCodeId" in context ? context.qrCodeId : undefined,
@@ -141,6 +145,7 @@ export async function loadJoinExperienceContext(
     card,
     qrId: searchParams.qr,
     step: searchParams.step,
+    ...(notice ? { notice } : {}),
     location: baseLocation,
     primaryChannel: primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL),
     emailMode: customerEmailAuthMode(),
@@ -175,7 +180,7 @@ export async function loadJoinExperienceContext(
       location,
       hasSession: true,
       pendingOtp: false,
-      customerChannels: contactChannels(customer),
+      customerChannels: await joinContactChannels(customer),
       membership: null,
     }
   }
@@ -260,7 +265,11 @@ export async function loadJoinExperienceContext(
     ...base,
     hasSession: false,
     pendingOtp: false,
-    pendingPhone: undefined,
+    // "Wrong number? Change it" (`step=phone`) edits the pending number.
+    pendingPhone:
+      searchParams.step === "phone"
+        ? (phoneCode?.phone ?? undefined)
+        : undefined,
     emailFallbackOpen: emailFallback,
     // The email fallback keeps the phone code it came from one tap away.
     phoneCodePending: phoneCode !== null,
@@ -318,5 +327,26 @@ function contactChannels(customer: CurrentCustomer) {
   return {
     phone: customer.phoneLast4 !== null,
     email: Boolean(customer.email && customer.emailVerifiedAt),
+  }
+}
+
+/**
+ * The channels the terms step may offer marketing on. Join records WhatsApp
+ * and text consent only for a verified phone (migration 20261009150100), and
+ * `phoneLast4` is also set for a number not yet confirmed, so the phone is
+ * checked the way the database checks it. If that read fails, the last-four
+ * heuristic stands in: the server still records only verified channels.
+ */
+async function joinContactChannels(customer: CurrentCustomer) {
+  const channels = contactChannels(customer)
+  if (!channels.phone) return channels
+  try {
+    return { ...channels, phone: await customerHasVerifiedPhone(customer.id) }
+  } catch (error) {
+    if (!(error instanceof Error)) throw error
+    logger.warn("customer_join_phone_state_failed", {
+      operation: "join_contact_channels",
+    })
+    return channels
   }
 }

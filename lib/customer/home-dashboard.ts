@@ -1,10 +1,45 @@
 import type { HomeCard, HomeSummary } from "@/lib/customer/home-types"
 import { formatCollectionAvailability } from "@/lib/customer/reward-collection-state"
 
-/** A card has something to collect now — an earned stamp reward or a ready gift. */
+/**
+ * A card has an unlocked reward the guest can act on: an earned stamp reward or
+ * a gift, ready now or waiting only on a detail the guest adds. Sorting uses
+ * this so either kind rises to the top.
+ */
 export function hasRedeemableReward(card: HomeCard): boolean {
   return Boolean(card.stampRewardId) || Boolean(card.gift?.redeemable)
 }
+
+/** The stamp reward can be collected now, with nothing left to set up. */
+export function hasReadyStampReward(card: HomeCard): boolean {
+  return Boolean(card.stampRewardId) && !card.stampRewardNeedsSetup
+}
+
+/**
+ * The stamp reward is unlocked but held only by a setup step: never "ready"
+ * and never a code to show. The one rule every home surface reads.
+ */
+export function stampRewardNeedsSetup(card: HomeCard): boolean {
+  return Boolean(card.stampRewardId) && !hasReadyStampReward(card)
+}
+
+/** A reward on this card can be collected now (stamp reward or gift). */
+function hasCollectableReward(card: HomeCard): boolean {
+  return (
+    hasReadyStampReward(card) ||
+    Boolean(card.gift?.redeemable && !card.gift.needsSetup)
+  )
+}
+
+/** Unlocked, but only a missing detail stands between the guest and it. */
+function hasSetupReward(card: HomeCard): boolean {
+  return hasRedeemableReward(card) && !hasCollectableReward(card)
+}
+
+/** Guest wording for a reward that needs a detail before it can be collected. */
+export const REWARD_NEEDS_SETUP_LINE =
+  "Reward unlocked. Finish setting up to collect."
+export const REWARD_NEEDS_SETUP_ACTION = "Get it ready"
 
 export function sortHomeCards(cards: readonly HomeCard[]): HomeCard[] {
   return [...cards].sort((left, right) => {
@@ -55,6 +90,15 @@ export function homeSummaryLabels(summary: HomeSummary): string[] {
           ),
         ]
       : []),
+    ...((summary.setupRewardCount ?? 0) > 0
+      ? [
+          countLabel(
+            summary.setupRewardCount ?? 0,
+            "reward to get ready",
+            "rewards to get ready"
+          ),
+        ]
+      : []),
     ...(summary.stampAvailableCount > 0
       ? [
           countLabel(
@@ -70,7 +114,8 @@ export function homeSummaryLabels(summary: HomeSummary): string[] {
 export function buildHomeSummary(cards: readonly HomeCard[]): HomeSummary {
   return {
     cardCount: cards.length,
-    redeemableCount: cards.filter(hasRedeemableReward).length,
+    redeemableCount: cards.filter(hasCollectableReward).length,
+    setupRewardCount: cards.filter(hasSetupReward).length,
     stampAvailableCount: cards.filter(isStampAvailable).length,
   }
 }
@@ -80,7 +125,9 @@ export function homeCardNextStep(
   card: HomeCard
 ): { tone: "leaf" | "sun" | "plain"; label: string } | null {
   if (card.stampRewardId) {
-    return { tone: "leaf", label: "Reward ready" }
+    return card.stampRewardNeedsSetup
+      ? { tone: "sun", label: "Reward unlocked" }
+      : { tone: "leaf", label: "Reward ready" }
   }
   if (!card.available) return null
   if (card.unlockedRewards > 0) return { tone: "sun", label: "Reward soon" }
@@ -93,22 +140,25 @@ export function homeCardNextStep(
 }
 
 /**
- * The tile's one-line next step. The five states a customer can be in are kept
+ * The tile's one-line next step. The states a customer can be in are kept
  * deliberately distinct in wording, not just in tone:
  *
- * - a reward can be collected now → the reward line (also the "Reward ready" tag);
- * - the card is unavailable → the server's own reason, unchanged;
- * - a reward is unlocked but still waiting → the opening-day line;
- * - today's stamp is already collected → the collected line;
- * - a stamp can still be collected → progress plus the scan it depends on.
+ * - a reward can be collected now: the reward line (also the "Reward ready" tag);
+ * - a reward is unlocked but needs a detail first: the setup line, never "ready";
+ * - the card is unavailable: the server's own reason, unchanged;
+ * - a reward is unlocked but still waiting: the server's concrete opening time;
+ * - today's stamp is already collected: the collected line;
+ * - a stamp can still be collected: progress to the reward.
  *
- * A ready *gift* (birthday / merchant issued) is the fifth state's sibling and is
- * rendered by the tile's own gift ticket, so the status line stays with the stamp
- * cycle instead of hiding a card's stamp next step behind a gift it already shows.
+ * A ready *gift* (birthday / merchant issued) is rendered by the tile's own gift
+ * ticket, so the status line stays with the stamp cycle instead of hiding a
+ * card's stamp next step behind a gift it already shows.
  */
 export function homeCardStatusCopy(card: HomeCard): string {
   if (card.stampRewardId) {
-    return "Reward ready to collect — show the QR at the counter"
+    return card.stampRewardNeedsSetup
+      ? REWARD_NEEDS_SETUP_LINE
+      : "Reward ready to collect. Show it at the counter."
   }
   if (!card.available) {
     return card.unavailableReason ?? "This card is unavailable right now."
@@ -118,18 +168,18 @@ export function homeCardStatusCopy(card: HomeCard): string {
       card.revealedRewardAvailableFrom ?? null
     )
     return timing
-      ? `Reward unlocked — ${timing.toLocaleLowerCase("en-GB")}`
-      : "Reward unlocked — check the reward for collection timing"
+      ? `Reward unlocked. ${timing}.`
+      : "Reward unlocked. Open the card to see when it's ready."
   }
   if (card.stampedToday) {
-    return "Stamp collected today — your next stamp comes on a later visit"
+    return "Stamp collected today. Your next stamp comes on a later visit."
   }
   if (card.stampsRequired !== null) {
     // Progress only. The venue-scan condition is stated once, on the summary
     // strip above the cards, rather than repeated under every tile.
-    return `${card.currentStamps} of ${card.stampsRequired} stamps — ${card.stampsRemaining} more to unlock`
+    return `${card.currentStamps} of ${card.stampsRequired} stamps. ${card.stampsRemaining} more to your reward.`
   }
-  return "Open this card for the latest loyalty status"
+  return "Open this card to see your stamps."
 }
 
 function countLabel(count: number, singular: string, plural: string): string {

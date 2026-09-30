@@ -42,17 +42,17 @@ const preferenceRows = [
   {
     key: "transactionalEnabled",
     label: "Stamps and rewards",
-    helper: "Card progress, reward readiness, and collection updates.",
+    helper: "When a stamp lands and when a reward is ready.",
   },
   {
     key: "reminderEnabled",
     label: "Reminders",
-    helper: "Next stamp windows and reward expiry notices.",
+    helper: "When your next stamp is due and before a reward expires.",
   },
   {
     key: "marketingEnabled",
     label: "Venue offers",
-    helper: "Only sent when your venue consent also allows it.",
+    helper: "Only when you have said yes to offers above.",
   },
 ] satisfies readonly {
   key: keyof Pick<
@@ -159,10 +159,10 @@ export function PushNotificationSettings({
         ...current,
         activeSubscriptionCount: Math.max(1, current.activeSubscriptionCount),
       }))
-      setMessage("Push is on for this browser.")
+      setMessage("Notifications are on for this browser.")
     } catch {
       setBrowserState("error")
-      setMessage("Push could not be enabled here.")
+      setMessage("We couldn't turn on notifications here.")
     } finally {
       setPending(false)
     }
@@ -184,7 +184,7 @@ export function PushNotificationSettings({
           // The server record is still active, so stay in the subscribed
           // state: flipping to "error" here would offer "Enable push" while
           // the subscription is live and hide the retryable disable action.
-          setMessage("Push could not be turned off here. Try again.")
+          setMessage("We couldn't turn off notifications here. Try again.")
           return
         }
         await subscription.unsubscribe()
@@ -194,10 +194,10 @@ export function PushNotificationSettings({
         ...current,
         activeSubscriptionCount: 0,
       }))
-      setMessage("Push is off for this browser.")
+      setMessage("Notifications are off for this browser.")
     } catch {
       setBrowserState("error")
-      setMessage("Push could not be changed here.")
+      setMessage("We couldn't change notifications here.")
     } finally {
       setPending(false)
     }
@@ -217,7 +217,7 @@ export function PushNotificationSettings({
     })
     if (!response.ok) {
       setPreferences(preferences)
-      setMessage("Preference was not saved.")
+      setMessage("That wasn't saved. Try again.")
       return
     }
     const body = (await response.json().catch(() => null)) as {
@@ -232,7 +232,7 @@ export function PushNotificationSettings({
       data-notification-state={browserState}
     >
       {showHeader ? (
-        <SectionHeader eyebrow="Push" title="Browser notifications" />
+        <SectionHeader eyebrow="Notifications" title="On this device" />
       ) : null}
 
       <div className="flex items-start gap-3 rounded-xl border-2 border-ink bg-secondary/60 p-3">
@@ -265,7 +265,7 @@ export function PushNotificationSettings({
             disabled={pending}
           >
             <Icon icon={BellOffIcon} size={16} />
-            Turn off push
+            Turn off notifications
           </Button>
         ) : (
           <Button
@@ -275,7 +275,7 @@ export function PushNotificationSettings({
             disabled={pending || !canEnable}
           >
             <Icon icon={BellPlusIcon} size={16} />
-            Enable push
+            Turn on notifications
           </Button>
         )}
       </div>
@@ -336,43 +336,43 @@ function statusFor(state: BrowserPushState) {
       return {
         icon: BellRingIcon,
         title: "Checking this browser",
-        body: "Push status will appear here.",
+        body: "Notification settings will appear here.",
       }
     case "unsupported":
       return {
         icon: BellOffIcon,
-        title: "Push is not available",
-        body: "This browser cannot receive Nabaperks push.",
+        title: "Notifications aren't available",
+        body: "This browser can't show Nabaperks notifications.",
       }
     case "installed-required":
       return {
         icon: BellOffIcon,
         title: "Install needed",
-        body: "Add Nabaperks to your home screen to enable push.",
+        body: "Add Nabaperks to your home screen to turn on notifications.",
       }
     case "denied":
       return {
         icon: BellOffIcon,
-        title: "Push is blocked",
-        body: "Change browser permission before enabling push here.",
+        title: "Notifications are blocked",
+        body: "Allow notifications for this site in your browser settings, then try again.",
       }
     case "subscribed":
       return {
         icon: BellRingIcon,
-        title: "Push is on",
-        body: "This browser can receive loyalty updates.",
+        title: "Notifications are on",
+        body: "This browser shows updates about your cards.",
       }
     case "error":
       return {
         icon: BellOffIcon,
-        title: "Push needs attention",
-        body: "Try again or use this page from another browser.",
+        title: "Notifications need attention",
+        body: "Try again, or use this page in another browser.",
       }
     case "granted":
       return {
         icon: BellPlusIcon,
-        title: "Push is ready",
-        body: "Enable this browser for loyalty updates.",
+        title: "Notifications are off",
+        body: "Turn them on to get updates about your cards.",
       }
   }
 }

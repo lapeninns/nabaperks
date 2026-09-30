@@ -12,46 +12,71 @@ import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 const EMAIL_ONLY = "/dev/home-harness/profile?wallet=email-only"
 
 test.describe("@customer-flow @a11y email-only wallet profile", () => {
-  test("email wallets offer linking even before joining a venue", async ({
+  test("home suggests one mobile number step to guests who joined by email", async ({
     page,
   }) => {
-    for (const wallet of ["email-only", "email-only-empty"]) {
-      await gotoHydratedPage(page, `/dev/home-harness/home?wallet=${wallet}`)
-      const prompt = page.getByTestId("wallet-link-prompt")
-      await expect(
-        prompt.getByRole("heading", { name: "Used your phone number before?" })
-      ).toBeVisible()
-      await expect(
-        prompt.getByRole("link", { name: "Link my phone number" })
-      ).toHaveAttribute("href", "/home/profile#add-phone")
-      await expectNoAxeViolations(page, `link prompt ${wallet}`)
-    }
-    await gotoHydratedPage(page, "/dev/home-harness/home")
-    await expect(page.getByTestId("wallet-link-prompt")).toHaveCount(0)
+    await gotoHydratedPage(
+      page,
+      "/dev/home-harness/home?wallet=email-only&dob=set"
+    )
+    const suggestion = page.getByTestId("home-setup-suggestion")
+    await expect(suggestion).toHaveCount(1)
+    await expect(
+      suggestion.getByRole("heading", { name: "Add your mobile number" })
+    ).toBeVisible()
+    await expect(suggestion).toContainText("You'll need it to collect rewards.")
+    await expect(
+      suggestion.getByRole("link", { name: "Add my number" })
+    ).toHaveAttribute("href", "/home/profile#add-phone")
+    await expectNoAxeViolations(page, "mobile number suggestion")
+
+    // Set aside, the next suggestion takes its place: never two at once.
+    await suggestion.getByRole("button", { name: "Not now" }).click()
+    await expect(page.getByTestId("home-setup-suggestion")).toHaveCount(1)
+    await expect(
+      page.getByRole("heading", { name: "Find my previous stamps" })
+    ).toBeVisible()
+
+    // An empty home offers only the scan action.
+    await gotoHydratedPage(
+      page,
+      "/dev/home-harness/home?wallet=email-only-empty"
+    )
+    await expect(page.getByTestId("home-setup-suggestion")).toHaveCount(0)
+    await expect(
+      page.getByRole("link", { name: "Scan a venue QR" })
+    ).toBeVisible()
   })
 
-  test("explains linking before verification and confirms preserved loyalty afterwards", async ({
+  test("finds previous stamps as its own task and confirms them together afterwards", async ({
     page,
   }) => {
     await gotoHydratedPage(page, EMAIL_ONLY)
-    const section = page.locator("[data-add-phone]")
-    await expect(section).toContainText(
-      "keeping your stamps and rewards together"
+    // Contact asks for a number without explaining linking rules.
+    await expect(page.locator('[data-add-phone="contact"]')).not.toContainText(
+      /wallet|link/i
     )
+    const task = page.locator("#previous-stamps")
+    await expect(task).toContainText(
+      "Confirm the other number and we'll bring its stamps here."
+    )
+    await task.getByText("Find my previous stamps").click()
+    const section = page.locator('[data-add-phone="previous"]')
     await section
-      .getByLabel("Phone number", { exact: true })
+      .getByLabel("UK mobile number", { exact: true })
       .fill("07700900997")
     await section.getByRole("button", { name: "Send my code" }).click()
-    await section.getByLabel("Phone code").fill("424242")
-    await section.getByRole("button", { name: "Add phone number" }).click()
+    await section.getByLabel("Your code").fill("424242")
+    await section.getByRole("button", { name: "Continue" }).click()
     await expect(
-      section.getByRole("heading", { name: "Wallets linked" })
+      section.getByRole("heading", { name: "Your stamps are together now." })
     ).toBeVisible()
     await expect(section.getByRole("status")).toContainText(
-      "Your stamps and rewards are together"
+      "Sign in with your mobile number."
     )
+    await expect(section.getByRole("status")).not.toContainText(/email/i)
     await expect(
-      section.getByRole("link", { name: "View my stamps and rewards" })
+      section.getByRole("link", { name: "Open my cards" })
     ).toHaveAttribute("href", "/home")
     await expectNoAxeViolations(page, "linked wallet confirmation")
     await page.evaluate(() => window.scrollTo(0, 0))
@@ -66,14 +91,14 @@ test.describe("@customer-flow @a11y email-only wallet profile", () => {
   }) => {
     for (const [phone, label] of [
       ["07700900996", "Sign in again"],
-      ["07700900995", "View my stamps and rewards"],
+      ["07700900995", "Open my cards"],
     ]) {
       await gotoHydratedPage(page, EMAIL_ONLY)
-      const section = page.locator("[data-add-phone]")
-      await section.getByLabel("Phone number", { exact: true }).fill(phone)
+      const section = page.locator('[data-add-phone="contact"]')
+      await section.getByLabel("UK mobile number", { exact: true }).fill(phone)
       await section.getByRole("button", { name: "Send my code" }).click()
-      await section.getByLabel("Phone code").fill("424242")
-      await section.getByRole("button", { name: "Add phone number" }).click()
+      await section.getByLabel("Your code").fill("424242")
+      await section.getByRole("button", { name: "Continue" }).click()
       await expect(
         section.getByRole(phone.endsWith("996") ? "button" : "link", {
           name: label,
@@ -95,92 +120,100 @@ test.describe("@customer-flow @a11y email-only wallet profile", () => {
   }) => {
     await gotoHydratedPage(page, EMAIL_ONLY)
     const account = page.locator("[data-account-section]")
+    // Phone is the only way in: no email sign-in route, no rollout warning.
+    await expect(account).not.toContainText(/Sign back in with|paused/)
     await expect(
-      account.getByText("Sign back in with your email.", { exact: false })
+      page.getByText(
+        "Add your mobile number so you can sign in on another phone."
+      )
     ).toBeVisible()
     await expect(
-      page.getByRole("heading", { name: "Add a phone number" })
+      page.getByRole("heading", { name: "Add your mobile number" })
     ).toBeVisible()
     await expect(
-      page.getByRole("region", { name: "Phone messages" })
+      page.getByRole("region", { name: "Reminders by phone" })
     ).toHaveCount(0)
     // Marketing offers email only until a phone is added.
-    await expect(page.getByText("Receive Email updates")).toBeAttached()
-    await expect(page.getByText("Receive SMS updates")).toHaveCount(0)
-    await expect(page.getByText("Receive WhatsApp updates")).toHaveCount(0)
+    await expect(page.getByText("Offers by Email")).toBeAttached()
+    await expect(page.getByText("Offers by Text")).toHaveCount(0)
+    await expect(page.getByText("Offers by WhatsApp")).toHaveCount(0)
     await expectNoAxeViolations(page, "email-only profile")
 
     // The phone profile keeps its existing layout: no add-phone form.
     await gotoHydratedPage(page, "/dev/home-harness/profile")
-    await expect(page.locator("[data-add-phone]")).toHaveCount(0)
+    await expect(page.locator('[data-add-phone="contact"]')).toHaveCount(0)
   })
 
   test("confirms the number with a code before adding it", async ({ page }) => {
     await gotoHydratedPage(page, EMAIL_ONLY)
-    const section = page.locator("[data-add-phone]")
-    const number = section.getByLabel("Phone number", { exact: true })
+    const section = page.locator('[data-add-phone="contact"]')
+    const number = section.getByLabel("UK mobile number", { exact: true })
 
     await number.fill("123")
     await section.getByRole("button", { name: "Send my code" }).click()
     await expect(section.getByRole("alert")).toContainText(
-      "Enter a valid phone number."
+      "Enter a UK mobile number, like 07700 900123."
     )
 
     await number.fill("07700900123")
     await section.getByRole("button", { name: "Send my code" }).click()
-    await expect(section.getByText("Phone ending")).toContainText("0123")
-    const code = section.getByLabel("Phone code")
+    await expect(section.getByText("Sent to the number ending")).toContainText(
+      "0123"
+    )
+    const code = section.getByLabel("Your code")
     await code.fill("000000")
-    await section.getByRole("button", { name: "Add phone number" }).click()
+    await section.getByRole("button", { name: "Continue" }).click()
     await expect(section.getByRole("alert")).toContainText(
-      "That code was not accepted."
+      "That code didn't work. Check it and try again."
     )
 
-    await section.getByLabel("Phone code").fill("424242")
-    await section.getByRole("button", { name: "Add phone number" }).click()
+    await section.getByLabel("Your code").fill("424242")
+    await section.getByRole("button", { name: "Continue" }).click()
     await expect(section.getByRole("status")).toContainText(
-      "Your phone number is added. You can sign in with it too."
+      "Your mobile number is confirmed. You can use it to sign in."
     )
     // Only the confirmation: the invitation to add a phone is gone.
     await expect(
-      section.getByRole("heading", { name: "Phone number added" })
+      section.getByRole("heading", { name: "Mobile number confirmed" })
     ).toBeVisible()
     await expect(
-      section.getByRole("heading", { name: "Add a phone number" })
+      section.getByRole("heading", { name: "Add your mobile number" })
     ).toHaveCount(0)
     await expect(
       section.getByText("Your wallet opens with your email.", { exact: false })
     ).toHaveCount(0)
-    await expect(section.getByLabel("Phone code")).toHaveCount(0)
+    await expect(section.getByLabel("Your code")).toHaveCount(0)
   })
 
   test("a WhatsApp code that never arrives can be sent by text instead", async ({
     page,
   }) => {
     await gotoHydratedPage(page, EMAIL_ONLY)
-    const section = page.locator("[data-add-phone]")
+    const section = page.locator('[data-add-phone="contact"]')
     await section
-      .getByLabel("Phone number", { exact: true })
+      .getByLabel("UK mobile number", { exact: true })
       .fill("07700900123")
     await section.getByRole("button", { name: "Send my code" }).click()
     const textInstead = section.getByRole("button", { name: "Text me instead" })
     await expect(textInstead).toBeVisible()
     await expect(
-      section.getByRole("button", { name: "Resend code" })
+      section.getByRole("button", { name: "Send a new code" })
     ).toBeVisible()
 
     await textInstead.click()
     // Sent by text now: nothing left to switch to, and the code step stays.
     await expect(textInstead).toHaveCount(0)
-    await expect(section.getByText("Phone ending")).toContainText("0123")
+    await expect(section.getByText("Sent to the number ending")).toContainText(
+      "0123"
+    )
     await expect(section.getByRole("status")).toContainText(
       "If a code arrives for that number, enter it here."
     )
     await expectNoAxeViolations(page, "add phone code step after a text")
-    await section.getByLabel("Phone code").fill("424242")
-    await section.getByRole("button", { name: "Add phone number" }).click()
+    await section.getByLabel("Your code").fill("424242")
+    await section.getByRole("button", { name: "Continue" }).click()
     await expect(
-      section.getByRole("heading", { name: "Phone number added" })
+      section.getByRole("heading", { name: "Mobile number confirmed" })
     ).toBeVisible()
   })
 
@@ -188,18 +221,18 @@ test.describe("@customer-flow @a11y email-only wallet profile", () => {
     page,
   }) => {
     await gotoHydratedPage(page, EMAIL_ONLY)
-    const section = page.locator("[data-add-phone]")
+    const section = page.locator('[data-add-phone="contact"]')
     await section
-      .getByLabel("Phone number", { exact: true })
+      .getByLabel("UK mobile number", { exact: true })
       .fill("07700900998")
     await section.getByRole("button", { name: "Send my code" }).click()
-    await section.getByLabel("Phone code").fill("424242")
-    await section.getByRole("button", { name: "Add phone number" }).click()
+    await section.getByLabel("Your code").fill("424242")
+    await section.getByRole("button", { name: "Continue" }).click()
     await expect(section.getByRole("alert")).toContainText(
-      "We couldn't add this phone number just now. Try again shortly."
+      "We couldn't save your number just now. Send a new code and try again."
     )
     await expect(
-      section.getByRole("heading", { name: "Add a phone number" })
+      section.getByRole("heading", { name: "Add your mobile number" })
     ).toBeVisible()
     await expect(
       section.getByRole("button", { name: "Send my code" })
@@ -210,21 +243,19 @@ test.describe("@customer-flow @a11y email-only wallet profile", () => {
     page,
   }) => {
     await gotoHydratedPage(page, EMAIL_ONLY)
-    const section = page.locator("[data-add-phone]")
+    const section = page.locator('[data-add-phone="contact"]')
     await section
-      .getByLabel("Phone number", { exact: true })
+      .getByLabel("UK mobile number", { exact: true })
       .fill("07700900999")
     await section.getByRole("button", { name: "Send my code" }).click()
-    await section.getByLabel("Phone code").fill("424242")
-    await section.getByRole("button", { name: "Add phone number" }).click()
+    await section.getByLabel("Your code").fill("424242")
+    await section.getByRole("button", { name: "Continue" }).click()
     await expect(section.getByRole("alert")).toContainText(
-      "already used by another Nabaperks wallet"
+      "used by another card"
     )
-    await expect(section.getByRole("alert")).toContainText(
-      "ask the venue for help"
-    )
+    await expect(section.getByRole("alert")).toContainText("ask staff for help")
     await expect(
-      section.getByLabel("Phone number", { exact: true })
+      section.getByLabel("UK mobile number", { exact: true })
     ).toBeVisible()
   })
 })

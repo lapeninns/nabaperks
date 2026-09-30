@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 import { after } from "next/server"
 
 import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
@@ -19,6 +20,7 @@ import {
   confirmCustomerEmailCode,
   emailConfirmationErrors,
 } from "@/lib/customer/email-confirmation"
+import { emailSignInEnabled } from "@/lib/customer/email-auth-mode"
 import { startCustomerEmailVerification } from "@/lib/customer/email-verification"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
@@ -30,6 +32,11 @@ import {
   isEmailAddress,
   validateProfileFields,
 } from "@/lib/customer/profile-fields"
+import {
+  PREVIOUS_STAMPS_RETURN_TO,
+  contactNoticeHref,
+  walletLinkedMessage,
+} from "@/lib/customer/previous-stamps"
 import { clearPendingEmailVerification } from "@/lib/customer/session"
 import { RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -37,6 +44,12 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 const PROFILE_PATH = "/home/profile"
 
 export type ProfileEditState = {
+  /**
+   * What a details save did, so the card picks its next mode from a
+   * structured answer instead of reading the message copy: a new email got a
+   * code (the confirm step), or the details were saved (the summary).
+   */
+  outcome?: "saved" | "email_code_sent"
   walletLinked?: boolean
   recovery?: "reauthenticate" | "requires_review"
   fields?: {
@@ -112,12 +125,13 @@ export async function saveHomeProfileAction(
     revalidatePath(PROFILE_PATH)
     return {
       fields,
+      outcome: "email_code_sent",
       message: "Enter the code we sent to your email to confirm it.",
     }
   }
 
   revalidatePath(PROFILE_PATH)
-  return { fields, message: "Your details are saved." }
+  return { fields, outcome: "saved", message: "Your details are saved." }
 }
 
 export async function verifyHomeProfileEmailAction(
@@ -148,7 +162,7 @@ export async function verifyHomeProfileEmailAction(
   return {
     ...(walletLinked ? { walletLinked: true } : {}),
     message: walletLinked
-      ? "Your wallets are linked. You can sign in with your phone or email. Your stamps and rewards are together."
+      ? walletLinkedMessage(emailSignInEnabled())
       : "Your email is confirmed.",
   }
 }
@@ -176,9 +190,40 @@ export async function emailPromptAction(
   state: EmailPromptState,
   formData: FormData
 ): Promise<EmailPromptState> {
+  const surface = promptSurface(formData)
   return value(formData, "intent") === "verify"
-    ? verifyEmailPrompt(state, formData)
-    : startEmailPrompt(state, formData)
+    ? verifyEmailPrompt(state, formData, surface)
+    : startEmailPrompt(state, formData, surface)
+}
+
+/**
+ * "Find my previous stamps" by email, on the profile: the same two steps as
+ * the prompt, recorded against the profile. A code that proves an email held
+ * by a complementary card brings its stamps here
+ * (`confirmCustomerEmailCode`); nothing about the other card is shown before
+ * that proof.
+ */
+export async function previousStampsEmailAction(
+  state: EmailPromptState,
+  formData: FormData
+): Promise<EmailPromptState> {
+  const intent = value(formData, "intent")
+  // "Change email": back to the address, refilled; nothing is sent.
+  if (intent === "change") return { step: "email", email: state.email }
+  if (intent !== "verify") return startEmailPrompt(state, formData, "profile")
+  const result = await verifyEmailPrompt(state, formData, "profile")
+  // The task asks for the next missing contact once this one is confirmed,
+  // which would unmount the form with its answer, so the outcome comes back
+  // as a notice on the task instead.
+  if (result.step === "verified") {
+    redirect(
+      contactNoticeHref(
+        PREVIOUS_STAMPS_RETURN_TO,
+        result.walletLinked ? "stamps-together" : "nothing-found-email"
+      )
+    )
+  }
+  return result
 }
 
 /**
@@ -188,9 +233,9 @@ export async function emailPromptAction(
  */
 async function startEmailPrompt(
   state: EmailPromptState,
-  formData: FormData
+  formData: FormData,
+  surface: "profile" | EmailPromptSurface
 ): Promise<EmailPromptState> {
-  const surface = promptSurface(formData)
   const email = value(formData, "email")
   if (!email || !isEmailAddress(email)) {
     return {
@@ -202,6 +247,8 @@ async function startEmailPrompt(
 
   let savedEmail: string
   try {
+    // "profile" records the previous-stamps task where it happened instead
+    // of blaming the home prompt.
     const saved = await setCustomerEmailForVerification(email, surface)
     if (saved.status === "already_verified") {
       return { step: "verified", message: "Your email is already confirmed." }
@@ -250,9 +297,9 @@ async function startEmailPrompt(
 /** Step two of the prompt: confirm the emailed code. */
 async function verifyEmailPrompt(
   state: EmailPromptState,
-  formData: FormData
+  formData: FormData,
+  surface: "profile" | EmailPromptSurface
 ): Promise<EmailPromptState> {
-  const surface = promptSurface(formData)
   const email = state.email
   const code = value(formData, "otp")
   if (!code) {
@@ -290,7 +337,7 @@ async function verifyEmailPrompt(
     step: "verified",
     ...(walletLinked ? { walletLinked: true } : {}),
     message: walletLinked
-      ? "Your wallets are linked. You can sign in with your phone or email. Your stamps and rewards are together."
+      ? walletLinkedMessage(emailSignInEnabled())
       : "Your email is confirmed.",
   }
 }
@@ -400,7 +447,7 @@ export async function updateHomePhoneMessagingAction(
   formData: FormData
 ): Promise<PhoneMessagingState> {
   const customer = await getCurrentCustomer()
-  if (!customer) return { error: "Sign in to change your phone messages." }
+  if (!customer) return { error: "Sign in again to change your reminders." }
 
   const preferredPhoneChannel = value(formData, "preferredPhoneChannel")
   const phoneMessages = formData.get("phoneMessagesEnabled")
@@ -408,7 +455,7 @@ export async function updateHomePhoneMessagingAction(
     (preferredPhoneChannel !== "whatsapp" && preferredPhoneChannel !== "sms") ||
     (phoneMessages !== null && phoneMessages !== "on")
   ) {
-    return { error: "Choose WhatsApp or text for your phone messages." }
+    return { error: "Choose WhatsApp or text for your reminders." }
   }
 
   try {
@@ -421,18 +468,17 @@ export async function updateHomePhoneMessagingAction(
         p_preferred_phone_channel: preferredPhoneChannel,
       }
     )
-    if (error)
-      return { error: "We couldn't save your phone preferences. Try again." }
+    if (error) return { error: "We couldn't save your reminders. Try again." }
   } catch (error) {
     if (!(error instanceof Error)) throw error
     return {
       error:
-        "We couldn't confirm your phone preferences. Reload to check them.",
+        "We couldn't confirm your reminders were saved. Reload to check them.",
     }
   }
 
   revalidatePath(PROFILE_PATH)
-  return { message: "Your phone preferences are saved." }
+  return { message: "Your reminders are saved." }
 }
 
 function value(formData: FormData, key: string) {

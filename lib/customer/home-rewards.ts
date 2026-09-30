@@ -1,5 +1,6 @@
 import {
   cardRewardCollectable,
+  rewardCollectability,
   type RewardCollectionState,
 } from "@/lib/customer/reward-collection-state"
 import {
@@ -28,9 +29,14 @@ export type RawHomeReward = {
 export type RewardCounts = {
   /** Stamp-cycle unlocked reward count — the card's own pending reward(s). */
   stampUnlocked: number
-  /** Stamp-cycle redeemable reward → the tile's "Reward ready" state. */
+  /** Stamp-cycle actionable reward: ready, or held only by a setup step. */
   stampRewardId: string | null
   stampRewardName: string | null
+  /**
+   * The actionable stamp reward still needs a detail from the guest before it
+   * can be collected, so it must never be shown as ready or with a code.
+   */
+  stampRewardNeedsSetup: boolean
   /** Stamp-cycle waiting (unlocked, not-yet-redeemable) reward → revealed ticket. */
   revealedRewardName: string | null
   revealedRewardAvailableFrom: string | null
@@ -43,6 +49,7 @@ export function emptyRewardCounts(): RewardCounts {
     stampUnlocked: 0,
     stampRewardId: null,
     stampRewardName: null,
+    stampRewardNeedsSetup: false,
     revealedRewardName: null,
     revealedRewardAvailableFrom: null,
     gift: null,
@@ -73,16 +80,23 @@ export function buildRewardCountsByMembership(
     )
     entry.stampUnlocked = stampRows.length
 
-    // A reward held only by a setup step (profile, verified email) is still the
-    // customer's next action, so it keeps the ready tile and its reward link.
+    // A reward held only by a setup step (profile, verified email or phone) is
+    // still the customer's next action, so it keeps its reward link, but it is
+    // flagged so no surface calls it ready or offers a code.
     const actionable = (row: RawHomeReward) =>
       cardRewardCollectable(row.collection_state, row.collection_reason ?? null)
+    const needsSetup = (row: RawHomeReward) =>
+      rewardCollectability(
+        row.collection_state,
+        row.collection_reason ?? null
+      ) === "needs_setup"
     const stampRedeemable = pickPrimaryUnlockedReward(
       stampRows.filter(actionable)
     )
     if (stampRedeemable) {
       entry.stampRewardId = stampRedeemable.id
       entry.stampRewardName = stampRedeemable.reward_name
+      entry.stampRewardNeedsSetup = needsSetup(stampRedeemable)
     }
 
     const stampWaiting = pickPrimaryUnlockedReward(
@@ -100,6 +114,7 @@ export function buildRewardCountsByMembership(
         rewardName: issued.reward_name,
         source: narrowRewardSource(issued.source),
         redeemable: actionable(issued),
+        needsSetup: needsSetup(issued),
         availableFrom: issued.available_from,
       }
     }
@@ -111,37 +126,40 @@ export function buildRewardCountsByMembership(
 }
 
 /**
- * The single reward to feature in the home "collect now" banner — cross-source,
- * so a redeemable birthday/merchant gift nudges just like an earned reward. Walks
- * the already-sorted cards and returns the first redeemable one (stamp reward
- * first, then gift).
+ * The single reward to feature in the home banner, cross-source, so a
+ * redeemable birthday/merchant gift nudges just like an earned reward. A reward
+ * the guest can collect now outranks one that still needs setting up; within
+ * each, the already-sorted card order decides (stamp reward first, then gift).
  */
 export function getTopRedeemable(
   cards: readonly HomeCard[],
   rewardsByMembership: ReadonlyMap<string, RewardCounts>
 ): TopRedeemable | undefined {
+  const candidates: TopRedeemable[] = []
   for (const card of cards) {
     const counts = rewardsByMembership.get(card.membershipId)
     if (!counts) continue
 
     if (counts.stampRewardId && counts.stampRewardName) {
-      return {
+      candidates.push({
         rewardId: counts.stampRewardId,
         rewardName: counts.stampRewardName,
         businessName: card.businessName,
         membershipId: card.membershipId,
-      }
+        needsSetup: counts.stampRewardNeedsSetup,
+      })
     }
 
     if (counts.gift?.redeemable) {
-      return {
+      candidates.push({
         rewardId: counts.gift.rewardId,
         rewardName: counts.gift.rewardName,
         businessName: card.businessName,
         membershipId: card.membershipId,
-      }
+        needsSetup: counts.gift.needsSetup,
+      })
     }
   }
 
-  return undefined
+  return candidates.find((candidate) => !candidate.needsSetup) ?? candidates[0]
 }

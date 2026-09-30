@@ -21,61 +21,44 @@ import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import type { EmailPromptSurface } from "@/lib/customer/contact-event-core"
 import { recordEmailPromptEvent } from "@/lib/customer/email-prompt-events"
+import { HOME_SETUP_SUGGESTION_DISMISS_KEYS } from "@/lib/customer/home-setup-suggestion"
+import {
+  dismissedSuggestionsSnapshot,
+  dismissSuggestion,
+  parseDismissedSuggestions,
+  subscribeSuggestionDismissals,
+  SUGGESTIONS_UNHYDRATED,
+  unhydratedSuggestionsSnapshot,
+} from "@/components/customer/home-suggestion-store"
 
-export const EMAIL_PROMPT_DISMISS_KEY = "nabaperks.email-prompt-dismissed"
-const RESHOW_AFTER_MS = 30 * 24 * 60 * 60 * 1000
+export const EMAIL_PROMPT_DISMISS_KEY = HOME_SETUP_SUGGESTION_DISMISS_KEYS.email
 
 /**
  * Why the prompt asks, chosen on the server from `CUSTOMER_EMAIL_AUTH_MODE`.
- * `rewards` while email sign-in is off; `wifi_sign_in` once email can open a
- * wallet. No promise about anything that is not live.
+ * `rewards` while email fallback is off; `wifi_sign_in` once the phone code
+ * can fall back to email. No promise about anything that is not live, and
+ * never an invitation to sign in with email.
  */
 export type EmailPromptReason = "rewards" | "wifi_sign_in"
 
 const SUPPORT_COPY: Record<EmailPromptReason, string> = {
-  rewards:
-    "A confirmed email is needed before you collect a reward. Add it now and it's ready when you are.",
+  rewards: "You'll need a confirmed email to collect rewards.",
   wifi_sign_in:
-    "Add your email so you can sign in over Wi-Fi when there's no signal. Confirm it here to open this same wallet, with your existing stamps and rewards.",
+    "You'll need a confirmed email to collect rewards. It also helps if a code can't reach your phone.",
 }
 
-// A tiny external store over the localStorage dismissal flag, as in
-// HomeBirthdayPrompt: useSyncExternalStore reads the client-only value without a
-// hydration flash and without setState in an effect.
-const listeners = new Set<() => void>()
-
-function subscribe(listener: () => void) {
-  listeners.add(listener)
-  return () => {
-    listeners.delete(listener)
-  }
-}
-
-function shouldShow(): boolean {
-  try {
-    const raw = window.localStorage.getItem(EMAIL_PROMPT_DISMISS_KEY)
-    if (!raw) return true
-    const dismissedAt = Number(raw)
-    return (
-      !Number.isFinite(dismissedAt) ||
-      Date.now() - dismissedAt > RESHOW_AFTER_MS
-    )
-  } catch {
-    return true
-  }
-}
-
-/** The server never has localStorage; render hidden and let the client hydrate. */
-function serverSnapshot() {
-  return false
+function emailPromptVisible(snapshot: string): boolean {
+  if (snapshot === SUGGESTIONS_UNHYDRATED) return false
+  return !parseDismissedSuggestions(snapshot).includes("email")
 }
 
 /**
  * A quiet, dismissible nudge (asked for only when the customer has no verified
  * email) to add and confirm an email in place: the address, then the emailed
- * code. It never blocks the wallet or a stamp; "Not now" is remembered for 30
- * days. While it is dismissed or not asked for, `fallback` (the birthday prompt
- * on home) shows instead, so at most one prompt is ever on screen.
+ * code. It never blocks the cards or a stamp; "Not now" is remembered for 30
+ * days in this browser only. While it is dismissed or not asked for,
+ * `fallback` (home's next setup suggestion) shows instead, so at most one
+ * prompt is ever on screen.
  *
  * Render it unconditionally where it may appear and let `reason` decide: every
  * prompt action re-renders the route on the server (it sets or clears the
@@ -92,6 +75,7 @@ export function HomeEmailPrompt({
   initialEmail = null,
   codePending = false,
   fallback = null,
+  onDismissed,
 }: {
   action?: typeof emailPromptAction
   /** Why the server asks, or null when it is not asking. */
@@ -102,8 +86,16 @@ export function HomeEmailPrompt({
   /** A code for `initialEmail` is already on its way: open at the code step. */
   codePending?: boolean
   fallback?: ReactNode
+  /** After "Not now": the slot moves focus once the next render lands. */
+  onDismissed?: () => void
 }) {
-  const visible = useSyncExternalStore(subscribe, shouldShow, serverSnapshot)
+  const visible = emailPromptVisible(
+    useSyncExternalStore(
+      subscribeSuggestionDismissals,
+      dismissedSuggestionsSnapshot,
+      unhydratedSuggestionsSnapshot
+    )
+  )
   const [initialState] = useState<EmailPromptState>(() =>
     codePending && initialEmail
       ? { step: "code", email: initialEmail }
@@ -122,13 +114,9 @@ export function HomeEmailPrompt({
   }
 
   function dismiss() {
-    try {
-      window.localStorage.setItem(EMAIL_PROMPT_DISMISS_KEY, String(Date.now()))
-    } catch {
-      // Storage can be unavailable; the notify below still hides it this session.
-    }
     void recordEmailPromptEvent("customer_email_prompt_dismissed", surface)
-    for (const listener of listeners) listener()
+    dismissSuggestion("email")
+    onDismissed?.()
   }
 
   return (
@@ -175,19 +163,14 @@ function EmailPromptCard({
   }, [surface])
 
   const step = editing ? "email" : state.step
-  const compact = surface === "stamp_prompt"
 
   return (
-    <ReceiptCard
-      className="grid gap-3"
-      padding={compact ? "sm" : "md"}
-      data-testid="email-prompt"
-    >
-      <MonoTag tone="cobalt">Your email</MonoTag>
+    <ReceiptCard className="grid gap-3" padding="md" data-testid="email-prompt">
+      <MonoTag tone="plain">Optional</MonoTag>
       <h2 className="text-base leading-tight font-extrabold">
         {step === "verified"
           ? state.walletLinked
-            ? "Wallets linked"
+            ? "Your stamps are together now"
             : "Email confirmed"
           : "Add your email"}
       </h2>
@@ -195,13 +178,6 @@ function EmailPromptCard({
       {step === "verified" ? (
         <p role="status" className="text-sm leading-6 text-muted-foreground">
           {state.message ?? "Your email is confirmed."}
-        </p>
-      ) : null}
-      {step !== "verified" ? (
-        <p className="text-sm leading-6 text-muted-foreground">
-          Used this email for another wallet? After verification, we can bring
-          your stamps and rewards together. If we need help checking the
-          wallets, we will tell you and keep your stamps and rewards unchanged.
         </p>
       ) : null}
 
@@ -225,9 +201,11 @@ function EmailPromptCard({
           onChangeEmail={() => setEditing(true)}
         />
       ) : null}
+      {/* This prompt lives on home: "Sign in again" comes back here. */}
       <WalletLinkNextStep
         linked={state.walletLinked}
         recovery={state.recovery}
+        returnTo="/home"
       />
     </ReceiptCard>
   )
@@ -348,7 +326,7 @@ function CodeStep({
           <input type="hidden" name="intent" value="resend" />
           <input type="hidden" name="email" value={state.email ?? ""} />
           <Button type="submit" variant="link" size="sm" disabled={pending}>
-            Email me a new code
+            Send a new code
           </Button>
         </form>
         <Button type="button" variant="link" size="sm" onClick={onChangeEmail}>

@@ -13,17 +13,19 @@ export function JoinFirstStampRecoveryPanel({
   readonly membershipId: string
   readonly recovery: JoinFirstStampRecovery
 }) {
+  // S8: the join worked and only the first stamp did not. Say so plainly,
+  // keep the card, and offer the one thing that fixes it.
   switch (recovery.resolution) {
     case "retry":
       return (
         <div className="grid gap-3">
-          <StatusBanner title="Your first stamp is still waiting." tone="warning">
-            Your card is saved. Give the stamp one calm retry.
+          <StatusBanner title="Your card is saved." tone="warning">
+            Your first stamp didn&apos;t go through.
           </StatusBanner>
           <form action={retryJoinFirstStampAction}>
             <input type="hidden" name="membershipId" value={membershipId} />
             <Button type="submit" size="lg" className="w-full">
-              Try my first stamp again
+              Try again
             </Button>
           </form>
         </div>
@@ -31,20 +33,20 @@ export function JoinFirstStampRecoveryPanel({
     case "rescan":
       return (
         <div className="grid gap-3">
-          <StatusBanner title="Scan the venue QR once more." tone="warning">
-            Your card is saved. A fresh venue scan will collect the missing
-            stamp.
+          <StatusBanner title="Your card is saved." tone="warning">
+            Your first stamp didn&apos;t go through. Scan the QR at the counter
+            to add it.
           </StatusBanner>
-          <Button asChild size="lg" variant="secondary" className="w-full">
-            <Link href="/scan">Scan the venue QR again</Link>
+          <Button asChild size="lg" className="w-full">
+            <Link href="/scan">Scan the QR</Link>
           </Button>
         </div>
       )
     case "venue_action":
       return (
         <StatusBanner title="Your card is saved." tone="warning">
-          This venue is not taking stamps just now. Ask the team before trying
-          again.
+          Your first stamp didn&apos;t go through, and this venue isn&apos;t
+          adding stamps just now. Ask a team member for help.
         </StatusBanner>
       )
     default:

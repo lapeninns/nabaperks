@@ -20,9 +20,11 @@ test.describe("@customer-flow @a11y wallet sign-in email fallback focus", () => 
   }) => {
     await installFallbackClock(page)
     await gotoHydratedPage(page, "/dev/customer-login?mode=full")
-    await page.getByLabel("Phone number", { exact: true }).fill("07700900123")
-    await page.getByRole("button", { name: "Send code" }).click()
-    await expect(page.getByLabel("Phone code")).toBeVisible()
+    await page
+      .getByLabel("UK mobile number", { exact: true })
+      .fill("07700900123")
+    await page.getByRole("button", { name: "Send my code" }).click()
+    await expect(page.getByLabel("Your code")).toBeVisible()
 
     await page.clock.fastForward(31_000)
     const fallback = emailFallback(page)
@@ -31,7 +33,10 @@ test.describe("@customer-flow @a11y wallet sign-in email fallback focus", () => 
     await page.keyboard.press("Enter")
 
     await expect(
-      page.getByRole("heading", { name: "Get your code by email instead" })
+      page.getByRole("heading", {
+        name: "Get your code by email",
+        exact: true,
+      })
     ).toBeVisible()
     await expect(page.getByLabel("Email address")).toBeFocused()
   })

@@ -50,8 +50,7 @@ import {
  * CUSTOMER_EMAIL_AUTH_MODE=full. The local dev code stands in for the email.
  */
 
-const NO_WALLET =
-  "No wallet uses this email yet. Scan a venue QR to join, or sign in with your phone."
+const NO_WALLET = "You can use your mobile number instead."
 const SESSION_COOKIE = "nabaperks_customer_session"
 
 type EmailWallet = {
@@ -93,8 +92,8 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
       const device = await installKnownDevice(context)
 
       await requestLoginEmailCode(page, email, phone)
-      await page.getByLabel("Email code").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Open my cards" }).click()
+      await page.getByLabel("Your code").fill(DEV_OTP)
+      await page.getByRole("button", { name: "Continue" }).click()
 
       await expect(page).toHaveURL(/\/home(?:\?|$)/)
       await expect(page.getByText(wallet.businessName).first()).toBeVisible()
@@ -126,8 +125,8 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
       await installKnownDevice(context)
 
       await requestLoginEmailCode(page, email, phone)
-      await page.getByLabel("Email code").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Open my cards" }).click()
+      await page.getByLabel("Your code").fill(DEV_OTP)
+      await page.getByRole("button", { name: "Continue" }).click()
 
       await expect(page.getByText(NO_WALLET)).toBeVisible()
       await expect(page).toHaveURL(/\/home\/login/)
@@ -136,12 +135,12 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
         page.getByRole("link", { name: "Scan a venue QR" })
       ).toHaveAttribute("href", "/scan")
       await expect(
-        page.getByRole("button", { name: "Send my code", exact: true })
+        page.getByRole("button", { name: "Send code by email", exact: true })
       ).toHaveCount(0)
       await expect(readEmailWallets(sql, email)).resolves.toEqual([])
       await expect(hasSessionCookie(page)).resolves.toBe(false)
 
-      await page.getByRole("button", { name: "Use a different email" }).click()
+      await page.getByRole("button", { name: "Change email" }).click()
       await expect(page.getByLabel("Email address")).toHaveValue(email)
     })
   })
@@ -155,25 +154,25 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
       await installFallbackClock(page)
       await gotoHydratedPage(page, "/home/login")
       await page.locator("#contact").fill(phone.national)
-      await page.getByRole("button", { name: "Send code" }).click()
-      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await page.getByRole("button", { name: "Send my code" }).click()
+      await expect(page.getByLabel("Your code")).toBeVisible()
       await agePendingPhoneCode(page)
       await takeEmailFallback(page)
       await expect(page.getByLabel("Email address")).toBeVisible()
 
       // Taking the fallback kept the phone code: phone returns to it.
-      await page
-        .getByRole("button", { name: "Use my phone number instead" })
-        .click()
-      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await page.getByRole("button", { name: "Back to the text code" }).click()
+      await expect(page.getByLabel("Your code")).toBeVisible()
       await expect(
-        page.getByLabel("Phone number", { exact: true })
+        page.getByLabel("UK mobile number", { exact: true })
       ).toHaveCount(0)
-      await page.getByLabel("Phone code").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Open my cards" }).click()
+      await page.getByLabel("Your code").fill(DEV_OTP)
+      await page.getByRole("button", { name: "Continue" }).click()
       // The code was accepted; this number simply holds no cards.
       await expect(
-        page.getByRole("heading", { name: "No cards on this number" })
+        page.getByRole("heading", {
+          name: "We couldn't find any cards for this number.",
+        })
       ).toBeVisible()
       await expect(hasSessionCookie(page)).resolves.toBe(false)
     })
@@ -188,8 +187,8 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
       await installFallbackClock(page)
       await gotoHydratedPage(page, "/home/login")
       await page.locator("#contact").fill(phone.national)
-      await page.getByRole("button", { name: "Send code" }).click()
-      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await page.getByRole("button", { name: "Send my code" }).click()
+      await expect(page.getByLabel("Your code")).toBeVisible()
 
       // The page clock says 31 seconds; the server's says a few. The switch
       // answers with the code step, not the email form.
@@ -200,18 +199,18 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
         ),
         emailFallback(page).click(),
       ])
-      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await expect(page.getByLabel("Your code")).toBeVisible()
       await expect(page.getByLabel("Email address")).toHaveCount(0)
 
       // A reload opens on the pending code, not a blank number, and counts
       // the server's wait again.
       await page.reload()
       await waitForHydratedPage(page)
-      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await expect(page.getByLabel("Your code")).toBeVisible()
       await expect(page.locator("#contact")).toHaveCount(0)
-      await expect(page.getByText("Phone ending")).toContainText(
-        phone.national.slice(-4)
-      )
+      await expect(
+        page.getByText(new RegExp(`••${phone.national.slice(-3)}\\.`))
+      ).toBeVisible()
       await expect(emailFallback(page)).toHaveCount(0)
 
       // Once 30 seconds have passed for the server, a reload offers email at
@@ -224,10 +223,8 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
       await expect(page.getByLabel("Email address")).toBeVisible()
 
       // And back: the same code step, still pending.
-      await page
-        .getByRole("button", { name: "Use my phone number instead" })
-        .click()
-      await expect(page.getByLabel("Phone code")).toBeVisible()
+      await page.getByRole("button", { name: "Back to the text code" }).click()
+      await expect(page.getByLabel("Your code")).toBeVisible()
     })
   })
 
@@ -243,8 +240,8 @@ test.describe("@customer-flow wallet sign-in by email (live database, mode full)
       const device = await installKnownDevice(context)
 
       await requestLoginEmailCode(page, email, phone)
-      await page.getByLabel("Email code").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Open my cards" }).click()
+      await page.getByLabel("Your code").fill(DEV_OTP)
+      await page.getByRole("button", { name: "Continue" }).click()
 
       await expect(page.getByText(NO_WALLET)).toBeVisible()
       await expect(hasSessionCookie(page)).resolves.toBe(false)
@@ -272,17 +269,17 @@ async function requestLoginEmailCode(
   await gotoHydratedPage(page, "/home/login")
   await expect(page.getByLabel("Email address")).toHaveCount(0)
   await page.locator("#contact").fill(phone.national)
-  await page.getByRole("button", { name: "Send code" }).click()
-  await expect(page.getByLabel("Phone code")).toBeVisible()
+  await page.getByRole("button", { name: "Send my code" }).click()
+  await expect(page.getByLabel("Your code")).toBeVisible()
   await agePendingPhoneCode(page)
   await takeEmailFallback(page)
   await expect(
-    page.getByRole("heading", { name: "Get your code by email instead" })
+    page.getByRole("heading", { name: "Get your code by email", exact: true })
   ).toBeVisible()
   const field = page.getByLabel("Email address")
   await expect(field).toBeVisible()
   await field.fill(email)
-  await page.getByRole("button", { name: "Send my code" }).click()
+  await page.getByRole("button", { name: "Send code by email" }).click()
   await expect(
     page.getByRole("heading", { name: "Enter your code" })
   ).toBeVisible()

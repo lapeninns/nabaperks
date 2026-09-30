@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Eyebrow, IconRoundel, ReceiptCard } from "@/components/brand"
+import { IconRoundel, ReceiptCard } from "@/components/brand"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { normalizeScannedQrDestination } from "@/lib/customer/qr-scanner"
 import { scannerGuidance } from "@/lib/customer/scanner-guidance"
@@ -158,14 +158,14 @@ export function CustomerQrScanner() {
 
   const statusText =
     status.kind === "idle"
-      ? "Starting camera…"
+      ? "Starting camera"
       : status.kind === "scanning"
-        ? "Scanning for a Nabaperks QR…"
+        ? "Point at the QR on the counter"
         : status.kind === "decoded"
-          ? "QR found. Opening your venue card…"
+          ? "Found it. Opening your card"
           : status.kind === "invalid"
-            ? "That is not a Nabaperks QR. Point your camera at the venue QR to collect a stamp."
-            : "Camera unavailable"
+            ? "That's not a Nabaperks QR"
+            : "We can't use your camera"
 
   const guidance = scannerGuidance(status.kind)
 
@@ -181,15 +181,13 @@ export function CustomerQrScanner() {
       <div className="grid gap-3">
         <IconRoundel icon={Camera01Icon} iconSize={22} tone="accent" />
         <div className="grid gap-1.5">
-          <Eyebrow>Customer scanner</Eyebrow>
           <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
-            Scan venue QR
+            Scan the venue QR
           </h1>
           {/* Same barista line as the loader fallback — no system vocabulary
               (CUS-P2-11). */}
           <p className="text-sm leading-6 text-muted-foreground">
-            Point your camera at a Nabaperks venue QR to collect your stamp. No
-            app, no plastic.
+            Point your camera at the QR on the counter to open your card.
           </p>
         </div>
       </div>

@@ -19,7 +19,9 @@ import {
 
 // Neutral resend reply from requestCustomerIdentityAction: the same copy
 // whether the dispatch limiter admitted or refused the send (anti-enumeration).
-const RESEND_OUTCOME = "If a new code arrives, enter it here."
+const RESEND_OUTCOME = "If a new code arrives, use the latest one."
+/** Past the code step's 30-second resend wait, with room for whole seconds. */
+const PAST_RESEND_WAIT_MS = 31_000
 
 test.describe("@customer-flow customer join live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
@@ -47,21 +49,21 @@ test.describe("@customer-flow customer join live DB", () => {
       await openOtpStep(page, fixture, phone)
 
       await page.locator("#otp").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Check code" }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
       await expect(
-        page.getByRole("heading", { name: "Collect your first stamp" })
+        page.getByRole("heading", { name: /^Join the card at / })
       ).toBeVisible()
 
-      const loyaltyTerms = page.getByLabel(/Loyalty terms/i)
-      await page.getByRole("button", { name: "Get my first stamp" }).click()
+      const loyaltyTerms = page.getByLabel(/Card terms/i)
+      await page.getByRole("button", { name: "Add my first stamp" }).click()
       await expect(
-        page.getByText("Accept the loyalty terms to join.", { exact: true })
+        page.getByText("Tick the card terms to continue.", { exact: true })
       ).toBeVisible()
       await expect(loyaltyTerms).toHaveAttribute("aria-invalid", "true")
 
       await loyaltyTerms.check()
       await expect(
-        page.getByText("Accept the loyalty terms to join.", { exact: true })
+        page.getByText("Tick the card terms to continue.", { exact: true })
       ).toBeHidden()
       await expect(loyaltyTerms).toHaveAttribute("aria-invalid", "false")
 
@@ -72,7 +74,7 @@ test.describe("@customer-flow customer join live DB", () => {
             url.searchParams.get("welcome") === "1" &&
             url.searchParams.get("stamp") === "issued"
         ),
-        page.getByRole("button", { name: "Get my first stamp" }).click(),
+        page.getByRole("button", { name: "Add my first stamp" }).click(),
       ])
 
       const joined = await readJoinedMembership(sql, fixture, phone)
@@ -109,10 +111,12 @@ test.describe("@customer-flow customer join live DB", () => {
       await openOtpStep(page, fixture, phone)
 
       await page.locator("#otp").fill(WRONG_OTP)
-      await page.getByRole("button", { name: "Check code" }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
 
       await expect(
-        page.getByText("That code was not accepted.", { exact: true })
+        page.getByText("That code didn't work. Check it and try again.", {
+          exact: true,
+        })
       ).toBeVisible()
       await expect(
         page.getByRole("heading", { name: "Enter your code" })
@@ -142,8 +146,16 @@ test.describe("@customer-flow customer join live DB", () => {
       test.skip(!fixture, "seed merchant owner is not available")
       if (!fixture) return
 
+      // The code step counts a quiet 30-second wait after each send before
+      // offering "Send a new code" again (PHONE_CODE_RESEND_AFTER_SECONDS).
+      // The page clock waits it out, so every resend below still reaches the
+      // server, whose limiter stays the authority.
+      await page.clock.install()
       await openOtpStep(page, fixture, phone)
-      const resend = page.getByRole("button", { name: "Resend code" })
+      const resend = page.getByRole("button", {
+        name: "Send a new code",
+        exact: true,
+      })
       const resendOutcome = page.getByText(RESEND_OUTCOME, { exact: true })
 
       // The phone dispatch bucket admits 10 sends per 15 minutes: the initial
@@ -153,6 +165,8 @@ test.describe("@customer-flow customer join live DB", () => {
       // Every click round-trips a server action, so wait for that POST to
       // settle before reading the outcome — the copy is identical each time.
       for (let attempt = 0; attempt < 10; attempt += 1) {
+        await page.clock.fastForward(PAST_RESEND_WAIT_MS)
+        await expect(resend).toBeEnabled()
         await Promise.all([
           page.waitForResponse(
             (response) =>
@@ -162,14 +176,17 @@ test.describe("@customer-flow customer join live DB", () => {
           resend.click(),
         ])
         await expect(resendOutcome).toBeVisible()
-        await expect(resend).toBeEnabled()
+        // Neither admitted nor refused resends lock the step: the code field
+        // stays usable, and the control returns after the quiet wait (checked
+        // before the next click).
+        await expect(page.locator("#otp")).toBeEditable()
         await expect(page.getByText(/too many/i)).toHaveCount(0)
       }
 
       await page.locator("#otp").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Check code" }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
       await expect(
-        page.getByRole("heading", { name: "Collect your first stamp" })
+        page.getByRole("heading", { name: /^Join the card at / })
       ).toBeVisible()
     } finally {
       await cleanupCustomerJoinRows(sql, fixture, phone)
@@ -195,21 +212,23 @@ test.describe("@customer-flow customer join live DB", () => {
 
       await openOtpStep(page, fixture, phone)
       const otp = page.locator("#otp")
-      const checkCode = page.getByRole("button", { name: "Check code" })
+      const checkCode = page.getByRole("button", { name: "Continue" })
 
       for (let attempt = 0; attempt < 5; attempt += 1) {
         await otp.fill(WRONG_OTP)
         await checkCode.click()
         await expect(otp).toHaveValue("")
         await expect(
-          page.getByText("That code was not accepted.", { exact: true })
+          page.getByText("That code didn't work. Check it and try again.", {
+            exact: true,
+          })
         ).toBeVisible()
       }
 
       await otp.fill(DEV_OTP)
       await checkCode.click()
       await expect(
-        page.getByText("Too many code attempts. Request a new code shortly.", {
+        page.getByText("Too many tries. Send a new code in a few minutes.", {
           exact: true,
         })
       ).toBeVisible()

@@ -15,8 +15,8 @@ export default function CustomerQrError({
   return (
     <CustomerShell className="grid content-center">
       <CustomerErrorState
-        title="QR unavailable"
-        description="This QR could not be opened safely. Try again, or ask a team member for the current loyalty QR."
+        title="We couldn't load this card"
+        description="Check your signal or Wi-Fi, then try again. Your stamps are safe."
         reset={() => recoverFromBoundaryError(error, reset)}
         secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />

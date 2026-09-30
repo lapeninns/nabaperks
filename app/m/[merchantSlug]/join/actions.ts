@@ -130,13 +130,20 @@ export async function requestCustomerIdentityAction(
   const clientIp = trustedClientIp(requestHeaders)
   const deviceHash = customerDeviceHashFromHeaders(requestHeaders)
   const pendingVerification = await getPendingPhoneVerification()
-  const isTrustedResend =
-    pendingVerification?.purpose === "join" && value(formData, "resend") === "1"
+  const isResend = value(formData, "resend") === "1"
+  const isTrustedResend = pendingVerification?.purpose === "join" && isResend
+  // A resend carries no number: it only ever goes to the pending code's. Once
+  // that code has expired there is nothing to resend to, so the guest goes
+  // back to the number form and is told why, rather than being shown a
+  // number error for a field they never saw (guest journey J3).
+  if (isResend && !isTrustedResend) {
+    redirect(codeExpiredHref(merchantSlug, qrId, ref))
+  }
   const rawContact = isTrustedResend
     ? pendingVerification.phone
     : submittedContact
-  // Where the code goes: a resend may switch channel ("Send it on WhatsApp
-  // instead"); a first send uses the configured primary, SMS by default.
+  // Where the code goes: a resend may switch channel ("Text me instead"); a
+  // first send uses the configured primary, WhatsApp by default.
   const requestedChannel =
     parseOtpChannel(value(formData, "channel")) ??
     (isTrustedResend ? pendingVerification.channel : undefined) ??
@@ -205,7 +212,7 @@ export async function requestCustomerIdentityAction(
       return {
         fields: { ...requestFields, phoneSendFailed: true },
         errors: {
-          form: "We couldn't send a code just now. Try again shortly.",
+          form: "We couldn't send a code just now. Try again.",
         },
       }
     }
@@ -231,7 +238,7 @@ export async function requestCustomerIdentityAction(
     return {
       fields: { ...requestFields, phoneSendFailed: true },
       errors: {
-        form: "Verification code could not be sent. Try again shortly.",
+        form: "We couldn't send a code just now. Try again.",
       },
     }
   }
@@ -262,7 +269,8 @@ export async function requestCustomerIdentityAction(
         phoneOtpSent: true,
         ...phoneCodeStepTiming(pendingCode.issuedAt, Date.now()),
       },
-      message: "If a new code arrives, enter it here.",
+      // Worded for a send the admission may have refused without saying so.
+      message: "If a new code arrives, use the latest one.",
     }
   }
 
@@ -273,6 +281,16 @@ export async function requestCustomerIdentityAction(
       step: "otp",
     })
   )
+}
+
+/** The number form, telling the guest their pending code has expired. */
+function codeExpiredHref(merchantSlug: string, qrId: string, ref: string) {
+  return buildCustomerJoinHref(merchantSlug, {
+    qrId: qrId || undefined,
+    referralCode: ref || undefined,
+    step: "phone",
+    notice: "code_expired",
+  })
 }
 
 function logVerificationSendFailure(scope: "join", error: unknown): void {
@@ -306,9 +324,7 @@ export async function verifyCustomerOtpAction(
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
 
   if (!pending || pending.purpose !== "join") {
-    return {
-      errors: { contact: "That code has expired. Request a new one." },
-    }
+    redirect(codeExpiredHref(merchantSlug, qrId, ref))
   }
 
   const contact = pending.phone
@@ -316,7 +332,7 @@ export async function verifyCustomerOtpAction(
   if (!/^\d{4,8}$/.test(otp)) {
     return {
       fields: { merchantSlug, qrId, phoneOtpSent: true },
-      errors: { otp: "Enter the verification code." },
+      errors: { otp: "Enter the code we sent you." },
     }
   }
 
@@ -329,7 +345,7 @@ export async function verifyCustomerOtpAction(
     if (error instanceof RateLimitError) {
       return {
         fields: { merchantSlug, qrId, phoneOtpSent: true },
-        errors: { form: "Too many code attempts. Request a new code shortly." },
+        errors: { form: "Too many tries. Send a new code in a few minutes." },
       }
     }
 
@@ -347,7 +363,7 @@ export async function verifyCustomerOtpAction(
     return {
       fields: { merchantSlug, qrId, phoneOtpSent: true },
       errors: {
-        form: "We couldn't check that code. Try again or request a new one.",
+        form: "We couldn't check that code just now. Try again, or send a new code.",
       },
     }
   }
@@ -355,7 +371,7 @@ export async function verifyCustomerOtpAction(
   if (verification.status === "rejected") {
     return {
       fields: { merchantSlug, qrId, phoneOtpSent: true },
-      errors: { otp: "That code was not accepted." },
+      errors: { otp: "That code didn't work. Check it and try again." },
     }
   }
 
@@ -389,8 +405,9 @@ export async function verifyCustomerOtpAction(
   } catch {
     return {
       fields: { merchantSlug, qrId, phoneOtpSent: true },
+      // Twilio approves a code once, so the same code would now be refused.
       errors: {
-        form: "We couldn't confirm account continuity. Try again shortly.",
+        form: "We couldn't finish signing you in. Send a new code and try again.",
       },
     }
   }
@@ -710,7 +727,7 @@ export async function joinRewardsAction(
   }
 
   if (!acceptedTerms) {
-    return { errors: { loyaltyTerms: "Accept the loyalty terms to join." } }
+    return { errors: { loyaltyTerms: "Tick the card terms to continue." } }
   }
 
   // Two independent handoffs can be waiting at once, and each of them creates
@@ -782,7 +799,7 @@ export async function joinRewardsAction(
     })
     return {
       errors: {
-        form: "Rewards could not be joined. Try again or ask the venue team.",
+        form: "We couldn't add your card just now. Try again, or ask the venue team.",
       },
     }
   }

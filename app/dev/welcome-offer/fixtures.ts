@@ -64,15 +64,33 @@ export const WELCOME_PASS: CustomerOfferPass = {
  * and `email-code-after-code` the email code step with one still pending (the
  * provider never took the email). The `email` surfaces show the step the
  * server opened as the phone code's fallback.
+ *
+ * `email-no-card-existing` is J7: a verified fallback email no card uses, in
+ * mode `existing`. `email-confirmed` is the one-action "Continue" for a
+ * confirmed-email handoff left by the previous build (mode `full`); a new
+ * fallback email in mode `full` goes straight to the terms step instead.
+ * `phone-expired` is the number step after a code expired; `phone-change`
+ * the number step from "Wrong number? Change it", prefilled. `terms-email`
+ * is the terms step for a card joined by email (no confirmed phone), and
+ * `terms-age-check` for a card whose reward may be age checked. `returning`
+ * is J8: a guest who already has a card here ("Welcome back").
+ *
+ * Every surface takes `channel=whatsapp|sms` (text by default, so screenshots
+ * stay steady): WhatsApp shows the default channel's number note, "Sent by
+ * WhatsApp" and "Text me instead".
  */
 export const WELCOME_JOIN_SURFACES = [
   "welcome",
   "welcome-email",
   "phone",
+  "phone-expired",
+  "phone-change",
   "code",
   "code-email",
   "code-email-existing",
   "terms",
+  "terms-email",
+  "terms-age-check",
   "contact",
   "contact-existing",
   "email",
@@ -80,9 +98,19 @@ export const WELCOME_JOIN_SURFACES = [
   "email-code",
   "email-code-delayed",
   "email-code-after-code",
-  "email-choice",
-  "email-choice-existing",
+  "email-confirmed",
+  "email-no-card-existing",
+  "returning",
 ] as const
+
+export type WelcomeJoinChannel = "whatsapp" | "sms"
+
+/** `channel=whatsapp` shows the default channel; anything else is text. */
+export function welcomeJoinChannel(
+  raw: string | undefined
+): WelcomeJoinChannel {
+  return raw === "whatsapp" ? "whatsapp" : "sms"
+}
 
 function joinFixtureEmailMode(step: string): JoinEmailMode {
   if (step.endsWith("-existing")) return "existing"
@@ -94,12 +122,46 @@ function joinFixtureEmailMode(step: string): JoinEmailMode {
   return emailSurface ? "full" : "off"
 }
 
+const FIXTURE_CARD = {
+  name: "Loyalty card",
+  stampsRequired: 3,
+  rewardTerms:
+    "Fixture venue terms. No live consent is collected on this display route.",
+}
+
+/** The card, with an age-checked reward on the `terms-age-check` surface. */
+function fixtureCard(step: string) {
+  return step === "terms-age-check"
+    ? {
+        ...FIXTURE_CARD,
+        rewardPool: [
+          {
+            rewardName: "House cocktail",
+            rewardTerms: "Fixture reward.",
+            requiresAgeCheck: true,
+          },
+        ],
+      }
+    : FIXTURE_CARD
+}
+
+/** `phone-*` surfaces are the number step asked for explicitly. */
+function fixtureStep(step: string): string | undefined {
+  if (step === "email" || step === "email-after-code") return "email"
+  if (step.startsWith("phone-")) return "phone"
+  return undefined
+}
+
 export function welcomeJoinExperience(
   step: string,
-  options: { readonly sentAt?: number } = {}
+  options: {
+    readonly sentAt?: number
+    readonly channel?: WelcomeJoinChannel
+  } = {}
 ) {
   const codeSurface = step.startsWith("code")
   const sentAt = options.sentAt ?? Math.floor(Date.now() / 1_000)
+  const channel = options.channel ?? "sms"
   return deriveCustomerExperience({
     entry: "join",
     context: {
@@ -109,21 +171,22 @@ export function welcomeJoinExperience(
         slug: "welcome-offer-fixture",
         termsUrl: "/merchant/welcome-offer-fixture/terms",
       },
-      card: {
-        name: "Loyalty card",
-        stampsRequired: 3,
-        rewardTerms:
-          "Fixture venue terms. No live consent is collected on this display route.",
-      },
+      card: fixtureCard(step),
       qrId:
-        step.startsWith("welcome") || step.startsWith("code-email")
+        step.startsWith("welcome") ||
+        step.startsWith("code-email") ||
+        step.startsWith("terms-")
           ? "welcome-fixture-qr"
           : undefined,
-      step:
-        step === "email" || step === "email-after-code" ? "email" : undefined,
+      step: fixtureStep(step),
+      notice: step === "phone-expired" ? "code_expired" : undefined,
       emailFallbackOpen: step === "email" || step === "email-after-code",
       phoneCodePending: step.endsWith("after-code"),
-      hasSession: step === "terms",
+      hasSession: step.startsWith("terms"),
+      customerChannels:
+        step === "terms-email"
+          ? { phone: false, email: true }
+          : { phone: true, email: false },
       pendingOtp: codeSurface,
       pendingPhoneSentAt: codeSurface ? sentAt : undefined,
       pendingPhoneEmailFallbackInSeconds: codeSurface
@@ -139,33 +202,57 @@ export function welcomeJoinExperience(
               step === "email-code-delayed" || step === "email-code-after-code",
           }
         : undefined,
-      emailHandoff: step.startsWith("email-choice")
-        ? { maskedEmail: "j***@example.com" }
-        : undefined,
-      pendingPhone: "+447700900123",
-      pendingChannel: "sms",
-      primaryChannel: "sms",
-      membership: null,
+      emailHandoff:
+        step === "email-confirmed" || step === "email-no-card-existing"
+          ? { maskedEmail: "j***@example.com" }
+          : undefined,
+      // The number of the code pending on this browser (the loader passes it
+      // to the number step only for "Wrong number? Change it").
+      pendingPhone: step === "phone-expired" ? undefined : "+447700900123",
+      pendingChannel: channel,
+      primaryChannel: channel,
+      // J8: this guest already has a card here.
+      membership:
+        step === "returning"
+          ? { id: WELCOME_PASS.membershipId, current: 2 }
+          : null,
       location: { requireGeofence: false, geofenceRadiusMeters: 150 },
     },
   })
 }
 
-export const WELCOME_CARD = deriveCustomerExperience({
-  entry: "card",
-  context: {
-    membershipId: WELCOME_PASS.membershipId,
-    merchantName: "Old Crown",
-    cardName: "Loyalty card",
-    current: 2,
-    total: 3,
-    reward: null,
-    rewardTerms:
-      "Fixture venue terms. The live card keeps its full venue terms.",
-    stampDates: [],
-    justStamped: false,
-    justJoined: false,
-    geoFlagged: false,
-    justRedeemed: false,
-  },
-})
+/**
+ * The card page. `justJoined` is C "Just joined" (`surface=card&joined=1`):
+ * the card saved with no stamp yet, or with its first stamp
+ * (`&stamped=1`).
+ */
+export function welcomeCardExperience(
+  options: {
+    readonly justJoined?: boolean
+    readonly justStamped?: boolean
+  } = {}
+) {
+  const justJoined = options.justJoined === true
+  const justStamped = options.justStamped === true
+  const current = justJoined ? (justStamped ? 1 : 0) : 2
+  return deriveCustomerExperience({
+    entry: "card",
+    context: {
+      membershipId: WELCOME_PASS.membershipId,
+      merchantName: "Old Crown",
+      cardName: "Loyalty card",
+      current,
+      total: 3,
+      reward: null,
+      rewardTerms:
+        "Fixture venue terms. The live card keeps its full venue terms.",
+      stampDates: justJoined && justStamped ? ["12 Sep"] : [],
+      justStamped,
+      justJoined,
+      geoFlagged: false,
+      justRedeemed: false,
+    },
+  })
+}
+
+export const WELCOME_CARD = welcomeCardExperience()

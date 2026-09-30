@@ -25,8 +25,15 @@ test.describe("@customer-flow customer issued rewards wallet", () => {
       page.getByRole("heading", { level: 1, name: "Rewards" })
     ).toBeVisible()
     await expect(
-      page.getByRole("heading", { name: "Show these now" })
+      page.getByRole("heading", { name: "Ready to collect" })
     ).toBeVisible()
+    // A reward held by setup has its own group and never offers a code.
+    await expect(
+      page.getByRole("heading", { name: "Needs setting up" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Get it ready" })
+    ).toHaveAttribute("href", "/reward/rwd_setup")
 
     // Issued-reward source badges (distinct from the reward names).
     await expect(page.getByText("Birthday treat").first()).toBeVisible()
@@ -38,9 +45,11 @@ test.describe("@customer-flow customer issued rewards wallet", () => {
     ).toBeVisible()
 
     // Earned reward still renders its collect CTA.
-    await expect(page.getByText("Open reward QR").first()).toBeVisible()
+    await expect(page.getByText("Open reward").first()).toBeVisible()
 
     // History still buckets expired rewards.
-    await expect(page.getByRole("heading", { name: "Expired" })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "No longer available" })
+    ).toBeVisible()
   })
 })

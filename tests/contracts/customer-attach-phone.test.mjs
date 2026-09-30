@@ -113,7 +113,17 @@ test("Given the profile When the wallet has no phone Then it offers to add one a
     /if \(hasPhone && state\.step !== "attached"\) return null/
   )
   assert.match(page, /hasPhone=\{hasPhone\}/)
-  assert.match(page, /\{hasPhone \? \(\s*<PhoneMessagingSettings/)
+  // Phone reminders sit inside "Messages from venues", only with a phone.
+  assert.match(
+    page,
+    /<CustomerProfileMessagesSection[\s\S]{0,80}hasPhone=\{hasPhone\}/
+  )
+  const messages = read(
+    "components",
+    "customer",
+    "profile-messages-section.tsx"
+  )
+  assert.match(messages, /\{hasPhone \? \([\s\S]{0,160}<PhoneMessagingSettings/)
 
   // Text and WhatsApp marketing need a verified phone (QA BUG-033). The
   // consent RPC accepts any channel, so the lib decides before calling it and
@@ -143,7 +153,16 @@ test("Given email sign-in is switched off When an email-only wallet adds a phone
   // exception, because phone is how an email-only wallet gets back in once
   // email sign-in is off.
   assert.match(actions, /Deliberately not gated on CUSTOMER_EMAIL_AUTH_MODE/)
-  assert.doesNotMatch(actions, /email-auth-mode|emailSignInEnabled\(/)
+  // The mode only picks the words after a link (whether the email fallback
+  // may be mentioned); it never decides whether a phone can be added.
+  const modeReads = actions.match(/emailSignInEnabled\(/g) ?? []
+  const copyReads =
+    actions.match(/walletLinkedMessage\(emailSignInEnabled\(\)\)/g) ?? []
+  assert.equal(modeReads.length, copyReads.length)
+  assert.doesNotMatch(
+    actions,
+    /customerEmailAuthMode|emailWalletCreationEnabled/
+  )
   const page = read("app", "home", "(authed)", "profile", "page.tsx")
   assert.doesNotMatch(
     page,
@@ -153,6 +172,38 @@ test("Given email sign-in is switched off When an email-only wallet adds a phone
   // wallet the code was sent for.
   assert.match(
     actions,
-    /if \(!customer\) return \{ step: "phone", errors: \{ form: SIGN_IN_FIRST \} \}/
+    /if \(!customer\) \{\s*return \{\s*step: "phone",[\s\S]{0,80}errors: \{ form: SIGN_IN_FIRST \}/
+  )
+})
+
+test("Given the reward gate's phone step When the number is confirmed Then the reward route shows the confirmation it redirects back with", () => {
+  const gate = read("components", "customer", "profile-gate-forms.tsx")
+  const page = read("app", "reward", "[rewardId]", "page.tsx")
+  const card = read("components", "customer", "customer-card-experience.tsx")
+  const harness = read("app", "dev", "reward-collection", "page.tsx")
+
+  // The form names the reward so the phone action redirects back to it.
+  assert.match(
+    gate,
+    /action=\{rewardPhoneAction\}\s+returnTo=\{`\/reward\/\$\{rewardId\}`\}/
+  )
+  // The reward route reads `?contact=` and renders the shared notice.
+  assert.match(page, /contact\?: string \| string\[\]/)
+  assert.match(
+    page,
+    /<ProfileContactNotice\s+value=\{query\.contact\}\s+confirmed=\{confirmedContacts\(/
+  )
+  // The flag alone is not proof: the notice shows only when the gate the
+  // server read backs it (a confirmed phone, a locked email).
+  assert.match(
+    page,
+    /phone: gate\.needsPhoneVerification !== true,\s+email: gate\.emailLocked,/
+  )
+  assert.match(card, /notice\?: ReactNode/)
+  assert.match(card, /\{notice\}\s+<ExperiencePanel/)
+  // The DB-free harness keeps a lane for the notice.
+  assert.match(
+    harness,
+    /<ProfileContactNotice\s+value=\{params\.contact\}[\s\S]{0,200}confirmed=\{\{\s+phone: profileGate\.needsPhoneVerification !== true,/
   )
 })

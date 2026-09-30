@@ -98,11 +98,69 @@ test("Given an unverified email and no pending code When the profile renders The
 test("Given a code is pending for the saved email When the profile renders Then it asks for that code", () => {
   const copy = text({ profile: unverified, emailCodeSentAt: 1_790_000_000 })
 
+  assert.match(copy, /Enter the code we sent to alex@example\.test\./)
+  assert.match(copy, /Your code/)
+  assert.match(copy, /Send a new code/)
+  assert.doesNotMatch(copy, /Send me a code/)
+  // Linking rules are the previous-stamps task's, not this form's.
+  assert.doesNotMatch(copy, /wallet|verif/i)
+})
+
+test("Given a card with no mobile number When the details summary renders Then Contact says why to add one and shows the email as Confirmed", () => {
+  const copy = text({
+    profile: {
+      phone: null,
+      fullName: "Alex Guest",
+      dateOfBirth: "1990-01-01",
+      email: "alex@example.test",
+      emailVerified: true,
+      emailLocked: true,
+      needsEmailVerification: false,
+    },
+    emailCodeSentAt: null,
+  })
+
+  assert.match(copy, /Your details/)
+  assert.match(copy, /Contact/)
+  assert.match(copy, /Mobile Not added/)
   assert.match(
     copy,
-    /Enter the code we sent to alex@example\.test to verify it\./
+    /Add your mobile number so you can sign in on another phone\./
   )
-  assert.match(copy, /Email code/)
-  assert.match(copy, /Email me a new code/)
-  assert.doesNotMatch(copy, /Send me a code/)
+  assert.match(copy, /alex@example\.test Confirmed/)
+  assert.match(
+    copy,
+    /To change a confirmed number or email, ask staff at a venue\./
+  )
+  assert.doesNotMatch(copy, /verified|locked|account security|paused/i)
+})
+
+test("Given a card with a confirmed mobile number When the summary renders Then it is shown as Confirmed without the add prompt", () => {
+  const copy = text({
+    profile: {
+      phone: "07700 900123",
+      fullName: "Alex Guest",
+      dateOfBirth: "1990-01-01",
+      email: null,
+      emailVerified: false,
+      emailLocked: false,
+      needsEmailVerification: false,
+    },
+    emailCodeSentAt: null,
+  })
+
+  assert.match(copy, /07700 900123 Confirmed/)
+  assert.match(copy, /Email Not added/)
+  assert.doesNotMatch(copy, /Add your mobile number/)
+})
+
+test("Given a details save When the card picks its next mode Then it reads the structured outcome, never the message copy", async () => {
+  const { readFileSync } = await import("node:fs")
+  const source = readFileSync(
+    "components/customer/profile-about-you.tsx",
+    "utf8"
+  )
+
+  assert.doesNotMatch(source, /\.test\(saveState\.message\)/)
+  assert.match(source, /saveState\.outcome === "email_code_sent"/)
 })
