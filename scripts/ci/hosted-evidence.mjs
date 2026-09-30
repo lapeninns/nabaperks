@@ -121,8 +121,6 @@ export const NON_LANE_JOBS = Object.freeze({
     "affected-page proof cannot substitute for full local qualification",
   "targeted-visual":
     "affected-page pixels remain hosted and outside local qualification",
-  "selection-comparison":
-    "bounded impact-policy qualification, not a local execution lane",
   build: "the production bundle has no lane in the qualification policy",
   "build-gate": "rollup of fast, quality and build",
   "e2e-gate": "rollup of the e2e matrix",

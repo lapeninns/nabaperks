@@ -372,7 +372,7 @@ test("prepared image verification rejects version drift and missing browsers", (
   const pinnedImage = new RegExp(
     `^mcr\\.microsoft\\.com/playwright:v${BROWSER_IMAGE_VERSION}-noble@sha256:[a-f0-9]{64}$`
   )
-  for (const path of [CI_PATH, "config/ci-qualification-workflow.yml"]) {
+  for (const path of [CI_PATH]) {
     const jobs = browserEnvironmentFromWorkflow(readFileSync(path, "utf8"))
     for (const name of ["e2e", "a11y", "targeted-browser"]) {
       assert.match(jobs[name].image, pinnedImage, `${path} ${name} image`)

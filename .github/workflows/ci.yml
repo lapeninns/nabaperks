@@ -75,7 +75,6 @@ jobs:
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
       profile: ${{ steps.plan.outputs.profile }}
-      comparison: ${{ steps.plan.outputs.comparison }}
     steps:
       # The PR cannot edit the classifier that judges its own scope. Read its
       # immutable merge tree using Git, while executing policy from main's base.
@@ -90,44 +89,15 @@ jobs:
             git checkout --detach "$CI_BASE_SHA"
           fi
       - uses: ./.github/actions/setup
-        if: ${{ hashFiles('scripts/ci/plan-checks.mjs') != '' }}
+      # A missing classifier fails here, before any application job starts.
       - name: Classify the immutable candidate with reviewed policy
         id: plan
-        run: |
-          if [ -f scripts/ci/plan-checks.mjs ]; then
-            node scripts/ci/plan-checks.mjs
-          else
-            # The evidence verifier must land separately before producers can
-            # qualify themselves. Fail here before scheduling application jobs.
-            if [ ! -f scripts/ci/compare-targeted-evidence.mjs ] || [ ! -f scripts/ci/documentation-evidence-contract.mjs ]; then
-              echo "::error::Land the reviewed CI selection verifier foundation before this integration."
-              exit 1
-            fi
-            # No classifier yet: full validation and comparison remain required.
-            node --input-type=module <<'JS'
-          import { appendFileSync } from 'node:fs'
-          const identity = {
-            repository: process.env.GITHUB_REPOSITORY,
-            event: process.env.GITHUB_EVENT_NAME,
-            baseSha: process.env.CI_BASE_SHA,
-            headSha: process.env.CI_HEAD_SHA,
-            candidateSha: process.env.GITHUB_SHA,
-          }
-          const plan = {
-            schema: 'nabaperks.ci-impact-plan.v1', identity, profile: 'full',
-            reason: 'Policy bootstrap: full validation and selection comparison required',
-            required: ['fast','quality','build','e2e','a11y','visual','lighthouse','zap-baseline','db'],
-            pages: [], changes: [], comparisonRequired: true,
-          }
-          appendFileSync(process.env.GITHUB_OUTPUT, `plan=${JSON.stringify(plan)}\nprofile=full\ncomparison=true\n`)
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### CI selection\n\nFull validation: the reviewed base does not yet contain the impact policy. All nine workloads and selection comparison are required.\n')
-          JS
-          fi
+        run: node scripts/ci/plan-checks.mjs
 
   documentation:
     name: Documentation validation
     needs: selection
-    if: ${{ needs.selection.outputs.profile == 'documentation' || (needs.selection.outputs.profile == 'public-pages' && contains(fromJSON(needs.selection.outputs.plan).required, 'documentation')) || needs.selection.outputs.comparison == 'true' }}
+    if: ${{ needs.selection.outputs.profile == 'documentation' || (needs.selection.outputs.profile == 'public-pages' && contains(fromJSON(needs.selection.outputs.plan).required, 'documentation')) }}
     runs-on: ubuntu-latest
     # The unit tier added to `runDocumentation` runs the complete unit suite
     # through a real Chromium (measured: coverage 61s + browser install 15s on
@@ -170,7 +140,7 @@ jobs:
   targeted-browser:
     name: Affected page browser checks
     needs: selection
-    if: ${{ needs.selection.outputs.profile == 'public-pages' || needs.selection.outputs.comparison == 'true' }}
+    if: ${{ needs.selection.outputs.profile == 'public-pages' }}
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
@@ -202,7 +172,7 @@ jobs:
   targeted-visual:
     name: Affected page visual checks
     needs: [selection, fast]
-    if: ${{ needs.selection.outputs.profile == 'public-pages' || needs.selection.outputs.comparison == 'true' }}
+    if: ${{ needs.selection.outputs.profile == 'public-pages' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -231,101 +201,6 @@ jobs:
           path: ${{ runner.temp }}/targeted-visual/
           if-no-files-found: error
           retention-days: 7
-
-  selection-comparison:
-    name: Verify targeted and full outcomes
-    needs:
-      [
-        selection,
-        e2e,
-        a11y,
-        visual,
-        documentation,
-        targeted-browser,
-        targeted-visual,
-      ]
-    if: ${{ always() && needs.selection.outputs.comparison == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      CI_IMPACT_PLAN: ${{ needs.selection.outputs.plan }}
-      CI_COMPARISON_NEEDS: ${{ toJSON(needs) }}
-      CI_COMPARISON_CANDIDATE_TREE: ${{ github.workspace }}/comparison-candidate
-    steps:
-      - name: Check out reviewed comparison policy
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
-          persist-credentials: false
-      - name: Select the immutable comparison verifier
-        id: verifier
-        env:
-          REVIEWED_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
-        run: |
-          test "$(git rev-parse HEAD)" = "$REVIEWED_REVISION"
-          test -f scripts/ci/compare-targeted-evidence.mjs
-          test -f scripts/ci/documentation-evidence-contract.mjs
-          echo "revision=$REVIEWED_REVISION" >> "$GITHUB_OUTPUT"
-          echo "source=reviewed-base" >> "$GITHUB_OUTPUT"
-      - name: Check out the immutable verifier
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ steps.verifier.outputs.revision }}
-          persist-credentials: false
-      - name: Verify the comparison source revision
-        env:
-          VERIFIER_REVISION: ${{ steps.verifier.outputs.revision }}
-        run: test "$(git rev-parse HEAD)" = "$VERIFIER_REVISION"
-      - uses: ./.github/actions/setup
-      # Candidate checkout is data only. Dependencies and verifier still come
-      # from the immutable reviewed checkout above.
-      - name: Read the immutable candidate as Git data
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.sha }}
-          path: comparison-candidate
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: ci-documentation-evidence
-          path: ${{ runner.temp }}/documentation
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          pattern: playwright-report-*
-          path: ${{ runner.temp }}/full-e2e
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          pattern: ci-a11y-json-*
-          path: ${{ runner.temp }}/full-a11y
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          pattern: ci-visual-json-*
-          path: ${{ runner.temp }}/full-visual
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          pattern: targeted-*
-          path: ${{ runner.temp }}/targeted
-      - run: node scripts/ci/compare-targeted-evidence.mjs "$RUNNER_TEMP"
-      - name: Record the immutable verifier identity
-        env:
-          VERIFIER_REVISION: ${{ steps.verifier.outputs.revision }}
-          VERIFIER_SOURCE: ${{ steps.verifier.outputs.source }}
-        run: |
-          node --input-type=module <<'JS'
-          import { readFileSync, writeFileSync } from 'node:fs'
-          import { join } from 'node:path'
-          const path = join(process.env.RUNNER_TEMP, 'selection-comparison.json')
-          const result = JSON.parse(readFileSync(path, 'utf8'))
-          result.verifier = { revision: process.env.VERIFIER_REVISION, source: process.env.VERIFIER_SOURCE }
-          writeFileSync(path, JSON.stringify(result, null, 2) + '\n')
-          JS
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: ci-selection-comparison
-          path: ${{ runner.temp }}/selection-comparison.json
-          if-no-files-found: error
-          retention-days: 90
 
   fast:
     if: ${{ contains(fromJSON('["full","public-pages"]'), needs.selection.outputs.profile) }}
@@ -571,9 +446,7 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Verify prepared browser environment
         run: node scripts/ci/check-browser-image.mjs
-      - env:
-          CI_BROWSER_JSON_REPORT: ${{ needs.selection.outputs.comparison == 'true' && format('{0}/full-a11y.json', runner.temp) || '' }}
-        run: node scripts/ci/browser-workload.mjs hosted test:a11y --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
+      - run: node scripts/ci/browser-workload.mjs hosted test:a11y --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
@@ -581,13 +454,6 @@ jobs:
           path: |
             playwright-report/
             test-results/
-          retention-days: 7
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() && needs.selection.outputs.comparison == 'true' }}
-        with:
-          name: ci-a11y-json-${{ matrix.project }}-${{ strategy.job-index }}
-          path: ${{ runner.temp }}/full-a11y.json
-          if-no-files-found: error
           retention-days: 7
 
   a11y-gate:
@@ -627,16 +493,10 @@ jobs:
         uses: ./.github/actions/playwright
         with:
           project: ${{ matrix.project }}
+      # updateSnapshots is "none" under CI (playwright.config.ts), so this run
+      # only compares against reviewed baselines and never writes new ones.
       - name: Run the unchanged visual selection
-        env:
-          PLAYWRIGHT_JSON_OUTPUT_NAME: ${{ runner.temp }}/full-visual.json
-          SELECTION_COMPARISON: ${{ needs.selection.outputs.comparison }}
-        run: |
-          if [ "$SELECTION_COMPARISON" = true ]; then
-            pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}" --update-snapshots=none --reporter=line,json,./scripts/ci/browser-configuration-reporter.mjs
-          else
-            pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
-          fi
+        run: pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
@@ -644,13 +504,6 @@ jobs:
           path: |
             playwright-report/
             test-results/
-          retention-days: 7
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() && needs.selection.outputs.comparison == 'true' }}
-        with:
-          name: ci-visual-json-${{ matrix.project }}-${{ strategy.job-index }}
-          path: ${{ runner.temp }}/full-visual.json
-          if-no-files-found: error
           retention-days: 7
 
   visual-gate:
@@ -828,7 +681,6 @@ jobs:
       - documentation
       - targeted-browser
       - targeted-visual
-      - selection-comparison
     if: ${{ always() }}
     runs-on: ubuntu-latest
     # Allow cold checkout time without turning this short verdict into a wait.
@@ -845,33 +697,9 @@ jobs:
             git checkout --detach "$CI_BASE_SHA"
           fi
       - uses: ./.github/actions/setup
-        if: ${{ hashFiles('scripts/ci/verify-impact-evidence.mjs') != '' }}
+      # A missing verifier fails this step; the gate never falls back to a
+      # weaker check.
       - name: Verify the required checks using reviewed policy
         env:
           CI_REQUIRED_EVIDENCE: ${{ toJSON(needs) }}
-        run: |
-          if [ -f scripts/ci/verify-impact-evidence.mjs ]; then
-            node scripts/ci/verify-impact-evidence.mjs
-          else
-            # Bootstrap cannot reduce the old gate. Validate the old nine roots
-            # with its reviewed verifier, plus all new qualification jobs.
-            node --input-type=module <<'JS'
-          import assert from 'node:assert/strict'
-          import { appendFileSync } from 'node:fs'
-          import { verifyRequiredEvidence, REQUIRED_HOSTED_JOBS } from './scripts/ci/verify-required-evidence.mjs'
-          const needs = JSON.parse(process.env.CI_REQUIRED_EVIDENCE)
-          const extra = ['selection','documentation','targeted-browser','targeted-visual','selection-comparison']
-          assert.deepEqual(Object.keys(needs).sort(), [...REQUIRED_HOSTED_JOBS, ...extra].sort())
-          for (const name of extra) assert.equal(needs[name]?.result, 'success', `${name} must pass during bootstrap`)
-          const plan = JSON.parse(needs.selection.outputs.plan)
-          assert.equal(plan.profile, 'full')
-          assert.equal(plan.comparisonRequired, true)
-          assert.deepEqual(plan.identity, {
-            repository: process.env.GITHUB_REPOSITORY, event: process.env.GITHUB_EVENT_NAME,
-            baseSha: process.env.CI_BASE_SHA, headSha: process.env.CI_HEAD_SHA, candidateSha: process.env.GITHUB_SHA,
-          })
-          const result = verifyRequiredEvidence(Object.fromEntries(REQUIRED_HOSTED_JOBS.map(name => [name, needs[name]])))
-          console.log(result)
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Full bootstrap validation\n\n${result}\n\nTargeted/full comparison also passed. No required workload was omitted.\n`)
-          JS
-          fi
+        run: node scripts/ci/verify-impact-evidence.mjs

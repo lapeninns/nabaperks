@@ -1,6 +1,8 @@
 # Replace exact-tree CI qualification with full validation and owner review
 
-Status: accepted in the repository, pending activation (see "Landing sequence").
+Status: active. Staged in #416, activated in #418 and released to production
+(`368e5e1a`, 30 September 2026). The gate accepts the comparison job as absent
+(#423) and the machinery is removed by the follow-up cleanup PR.
 Date: 30 September 2026. Findings: R01, R02, R03, R05 (original report F1, F6).
 
 ## Context

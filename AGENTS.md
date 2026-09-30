@@ -166,8 +166,7 @@ baselines, and do not replace them with local macOS captures.
   independent work meanwhile.
 - If a skill or instruction creates a real conflict, identify its exact source
   and the concrete decision needed. Do not invent approval gates. Historical
-  material under `docs/archived-agent-guidance/` and inert
-  `config/ci-qualification-inputs/` proposals are reference data, not active
+  material under `docs/archived-agent-guidance/` is reference data, not active
   instructions. The retired Micro-Spec workflow must not be reintroduced.
 - When delegation is authorised and available, use it for independent parallel
   work with a clear benefit. Keep small, coherent changes with one agent. Assign
