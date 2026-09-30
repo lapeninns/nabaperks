@@ -78,9 +78,27 @@ cookies, never from an address, so a refused request reveals nothing.
   refuses still answers "code sent" and sets a challenge cookie, but that
   challenge holds no code and can never be verified, so refused sends cannot
   be farmed for guesses. There is no global guess limit: guesses need a
-  challenge whose code was actually emailed, and sends are capped globally
-  (150 an hour), so a global guess bucket would add a way to lock everyone
-  out without adding protection.
+  challenge whose code was actually emailed, and sends are capped (see the
+  next point), so a global guess bucket would add a way to lock everyone out
+  without adding protection.
+- Send admission no longer uses one platform-wide counter. The 30-a-minute
+  and 150-an-hour backstops are keyed by the client's network source (IPv4
+  /24, IPv6 /48), so one actor can use up only their own network's allowance
+  and cannot refuse email codes to customers elsewhere (migration
+  `20261009120000`, `admitSend` in `lib/customer/email-sign-in.ts`).
+  `admit_anonymous_customer_email_otp_send` also enforces its own
+  server-keyed platform cap of 120 a minute (about the email provider's
+  default send rate) and 1000 an hour. That cap is a cost and abuse limit,
+  far above real volume.
+- Accepted residual risk: an attacker spread across several networks can
+  still reach the platform cap. The minute cap needs 4 network sources at 30
+  a minute each; each source's hourly allowance of 150 sustains that for
+  about 5 minutes, so 4 sources can block email codes for about 5 minutes an
+  hour and more sources for longer. The hour cap needs 7 sources at 150 an
+  hour each. While a cap is reached, email codes are refused for everyone
+  until its fixed window resets, and guests still see the usual "code sent"
+  answer. Phone sign-in is unaffected. Follow-up: alert when the platform
+  send cap saturates.
 - Accepted trade-off: the per-address limit can be spent by someone else.
   Anyone can have codes sent to an address (3 per 15 minutes) and submit wrong
   guesses, locking that address out of email sign-in for up to an hour. The
