@@ -367,11 +367,18 @@ for (const status of ["unlocked", "redeemed", "expired", "cancelled"]) {
         const [completed] =
           await tx`select private.complete_cycle_if_full(${f.emailMembership}::uuid,'test') id`
         assert.ok(completed.id)
+        // A redeemed reward on this email-only wallet predates the verified
+        // phone rule (20261009100300, QA BUG-008), which now refuses the
+        // transition itself; seed that legacy row with triggers suspended
+        // for this one statement only.
+        if (status === "redeemed")
+          await tx`set local session_replication_role = replica`
         await tx`update public.reward_events set status=${status},
           redeemed_at=case when ${status}='redeemed' then now() else null end,
           expired_at=case when ${status}='expired' then now() else null end,
           cancelled_reason=case when ${status}='cancelled' then 'Test cancellation' else null end
           where id=${completed.id}::uuid`
+        await tx`set local session_replication_role = origin`
         const [before] =
           await tx`select reward_name,reward_terms,expires_at,created_at from public.reward_events where id=${completed.id}::uuid`
         await stamps(tx, f, f.customerId, f.membershipId, [8, 7])

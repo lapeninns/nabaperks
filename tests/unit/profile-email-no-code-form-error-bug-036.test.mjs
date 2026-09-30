@@ -35,6 +35,22 @@ const bundle = await build({
   jsx: "automatic",
   plugins: [
     {
+      // PR #410's WalletLinkNextStep imports the server-only reset action.
+      name: "session-reset-action-stub",
+      setup(build) {
+        build.onResolve(
+          { filter: /^@\/app\/home\/session\/reset\/actions$/ },
+          () => ({
+            path: "session-reset-actions",
+            namespace: "reset-stub",
+          })
+        )
+        build.onLoad({ filter: /.*/, namespace: "reset-stub" }, () => ({
+          contents: "export async function resetCustomerSessionAction() {}",
+        }))
+      },
+    },
+    {
       name: "profile-actions-stub",
       setup(build) {
         build.onResolve(

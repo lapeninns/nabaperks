@@ -75,6 +75,10 @@ function loadConfirmation(check) {
       "server-only": "",
       "@/lib/customer/email-verification":
         'import { state } from "fixture-state"; export async function checkCustomerEmailVerification() { return state.check }',
+      // PR #410's wallet link runs only after a conflict, which these cases
+      // never reach; the stub makes an unexpected call visible.
+      "@/lib/customer/wallet-link":
+        'export async function linkWalletAfterContactVerification() { throw new Error("unexpected wallet link") } export function walletLinkFailureMessage() { return "" }',
       "@/lib/customer/identity":
         'export async function getCurrentCustomer() { return { id: "customer-a" } }',
       "@/lib/customer/profile":

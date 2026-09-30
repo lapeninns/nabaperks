@@ -59,6 +59,10 @@ function loadProfile() {
         'import { state } from "fixture-state"; export function after() { state.afterCalls += 1 }',
       "@/lib/customer/phone-verification-state":
         "export async function customerHasVerifiedPhone() { return true }",
+      // PR #410's wallet link runs only after a conflict, which these cases
+      // never reach; the stub makes an unexpected call visible.
+      "@/lib/customer/wallet-link":
+        'export async function linkWalletAfterContactVerification() { throw new Error("unexpected wallet link") } export function walletLinkFailureMessage() { return "" }',
       "@/lib/customer/identity":
         'import { state } from "fixture-state"; export async function getCurrentCustomer() { return state.customer }',
       "@/lib/customer/email-pii-core":
@@ -178,6 +182,10 @@ function loadActions() {
         "export function triggerBirthdayIssuanceForCustomer() {}",
       "@/lib/customer/consent":
         "export function isMarketingChannel() {} export function updateCustomerMarketingConsent() {}",
+      // PR #410's wallet link runs only after a conflict, which these cases
+      // never reach; the stub makes an unexpected call visible.
+      "@/lib/customer/wallet-link":
+        'export async function linkWalletAfterContactVerification() { throw new Error("unexpected wallet link") } export function walletLinkFailureMessage() { return "" }',
       "@/lib/customer/identity":
         'import { state } from "fixture-state"; export async function getCurrentCustomer() { return state.customer }',
       "@/lib/customer/profile": `import { state } from "fixture-state";

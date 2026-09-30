@@ -132,11 +132,10 @@ export async function verifyHomeProfileEmailAction(
   if (errors)
     return {
       errors,
-      recovery:
-        confirmation.status === "reauthenticate" ||
-        confirmation.status === "requires_review"
-          ? confirmation.status
-          : undefined,
+      ...(confirmation.status === "reauthenticate" ||
+      confirmation.status === "requires_review"
+        ? { recovery: confirmation.status }
+        : {}),
     }
 
   revalidatePath(PROFILE_PATH)
