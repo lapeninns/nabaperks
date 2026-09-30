@@ -7,6 +7,12 @@ are `Release gate`, `Analyze (javascript-typescript)` and
 `Review dependency changes` — local CI holds none of them, and nothing here
 changes that.
 
+> State on 30 September 2026 (not a change to this record): the launchd
+> controller `com.nabaperks.local-ci` is loaded again and the `nabaperks-ci` Lima
+> VM is running; `LOCAL_CI_MODE=shadow` and `LOCAL_CI_WATCHDOG_ENABLED=true`.
+> The "paused" disposition below no longer describes the host. Current status
+> and the pending owner decision: `docs/operations/ci-remediation-2026-09-30.md`.
+
 ## Decision
 
 **Hosted authority stays; the local plane stays paused; retirement stays owner-gated.**

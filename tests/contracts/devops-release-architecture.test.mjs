@@ -54,10 +54,12 @@ test("post-promotion smokes are isolated from scheduled supersession", () => {
   const smoke = read(".github/workflows/production-smoke.yml")
   const concurrency = smoke.match(/\nconcurrency:\n((?: {2}\S.*\n)+)/)?.[1]
 
+  // Only schedule shares a group; dispatch and promotion runs are keyed by
+  // their own run, and nothing cancels a probe that is already running.
   assert.equal(
     concurrency,
-    "  group: production-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 'scheduled' }}\n" +
-      "  cancel-in-progress: true\n"
+    "  group: production-smoke-${{ github.event_name == 'schedule' && 'scheduled' || format('{0}-{1}', github.event_name, github.event.workflow_run.id || github.run_id) }}\n" +
+      "  cancel-in-progress: false\n"
   )
   assert.doesNotMatch(smoke, /group: production-smoke\n/)
   assert.equal(smoke.match(/\nconcurrency:/g)?.length, 1)

@@ -1,0 +1,93 @@
+name: Dependency audit
+
+# Full-inventory advisory awareness between releases. Pull requests are judged
+# on the dependencies they change (the required `Review dependency changes`
+# check); a new advisory against an unchanged dependency is found here and by
+# the release-blocking audit on every main push. Policy, deadlines and
+# exceptions: docs/operations/dependency-vulnerability-policy.md.
+on:
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: dependency-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Full dependency inventory audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      # Exit 0 clean, 1 findings, 2 unavailable. An unreachable advisory
+      # service is recorded as unavailable, never as clean.
+      - name: Audit every locked dependency
+        id: audit
+        continue-on-error: true
+        run: node scripts/ci/dependency-audit.mjs "$RUNNER_TEMP/dependency-audit.json"
+      - name: Publish the audit evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: dependency-audit-${{ github.run_id }}
+          path: ${{ runner.temp }}/dependency-audit.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Open, update or close the advisory issue
+        if: ${{ always() }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          AUDIT_FILE: ${{ runner.temp }}/dependency-audit.json
+        with:
+          script: |
+            const fs = require("node:fs");
+            const title = "[Dependency audit] Advisories in the locked dependency inventory";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            let verdict = { state: "unavailable", reason: "no audit evidence was written" };
+            try { verdict = JSON.parse(fs.readFileSync(process.env.AUDIT_FILE, "utf8")); } catch {}
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "dependencies", per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            if (verdict.state === "clean") {
+              if (existing) {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body: `The full inventory audit is clean again: ${runUrl}` });
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, state: "closed" });
+              }
+              return;
+            }
+            const lines = verdict.state === "unavailable"
+              ? [`The audit could not run (${verdict.reason}). An unavailable audit is not a clean audit.`]
+              : [
+                  `Severity counts: ${Object.entries(verdict.counts).map(([k, v]) => `${k} ${v}`).join(", ")}.`,
+                  "",
+                  ...verdict.advisories.map((a) => `- ${a.severity}: \`${a.module}\` ${a.title} (${a.url})`),
+                ];
+            const body = [
+              `State: **${verdict.state}** in ${runUrl}.`,
+              "",
+              ...lines,
+              "",
+              "Owner: @lapeninns. Response deadlines and exceptions: docs/operations/dependency-vulnerability-policy.md. Every main push also runs this audit and blocks release while findings remain.",
+            ].join("\n");
+            // One standing issue, refreshed in place rather than commented on
+            // daily, so a persisting finding does not become ignored noise.
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ["dependencies", "area: platform"] });
+            }
+      - name: Fail on findings or missing evidence
+        if: ${{ always() }}
+        env:
+          AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+        run: test "$AUDIT_OUTCOME" = "success"

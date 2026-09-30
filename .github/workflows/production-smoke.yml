@@ -16,9 +16,14 @@ on:
 permissions:
   contents: read
 
+# Scheduled samples share one group; a promotion-triggered run and a manual
+# verification (which may carry an expected revision) each get their own, so a
+# routine sample can never cancel an operator's check. A running sample is
+# never cancelled either: a cancelled probe is a missing sample, not evidence
+# that production was up or down (see scripts/check-production-slo.mjs).
 concurrency:
-  group: production-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 'scheduled' }}
-  cancel-in-progress: true
+  group: production-smoke-${{ github.event_name == 'schedule' && 'scheduled' || format('{0}-{1}', github.event_name, github.event.workflow_run.id || github.run_id) }}
+  cancel-in-progress: false
 
 env:
   EXPECTED_REVISION: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_revision || '' }}
@@ -37,7 +42,7 @@ jobs:
       PRODUCTION_MONITOR_SECRET: ${{ secrets.PRODUCTION_MONITOR_SECRET }}
     steps:
       - name: Check out the probe contract
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
@@ -102,6 +107,7 @@ jobs:
     needs: probes
     if: ${{ always() && needs.probes.result == 'failure' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: Monitoring
     permissions:
       contents: read
@@ -140,7 +146,9 @@ jobs:
             }
       - name: Check out alert dispatcher
         if: ${{ always() }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Page the external incident channel
         if: ${{ always() }}
         env:
@@ -153,6 +161,7 @@ jobs:
     needs: probes
     if: ${{ always() && needs.probes.result == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: Monitoring
     permissions:
       actions: read
@@ -160,7 +169,9 @@ jobs:
       issues: write
     steps:
       - name: Check out recovery policy
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Track the scheduled recovery streak
         id: incident
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
@@ -216,7 +227,9 @@ jobs:
             });
       - name: Check out alert dispatcher
         if: ${{ steps.incident.outputs.ready == 'true' }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Resolve the external incident
         if: ${{ steps.incident.outputs.ready == 'true' }}
         env:

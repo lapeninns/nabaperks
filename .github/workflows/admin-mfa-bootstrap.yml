@@ -72,6 +72,7 @@ jobs:
         with:
           ref: ${{ inputs.expected_revision }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Verify immutable source and explicit approval
         run: |
           test "$GITHUB_REF" = "refs/heads/main"
@@ -214,7 +215,6 @@ jobs:
           metadata="$(pnpm exec vercel api \
             "/v9/projects/$CANONICAL_VERCEL_PROJECT_ID" \
             --scope="$CANONICAL_VERCEL_SCOPE" \
-            --token="$VERCEL_TOKEN" \
             --raw)"
           jq -e \
             --arg id "$CANONICAL_VERCEL_PROJECT_ID" \
@@ -254,8 +254,7 @@ jobs:
             --project="$CANONICAL_VERCEL_PROJECT_ID" \
             --scope="$CANONICAL_VERCEL_SCOPE" \
             --meta githubCommitSha="$EXPECTED_REVISION" \
-            --meta bootstrapRevision="$EXPECTED_REVISION" \
-            --token="$VERCEL_TOKEN")"
+            --meta bootstrapRevision="$EXPECTED_REVISION")"
           case "$deployment_url" in
             https://*) ;;
             *) echo "::error::Vercel returned no staged deployment URL."; exit 1 ;;
@@ -280,8 +279,7 @@ jobs:
           done
           test "$status" = "200"
           pnpm exec vercel alias set "$DEPLOYMENT_URL" mfa.nabaperks.com \
-            --scope="$CANONICAL_VERCEL_SCOPE" \
-            --token="$VERCEL_TOKEN"
+            --scope="$CANONICAL_VERCEL_SCOPE"
           alias_status="$(curl --silent --show-error --max-time 15 \
             --output /dev/null --write-out '%{http_code}' \
             https://mfa.nabaperks.com/admin-mfa-bootstrap)"

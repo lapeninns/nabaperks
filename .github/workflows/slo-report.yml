@@ -22,7 +22,7 @@ jobs:
     environment: Monitoring
     steps:
       - name: Check out SLO contract
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Calculate the rolling SLO
@@ -47,7 +47,7 @@ jobs:
           echo "state=$state" >> "$GITHUB_OUTPUT"
       - name: Publish the evidence artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: production-slo-${{ github.run_id }}
           path: ${{ runner.temp }}/production-slo-report.json
@@ -58,7 +58,7 @@ jobs:
         run: |
           if [[ -f "$RUNNER_TEMP/production-slo-report.json" ]]; then
             if jq -e . "$RUNNER_TEMP/production-slo-report.json" >/dev/null; then
-              jq -r '"## Production SLO\n\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)% of observed scheduled probes\n- Error rate: \(.errorRate * 100)%\n- Objective: \(.objective * 100)%\n- Observed probes: \(.observedSamples) (floor \(.requiredObservedSamples) at \(.minimumObservedSamplesPerDay)/day; met: \(.sampleFloorMet))\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.observedSamples)\n- Error-budget samples remaining: \(.remainingUnavailableSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
+              jq -r '"## Production SLO\n\n- State: \(.state)\n- Availability: \(.availabilityRatio * 100)% of observed scheduled probes\n- Error rate: \(.errorRate * 100)%\n- Objective: \(.objective * 100)%\n- Observed probes: \(.observedSamples) (floor \(.requiredObservedSamples) at \(.minimumObservedSamplesPerDay)/day; met: \(.sampleFloorMet))\n- Observation: \(.observationDays) days (minimum \(.minimumObservationDays))\n- Successful probes: \(.successfulSamples)/\(.observedSamples)\n- Error-budget samples remaining: \(.remainingUnavailableSamples)\n- Runs whose probe never ran (not counted): \(.unobservedRuns)\n- Runs with a passing probe but a failed alert or incident job: \(.monitoringFailureSamples)\n- Compliant: \(.compliant)"' "$RUNNER_TEMP/production-slo-report.json" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "## Production SLO\n\nReport generation failed before valid evidence was written." >> "$GITHUB_STEP_SUMMARY"
             fi

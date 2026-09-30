@@ -4,8 +4,13 @@ Owner: Lapen Inns product operations.
 
 This foundation stages the reviewed CI toolchain and a proposed workflow contract
 before enabling selective checks. The active workflow and release process retain
-all required workloads. Browser evidence gains configuration metadata; the staged
-planner, targeted runner and selective gate have no active workflow callers yet.
+all required workloads. Browser evidence gains configuration metadata. The
+planner, targeted runner and selective gate are now called by
+`.github/workflows/ci.yml` (selection, targeted jobs and `Release gate`).
+
+> Superseded in part (30 September 2026): exact-tree qualification and the
+> targeted/full comparison are being retired. See
+> `docs/decisions/ci-qualification-replacement.md`.
 
 The verifier accepts full qualification plans only. It requires all 128 full e2e,
 eight accessibility and eight visual reports, and the four targeted browser plus
