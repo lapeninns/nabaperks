@@ -50,8 +50,8 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   assert.equal(workspaceOverride("tmp"), "0.2.7")
   assert.equal(workspaceOverride("uuid"), "11.1.1")
   // Each of these is a floor, not a preference: the version below it carries a
-  // live advisory. brace-expansion moved 5.0.8 -> 5.0.9 (GHSA-rgw5-rvv9-x895),
-  // fast-uri 3.1.4 -> 3.1.7 (GHSA-7p8r-x3mc-p8w7 plus the 2026-09 URI
+  // live advisory. brace-expansion now needs 5.0.12 (GHSA-q2hr-2g5m-vwhr),
+  // fast-uri now needs 3.1.8 (GHSA-hrr3-gc8f-f4qj plus the earlier URI
   // canonicalisation advisories), hono -> 4.13.5 (the 2026-09 SSG, body
   // nesting and fragment-query advisories), nanoid -> 3.3.18, browserslist -> 4.28.8 and qs ->
   // 6.16.0. Puppeteer's browser helper moves to 3.2.1 because that release
@@ -59,9 +59,9 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   // undici now needs 6.28.1 or 7.29.1, and ip-address needs 10.5.1.
   // Lowering any of them reintroduces the advisory, so
   // `pnpm security:audit` decides these numbers — not convenience.
-  assert.equal(workspaceOverride("brace-expansion"), "5.0.9")
+  assert.equal(workspaceOverride("brace-expansion"), "5.0.12")
   assert.equal(workspaceOverride("browserslist"), "4.28.8")
-  assert.equal(workspaceOverride("fast-uri"), "^3.1.7")
+  assert.equal(workspaceOverride("fast-uri"), "^3.1.8")
   assert.equal(workspaceOverride("ip-address"), "^10.5.1")
   assert.equal(workspaceOverride("nanoid"), "3.3.18")
   assert.equal(workspaceOverride("qs"), "6.16.0")
