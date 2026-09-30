@@ -3,11 +3,23 @@ import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { test } from "node:test"
 
-// Hosted Lighthouse evidence (118 route jobs, 22 September 2026): LHCI already
-// asserted on the best of three runs, the first run in each job is a cold-server
-// outlier, and simulated public-page LCP split between a ~3.35 s and a ~4.0 s
-// mode. The budgets stay unchanged; the harness removes a CI-only stall and takes
-// the best of five runs so one cold or slow run cannot decide the verdict.
+// Hosted Lighthouse evidence (118 route jobs, 22 September 2026): the first run
+// in each job is a cold-server outlier, and simulated public-page LCP split
+// between a ~3.35 s and a ~4.0 s mode. The harness removes a CI-only stall and
+// collects five runs.
+//
+// Hosted evidence (155 route jobs, 25-28 September 2026): the LCP mode is set by
+// the runner, not by chance. Lantern builds the LCP graph from the unthrottled
+// trace, so a script counts only if its evaluation started before the observed
+// paint; faster runners evaluate more of the bundle first. On home, runners with
+// benchmarkIndex >= 2800 (12 of 40 jobs) put 54% of warm runs above 4000 ms,
+// slower runners 0.9%. Job 36420398641 failed at 4030-4046 ms on four warm runs
+// (index ~3300) and passed on rerun at 3900-3976 ms (index ~2450), with the same
+// 44 requests. More runs cannot outvote the host, so best-of-N still flakes.
+// LCP is therefore asserted on the median run, which a single fast run cannot
+// flatter; public pages allow 4100 ms, above the highest warm home run (4094 ms)
+// and job median (4047 ms) observed. Replayed through LHCI, a uniform LCP
+// regression now fails home at a median +175 ms, not +650 ms under best-of-five.
 const config = JSON.parse(readFileSync(".lighthouserc.json", "utf8"))
 // Evaluate the configuration with the installed LHCI assertion engine, not a
 // copy of its aggregation rules.
@@ -17,6 +29,8 @@ const { getAllAssertionResults } = lhciRequire("@lhci/utils/src/assertions.js")
 
 const HOME = "http://127.0.0.1:3130/"
 const SIGNUP = "http://127.0.0.1:3130/signup"
+const PRICING = "http://127.0.0.1:3130/pricing"
+const LOYALTY = "http://127.0.0.1:3130/loyalty-for-pubs"
 
 function run(url, { lcp = 3400, tbt = 60, fcp = 1400 } = {}) {
   const category = (score) => ({ score })
@@ -44,13 +58,22 @@ function failures(lhrs) {
   )
 }
 
-test("Lighthouse collects five runs per route and keeps unchanged budgets", () => {
+test("Lighthouse collects five runs per route and asserts LCP on the median", () => {
   assert.equal(config.ci.collect.numberOfRuns, 5)
-  for (const { assertions } of config.ci.assert.assertMatrix) {
-    assert.deepEqual(assertions["largest-contentful-paint"], [
+  const lcpBudget = (url) =>
+    config.ci.assert.assertMatrix.find(({ matchingUrlPattern }) =>
+      new RegExp(matchingUrlPattern).test(url)
+    ).assertions["largest-contentful-paint"]
+  for (const url of [HOME, PRICING, LOYALTY])
+    assert.deepEqual(lcpBudget(url), [
       "error",
-      { maxNumericValue: 4000 },
+      { maxNumericValue: 4100, aggregationMethod: "median" },
     ])
+  assert.deepEqual(lcpBudget(SIGNUP), [
+    "error",
+    { maxNumericValue: 4000, aggregationMethod: "median" },
+  ])
+  for (const { assertions } of config.ci.assert.assertMatrix) {
     assert.deepEqual(assertions["total-blocking-time"], [
       "error",
       { maxNumericValue: 300 },
@@ -95,17 +118,28 @@ test("Lighthouse blocks only the analytics beacons that stall hosted runs", () =
 })
 
 test("every Lighthouse budget group names its best-run aggregation", () => {
-  // Median would have failed 14 of 28 hosted home jobs against the same
-  // budgets; pessimistic 26 of 28. Keep the choice explicit, not a default.
-  for (const group of config.ci.assert.assertMatrix)
+  // TBT, FCP and category scores stay best-run: a median TBT reached 282 ms
+  // against 300 ms on a hosted home job. Only LCP overrides it, per assertion.
+  // Keep the choice explicit, not a default.
+  for (const group of config.ci.assert.assertMatrix) {
     assert.equal(group.aggregationMethod, "optimistic")
+    for (const [auditId, [, options]] of Object.entries(group.assertions))
+      assert.equal(
+        options.aggregationMethod,
+        auditId === "largest-contentful-paint" ? "median" : undefined,
+        auditId
+      )
+  }
 })
 
-test("a cold or slow-mode run cannot fail a route that meets its budget", () => {
-  // Hosted home job 35782033154 measured 5678, 4119 and 4095 ms. Other home
-  // jobs on the same code reached 3.3-3.4 s, so two extra runs carry weight.
-  const lcp = [5678, 4119, 4095, 3380, 4020]
-  assert.deepEqual(failures(lcp.map((value) => run(HOME, { lcp: value }))), [])
+test("a cold run or a fast runner cannot fail a route that meets its budget", () => {
+  // Hosted home job 108922326268 (run 36420398641, 28 September 2026) failed
+  // best-of-five at 4029.742 ms on a fast runner; its rerun passed unchanged.
+  const fastRunner = [4865.144, 4046.866, 4030.05, 4046.45, 4029.742]
+  assert.deepEqual(
+    failures(fastRunner.map((value) => run(HOME, { lcp: value }))),
+    []
+  )
   const tbt = [2765, 392, 430, 70, 64]
   assert.deepEqual(
     failures(tbt.map((value) => run(SIGNUP, { tbt: value }))),
@@ -113,15 +147,30 @@ test("a cold or slow-mode run cannot fail a route that meets its budget", () => 
   )
 })
 
-test("a regression present in every run still fails the route", () => {
-  const lcp = [5678, 4119, 4095, 4210, 4064]
+test("a regression in the representative run fails despite one fast run", () => {
+  // Best-of-five passed this at 3350 ms; the median run decides the verdict.
+  const lcp = [5678, 4150, 3350, 4210, 4180]
   assert.deepEqual(failures(lcp.map((value) => run(HOME, { lcp: value }))), [
     {
       auditId: "largest-contentful-paint",
       name: "maxNumericValue",
-      actual: 4064,
+      actual: 4180,
     },
   ])
+  const signupLcp = [4400, 4010, 3050, 4030, 4020]
+  assert.deepEqual(
+    failures(signupLcp.map((value) => run(SIGNUP, { lcp: value }))),
+    [
+      {
+        auditId: "largest-contentful-paint",
+        name: "maxNumericValue",
+        actual: 4020,
+      },
+    ]
+  )
+})
+
+test("a TBT regression present in every run still fails the route", () => {
   const tbt = [2765, 392, 430, 318, 355]
   assert.deepEqual(failures(tbt.map((value) => run(SIGNUP, { tbt: value }))), [
     { auditId: "total-blocking-time", name: "maxNumericValue", actual: 318 },
