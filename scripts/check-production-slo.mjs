@@ -200,13 +200,28 @@ function githubHeaders(token) {
   }
 }
 
-// Availability is measured over OBSERVED samples: each completed scheduled
-// Production smoke run is one sample and its run conclusion is the outage
-// signal. That is conservative: a failure in any step of the run, including a
-// broken alert webhook while every HTTP probe passed (the August 2026 resolver
-// storm), consumes error budget. Per-job probe precision is a follow-up.
-// Missing scheduled runs are not downtime; the observed-sample floor instead
-// fails the report closed when too few samples arrive to judge availability.
+export const PROBE_JOB_NAME = "Liveness and readiness"
+const PROBE_OUTAGE_CONCLUSIONS = new Set(["failure", "timed_out"])
+
+// A completed scheduled run is only evidence about production when its probe
+// job actually ran. Runs GitHub never started (billing or budget blocks), and
+// probes that were cancelled or skipped, are MISSING samples: neither uptime
+// nor downtime. A probe that passed inside a run that failed later (the pager
+// or incident job) is an available sample plus a separate monitoring failure,
+// so a broken alert path stays visible without being reported as an outage.
+// When the probe job has not been looked up (`probeConclusion` undefined) the
+// run conclusion is used conservatively, as before.
+export function classifySample(run) {
+  if (run.conclusion === "success") return "available"
+  if (run.probeConclusion === undefined) return "unavailable"
+  if (run.probeConclusion === "success") return "available-monitoring-failed"
+  if (PROBE_OUTAGE_CONCLUSIONS.has(run.probeConclusion)) return "unavailable"
+  return "missing"
+}
+
+// Availability is measured over OBSERVED samples (see classifySample). Missing
+// scheduled runs are not downtime; the observed-sample floor instead fails the
+// report closed when too few samples arrive to judge availability.
 export function calculateAvailabilityReport(
   config,
   runs,
@@ -226,7 +241,17 @@ export function calculateAvailabilityReport(
     )
   })
   const uniqueRuns = new Map(eligible.map((run) => [String(run.id), run]))
-  const observed = [...uniqueRuns.values()]
+  const completed = [...uniqueRuns.values()].map((run) => ({
+    run,
+    sample: classifySample(run),
+  }))
+  const missing = completed.filter(({ sample }) => sample === "missing")
+  const monitoringFailures = completed.filter(
+    ({ sample }) => sample === "available-monitoring-failed"
+  )
+  const observed = completed
+    .filter(({ sample }) => sample !== "missing")
+    .map(({ run, sample }) => ({ ...run, sample }))
   const earliestMeasurementMs = measurementRuns
     .filter(
       ({ event }) => event === "schedule" || event === "workflow_dispatch"
@@ -244,7 +269,7 @@ export function calculateAvailabilityReport(
     Number((config.minimumObservedSamplesPerDay * observationDays).toFixed(6))
   )
   const successfulSamples = observed.filter(
-    ({ conclusion }) => conclusion === "success"
+    ({ sample }) => sample !== "unavailable"
   ).length
   const failedSamples = observedSamples - successfulSamples
   const availabilityRatio = observedSamples
@@ -297,9 +322,16 @@ export function calculateAvailabilityReport(
     state,
     compliant: state === "compliant",
     failedRunUrls: observed
-      .filter(({ conclusion }) => conclusion !== "success")
+      .filter(({ sample }) => sample === "unavailable")
       .slice(0, 20)
       .map(({ html_url: url }) => url),
+    // Not part of availability: evidence the monitor itself is unhealthy.
+    unobservedRuns: missing.length,
+    unobservedRunUrls: missing.slice(0, 20).map(({ run }) => run.html_url),
+    monitoringFailureSamples: monitoringFailures.length,
+    monitoringFailureRunUrls: monitoringFailures
+      .slice(0, 20)
+      .map(({ run }) => run.html_url),
   }
 }
 
@@ -349,7 +381,64 @@ export async function runProductionSloAudit({
     }),
     fetchSloMeasurementRuns(request),
   ])
-  return calculateAvailabilityReport(config, runs, now, measurementRuns)
+  const classified = await attachProbeConclusions({ ...request, runs })
+  return calculateAvailabilityReport(config, classified, now, measurementRuns)
+}
+
+// Looks up the probe job only for runs that did not succeed, which keeps the
+// request count proportional to failures. Any lookup failure throws: evidence
+// that could not be read is never treated as a clean or missing sample.
+export async function attachProbeConclusions({
+  token,
+  repository = EXPECTED_REPOSITORY,
+  runs,
+  fetcher = fetch,
+}) {
+  assert.equal(repository, EXPECTED_REPOSITORY, "unexpected GitHub repository")
+  const result = []
+  for (const run of runs) {
+    if (run.conclusion === "success") {
+      result.push(run)
+      continue
+    }
+    assert.ok(/^[0-9]+$/.test(String(run.id)), "GitHub run id is malformed")
+    const url = new URL(
+      `/repos/${EXPECTED_REPOSITORY}/actions/runs/${run.id}/jobs`,
+      GITHUB_API_ORIGIN
+    )
+    url.searchParams.set("filter", "latest")
+    url.searchParams.set("per_page", "100")
+    const response = await fetcher(url, {
+      headers: githubHeaders(token),
+      redirect: "error",
+      signal: AbortSignal.timeout(15_000),
+    })
+    assert.equal(
+      response.ok,
+      true,
+      `GitHub probe job evidence returned HTTP ${response.status}`
+    )
+    const document = await response.json()
+    assert.ok(
+      Array.isArray(document.jobs),
+      "GitHub probe job evidence is malformed"
+    )
+    const probes = document.jobs.filter((job) => job.name === PROBE_JOB_NAME)
+    assert.ok(probes.length <= 1, "GitHub probe job evidence is ambiguous")
+    // GitHub still creates, and marks as failed, a job it refused to start
+    // (for example "The job was not started because recent account payments
+    // have failed"): it has no runner and no steps. Such a probe never touched
+    // production, so it is a missing sample exactly like an absent probe job.
+    const probe = probes[0]
+    const ran =
+      probe !== undefined &&
+      typeof probe.runner_name === "string" &&
+      probe.runner_name !== "" &&
+      Array.isArray(probe.steps) &&
+      probe.steps.length > 0
+    result.push({ ...run, probeConclusion: ran ? probe.conclusion : null })
+  }
+  return result
 }
 
 async function main() {

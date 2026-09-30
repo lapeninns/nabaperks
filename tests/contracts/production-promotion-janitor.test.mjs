@@ -54,7 +54,7 @@ test("the janitor uses the repository's pinned actions and env indirection", () 
 
   assert.match(
     workflow,
-    /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6\.0\.2\n        with:\n          persist-credentials: false\n/
+    /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\n        with:\n          persist-credentials: false\n/
   )
   assert.match(
     workflow,

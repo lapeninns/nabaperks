@@ -57,8 +57,10 @@ env:
   CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
   CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
 
-# The three lanes below are the hosted equivalent of `pnpm quality:check`,
-# split so feedback fails fast: the fast lane gates every dev-server browser
+# The three lanes below run `pnpm quality:check` plus hosted-only checks
+# (production env profile, coverage thresholds, print-kit PDFs, bundle and
+# JSON-LD checks, and the main-push dependency audit), split so feedback fails
+# fast: the fast lane gates every dev-server browser
 # tier, the quality lane carries the hygiene sweeps, and the production
 # bundle is built exactly once and shared with Lighthouse + ZAP as an
 # artifact. The stable Release gate checks the reviewed impact plan; full and
@@ -147,6 +149,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: ./.github/actions/setup
       # Four tests in tests/unit/google-review-pdf.test.mjs render through a
       # real Chromium (google-review-pdf -> google-review-pdf-render ->
@@ -180,6 +183,8 @@ jobs:
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - run: node scripts/ci/check-browser-image.mjs
       - run: |
@@ -206,6 +211,8 @@ jobs:
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright
         with:
@@ -337,6 +344,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Configure non-secret CI VAPID fixture
         run: node scripts/generate-ci-vapid-env.mjs >> "$GITHUB_ENV"
@@ -345,12 +353,18 @@ jobs:
           printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec VTghZE0zQGtSNyN2SDIkY1E5XnBMNSZ3RjQqek42P3g= >> "$GITHUB_ENV"
       - name: Run shared fast validation commands
         run: node scripts/ci/run-workload.mjs fast
+      # Full-inventory advisories block the release of main, not unrelated
+      # pull requests: a PR is judged on the dependencies it changes by the
+      # required `Review dependency changes` check, and a daily scheduled audit
+      # tracks the rest (dependency-audit.yml). An unreachable advisory
+      # service fails this step; it is never treated as a clean audit.
+      - name: Audit the full dependency inventory before release
+        if: ${{ github.event_name == 'push' }}
+        run: node scripts/ci/run-workload.mjs audit
       # Four tests in tests/unit/google-review-pdf.test.mjs render through a
       # real Chromium (google-review-pdf -> google-review-pdf-render ->
       # print-kit-browser -> chromium.launch()), so the unit tier needs a
-      # browser just like the E2E tiers do. This has never been exercised here:
-      # `security:audit` above has failed on every run since those tests landed,
-      # short-circuiting the job before `test:coverage`.
+      # browser just like the E2E tiers do.
       - name: Install Chromium for the browser-backed unit tests
         uses: ./.github/actions/playwright
         with:
@@ -374,6 +388,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Run shared quality validation commands
         run: node scripts/ci/run-workload.mjs quality
@@ -425,6 +440,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Run shared production build validation commands
         run: node scripts/ci/run-workload.mjs build
@@ -484,11 +501,12 @@ jobs:
         # = the same 32 shards, each run exactly once per project).
         pack: [1, 2, 3, 4]
     env:
-      # The dev-server tier is single-worker on purpose: under two parallel
-      # workers the webpack dev server intermittently 500s mid-suite
-      # (`__webpack_modules__[moduleId] is not a function` on /signup/verify,
-      # observed 2026-07-20), and failOnFlakyTests turns any recovery into a
-      # red run. Wall-clock parallelism comes from sharding instead.
+      # The dev-server tier is single-worker on purpose. The original evidence
+      # was a webpack dev server 500ing under two workers (2026-07-20); the
+      # harness now runs Turbopack and that has not been re-measured, so the
+      # setting stays until a controlled two-worker run shows no flakes
+      # (failOnFlakyTests turns any recovery into a red run). Wall-clock
+      # parallelism comes from sharding instead.
       PLAYWRIGHT_WORKERS: "1"
       # Regular Chromium avoids process-level SIGSEGV flakes from the separate
       # headless-shell binary. Visual CI intentionally retains that shell so
@@ -497,6 +515,8 @@ jobs:
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Verify prepared browser environment
         run: node scripts/ci/check-browser-image.mjs
@@ -546,6 +566,8 @@ jobs:
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Verify prepared browser environment
         run: node scripts/ci/check-browser-image.mjs
@@ -598,6 +620,8 @@ jobs:
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Install project browser
         uses: ./.github/actions/playwright
@@ -663,6 +687,8 @@ jobs:
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Reuse the production bundle
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -697,6 +723,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Reuse the production bundle
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -714,11 +742,33 @@ jobs:
           done
           cat /tmp/nabaperks-zap.log
           exit 1
+      # Production-mode evidence for the development-only surface: every
+      # /dev page and route handler must be absent from the built app.
+      - name: Development routes are unavailable in the production build
+        run: node scripts/ci/check-production-dev-routes.mjs http://127.0.0.1:3000
+      # Blocking policy: rules marked FAIL in .zap/rules.tsv fail this root;
+      # `-I` keeps WARN findings reported but non-blocking (without it, any
+      # WARN exits 2 and fail_action would block on informational alerts).
+      # `-c` is passed explicitly: this action version appends `-c` only when
+      # the rules file has IGNORE lines, so without it every FAIL rule would
+      # silently fall back to WARN and pass.
+      # An unreachable or unscannable target exits 3, which always fails.
+      # The image is pinned by digest: the action's default is the mutable
+      # `:stable` tag, so rule behaviour could change without a reviewed diff.
+      # See docs/operations/zap-baseline-policy.md.
       - uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: http://127.0.0.1:3000
+          docker_name: ghcr.io/zaproxy/zaproxy@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
           rules_file_name: .zap/rules.tsv
+          cmd_options: -I -c .zap/rules.tsv
+          fail_action: true
           allow_issue_writing: false
+      # A passing action is only evidence if the scan produced a report for
+      # the application under test.
+      - name: Require a completed scan of the target
+        run: |
+          jq -e '.site | length == 1 and .[0]."@name" == "http://127.0.0.1:3000"' report_json.json >/dev/null
 
   db:
     if: ${{ needs.selection.outputs.profile == 'full' }}
@@ -731,6 +781,8 @@ jobs:
       SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
         with:

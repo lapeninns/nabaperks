@@ -4,7 +4,11 @@ This records what a hosted CI run actually costs, where the cost goes, and what
 the packing change is modelled to recover. Every figure below is measured from
 provider job and step timestamps unless it is explicitly labelled as modelled.
 
-## Current cost model (measured)
+## Baseline cost model (measured before packing, September 2026)
+
+> Historical: this is the pre-pack run (32 e2e, 16 a11y, 9 visual jobs). The
+> current matrix has 16 e2e, 8 a11y and 8 visual jobs; do not cite these job
+> counts as the current cost.
 
 Source: GitHub CI run
 [34290952137](https://github.com/lapeninns/nabaperks/actions/runs/34290952137),

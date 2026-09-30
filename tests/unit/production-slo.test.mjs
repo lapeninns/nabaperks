@@ -5,7 +5,9 @@ import { join } from "node:path"
 import { test } from "node:test"
 
 import {
+  attachProbeConclusions,
   calculateAvailabilityReport,
+  classifySample,
   fetchScheduledSmokeRuns,
   fetchSloMeasurementRuns,
   readSloConfig,
@@ -315,4 +317,154 @@ test("SLO activation evidence comes from the report workflow itself", async () =
   )
   assert.equal(request.url.searchParams.has("event"), false)
   assert.equal(request.init.headers.authorization, "Bearer test-token")
+})
+
+function withProbe(runs, start, count, conclusion, probeConclusion) {
+  return runs.map((run, index) =>
+    index >= start && index < start + count
+      ? { ...run, conclusion, probeConclusion }
+      : run
+  )
+}
+
+test("samples are classified by the probe job, not the whole run", () => {
+  assert.equal(classifySample({ conclusion: "success" }), "available")
+  // Not looked up: conservative legacy behaviour.
+  assert.equal(classifySample({ conclusion: "failure" }), "unavailable")
+  assert.equal(
+    classifySample({ conclusion: "failure", probeConclusion: "failure" }),
+    "unavailable"
+  )
+  assert.equal(
+    classifySample({ conclusion: "failure", probeConclusion: "timed_out" }),
+    "unavailable"
+  )
+  assert.equal(
+    classifySample({ conclusion: "failure", probeConclusion: "success" }),
+    "available-monitoring-failed"
+  )
+  for (const probeConclusion of [null, "cancelled", "skipped"])
+    assert.equal(
+      classifySample({ conclusion: "failure", probeConclusion }),
+      "missing"
+    )
+})
+
+test("billing-blocked runs that never started are missing samples, not downtime", () => {
+  // September 2026: 43 of 63 failed scheduled smokes never started ("recent
+  // account payments have failed" / "Actions budget"), yet each consumed
+  // error budget and drove the reported breach.
+  const config = readSloConfig()
+  const runs = sparseScheduledRuns(config)
+  const blocked = withProbe(runs, 40, 19, "failure", null)
+  const report = liveReport(blocked)
+  assert.equal(report.unobservedRuns, 19)
+  assert.equal(report.failedSamples, 0)
+  assert.equal(report.observedSamples, runs.length - 19)
+  assert.equal(report.availabilityRatio, 1)
+  assert.equal(report.state, "compliant")
+  // The same runs without job evidence stay conservative outages.
+  assert.equal(liveReport(withFailures(runs, 40, 19)).state, "breached")
+})
+
+test("a real probe failure still breaches even when mixed with missing samples", () => {
+  const config = readSloConfig()
+  let runs = withProbe(sparseScheduledRuns(config), 10, 5, "failure", null)
+  runs = withProbe(runs, 100, 19, "failure", "failure")
+  const report = liveReport(runs)
+  assert.equal(report.unobservedRuns, 5)
+  assert.equal(report.failedSamples, 19)
+  assert.equal(report.failedRunUrls.length, 19)
+  assert.equal(report.state, "breached")
+})
+
+test("a passing probe with a failed pager is available but reported as a monitoring failure", () => {
+  const config = readSloConfig()
+  const report = liveReport(
+    withProbe(sparseScheduledRuns(config), 20, 3, "failure", "success")
+  )
+  assert.equal(report.failedSamples, 0)
+  assert.equal(report.monitoringFailureSamples, 3)
+  assert.equal(report.monitoringFailureRunUrls.length, 3)
+  assert.equal(report.state, "compliant")
+})
+
+test("missing samples still count against the observed-sample floor", () => {
+  const config = readSloConfig()
+  const runs = sparseScheduledRuns(config)
+  const report = liveReport(
+    withProbe(runs, 30, runs.length - 30, "failure", null)
+  )
+  assert.equal(report.sampleFloorMet, false)
+  assert.equal(report.state, "breached")
+})
+
+test("probe lookups only query failed runs and fail closed on unreadable evidence", async () => {
+  const requested = []
+  const fetcher = async (url) => {
+    requested.push(String(url))
+    const id = url.pathname.split("/").at(-2)
+    const ran = { runner_name: "GitHub Actions 1", steps: [{ number: 1 }] }
+    const jobs = {
+      2: [{ name: "Liveness and readiness", conclusion: "failure", ...ran }],
+      3: [],
+      // Live shape of a billing-blocked job (run 35493245382, 2026-09-20):
+      // marked failed, but never assigned a runner and never ran a step.
+      4: [
+        {
+          name: "Liveness and readiness",
+          conclusion: "failure",
+          runner_id: 0,
+          runner_name: "",
+          steps: [],
+        },
+      ],
+    }[id]
+    return { ok: true, status: 200, json: async () => ({ jobs }) }
+  }
+  const runs = [
+    { id: 1, conclusion: "success" },
+    { id: 2, conclusion: "failure" },
+    { id: 3, conclusion: "failure" },
+    { id: 4, conclusion: "failure" },
+  ]
+  const result = await attachProbeConclusions({ token: "t", runs, fetcher })
+  assert.equal(requested.length, 3)
+  assert.ok(requested.every((url) => url.includes("filter=latest")))
+  assert.deepEqual(
+    result.map((run) => run.probeConclusion),
+    [undefined, "failure", null, null]
+  )
+  await assert.rejects(
+    attachProbeConclusions({
+      token: "t",
+      runs: [{ id: 2, conclusion: "failure" }],
+      fetcher: async () => ({ ok: false, status: 502 }),
+    }),
+    /HTTP 502/
+  )
+  await assert.rejects(
+    attachProbeConclusions({
+      token: "t",
+      runs: [{ id: "2/../x", conclusion: "failure" }],
+      fetcher,
+    }),
+    /malformed/
+  )
+  await assert.rejects(
+    attachProbeConclusions({
+      token: "t",
+      runs: [{ id: 2, conclusion: "failure" }],
+      fetcher: async () => ({
+        ok: true,
+        json: async () => ({
+          jobs: [
+            { name: "Liveness and readiness", conclusion: "success" },
+            { name: "Liveness and readiness", conclusion: "failure" },
+          ],
+        }),
+      }),
+    }),
+    /ambiguous/
+  )
 })

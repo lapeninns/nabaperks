@@ -1,5 +1,12 @@
 import { expect, test, type APIRequestContext } from "@playwright/test"
 
+// A 401 here is only environmental when a developer points the suite at their
+// own dev server (PLAYWRIGHT_REUSE_EXISTING_SERVER=1) that lacks the harness
+// secrets. The harness server always has them, so in CI a 401 is a regression
+// and must fail rather than skip.
+const REUSING_CALLER_SERVER =
+  process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
+
 /**
  * Cron and monitor route-wiring proof.
  *
@@ -92,7 +99,7 @@ test.describe("cron route bearer gate", () => {
     )
 
     test.skip(
-      response.status() === 401,
+      REUSING_CALLER_SERVER && response.status() === 401,
       "dev server is not using the Playwright harness CRON_SECRET"
     )
     expect(response.status()).not.toBe(401)
@@ -125,7 +132,7 @@ test.describe("readiness route uses a distinct monitor secret", () => {
     )
 
     test.skip(
-      response.status() === 401,
+      REUSING_CALLER_SERVER && response.status() === 401,
       "dev server is not using the Playwright harness PRODUCTION_MONITOR_SECRET"
     )
     // Gate opened: 200 (ready) with a live DB, or 503 (not ready) against
