@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import type { ReactNode } from "react"
-import { useActionState, useEffect } from "react"
+import { useActionState, useEffect, useState } from "react"
 
 import type { AuthActionState } from "@/app/(auth)/actions"
 import { signUpAction } from "@/app/(auth)/actions"
@@ -33,8 +33,20 @@ export function SignupDetailsForm({
 }: SignupDetailsFormProps) {
   const [state, formAction] = useActionState(signUpAction, initialState)
   const funnelToken = useMarketingFunnelToken()
+  // The browser pre-check refuses a submit before the server action runs, so
+  // its messages must be rendered here or the refusal is silent.
+  const [clientErrors, setClientErrors] = useState<ClientErrors>({})
 
-  const errors = state.errors ?? {}
+  const errors: ClientErrors = { ...state.errors, ...clientErrors }
+
+  function clearClientError(key: "name" | "email") {
+    setClientErrors((current) => {
+      if (!current[key]) return current
+      const remaining = { ...current }
+      delete remaining[key]
+      return remaining
+    })
+  }
 
   useEffect(() => {
     if (!state.errors) return
@@ -64,6 +76,7 @@ export function SignupDetailsForm({
             nextErrors.email = "Enter a valid email address."
           }
 
+          setClientErrors(nextErrors)
           if (Object.keys(nextErrors).length) {
             event.preventDefault()
             const firstInvalidId = ["name", "email"].find(
@@ -83,6 +96,7 @@ export function SignupDetailsForm({
           name="name"
           autoComplete="name"
           defaultValue={state.fields?.name ?? initialName}
+          onChange={() => clearClientError("name")}
           error={errors.name}
         />
         <AuthField
@@ -92,6 +106,7 @@ export function SignupDetailsForm({
           type="email"
           autoComplete="email"
           defaultValue={state.fields?.email ?? initialEmail}
+          onChange={() => clearClientError("email")}
           error={errors.email}
         />
         <input type="hidden" name="next" value={next} />
