@@ -72,14 +72,18 @@ export function planChecks(env, { cwd } = {}) {
   } catch {
     return fullPlan(
       identity,
-      "Change inventory unavailable; all checks remain required"
+      "Change inventory unavailable; all checks remain required",
+      identity.event === "pull_request"
     )
   }
   let comparisonRequired
   try {
-    comparisonRequired = impact.changes.some((change) =>
-      needsSelectionComparison(change.path)
-    )
+    // Qualification grants future PR selection authority from a reviewed base.
+    // Main already executes all nine workloads from its reviewed revision;
+    // replaying inert future proposals there does not establish release proof.
+    comparisonRequired =
+      identity.event === "pull_request" &&
+      impact.changes.some((change) => needsSelectionComparison(change.path))
   } catch {
     return fullPlan(
       identity,
