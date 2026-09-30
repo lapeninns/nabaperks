@@ -20,7 +20,8 @@
  * Which channels a wallet may choose is decided here too, so the profile shows
  * only the toggles the server accepts: a verified phone for text and WhatsApp,
  * a verified email for email, and a venue membership to record the choice
- * against (QA BUG-033, BUG-034, BUG-035).
+ * against (QA BUG-033, BUG-034, BUG-035). A channel the wallet is already
+ * opted in to stays offered so it can be turned off.
  */
 import type { MarketingChannel } from "@/lib/customer/consent"
 
@@ -106,6 +107,78 @@ export function marketingConsentChannels({
     }
   }
   return { channels, notice: null }
+}
+
+const DISPLAY_CHANNEL_ORDER: readonly DisplayMarketingChannel[] = [
+  "email",
+  "sms",
+  "whatsapp",
+]
+
+/** Why a standing opt-in can be turned off but not back on. */
+export const MARKETING_CONSENT_WITHDRAW_ONLY_NOTICE = {
+  email:
+    "Your email is not confirmed, so you can only turn email updates off. Confirm an email address to turn them on again.",
+  phone:
+    "Your phone number is not verified, so you can only turn text and WhatsApp updates off. Add your phone number to turn them on again.",
+} as const
+
+/**
+ * The toggles the profile offers, including withdrawal. A wallet can always
+ * turn off a channel it is opted in to, even without the verified contact
+ * that opting in needs: the pre-fix join and profile recorded email opt-ins
+ * for unconfirmed or absent emails, and text or WhatsApp opt-ins for staged
+ * phones (QA BUG-033, BUG-034). Such a channel is offered withdraw-only; the
+ * server refuses turning it back on until the contact is verified.
+ */
+export function marketingConsentOffer({
+  hasVerifiedPhone,
+  hasVerifiedEmail,
+  membershipCount,
+  optedInByChannel,
+}: {
+  hasVerifiedPhone: boolean
+  hasVerifiedEmail: boolean | null
+  membershipCount: number | null
+  optedInByChannel: Partial<Record<DisplayMarketingChannel, boolean>>
+}): {
+  channels: DisplayMarketingChannel[]
+  withdrawOnly: DisplayMarketingChannel[]
+  notices: string[]
+  notice: string | null
+} {
+  const offered = marketingConsentChannels({
+    hasVerifiedPhone,
+    hasVerifiedEmail,
+    membershipCount,
+  })
+  const withdrawOnly =
+    membershipCount === 0
+      ? []
+      : DISPLAY_CHANNEL_ORDER.filter(
+          (channel) =>
+            !offered.channels.includes(channel) &&
+            optedInByChannel[channel] === true
+        )
+  if (withdrawOnly.length === 0) {
+    return { ...offered, withdrawOnly, notices: [] }
+  }
+  const notices: string[] = []
+  if (withdrawOnly.includes("email")) {
+    notices.push(MARKETING_CONSENT_WITHDRAW_ONLY_NOTICE.email)
+  }
+  if (withdrawOnly.some((channel) => channel !== "email")) {
+    notices.push(MARKETING_CONSENT_WITHDRAW_ONLY_NOTICE.phone)
+  }
+  return {
+    channels: DISPLAY_CHANNEL_ORDER.filter(
+      (channel) =>
+        offered.channels.includes(channel) || withdrawOnly.includes(channel)
+    ),
+    withdrawOnly,
+    notices,
+    notice: null,
+  }
 }
 
 export type MarketingConsentRowState = {

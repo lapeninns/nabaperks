@@ -5,7 +5,7 @@ import {
   type MarketingConsentEligibility,
 } from "@/lib/customer/consent"
 import {
-  marketingConsentChannels,
+  marketingConsentOffer,
   type DisplayMarketingChannel,
 } from "@/lib/customer/experience/marketing-consent-row"
 
@@ -19,7 +19,9 @@ type MarketingConsent = {
  * applies across every venue. Only the channels the wallet can choose are
  * offered: text and WhatsApp need a verified phone, email needs a verified
  * email, and a wallet with no venue yet is told it chooses updates when it
- * joins (the server refuses the same changes).
+ * joins (the server refuses the same changes). A channel already opted in
+ * without its verified contact stays offered so it can be turned off, with a
+ * note that it cannot be turned back on until the contact is verified.
  */
 export async function CustomerProfileMarketing({
   consents,
@@ -39,17 +41,18 @@ export async function CustomerProfileMarketing({
     eligibility === undefined
       ? await getMarketingConsentEligibility()
       : eligibility
-  const { channels, notice } = marketingConsentChannels({
-    hasVerifiedPhone: hasPhone && (wallet?.hasVerifiedPhone ?? true),
-    hasVerifiedEmail: wallet?.hasVerifiedEmail ?? null,
-    membershipCount: wallet?.membershipCount ?? null,
-  })
   const optedInByChannel: Partial<Record<DisplayMarketingChannel, boolean>> = {}
   for (const consent of consents) {
     if (consent.channel !== "push") {
       optedInByChannel[consent.channel] = consent.optedIn
     }
   }
+  const { channels, notice, notices } = marketingConsentOffer({
+    hasVerifiedPhone: hasPhone && (wallet?.hasVerifiedPhone ?? true),
+    hasVerifiedEmail: wallet?.hasVerifiedEmail ?? null,
+    membershipCount: wallet?.membershipCount ?? null,
+    optedInByChannel,
+  })
   const hasAnyConsent = channels.some(
     (channel) => optedInByChannel[channel] !== undefined
   )
@@ -69,6 +72,15 @@ export async function CustomerProfileMarketing({
           optedInByChannel={optedInByChannel}
         />
       )}
+
+      {notices.map((withdrawOnlyNotice) => (
+        <p
+          key={withdrawOnlyNotice}
+          className="text-xs leading-5 text-muted-foreground"
+        >
+          {withdrawOnlyNotice}
+        </p>
+      ))}
 
       {!notice && !hasAnyConsent ? (
         <p className="text-xs leading-5 text-muted-foreground">
