@@ -150,6 +150,16 @@ async function stamps(tx, f, owner, membership, days, cycle = 1) {
   return ids
 }
 
+async function acceptTerms(tx, f, customerId, membershipId) {
+  const [row] = await tx`insert into public.customer_loyalty_terms_acceptances(
+      membership_id,customer_id,merchant_id,loyalty_card_id,policy_version,
+      terms_snapshot,terms_sha256)
+    values(${membershipId}::uuid,${customerId}::uuid,${f.merchantId}::uuid,
+      ${f.cardId}::uuid,'2026-09-28.1','{}'::jsonb,'placeholder')
+    returning id,terms_snapshot,terms_sha256,accepted_at`
+  return row
+}
+
 async function link(tx, f, method = "phone") {
   const [result] = await tx`select * from public.link_verified_customer_wallets(
     ${method === "phone" ? f.emailId : f.customerId}::uuid,
@@ -508,6 +518,57 @@ test(
           .current_stamp_count,
         1
       )
+    })
+  }
+)
+
+// Accepted terms are immutable (QA BUG-038); linking may still move an
+// acceptance to the surviving wallet and drop a same-version duplicate, which
+// it first keeps in the link evidence.
+test(
+  "Given both wallets accepted the same terms When they link Then the survivor keeps one acceptance and the duplicate is kept as evidence",
+  options,
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const f = await fixture(tx)
+      const kept = await acceptTerms(tx, f, f.customerId, f.membershipId)
+      const duplicate = await acceptTerms(tx, f, f.emailId, f.emailMembership)
+      assert.equal((await link(tx, f)).status, "linked")
+      const rows = await tx`select id,terms_sha256,accepted_at
+        from public.customer_loyalty_terms_acceptances
+        where membership_id=${f.membershipId}::uuid`
+      assert.deepEqual(
+        rows.map((r) => r.id),
+        [kept.id]
+      )
+      assert.equal(rows[0].terms_sha256, kept.terms_sha256)
+      const [evidence] =
+        await tx`select evidence->${"terms_" + f.emailMembership} as terms
+        from private.customer_wallet_links where source_customer_id=${f.emailId}::uuid`
+      assert.equal(evidence.terms[0].id, duplicate.id)
+      const [flag] =
+        await tx`select current_setting('app.customer_wallet_link', true) as value`
+      assert.equal(flag.value, "false")
+    })
+  }
+)
+
+test(
+  "Given only the joining wallet accepted terms When they link Then the acceptance moves to the survivor unchanged",
+  options,
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const f = await fixture(tx)
+      const moved = await acceptTerms(tx, f, f.emailId, f.emailMembership)
+      assert.equal((await link(tx, f)).status, "linked")
+      const [row] = await tx`select customer_id,membership_id,terms_snapshot,
+          terms_sha256,accepted_at
+        from public.customer_loyalty_terms_acceptances where id=${moved.id}::uuid`
+      assert.equal(row.customer_id, f.customerId)
+      assert.equal(row.membership_id, f.membershipId)
+      assert.deepEqual(row.terms_snapshot, moved.terms_snapshot)
+      assert.equal(row.terms_sha256, moved.terms_sha256)
+      assert.deepEqual(row.accepted_at, moved.accepted_at)
     })
   }
 )
