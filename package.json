@@ -123,7 +123,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@lhci/cli": "^0.15.1",
-    "@next/bundle-analyzer": "^16.3.5",
+    "@next/bundle-analyzer": "^16.3.6",
     "@playwright/test": "^1.62.1",
     "@stryker-mutator/core": "^10.0.0",
     "@tailwindcss/postcss": "^4",
@@ -137,7 +137,7 @@
     "dotenv": "17.4.2",
     "esbuild": "0.28.2",
     "eslint": "^9",
-    "eslint-config-next": "16.3.5",
+    "eslint-config-next": "16.3.6",
     "fast-check": "^4.9.0",
     "husky": "^9.1.7",
     "jscpd": "^5.0.14",
@@ -147,12 +147,12 @@
     "playwright": "^1.62.1",
     "pngjs": "^7.0.0",
     "postgres": "^3.4.9",
-    "prettier": "^3.9.8",
+    "prettier": "^3.9.9",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "shadcn": "^4.16.1",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "vercel": "59.10.0"
+    "vercel": "59.25.4"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
