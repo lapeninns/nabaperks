@@ -1,6 +1,7 @@
 "use client"
 
 import { CustomerErrorState } from "@/components/customer/customer-error-state"
+import { recoverFromBoundaryError } from "@/lib/navigation/stale-server-action"
 
 /**
  * Root error boundary — catches render errors on the public marketing and
@@ -9,6 +10,7 @@ import { CustomerErrorState } from "@/components/customer/customer-error-state"
  * House pattern: the customer lane's CustomerErrorState with `reset()` retry.
  */
 export default function RootError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string }
@@ -20,7 +22,7 @@ export default function RootError({
         <CustomerErrorState
           title="Something went wrong"
           description="This page hit a snag on our side. Nothing you saved has been lost."
-          reset={reset}
+          reset={() => recoverFromBoundaryError(error, reset)}
           secondaryAction={{ label: "Nabaperks home", href: "/" }}
         />
       </div>

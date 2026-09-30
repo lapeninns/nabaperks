@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url"
  * Runtime behaviour is covered by tests/e2e/ux-polish-boundaries.spec.ts
  * (@polish, DB-free). These structural assertions pin the parts `node --test`
  * can prove without a browser: the entry-segment error boundaries exist and
- * are wired to `reset()`, the `/q` membership lookup sits inside its guard,
+ * are wired to `reset()` through the shared stale-action recovery, the `/q` membership lookup sits inside its guard,
  * the join OTP resend surfaces its action state, and the scanner demotes its
  * exit links while the camera-error retry holds the only primary slot.
  */
@@ -68,10 +68,13 @@ test("Given the customer entry segments When their error boundaries are inspecte
       /reset\s*\}\s*:\s*\{|reset,/,
       `${label} boundary must accept the reset prop`
     )
+    // "Try again" goes through the shared recovery: reset() for ordinary
+    // errors, a single reload for a server action from an older deploy
+    // (QA BUG-062).
     assert.match(
       source,
-      /reset=\{reset\}/,
-      `${label} boundary must pass reset to CustomerErrorState`
+      /reset=\{\(\) => recoverFromBoundaryError\(error, reset\)\}/,
+      `${label} boundary must pass the shared recovery to CustomerErrorState`
     )
     assert.match(
       source,
@@ -217,4 +220,45 @@ test("Given the scanner camera-error state When the action group renders Then re
     /guidance\.showRetry \? "secondary" : undefined/,
     "Open my cards must demote to secondary in the camera-error state"
   )
+})
+
+test("Given every error boundary in the app When Try again is pressed after a deploy changed the server-action IDs Then it uses the shared stale-action recovery (QA BUG-062)", () => {
+  const boundaries = [
+    ["app", "error.tsx"],
+    ["app", "global-error.tsx"],
+    ["app", "admin", "error.tsx"],
+    ["app", "app", "error.tsx"],
+    ["app", "card", "[membershipId]", "error.tsx"],
+    ["app", "home", "(authed)", "error.tsx"],
+    ["app", "home", "login", "error.tsx"],
+    ["app", "m", "[merchantSlug]", "error.tsx"],
+    ["app", "m", "[merchantSlug]", "join", "error.tsx"],
+    ["app", "q", "[qrId]", "error.tsx"],
+    ["app", "reward", "[rewardId]", "error.tsx"],
+    ["app", "scan", "error.tsx"],
+  ]
+  for (const segments of boundaries) {
+    const label = segments.join("/")
+    const source = readProjectFile(...segments)
+    assert.match(
+      source,
+      /import \{ recoverFromBoundaryError \} from "@\/lib\/navigation\/stale-server-action"/,
+      `${label} must import the shared recovery`
+    )
+    assert.match(
+      source,
+      /\(\{\s*error,\s*reset,\s*\}/,
+      `${label} must read the caught error to recognise a stale action`
+    )
+    assert.match(
+      source,
+      /recoverFromBoundaryError\(error, reset\)/,
+      `${label} must route its retry through the shared recovery`
+    )
+    assert.doesNotMatch(
+      source,
+      /(onClick|reset)=\{(reset|\(\) => reset\(\))\}/,
+      `${label} must not call reset() directly`
+    )
+  }
 })

@@ -1,10 +1,12 @@
 "use client"
 
 import { CustomerErrorState } from "@/components/customer/customer-error-state"
+import { recoverFromBoundaryError } from "@/lib/navigation/stale-server-action"
 
 // Sits inside the authed CustomerAppShell, so the header and tab bar survive and
 // the customer can navigate away while one section recovers.
 export default function HomeError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string }
@@ -15,7 +17,7 @@ export default function HomeError({
       <CustomerErrorState
         title="That didn't load"
         description="Something interrupted this page. Try again. Your cards and stamps are safe on the server."
-        reset={reset}
+        reset={() => recoverFromBoundaryError(error, reset)}
       />
     </div>
   )

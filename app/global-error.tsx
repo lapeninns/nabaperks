@@ -2,6 +2,10 @@
 
 import "./globals.css"
 
+// A plain helper module, not a component: a tab that outlived a deploy
+// reloads here instead of re-rendering its stale bundle (QA BUG-062).
+import { recoverFromBoundaryError } from "@/lib/navigation/stale-server-action"
+
 /**
  * Global error boundary — the last resort when the root layout itself fails.
  * It must render its own <html>/<body>, so it stays deliberately minimal
@@ -9,6 +13,7 @@ import "./globals.css"
  * still speaking Wet Ink through the token classes from globals.css.
  */
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string }
@@ -21,12 +26,12 @@ export default function GlobalError({
           <section className="w-full max-w-sm rounded-lg border-2 border-ink bg-card p-6 text-center shadow-xs">
             <h1 className="text-xl font-extrabold">Something went wrong</h1>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Nabaperks hit a snag loading this page. Nothing you saved has
-              been lost.
+              Nabaperks hit a snag loading this page. Nothing you saved has been
+              lost.
             </p>
             <button
               type="button"
-              onClick={() => reset()}
+              onClick={() => recoverFromBoundaryError(error, reset)}
               className="focus-ring mt-5 inline-flex h-11 w-full items-center justify-center rounded-md border-2 border-ink bg-primary px-4 font-bold text-primary-foreground"
             >
               Try again
