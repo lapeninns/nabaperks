@@ -274,18 +274,25 @@ function inviteStubs(state, conflictReason) {
 const OWN_EMAIL_DIFFERS =
   "This invitation was sent to a different email than your account uses, so no welcome stamps were added."
 
-test("Given another wallet holds the invited email When a wallet joins from the invitation Then it is told the address belongs to another wallet and to sign in with it", async () => {
+// Neutral on purpose (BUG-048 refinement): whoever holds the invitation link
+// must not learn from the copy that the invited address has a wallet.
+const NOT_NEUTRAL =
+  /another Nabaperks wallet|belongs to|already (used|registered|has)/i
+
+test("Given another wallet holds the invited email When a wallet joins from the invitation Then it is told neutrally to sign in with the invited email", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const actions = await loadJoinActions()
   inviteStubs(actions.state, "email_held_elsewhere")
 
   const { state } = await submit(actions)
 
+  assert.equal(
+    state.errors.form,
+    "This invitation is for a different email, so no welcome stamps were added. Sign in with the email it was sent to, or ask the venue for a new invitation."
+  )
   assert.notEqual(state.errors.form, OWN_EMAIL_DIFFERS)
   assert.doesNotMatch(state.errors.form, /your account uses/i)
-  assert.match(state.errors.form, /another Nabaperks wallet/)
-  assert.match(state.errors.form, /Sign in with that email/)
-  assert.match(state.errors.form, /no welcome stamps were added/)
+  assert.doesNotMatch(state.errors.form, NOT_NEUTRAL)
   assert.doesNotMatch(state.errors.form, /!/)
 })
 
@@ -296,9 +303,12 @@ test("Given email sign-in is off When another wallet holds the invited email The
 
   const { state } = await submit(actions)
 
-  assert.match(state.errors.form, /another Nabaperks wallet/)
+  assert.equal(
+    state.errors.form,
+    "This invitation is for a different email, so no welcome stamps were added. Ask the venue for a new invitation."
+  )
+  assert.doesNotMatch(state.errors.form, NOT_NEUTRAL)
   assert.doesNotMatch(state.errors.form, /sign in/i)
-  assert.match(state.errors.form, /ask the venue team/i)
 })
 
 test("Given the wallet's own verified email differs When it joins from the invitation Then it keeps the own-email copy", async () => {

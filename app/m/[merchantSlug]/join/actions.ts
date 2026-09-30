@@ -518,17 +518,20 @@ async function claimLoyaltyInviteIfPresent(
  * holds a different verified email, or when another wallet holds the invited
  * address (`conflict_reason` 'email_held_elsewhere'). The second must not tell
  * a wallet, which may have no email at all, that it "uses" a different one
- * (QA BUG-048). A database without the reason keeps the original sentence.
+ * (QA BUG-048), and stays neutral: whoever holds the invitation link must not
+ * learn from it that the invited address has a wallet. The reason is still
+ * kept apart here, and the claim stays refused. A database without the reason
+ * keeps the original sentence.
  */
 function inviteEmailConflictCopy(conflictReason: string | null): string {
   if (conflictReason !== "email_held_elsewhere") {
     return "This invitation was sent to a different email than your account uses, so no welcome stamps were added."
   }
-  const heldElsewhere =
-    "This invitation's email address already belongs to another Nabaperks wallet, so no welcome stamps were added here."
+  const differentEmail =
+    "This invitation is for a different email, so no welcome stamps were added."
   return emailSignInEnabled()
-    ? `${heldElsewhere} Sign in with that email and open the invitation again, or ask the venue team.`
-    : `${heldElsewhere} Ask the venue team for help.`
+    ? `${differentEmail} Sign in with the email it was sent to, or ask the venue for a new invitation.`
+    : `${differentEmail} Ask the venue for a new invitation.`
 }
 
 /**
