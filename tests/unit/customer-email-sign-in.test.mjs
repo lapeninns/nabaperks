@@ -620,6 +620,56 @@ test("Given wrong guesses When the code is checked Then single use is spent only
   )
 })
 
+test("Given a spent code When a copy of its cookie is replayed Then it is refused without touching the cookie, so the code step can say why (QA BUG-017)", async () => {
+  const mod = await loadModule()
+  await mod.startEmailSignInChallenge({
+    email: "guest@example.com",
+    purpose: "join",
+  })
+  const copied = mod.state.cookies.get(mod.pendingEmailSignInCookieName)
+  const code = mod.state.sends[0].code
+  assert.equal(
+    (await mod.checkEmailSignInChallenge({ code, purpose: "join" })).status,
+    "verified"
+  )
+
+  // The copied browser still holds the challenge the first browser spent.
+  mod.state.cookies.set(mod.pendingEmailSignInCookieName, copied)
+  mod.state.cleared.length = 0
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    assert.deepEqual(
+      await mod.checkEmailSignInChallenge({ code, purpose: "join" }),
+      { status: "expired" }
+    )
+  }
+  // No cookie change, so the page is not refreshed to the welcome step and
+  // the code step shows "That code has expired. Request a new one."
+  assert.deepEqual(mod.state.cleared, [])
+  assert.equal(mod.state.cookies.get(mod.pendingEmailSignInCookieName), copied)
+  // Single use stays enforced on the server.
+  assert.equal(
+    mod.state.buckets.get(
+      `email-sign-in:consumed:${pendingCookie(mod).challengeId}`
+    ),
+    1
+  )
+
+  // Once the resend wait is over, a new code replaces the spent challenge.
+  await withClockAhead(61, async () => {
+    const restarted = await mod.startEmailSignInChallenge({
+      email: "guest@example.com",
+      purpose: "join",
+    })
+    assert.equal(restarted.admission, "admitted")
+    const fresh = mod.state.sends.at(-1).code
+    assert.equal(
+      (await mod.checkEmailSignInChallenge({ code: fresh, purpose: "join" }))
+        .status,
+      "verified"
+    )
+  })
+})
+
 test("Given the per-challenge limit When a sixth guess arrives Then it is rate limited", async () => {
   const mod = await loadModule()
   await mod.startEmailSignInChallenge({

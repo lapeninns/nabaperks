@@ -267,7 +267,11 @@ export async function checkEmailSignInChallenge({
     })
   } catch (error) {
     if (!(error instanceof RateLimitError)) throw error
-    await clearPendingEmailSignIn()
+    // A copy of a spent challenge (a copied browser, a second tab). The
+    // cookie is left alone: deleting it here refreshes the join page to the
+    // welcome step and the guest never sees why (QA BUG-017). The code step
+    // stays and says the code has expired; this challenge can never be spent
+    // again, and the next code request replaces it.
     return { status: "expired" }
   }
 
