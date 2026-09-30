@@ -11,7 +11,7 @@ import {
 import { clearPendingEmailSignIn } from "@/lib/customer/email-sign-in"
 import { findCustomerByVerifiedPhone } from "@/lib/customer/identity"
 import { establishCustomerSessionAfterVerifiedPhone } from "@/lib/customer/access-continuity"
-import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
+import { normalizePhone } from "@/lib/customer/phone"
 import {
   clearAllCustomerSessions,
   clearCustomerSession,
@@ -96,11 +96,10 @@ export async function requestCustomerLoginOtpAction(
 ): Promise<CustomerLoginOtpState> {
   const rawContact = value(formData, "contact")
   const requestHeaders = await headers()
-  const country = defaultCountryFromHeaders(requestHeaders)
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
   const clientIp = trustedClientIp(requestHeaders)
   const deviceHash = customerDeviceHashFromHeaders(requestHeaders)
-  const normalized = normalizePhone(rawContact, country)
+  const normalized = normalizePhone(rawContact)
 
   if (!normalized.ok) {
     return {

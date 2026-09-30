@@ -24,7 +24,7 @@ import {
   enforceCustomerOtpVerifyRateLimit,
   releaseCustomerOtpVerifyAdmission,
 } from "@/lib/customer/otp-rate-limit"
-import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
+import { normalizePhone } from "@/lib/customer/phone"
 import {
   clearPendingPhoneVerification,
   getPendingPhoneVerification,
@@ -130,7 +130,7 @@ async function requestAttachPhone(
   const resent = await pendingAttachFor(customer.id, formData)
   const normalized = resent
     ? ({ ok: true, phone: resent } as const)
-    : normalizePhone(raw, defaultCountryFromHeaders(requestHeaders))
+    : normalizePhone(raw)
   if (!normalized.ok) {
     return { step: "phone", phone: raw, errors: { phone: normalized.error } }
   }

@@ -1,10 +1,6 @@
 import "server-only"
 
-import {
-  getCountries,
-  parsePhoneNumberFromString,
-  type CountryCode,
-} from "libphonenumber-js"
+import { parsePhoneNumberFromString } from "libphonenumber-js"
 
 export type NormalizedPhone = {
   readonly e164: string
@@ -19,27 +15,9 @@ export type NormalizePhoneResult =
       error: "Enter a UK phone number." | "Enter a valid phone number."
     }
 
-const fallbackCountry: CountryCode = "GB"
-const ipCountryHeaders = ["x-vercel-ip-country", "cf-ipcountry"] as const
-const supportedCountries = getCountries()
-
-export function defaultCountryFromHeaders(
-  headersList: Pick<Headers, "get">
-): CountryCode {
-  for (const header of ipCountryHeaders) {
-    const country = toCountryCode(headersList.get(header))
-    if (country) return country
-  }
-
-  return fallbackCountry
-}
-
-export function normalizePhone(
-  raw: string,
-  defaultCountry: CountryCode = fallbackCountry
-): NormalizePhoneResult {
+export function normalizePhone(raw: string): NormalizePhoneResult {
   const parsed = parsePhoneNumberFromString(raw, {
-    defaultCountry,
+    defaultCountry: "GB",
     extract: false,
   })
 
@@ -66,20 +44,9 @@ export function phoneLast4(e164: string): string {
 }
 
 export function normalizeUkPhone(raw: string): string {
-  const normalized = normalizePhone(raw, "GB")
+  const normalized = normalizePhone(raw)
 
   if (normalized.ok) return normalized.phone.e164
 
   return raw.replace(/[\s()-]/g, "")
-}
-
-function toCountryCode(value: string | null): CountryCode | null {
-  if (!value) return null
-
-  const normalized = value.trim().toUpperCase()
-  for (const country of supportedCountries) {
-    if (country === normalized) return country
-  }
-
-  return null
 }

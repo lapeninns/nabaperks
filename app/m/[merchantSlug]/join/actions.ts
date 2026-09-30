@@ -38,7 +38,7 @@ import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-stat
 import { emailSignInEnabled } from "@/lib/customer/email-auth-mode"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redirect"
-import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
+import { normalizePhone } from "@/lib/customer/phone"
 import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
 import {
   clearPendingPhoneVerification,
@@ -126,7 +126,6 @@ export async function requestCustomerIdentityAction(
   const qrId = value(formData, "qrId")
   const ref = value(formData, "ref")
   const requestHeaders = await headers()
-  const country = defaultCountryFromHeaders(requestHeaders)
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
   const clientIp = trustedClientIp(requestHeaders)
   const deviceHash = customerDeviceHashFromHeaders(requestHeaders)
@@ -142,7 +141,7 @@ export async function requestCustomerIdentityAction(
     parseOtpChannel(value(formData, "channel")) ??
     (isTrustedResend ? pendingVerification.channel : undefined) ??
     primaryOtpChannel(process.env.CUSTOMER_OTP_PRIMARY_CHANNEL)
-  const normalized = normalizePhone(rawContact, country)
+  const normalized = normalizePhone(rawContact)
 
   if (!normalized.ok) {
     return {
