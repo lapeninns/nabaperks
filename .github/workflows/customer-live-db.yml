@@ -116,6 +116,7 @@ jobs:
           tests/e2e/customer-session-renewal-live-db.spec.ts
           tests/e2e/customer-stamp-email-prompt-live-db.spec.ts
           tests/e2e/public-qr-router-live-db.spec.ts
+          tests/e2e/reward-gate-email-code-pending-bug-036-live-db.spec.ts
           tests/e2e/welcome-offer-live-db.spec.ts
           --project=mobile-safari --reporter=list,json
       - name: Require every selected mode-full journey to run
