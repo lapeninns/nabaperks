@@ -41,7 +41,8 @@ const STUBS = {
   "@/lib/customer/otp-rate-limit": `import { state } from "fixture-state";
     import { RateLimitError } from "@/lib/security/rate-limit";
     export async function enforceCustomerOtpSendRateLimit(input) { state.calls.push(["admit", input.scope, input.phone]); return state.admitted }
-    export async function enforceCustomerOtpVerifyRateLimit(input) { state.calls.push(["verifyLimit", input.phone]); if (state.verifyLimited) throw new RateLimitError() }`,
+    export async function enforceCustomerOtpVerifyRateLimit(input) { state.calls.push(["verifyLimit", input.phone]); if (state.verifyLimited) throw new RateLimitError() }
+    export async function releaseCustomerOtpVerifyAdmission(input) { state.calls.push(["verifyRelease", input.phone]) }`,
   "@/lib/customer/phone": `export function defaultCountryFromHeaders() { return "GB" }
     export function normalizePhone(raw) {
       const digits = raw.replace(/\\s/g, "")
@@ -241,6 +242,7 @@ test("Given a code for this wallet When it is confirmed Then the phone is attach
   assert.deepEqual(state.calls, [
     ["verifyLimit", "+447700900123"],
     ["check", "+447700900123", "123456"],
+    ["verifyRelease", "+447700900123"],
     [
       "attach",
       {
