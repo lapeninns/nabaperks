@@ -6,13 +6,18 @@ import { emailSignInEnabled } from "@/lib/customer/email-auth-mode"
 import { checkCustomerEmailVerification } from "@/lib/customer/email-verification"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { markCustomerEmailVerified } from "@/lib/customer/profile"
+import {
+  linkWalletAfterContactVerification,
+  walletLinkFailureMessage,
+} from "@/lib/customer/wallet-link"
 
 export type EmailCodeConfirmation =
-  | { readonly status: "verified" }
+  | { readonly status: "verified"; readonly walletLinked?: boolean }
   | { readonly status: "conflict" }
   | { readonly status: "rejected" }
   | { readonly status: "check_failed" }
   | { readonly status: "confirm_failed" }
+  | { readonly status: "reauthenticate" | "requires_review" }
 
 /**
  * Checks an emailed code for the signed-in customer and, when it matches,
@@ -40,6 +45,21 @@ export async function confirmCustomerEmailCode(
     marked = await markCustomerEmailVerified(checked.email, surface)
   } catch {
     return { status: "confirm_failed" }
+  }
+
+  if (marked.status === "conflict") {
+    try {
+      const link = await linkWalletAfterContactVerification(
+        "email",
+        checked.email
+      )
+      if (link.status === "linked")
+        return { status: "verified", walletLinked: true }
+      if (link.status !== "conflict") return { status: link.status }
+    } catch (error) {
+      if (error instanceof Error) return { status: "confirm_failed" }
+      throw error
+    }
   }
 
   const customer = await getCurrentCustomer()
@@ -90,6 +110,9 @@ export function emailConfirmationErrors(
       return { form: "We couldn't confirm your email. Try again." }
     case "conflict":
       return { form: customerEmailConflictMessage(env) }
+    case "reauthenticate":
+    case "requires_review":
+      return { form: walletLinkFailureMessage(confirmation.status) }
     case "verified":
       return null
   }

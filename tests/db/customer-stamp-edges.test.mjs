@@ -58,7 +58,7 @@ async function seed(tx) {
       const daysAgo = rows.length - index + 7
       await tx`
         update public.stamp_events
-        set earned_business_date = (now() at time zone 'Europe/London')::date - ${daysAgo}::int
+        set earned_business_date = public.venue_trading_date(stamp_events.merchant_id, now()) - ${daysAgo}::int
         where id = ${row.id}`
     }
   }

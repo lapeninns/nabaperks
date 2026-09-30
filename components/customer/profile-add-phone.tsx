@@ -7,6 +7,7 @@ import {
   type ProfilePhoneState,
 } from "@/app/home/(authed)/profile/phone-actions"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
+import { WalletLinkNextStep } from "@/components/customer/wallet-link-next-step"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
@@ -27,7 +28,7 @@ const initialState: ProfilePhoneState = { step: "phone" }
 /**
  * "Add a phone number", for a signed-in wallet that has none (it was started
  * with an email). The number is confirmed with a code before it is added, and
- * a number another wallet holds is refused with a way to get help.
+ * a complementary verified wallet is linked after ownership is proved.
  *
  * The profile keeps it mounted whatever the wallet holds: adding a phone
  * re-renders the page with `hasPhone`, and the form must stay long enough to
@@ -52,10 +53,13 @@ export function CustomerProfileAddPhone({
         className="grid gap-1 rounded-lg border-2 border-dashed border-border p-4"
         data-add-phone
       >
-        <h3 className="text-base font-extrabold">Phone number added</h3>
+        <h3 className="text-base font-extrabold">
+          {state.walletLinked ? "Wallets linked" : "Phone number added"}
+        </h3>
         <p role="status" className="text-sm leading-6">
           {state.message}
         </p>
+        <WalletLinkNextStep linked={state.walletLinked} />
       </div>
     )
   }
@@ -71,6 +75,13 @@ export function CustomerProfileAddPhone({
           Add and verify your phone number before collecting a reward. You can
           keep earning stamps with your email while you do this later.
         </p>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Used your phone number before? Verify that same number here. If it
+          belongs to your original wallet, we will link your wallets
+          automatically after verification, keeping your stamps and rewards
+          together. If we need help checking the wallets, we will tell you and
+          keep your stamps and rewards unchanged.
+        </p>
       </div>
       {state.step === "code" ? (
         <PhoneCodeForm
@@ -85,6 +96,7 @@ export function CustomerProfileAddPhone({
           pending={pending}
         />
       )}
+      <WalletLinkNextStep recovery={state.recovery} />
     </div>
   )
 }

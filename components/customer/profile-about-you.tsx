@@ -17,6 +17,7 @@ import {
   profileInputClass,
 } from "@/components/customer/profile-form-parts"
 import { CustomerOtpInput } from "@/components/customer/customer-otp-input"
+import { WalletLinkNextStep } from "@/components/customer/wallet-link-next-step"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import type { EmailPromptReason } from "@/lib/customer/experience/types"
@@ -53,7 +54,7 @@ const EMAIL_HINT: Record<EmailPromptReason, string> = {
   rewards:
     "A verified email is required before reward collection. We'll send a code to confirm it.",
   wifi_sign_in:
-    "A verified email is required before reward collection, and lets you sign in over Wi-Fi when there's no signal. We'll send a code to confirm it.",
+    "A verified email is required before reward collection, and lets you sign in over Wi-Fi when there's no signal. Confirm it here to open this same wallet with your stamps and rewards. We'll send a code to confirm it.",
 }
 
 export function CustomerProfileAboutYou({
@@ -112,7 +113,11 @@ export function CustomerProfileAboutYou({
         />
       ) : null}
 
-      {mode === "verify" ? <AboutYouEmailVerify email={profile.email} /> : null}
+      <AboutYouEmailVerify
+        key={profile.email}
+        email={profile.email}
+        active={mode === "verify"}
+      />
       {addPhone}
     </section>
   )
@@ -235,7 +240,13 @@ function AboutYouEditForm({
   )
 }
 
-function AboutYouEmailVerify({ email }: { email: string | null }) {
+function AboutYouEmailVerify({
+  email,
+  active,
+}: {
+  email: string | null
+  active: boolean
+}) {
   const [resendState, resendAction, resendPending] = useActionState(
     resendHomeProfileEmailAction,
     initialState
@@ -245,11 +256,29 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
     initialState
   )
 
+  if (state.message) {
+    return (
+      <div className="grid gap-3">
+        <p role="status" className="text-sm leading-6">
+          {state.message}
+        </p>
+        <WalletLinkNextStep linked={state.walletLinked} />
+      </div>
+    )
+  }
+
+  if (!active) return null
+
   return (
     <div className="grid gap-3">
       <StatusBanner title="Confirm your email" tone="neutral">
         Enter the code we sent{email ? ` to ${email}` : ""} to verify it.
       </StatusBanner>
+      <p className="text-sm leading-6 text-muted-foreground">
+        Used this email for another wallet? After verification, we can bring
+        your stamps and rewards together. If we need help checking the wallets,
+        we will tell you and keep your stamps and rewards unchanged.
+      </p>
 
       <form action={action} className="grid gap-3">
         <div className="grid gap-2">
@@ -307,6 +336,7 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
       <p role="status" className="text-sm text-muted-foreground">
         {resendState.errors?.form ?? resendState.message}
       </p>
+      <WalletLinkNextStep recovery={state.recovery} />
     </div>
   )
 }
