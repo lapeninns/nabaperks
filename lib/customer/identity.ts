@@ -68,20 +68,35 @@ async function loadCustomerById(
   return data ? toCurrentCustomer(data) : null
 }
 
+/** The surfaces that open a wallet by a phone the person has just proven. */
+type ProvenPhoneSurface = Extract<ContactEventSurface, "home_login" | "join">
+
 /**
- * The wallet phone sign-in opens for this phone, or null. An erased wallet is
- * never returned: erasure is final even if a row still holds the phone, for
- * example one left by an attach that raced an erasure before the attach was
- * made atomic (QA BUG-002).
+ * The wallet phone sign-in and join open for a phone the caller has JUST
+ * PROVEN with a code, or null. Call it only after the code was accepted.
+ *
+ * It matches any live wallet that holds the phone, verified or not: whoever
+ * proves the number gets the wallet that holds it (the attach conflict check
+ * applies the same rule). A holder whose phone was never marked verified (a
+ * legacy row, or an attach that stopped half way) has its phone marked
+ * verified here, with an audit row, because the person has just proven
+ * possession (QA BUG-031). If that step fails the wallet still opens and the
+ * failure is logged, so sign-in keeps working while the database function is
+ * rolled out.
+ *
+ * An erased wallet is never returned: erasure is final even if a row still
+ * holds the phone, for example one left by an attach that raced an erasure
+ * before the attach was made atomic (QA BUG-002).
  */
 export async function findCustomerByVerifiedPhone(
-  phone: NormalizedPhone
+  phone: NormalizedPhone,
+  surface: ProvenPhoneSurface = "home_login"
 ): Promise<CurrentCustomer | null> {
   const supabase = createSupabaseServiceRoleClient()
   const phoneHmac = customerPhoneHmac(phone.e164)
   const { data, error } = await supabase
     .from("customers")
-    .select(CUSTOMER_COLUMNS)
+    .select(`${CUSTOMER_COLUMNS}, phone_verified_at`)
     .eq("phone_hmac", phoneHmac)
     .maybeSingle()
 
@@ -90,7 +105,48 @@ export async function findCustomerByVerifiedPhone(
   }
 
   const customer = data ? toCurrentCustomer(data) : null
-  return customer && !isErasedCustomerEmail(customer.email) ? customer : null
+  if (!customer || isErasedCustomerEmail(customer.email)) return null
+  if (!isRecord(data) || data.phone_verified_at !== null) return customer
+
+  return (await verifyProvenPhone(customer.id, phoneHmac, surface))
+    ? customer
+    : null
+}
+
+/**
+ * Marks the holder's phone verified after a proven sign-in
+ * (`verify_customer_phone_on_sign_in`, 20261009110300). False only when the
+ * wallet was erased or lost this phone since it was read, so it must not open.
+ */
+async function verifyProvenPhone(
+  customerId: string,
+  phoneHmac: string,
+  surface: ProvenPhoneSurface
+): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "verify_customer_phone_on_sign_in",
+    {
+      p_customer_id: customerId,
+      p_phone_hmac: phoneHmac,
+      p_surface: surface,
+    }
+  )
+
+  switch (error ? null : data) {
+    case "verified":
+    case "already_verified":
+      return true
+    case "phone_changed":
+    case "wallet_unavailable":
+      return false
+    default:
+      logger.error("customer_phone_sign_in_verify_failed", {
+        surface,
+        reason: error ? (error.code ?? "rpc_error") : "unexpected_outcome",
+      })
+      return true
+  }
 }
 
 /** The placeholder address every erasure path writes in place of the email. */
@@ -103,7 +159,7 @@ function isErasedCustomerEmail(email: string | null): boolean {
 export async function getOrCreateCustomerByVerifiedPhone(
   phone: NormalizedPhone
 ): Promise<{ customer: CurrentCustomer; created: boolean }> {
-  const existing = await findCustomerByVerifiedPhone(phone)
+  const existing = await findCustomerByVerifiedPhone(phone, "join")
   if (existing) return { customer: existing, created: false }
 
   const supabase = createSupabaseServiceRoleClient()
@@ -124,7 +180,7 @@ export async function getOrCreateCustomerByVerifiedPhone(
 
   if (error) {
     if (/duplicate|unique/i.test(error.message)) {
-      const raced = await findCustomerByVerifiedPhone(phone)
+      const raced = await findCustomerByVerifiedPhone(phone, "join")
       if (raced) return { customer: raced, created: false }
     }
 
