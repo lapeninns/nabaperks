@@ -6,6 +6,7 @@ import {
   timingSafeEqual,
 } from "node:crypto"
 
+import { normalizeEmail } from "@/lib/customer/email-pii-core"
 import {
   createEncryptedPendingCookieValue,
   readEncryptedPendingCookieValue,
@@ -95,6 +96,8 @@ const HEX_DIGEST = /^[0-9a-f]{64}$/
  * D7: the digest binds the code to its purpose, its challenge and its address,
  * under a versioned domain, so a code minted for one of those can never pass
  * as another. Fields are separated by NUL, which none of them can contain.
+ * The address is normalised as stored addresses are (trim, lower case, NFC),
+ * which for ASCII is the plain trim and lower case of earlier challenges.
  */
 export function emailSignInCodeHmac({
   secret,
@@ -118,7 +121,7 @@ export function emailSignInCodeHmac({
     .update("\0")
     .update(challengeId)
     .update("\0")
-    .update(email.trim().toLowerCase())
+    .update(normalizeEmail(email))
     .update("\0")
     .update(code)
     .digest("hex")

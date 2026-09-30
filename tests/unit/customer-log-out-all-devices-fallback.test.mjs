@@ -17,6 +17,7 @@ const REAL = new Set([
   "@/lib/customer/session-cookie-core",
   "@/lib/customer/pending-cookie-crypto",
   "@/lib/customer/email-sign-in-core",
+  "@/lib/customer/email-pii-core",
   "@/lib/customer/session-load-row",
   "@/lib/supabase/missing-rpc",
   "@/lib/http/persistent-cookie-options",
