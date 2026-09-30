@@ -6,6 +6,8 @@ import {
   getTopRedeemable,
 } from "@/lib/customer/home-rewards"
 
+const ADULT = { statedDateOfBirthIsAdult: true }
+
 function row(overrides = {}) {
   return {
     id: "r",
@@ -20,18 +22,21 @@ function row(overrides = {}) {
 }
 
 test("stamp-cycle and issued rewards land on separate rails", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "stamp_ready",
-      source: "stamp_cycle",
-      reward_name: "Free coffee",
-    }),
-    row({
-      id: "bday_ready",
-      source: "birthday_month",
-      reward_name: "Birthday fizz",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "stamp_ready",
+        source: "stamp_cycle",
+        reward_name: "Free coffee",
+      }),
+      row({
+        id: "bday_ready",
+        source: "birthday_month",
+        reward_name: "Birthday fizz",
+      }),
+    ],
+    ADULT
+  )
   const mem = counts.get("mem_1")
 
   assert.equal(mem.stampRewardId, "stamp_ready")
@@ -45,9 +50,10 @@ test("stamp-cycle and issued rewards land on separate rails", () => {
 })
 
 test("an issued reward alone leaves the stamp card with no ready or soon reward", () => {
-  const counts = buildRewardCountsByMembership([
-    row({ id: "direct_ready", source: "merchant_direct" }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [row({ id: "direct_ready", source: "merchant_direct" })],
+    ADULT
+  )
   const mem = counts.get("mem_1")
 
   assert.equal(mem.stampRewardId, null)
@@ -58,15 +64,18 @@ test("an issued reward alone leaves the stamp card with no ready or soon reward"
 })
 
 test("a waiting stamp-cycle reward drives the revealed ticket, not the ready state", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "stamp_wait",
-      source: "stamp_cycle",
-      collection_state: "waiting",
-      available_from: "2026-07-03T05:00:00Z",
-      reward_name: "Free pastry",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "stamp_wait",
+        source: "stamp_cycle",
+        collection_state: "waiting",
+        available_from: "2026-07-03T05:00:00Z",
+        reward_name: "Free pastry",
+      }),
+    ],
+    ADULT
+  )
   const mem = counts.get("mem_1")
 
   assert.equal(mem.stampRewardId, null)
@@ -77,13 +86,16 @@ test("a waiting stamp-cycle reward drives the revealed ticket, not the ready sta
 })
 
 test("getTopRedeemable surfaces a redeemable gift when there is no earned reward", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "gift_ready",
-      source: "birthday_month",
-      reward_name: "Birthday fizz",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "gift_ready",
+        source: "birthday_month",
+        reward_name: "Birthday fizz",
+      }),
+    ],
+    ADULT
+  )
   const cards = [{ membershipId: "mem_1", businessName: "Old Crown" }]
 
   const top = getTopRedeemable(cards, counts)
@@ -95,41 +107,50 @@ test("getTopRedeemable surfaces a redeemable gift when there is no earned reward
 })
 
 test("getTopRedeemable prefers the earned stamp reward over a gift on the same card", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "stamp_ready",
-      source: "stamp_cycle",
-      reward_name: "Free coffee",
-    }),
-    row({
-      id: "gift_ready",
-      source: "birthday_month",
-      reward_name: "Birthday fizz",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "stamp_ready",
+        source: "stamp_cycle",
+        reward_name: "Free coffee",
+      }),
+      row({
+        id: "gift_ready",
+        source: "birthday_month",
+        reward_name: "Birthday fizz",
+      }),
+    ],
+    ADULT
+  )
   const cards = [{ membershipId: "mem_1", businessName: "Old Crown" }]
 
   assert.equal(getTopRedeemable(cards, counts)?.rewardId, "stamp_ready")
 })
 
 test("getTopRedeemable ignores a gift that is not yet redeemable", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "gift_wait",
-      source: "birthday_month",
-      collection_state: "waiting",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "gift_wait",
+        source: "birthday_month",
+        collection_state: "waiting",
+      }),
+    ],
+    ADULT
+  )
   const cards = [{ membershipId: "mem_1", businessName: "Old Crown" }]
 
   assert.equal(getTopRedeemable(cards, counts), undefined)
 })
 
 test("database readiness supports legacy full cards and post-cutover fresh cards", () => {
-  const counts = buildRewardCountsByMembership([
-    row({ id: "legacy_reward", membership_id: "legacy_3_of_3" }),
-    row({ id: "cutover_reward", membership_id: "fresh_0_of_2" }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({ id: "legacy_reward", membership_id: "legacy_3_of_3" }),
+      row({ id: "cutover_reward", membership_id: "fresh_0_of_2" }),
+    ],
+    ADULT
+  )
   const cards = [
     {
       membershipId: "legacy_3_of_3",
@@ -151,13 +172,16 @@ test("database readiness supports legacy full cards and post-cutover fresh cards
 })
 
 test("a stamp reward held only by a setup step stays the ready action on Home", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "needs_email",
-      collection_state: "blocked",
-      collection_reason: "Verified email required for reward collection",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "needs_email",
+        collection_state: "blocked",
+        collection_reason: "Verified email required for reward collection",
+      }),
+    ],
+    ADULT
+  )
   const mem = counts.get("mem_1")
 
   assert.equal(mem.stampRewardId, "needs_email")
@@ -165,13 +189,16 @@ test("a stamp reward held only by a setup step stays the ready action on Home", 
 })
 
 test("a stamp reward blocked by the venue is neither ready nor soon on Home", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "paused",
-      collection_state: "blocked",
-      collection_reason: "This loyalty programme is unavailable right now",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "paused",
+        collection_state: "blocked",
+        collection_reason: "This loyalty programme is unavailable right now",
+      }),
+    ],
+    ADULT
+  )
   const mem = counts.get("mem_1")
 
   assert.equal(mem.stampRewardId, null)
@@ -180,14 +207,17 @@ test("a stamp reward blocked by the venue is neither ready nor soon on Home", ()
 })
 
 test("a stamp reward held only by setup keeps its link but is flagged as needing setup", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "stamp_setup",
-      collection_state: "blocked",
-      collection_reason: "Complete your profile before redeeming",
-      reward_name: "Free coffee",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "stamp_setup",
+        collection_state: "blocked",
+        collection_reason: "Complete your profile before redeeming",
+        reward_name: "Free coffee",
+      }),
+    ],
+    ADULT
+  )
   const mem = counts.get("mem_1")
 
   assert.equal(mem.stampRewardId, "stamp_setup")
@@ -202,28 +232,69 @@ test("a stamp reward held only by setup keeps its link but is flagged as needing
 })
 
 test("a photo-ID counter check is ready to collect, not a setup step", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "stamp_id",
-      collection_state: "blocked",
-      collection_reason:
-        "Customer must have verified photo ID and be 18 or over to redeem",
-    }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "stamp_id",
+        collection_state: "blocked",
+        collection_reason:
+          "Customer must have verified photo ID and be 18 or over to redeem",
+      }),
+    ],
+    { statedDateOfBirthIsAdult: true }
+  )
 
+  assert.equal(counts.get("mem_1").stampRewardId, "stamp_id")
   assert.equal(counts.get("mem_1").stampRewardNeedsSetup, false)
 })
 
+test("an under-age customer's age-checked reward is never ready on home", () => {
+  const photoId =
+    "Customer must have verified photo ID and be 18 or over to redeem"
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "stamp_id",
+        collection_state: "blocked",
+        collection_reason: photoId,
+      }),
+      row({
+        id: "gift_id",
+        source: "birthday_month",
+        collection_state: "blocked",
+        collection_reason: photoId,
+      }),
+    ],
+    { statedDateOfBirthIsAdult: false }
+  )
+  const entry = counts.get("mem_1")
+
+  assert.equal(entry.stampRewardId, null)
+  assert.equal(entry.gift?.rewardId, "gift_id")
+  assert.equal(entry.gift?.redeemable, false)
+  assert.equal(entry.gift?.needsSetup, false)
+  assert.equal(
+    getTopRedeemable(
+      [{ membershipId: "mem_1", businessName: "Old Crown" }],
+      counts
+    ),
+    undefined
+  )
+})
+
 test("the home banner leads with a reward ready now over one that needs setup", () => {
-  const counts = buildRewardCountsByMembership([
-    row({
-      id: "setup_first_card",
-      membership_id: "mem_1",
-      collection_state: "blocked",
-      collection_reason: "Verified email required for reward collection",
-    }),
-    row({ id: "ready_second_card", membership_id: "mem_2" }),
-  ])
+  const counts = buildRewardCountsByMembership(
+    [
+      row({
+        id: "setup_first_card",
+        membership_id: "mem_1",
+        collection_state: "blocked",
+        collection_reason: "Verified email required for reward collection",
+      }),
+      row({ id: "ready_second_card", membership_id: "mem_2" }),
+    ],
+    ADULT
+  )
   const cards = [
     { membershipId: "mem_1", businessName: "Old Crown" },
     { membershipId: "mem_2", businessName: "The Anchor" },

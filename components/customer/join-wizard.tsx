@@ -33,6 +33,7 @@ import {
   JOIN_USE_MOBILE_NUMBER_LABEL,
   joinUnlockingRewardHook,
   type CustomerExperienceViewModel,
+  JOIN_EMAIL_NEW_CARD_DISCLOSURE,
 } from "@/lib/customer/experience/copy"
 import type {
   CustomerExperience,
@@ -275,6 +276,9 @@ function EmailStep({
         qrId={exp.qrId}
         referralCode={referralCode}
         alternate={alternate}
+        creationDisclosure={
+          exp.emailMode === "full" ? JOIN_EMAIL_NEW_CARD_DISCLOSURE : undefined
+        }
       />
     </JoinShell>
   )

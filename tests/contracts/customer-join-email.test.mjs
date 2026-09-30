@@ -67,13 +67,55 @@ test("Given the join email actions When each export is read Then it checks the s
   )
 })
 
-test("Given the join email actions When they reach identity Then only the choice action creates a wallet", () => {
+/** Every top-level function's name and body, exported or not. */
+function allFunctions(source) {
+  const starts = [...source.matchAll(/^(export )?(async )?function (\w+)/gm)]
+  return starts.map((match, index) => ({
+    name: match[3],
+    body: source.slice(match.index, starts[index + 1]?.index ?? source.length),
+  }))
+}
+
+test("Given the join email actions When they reach identity Then a wallet is created only in mode full, by the legacy choice or the disclosed code step", () => {
   const source = read(...EMAIL_ACTIONS)
-  const functions = exportedFunctions(source)
-  for (const fn of functions) {
-    const creates = /createCustomerByVerifiedEmail\(/.test(fn.body)
-    assert.equal(creates, fn.name === "startEmailWalletAction", fn.name)
-  }
+  const functions = allFunctions(source)
+  const creators = functions
+    .filter((fn) => /createCustomerByVerifiedEmail\(/.test(fn.body))
+    .map((fn) => fn.name)
+    .sort()
+  assert.deepEqual(creators, [
+    "startEmailWalletAction",
+    "startWalletFromVerifiedCode",
+  ])
+  // The code step reaches creation only behind the server-side mode check;
+  // mode `existing` takes the no-card answer and creates nothing.
+  const verify = functions.find(
+    (fn) => fn.name === "verifyCustomerEmailOtpAction"
+  )
+  assert.match(
+    verify.body,
+    /emailWalletCreationEnabled\(\)\s*\?\s*startWalletFromVerifiedCode\([^)]*\)\s*:\s*noCardForVerifiedEmail\(/
+  )
+  const callers = functions
+    .filter((fn) => /startWalletFromVerifiedCode\(/.test(fn.body))
+    .map((fn) => fn.name)
+    .filter((name) => name !== "startWalletFromVerifiedCode")
+  assert.deepEqual(callers, ["verifyCustomerEmailOtpAction"])
+  // Creating at the code step is the informed choice the published terms
+  // describe only because the email step says so before the code is sent,
+  // and only in mode `full`.
+  const copy = read("lib", "customer", "experience", "copy.ts")
+  assert.match(
+    copy,
+    /JOIN_EMAIL_NEW_CARD_DISCLOSURE =\s*"If no Nabaperks card uses this email yet, confirming the code starts one with it\."/
+  )
+  const wizard = read("components", "customer", "join-wizard.tsx")
+  assert.match(
+    wizard,
+    /exp\.emailMode === "full" \? JOIN_EMAIL_NEW_CARD_DISCLOSURE : undefined/
+  )
+  const legal = read("lib", "legal", "content.ts")
+  assert.match(legal, /after you choose to start one/)
   // The pinned phone action file stays phone-only.
   const phone = read("app", "m", "[merchantSlug]", "join", "actions.ts")
   assert.doesNotMatch(

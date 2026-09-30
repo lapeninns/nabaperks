@@ -12,6 +12,7 @@ import { CustomerProfilePreviousStampsEmail } from "@/components/customer/profil
 import { StatusBanner } from "@/components/loyalty"
 import {
   PREVIOUS_STAMPS_RETURN_TO,
+  isContactNotice,
   previousStampsMethod,
 } from "@/lib/customer/previous-stamps"
 import {
@@ -64,23 +65,27 @@ const PHONE_PREFERENCES = {
  *   another card, 998 save failed, 994 code expired).
  * - `?wallet=complete`: both contacts confirmed; previous stamps points to
  *   staff.
- * - `?contact=`: a notice a task redirected back with (`stamps-together`,
- *   `nothing-found-phone`, `nothing-found-email`, `phone-added`). It shows
- *   only when the lane's confirmed contacts back it (the default lane has a
- *   phone, `email-only` an email, `complete` both), as on /home/profile.
+ * - `?notice=`: a fixture for the notice a task sends back (`stamps-together`,
+ *   `nothing-found-phone`, `nothing-found-email`, `phone-added`). On
+ *   /home/profile it comes only from the server-set one-time cookie, never the
+ *   URL; here the lane passes it literally. It shows only when the lane's
+ *   confirmed contacts back it (the default lane has a phone, `email-only` an
+ *   email, `complete` both), as on /home/profile.
  */
 export default async function CustomerProfileHarnessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ wallet?: string; email?: string; contact?: string }>
+  searchParams: Promise<{ wallet?: string; email?: string; notice?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
   const query = await searchParams
-  // Each lane's confirmed contacts back the notice, as on /home/profile.
+  // A literal fixture notice; each lane's confirmed contacts back it, as on
+  // /home/profile.
+  const fixtureNotice = isContactNotice(query.notice) ? query.notice : null
   const notice = (confirmed: { phone: boolean; email: boolean }) => (
-    <ProfileContactNotice value={query.contact} confirmed={confirmed} />
+    <ProfileContactNotice notice={fixtureNotice} confirmed={confirmed} />
   )
   if (query.wallet === "email-only") {
     return <EmailOnlyProfile notice={notice({ phone: false, email: true })} />

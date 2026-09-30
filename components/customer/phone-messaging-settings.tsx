@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 
 import {
   updateHomePhoneMessagingAction,
@@ -69,40 +69,12 @@ export function PhoneMessagingSettings({
             ) : null}
           </div>
           <form action={action} className="grid gap-4">
-            <fieldset
+            <PhoneMessagingFields
+              // A saved change remounts the fields from the new server state.
               key={`${preferences.phoneMessagesEnabled}:${preferences.preferredPhoneChannel}`}
+              preferences={preferences}
               disabled={pending}
-              className="grid min-w-0 gap-4"
-            >
-              <legend className="sr-only">Reminders by phone</legend>
-              <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4 text-sm font-bold">
-                Send me reminders by phone
-                <input
-                  name="phoneMessagesEnabled"
-                  type="checkbox"
-                  defaultChecked={preferences.phoneMessagesEnabled}
-                  className="focus-ring size-5 shrink-0 accent-primary disabled:opacity-60"
-                />
-              </label>
-              {preferences.phoneMessagesEnabled ? (
-                <FormField id="preferred-phone-channel" label="Send them by">
-                  <SelectField
-                    name="preferredPhoneChannel"
-                    defaultValue={preferences.preferredPhoneChannel}
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="sms">Text message</option>
-                  </SelectField>
-                </FormField>
-              ) : (
-                // The standing choice is kept while reminders are off.
-                <input
-                  type="hidden"
-                  name="preferredPhoneChannel"
-                  value={preferences.preferredPhoneChannel}
-                />
-              )}
-            </fieldset>
+            />
             <SubmitButton pendingLabel="Saving…">Save reminders</SubmitButton>
             <p
               role="status"
@@ -119,5 +91,55 @@ export function PhoneMessagingSettings({
         </p>
       )}
     </section>
+  )
+}
+
+/**
+ * The switch and the channel choice. The choice follows the switch as the
+ * guest ticks it, not the saved state, so turning reminders on shows "Send
+ * them by" at once, starting from the standing channel, and the channel the
+ * guest picks is the one submitted.
+ */
+export function PhoneMessagingFields({
+  preferences,
+  disabled,
+}: {
+  readonly preferences: PhoneMessagingPreferences
+  readonly disabled: boolean
+}) {
+  const [enabled, setEnabled] = useState(preferences.phoneMessagesEnabled)
+
+  return (
+    <fieldset disabled={disabled} className="grid min-w-0 gap-4">
+      <legend className="sr-only">Reminders by phone</legend>
+      <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4 text-sm font-bold">
+        Send me reminders by phone
+        <input
+          name="phoneMessagesEnabled"
+          type="checkbox"
+          checked={enabled}
+          onChange={(event) => setEnabled(event.currentTarget.checked)}
+          className="focus-ring size-5 shrink-0 accent-primary disabled:opacity-60"
+        />
+      </label>
+      {enabled ? (
+        <FormField id="preferred-phone-channel" label="Send them by">
+          <SelectField
+            name="preferredPhoneChannel"
+            defaultValue={preferences.preferredPhoneChannel}
+          >
+            <option value="whatsapp">WhatsApp</option>
+            <option value="sms">Text message</option>
+          </SelectField>
+        </FormField>
+      ) : (
+        // The standing choice is kept while reminders are off.
+        <input
+          type="hidden"
+          name="preferredPhoneChannel"
+          value={preferences.preferredPhoneChannel}
+        />
+      )}
+    </fieldset>
   )
 }

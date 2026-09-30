@@ -2,9 +2,11 @@ import type { Metadata } from "next"
 
 import { CustomerCardExperience } from "@/components/customer/customer-card-experience"
 import { ProfileContactNotice } from "@/components/customer/profile-contact-notice"
+import { readContactNoticeFlash } from "@/lib/customer/contact-notice-flash"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadRewardExperienceContext } from "@/lib/customer/experience/load-reward"
 import type { ProfileGate } from "@/lib/customer/experience/types"
+import { getCurrentCustomer } from "@/lib/customer/identity"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const dynamic = "force-dynamic"
@@ -20,7 +22,6 @@ type RewardPageProps = {
   searchParams: Promise<{
     reward?: string | string[]
     prepare?: string | string[]
-    contact?: string | string[]
   }>
 }
 
@@ -38,6 +39,11 @@ export default async function RewardPage({
     prepare: firstParam(query.prepare) === "1",
   })
   const derived = deriveCustomerExperience({ entry: "reward", context })
+  // Bound to this customer and this reward's path; never read from the URL.
+  const contactNotice = await readContactNoticeFlash({
+    customerId: (await getCurrentCustomer())?.id ?? null,
+    pathname: `/reward/${rewardId}`,
+  })
   // Every dead end on this route is about a reward, so its copy says so
   // rather than "Card unavailable".
   const experience =
@@ -55,15 +61,16 @@ export default async function RewardPage({
       experience={experience}
       offerPasses={[]}
       offerClaimNotice={null}
-      // The reward gate's phone step redirects back here with `?contact=`
-      // once the number is confirmed, because the gate then moves past the
-      // step and unmounts the form that would have shown it.
+      // The reward gate's phone step redirects back here with a one-time
+      // server-set notice once the number is confirmed, because the gate then
+      // moves past the step and unmounts the form that would have shown it.
       notice={
         <ProfileContactNotice
-          value={query.contact}
+          notice={contactNotice}
           confirmed={confirmedContacts(
             "profileGate" in context ? context.profileGate : undefined
           )}
+          consume
         />
       }
     />

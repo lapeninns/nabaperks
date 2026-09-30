@@ -7,6 +7,7 @@ import type {
   CustomerExperience,
   ProfileGate,
 } from "@/lib/customer/experience/types"
+import { isContactNotice } from "@/lib/customer/previous-stamps"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -184,9 +185,10 @@ const GATES: Record<string, ProfileGate> = {
  * `?state=` selects the gate (or `collected` / `expired`), `?waiting=1`
  * renders the not-yet-open reward and `?prepare=1` its early preparation step,
  * `?long=1` swaps in overflow fixtures for the venue and reward names, and
- * `?contact=phone-added|stamps-together` shows the confirmation the phone step
- * redirects back with (on a state past the phone step, such as `ready`, as
- * the notice only shows when the gate's confirmed contacts back it).
+ * `?notice=phone-added|stamps-together` is a fixture for the confirmation the
+ * phone step sends back (on /reward only from the server-set one-time cookie,
+ * never the URL), shown on a state past the phone step, such as `ready`, as
+ * the notice only shows when the gate's confirmed contacts back it.
  */
 export default async function RewardCollectionHarnessPage({
   searchParams,
@@ -196,7 +198,7 @@ export default async function RewardCollectionHarnessPage({
     waiting?: string
     prepare?: string
     long?: string
-    contact?: string
+    notice?: string
   }>
 }) {
   if (process.env.NODE_ENV === "production") {
@@ -249,7 +251,7 @@ export default async function RewardCollectionHarnessPage({
       qrSrc={await fixtureQrSrc()}
       notice={
         <ProfileContactNotice
-          value={params.contact}
+          notice={isContactNotice(params.notice) ? params.notice : null}
           // As on /reward: only what this fixture's gate has confirmed backs
           // a notice, so `phone-added` shows once the phone step is done.
           confirmed={{

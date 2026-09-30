@@ -11,6 +11,7 @@ import {
   isCollectionSetupBlock,
   parseRewardCollectionState,
   photoIdSetupApplies,
+  resolveAgeCheckReason,
   rewardCollectionBlockedCopy,
 } from "@/lib/customer/reward-collection-state"
 
@@ -241,4 +242,27 @@ test("reward timing and block copy never lower-case dates or name a trading day"
     rewardCollectionBlockedCopy("one_reward_per_day"),
     "You've already collected a reward here today. You can collect this one on a later visit."
   )
+})
+
+test("the photo-ID reason is resolved by the stated date of birth before classification", () => {
+  const photoId =
+    "Customer must have verified photo ID and be 18 or over to redeem"
+
+  const adult = resolveAgeCheckReason(photoId, true)
+  assert.equal(adult, photoId)
+  assert.equal(rewardCollectability("blocked", adult), "ready")
+  assert.equal(cardRewardCollectable("blocked", adult), true)
+
+  const minor = resolveAgeCheckReason(photoId, false)
+  assert.equal(minor, "Customer must be 18 or over to redeem")
+  assert.equal(rewardCollectability("blocked", minor), "unavailable")
+  assert.equal(cardRewardCollectable("blocked", minor), false)
+  assert.equal(
+    rewardCollectionBlockedCopy(minor),
+    "This reward can only be collected by customers aged 18 or over."
+  )
+
+  // Other reasons pass through untouched.
+  assert.equal(resolveAgeCheckReason("venue_paused", false), "venue_paused")
+  assert.equal(resolveAgeCheckReason(null, false), null)
 })

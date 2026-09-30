@@ -30,8 +30,17 @@ const STUBS = {
         ? "This number is used by another card. Sign in with that number, or ask staff for help."
         : "link copy " + status;
     }`,
+  // The one-time notice cookie itself is proved in contact-notice-flash
+  // tests; here the action's recorded outcome and redirect are observed.
+  "@/lib/customer/contact-notice-flash": `import { state } from "fixture-state";
+    import { contactNoticeReturn } from "@/lib/customer/previous-stamps";
+    export async function setContactNoticeFlash(notice, returnTo) {
+      state.notices.push(notice);
+      return contactNoticeReturn(returnTo).href
+    }`,
   "fixture-state": `export const state = {
     calls: [],
+    notices: [],
     events: [],
     revalidated: [],
     customer: { id: "customer-1", phoneLast4: null },
@@ -707,7 +716,7 @@ test("Given the send limiter fails When a code is requested Then the number is k
   assert.equal(state.pending, null)
 })
 
-test("Given the reward gate names where the guest was When the number is confirmed Then it redirects back with a notice", async () => {
+test("Given the reward gate names where the guest was When the number is confirmed Then it redirects back with a server-set notice, never a URL flag", async () => {
   const { rewardPhoneAction, state } = await loadActions()
 
   state.pending = PENDING
@@ -716,7 +725,7 @@ test("Given the reward gate names where the guest was When the number is confirm
       { step: "code" },
       form({ intent: "verify", otp: "123456", returnTo: "/reward/r-1" })
     ),
-    (error) => error.url === "/reward/r-1?contact=phone-added"
+    (error) => error.url === "/reward/r-1"
   )
 
   state.pending = PENDING
@@ -727,7 +736,7 @@ test("Given the reward gate names where the guest was When the number is confirm
       { step: "code" },
       form({ intent: "verify", otp: "123456", returnTo: "/reward/r-1" })
     ),
-    (error) => error.url === "/reward/r-1?contact=stamps-together"
+    (error) => error.url === "/reward/r-1"
   )
 
   // An off-site returnTo falls back to the profile.
@@ -742,8 +751,13 @@ test("Given the reward gate names where the guest was When the number is confirm
         returnTo: "https://evil.example/x",
       })
     ),
-    (error) => error.url === "/home/profile?contact=phone-added"
+    (error) => error.url === "/home/profile"
   )
+  assert.deepEqual(state.notices, [
+    "phone-added",
+    "stamps-together",
+    "phone-added",
+  ])
 })
 
 test("Given the previous-stamps task When its number is confirmed with nothing to bring over Then it returns to the task with that notice", async () => {
@@ -760,9 +774,9 @@ test("Given the previous-stamps task When its number is confirmed with nothing t
         returnTo: "/home/profile#previous-stamps",
       })
     ),
-    (error) =>
-      error.url === "/home/profile?contact=nothing-found-phone#previous-stamps"
+    (error) => error.url === "/home/profile#previous-stamps"
   )
+  assert.deepEqual(state.notices, ["nothing-found-phone"])
 })
 
 test("Given a stale previous-stamps form When the card already has a confirmed number Then it answers in place and never claims nothing was found", async () => {

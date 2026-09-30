@@ -15,10 +15,8 @@ import { StatusBanner } from "@/components/loyalty"
 import { emailPromptReason } from "@/lib/customer/email-auth-mode"
 import { emailPromptOpening } from "@/lib/customer/email-prompt-opening"
 import { getCurrentCustomer } from "@/lib/customer/identity"
-import {
-  CONTACT_NOTICE_PARAM,
-  previousStampsMethod,
-} from "@/lib/customer/previous-stamps"
+import { readContactNoticeFlash } from "@/lib/customer/contact-notice-flash"
+import { previousStampsMethod } from "@/lib/customer/previous-stamps"
 import { getCustomerProfile } from "@/lib/customer/profile"
 import { getPendingEmailVerification } from "@/lib/customer/session"
 import { formatMonthYear } from "@/lib/customer/format"
@@ -32,26 +30,25 @@ export const metadata = {
 const FINISH_DETAILS_COPY =
   "Collecting a reward needs your name, date of birth, and a confirmed mobile number and email. You can keep collecting stamps meanwhile."
 
-type HomeProfilePageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>
-}
-
 /**
  * The guest's profile, in the order of the brief: your details and contact
  * (one card), messages from venues (optional), previous stamps (optional),
  * then sign out. Phone is the only way in, so the page never names email as
  * a sign-in route or describes the email rollout setting.
  */
-export default async function HomeProfilePage({
-  searchParams,
-}: HomeProfilePageProps) {
+export default async function HomeProfilePage() {
   const profile = await getCustomerProfile()
 
   if (!profile) {
     redirect(customerLoginHref("/home/profile"))
   }
 
-  const params = await searchParams
+  // The outcome a previous-stamps action proved and sent back here, bound to
+  // this customer and this page; a URL parameter never produces one.
+  const contactNotice = await readContactNoticeFlash({
+    customerId: (await getCurrentCustomer())?.id ?? null,
+    pathname: "/home/profile",
+  })
   const incomplete =
     !profile.fullName ||
     !profile.dateOfBirth ||
@@ -111,11 +108,12 @@ export default async function HomeProfilePage({
         })}
         notice={
           <ProfileContactNotice
-            value={params[CONTACT_NOTICE_PARAM]}
+            notice={contactNotice}
             confirmed={{
               phone: profile.phoneVerified,
               email: profile.emailVerified,
             }}
+            consume
           />
         }
       />

@@ -1,4 +1,5 @@
 import {
+  resolveAgeCheckReason,
   rewardCollectability,
   type RewardCollectionState,
 } from "@/lib/customer/reward-collection-state"
@@ -40,7 +41,10 @@ export function groupRewardsForList<
     collectionState: RewardCollectionState
     collectionReason: string | null
   },
->(items: readonly T[]): GroupedRewards<T> {
+>(
+  items: readonly T[],
+  facts: { statedDateOfBirthIsAdult: boolean }
+): GroupedRewards<T> {
   const groups: GroupedRewards<T> = {
     redeemable: [],
     needsSetup: [],
@@ -48,7 +52,16 @@ export function groupRewardsForList<
     redeemed: [],
     expired: [],
   }
-  for (const item of items) {
+  for (const raw of items) {
+    // The photo-ID reason is ambiguous until the stated date of birth resolves
+    // it; an under-age customer's reward is listed with the age policy.
+    const item: T = {
+      ...raw,
+      collectionReason: resolveAgeCheckReason(
+        raw.collectionReason,
+        facts.statedDateOfBirthIsAdult
+      ),
+    }
     groups[rewardListGroup(item.collectionState, item.collectionReason)].push(
       item
     )

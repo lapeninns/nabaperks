@@ -1,5 +1,6 @@
 import {
   cardRewardCollectable,
+  resolveAgeCheckReason,
   rewardCollectability,
   type RewardCollectionState,
 } from "@/lib/customer/reward-collection-state"
@@ -57,9 +58,19 @@ export function emptyRewardCounts(): RewardCounts {
 }
 
 export function buildRewardCountsByMembership(
-  rows: readonly RawHomeReward[]
+  rawRows: readonly RawHomeReward[],
+  facts: { statedDateOfBirthIsAdult: boolean }
 ): Map<string, RewardCounts> {
   const rewardsByMembership = new Map<string, RawHomeReward[]>()
+  // The photo-ID reason is ambiguous until the stated date of birth resolves
+  // it: an under-age customer's reward is never actionable or ready here.
+  const rows = rawRows.map((row) => ({
+    ...row,
+    collection_reason: resolveAgeCheckReason(
+      row.collection_reason ?? null,
+      facts.statedDateOfBirthIsAdult
+    ),
+  }))
 
   for (const row of rows) {
     const entry = rewardsByMembership.get(row.membership_id) ?? []

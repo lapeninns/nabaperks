@@ -12,8 +12,8 @@ import {
   walletLinkFailureMessage,
 } from "@/lib/customer/wallet-link"
 import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
+import { setContactNoticeFlash } from "@/lib/customer/contact-notice-flash"
 import {
-  contactNoticeHref,
   walletLinkedMessage,
   type ContactNotice,
   type WalletLinkRecovery,
@@ -122,7 +122,7 @@ export async function profilePhoneAction(
   state: ProfilePhoneState,
   formData: FormData
 ): Promise<ProfilePhoneState> {
-  return returnWithNotice(
+  return await returnWithNotice(
     await phoneAction(state, formData, "profile"),
     formData
   )
@@ -132,7 +132,7 @@ export async function rewardPhoneAction(
   state: ProfilePhoneState,
   formData: FormData
 ): Promise<ProfilePhoneState> {
-  return returnWithNotice(
+  return await returnWithNotice(
     await phoneAction(state, formData, "reward_gate"),
     formData
   )
@@ -141,15 +141,16 @@ export async function rewardPhoneAction(
 /**
  * When the form names where the guest was (`returnTo`: the reward, or the
  * profile's previous-stamps task), a confirmed number redirects back there
- * with a notice flag. Those screens move on once the number is added (the
- * reward gate passes its phone step, the task asks for an email next), which
- * unmounts this form and would otherwise lose the confirmation. Without
- * `returnTo` the form shows its own answer, as the Contact section does.
+ * with the outcome in a one-time server-set notice (never a URL flag). Those
+ * screens move on once the number is added (the reward gate passes its phone
+ * step, the task asks for an email next), which unmounts this form and would
+ * otherwise lose the confirmation. Without `returnTo` the form shows its own
+ * answer, as the Contact section does.
  */
-function returnWithNotice(
+async function returnWithNotice(
   result: ProfilePhoneState,
   formData: FormData
-): ProfilePhoneState {
+): Promise<ProfilePhoneState> {
   const returnTo = value(formData, "returnTo")
   if (result.step !== "attached" || !result.verifiedNow || !returnTo) {
     return result
@@ -159,7 +160,7 @@ function returnWithNotice(
     : value(formData, "task") === "previous"
       ? "nothing-found-phone"
       : "phone-added"
-  redirect(contactNoticeHref(returnTo, notice))
+  redirect(await setContactNoticeFlash(notice, returnTo))
 }
 
 async function phoneAction(

@@ -544,6 +544,71 @@ test("Given a phone code is still pending When the customer leaves the email fal
   assert.ok(!state.calls.some(([name]) => name === "clearPhone"))
 })
 
+test("Given a WhatsApp code is pending When the customer goes back to the text code Then the phone step keeps the cookie's channel and its text fallback", async () => {
+  process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
+  const actions = await loadActions()
+  const { state } = actions
+  const nowSeconds = Math.floor(Date.now() / 1_000)
+  state.phonePending = {
+    purpose: "wallet",
+    phone: "+447700900123",
+    channel: "whatsapp",
+    issuedAt: nowSeconds - 40,
+  }
+
+  // A posted channel is ignored: only the signed pending cookie counts.
+  const back = await actions.switchCustomerLoginMethodAction(
+    {},
+    form({ method: "phone", channel: "sms" })
+  )
+  assert.equal(back.fields.channel, "whatsapp")
+  assert.equal(back.fields.otpSent, true)
+
+  // A code that went by text stays on text; a cookie minted before the
+  // channel existed names none.
+  state.phonePending = { ...state.phonePending, channel: "sms" }
+  assert.equal(
+    (
+      await actions.switchCustomerLoginMethodAction(
+        {},
+        form({ method: "phone", channel: "whatsapp" })
+      )
+    ).fields.channel,
+    "sms"
+  )
+  state.phonePending = {
+    purpose: "wallet",
+    phone: "+447700900123",
+    issuedAt: nowSeconds - 40,
+  }
+  assert.equal(
+    "channel" in
+      (
+        await actions.switchCustomerLoginMethodAction(
+          {},
+          form({ method: "phone" })
+        )
+      ).fields,
+    false
+  )
+
+  // The fallback gate's phone step carries it too.
+  state.gate = {
+    open: false,
+    phoneCode: {
+      phone: "+447700900123",
+      channel: "whatsapp",
+      issuedAt: nowSeconds - 10,
+    },
+  }
+  const refused = await actions.switchCustomerLoginMethodAction(
+    {},
+    form({ method: "email" })
+  )
+  assert.equal(refused.fields.method, "phone")
+  assert.equal(refused.fields.channel, "whatsapp")
+})
+
 test("Given the server has not opened email When the switch, request or edit is posted Then each answers with the phone step and touches no email state", async () => {
   process.env.CUSTOMER_EMAIL_AUTH_MODE = "full"
   const actions = await loadActions()

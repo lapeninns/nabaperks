@@ -75,3 +75,25 @@ test("Given a reward held only by setup When the card renders Then it uses the h
     /gift\.needsSetup \? REWARD_NEEDS_SETUP_ACTION : "Open gift QR"/
   )
 })
+
+test("every reward list and card loader resolves the photo-ID reason with the stated date of birth", () => {
+  const rewards = readProjectFile("lib", "customer", "rewards.ts")
+  const home = readProjectFile("lib", "customer", "home.ts")
+  const card = readProjectFile("lib", "customer", "card.ts")
+
+  assert.match(
+    rewards,
+    /groupRewardsForList\(items, \{\s*statedDateOfBirthIsAdult: isAdultDateOfBirth\(customer\.dateOfBirth\)/
+  )
+  assert.match(
+    home,
+    /buildRewardCountsByMembership\([\s\S]*?statedDateOfBirthIsAdult: isAdultDateOfBirth\(customer\.dateOfBirth\)/
+  )
+  assert.match(card, /isAdultDateOfBirth\(\s*currentCustomer\.dateOfBirth\s*\)/)
+  assert.match(
+    card,
+    /resolveAgeCheckReason\(\s*reward\.collection_reason,\s*statedDateOfBirthIsAdult\s*\)/
+  )
+  assert.match(card, /pickStampBlockingUnlockedReward\(rewards\)/)
+  assert.match(card, /pickIssuedUnlockedReward\(rewards\)/)
+})

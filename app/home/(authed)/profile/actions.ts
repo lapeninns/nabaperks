@@ -32,9 +32,9 @@ import {
   isEmailAddress,
   validateProfileFields,
 } from "@/lib/customer/profile-fields"
+import { setContactNoticeFlash } from "@/lib/customer/contact-notice-flash"
 import {
   PREVIOUS_STAMPS_RETURN_TO,
-  contactNoticeHref,
   walletLinkedMessage,
 } from "@/lib/customer/previous-stamps"
 import { clearPendingEmailVerification } from "@/lib/customer/session"
@@ -214,12 +214,12 @@ export async function previousStampsEmailAction(
   const result = await verifyEmailPrompt(state, formData, "profile")
   // The task asks for the next missing contact once this one is confirmed,
   // which would unmount the form with its answer, so the outcome comes back
-  // as a notice on the task instead.
+  // as a one-time server-set notice on the task instead.
   if (result.step === "verified") {
     redirect(
-      contactNoticeHref(
-        PREVIOUS_STAMPS_RETURN_TO,
-        result.walletLinked ? "stamps-together" : "nothing-found-email"
+      await setContactNoticeFlash(
+        result.walletLinked ? "stamps-together" : "nothing-found-email",
+        PREVIOUS_STAMPS_RETURN_TO
       )
     )
   }

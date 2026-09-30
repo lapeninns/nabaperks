@@ -59,8 +59,10 @@ const MOCKS = {
     'import {state} from "fixture-state"; export function revalidatePath(path) {state.revalidated.push(path)}',
   "next/server": "export function after() {}",
   "next/navigation": "export function redirect() {}",
+  "@/lib/customer/contact-notice-flash":
+    "export async function setContactNoticeFlash() { return '/home/profile' }",
   "@/lib/customer/previous-stamps":
-    "export const PREVIOUS_STAMPS_RETURN_TO = '/home/profile#previous-stamps'; export function contactNoticeHref() { return '' } export function walletLinkedMessage() { return 'Your stamps are together now.' } export function walletLinkFailureCopy() { return '' }",
+    "export const PREVIOUS_STAMPS_RETURN_TO = '/home/profile#previous-stamps'; export function walletLinkedMessage() { return 'Your stamps are together now.' } export function walletLinkFailureCopy() { return '' }",
   "@/lib/customer/email-auth-mode":
     "export function emailSignInEnabled() { return false } export function emailPromptReason() { return 'rewards' }",
   "@/lib/supabase/server": SUPABASE,

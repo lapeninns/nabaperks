@@ -129,9 +129,14 @@ export function walletLinkReturnTo(raw: string | null | undefined): string {
 /**
  * A confirmation that must outlive the form that produced it: on the reward
  * gate, adding a phone moves the gate past its phone step, which unmounts the
- * form, so the action redirects back with this flag instead.
+ * form, so the action redirects back and the outcome travels in a short-lived,
+ * encrypted, one-time cookie bound to the customer and the return path
+ * (`lib/customer/contact-notice-flash.ts`). A URL never carries it, so no link
+ * can make a screen claim a number was confirmed or stamps were brought
+ * together.
  */
-export const CONTACT_NOTICE_PARAM = "contact"
+/** Same-origin endpoint a shown notice posts to so it shows only once. */
+export const CONTACT_NOTICE_CONSUME_PATH = "/home/contact-notice"
 
 export type ContactNotice =
   | "phone-added"
@@ -163,6 +168,10 @@ export const CONTACT_NOTICE_COPY: Record<
 
 const CONTACT_NOTICES = Object.keys(CONTACT_NOTICE_COPY) as ContactNotice[]
 
+export function isContactNotice(value: unknown): value is ContactNotice {
+  return CONTACT_NOTICES.some((candidate) => candidate === value)
+}
+
 /** What the server says is confirmed for the signed-in guest right now. */
 export type ConfirmedContacts = {
   readonly phone: boolean
@@ -170,11 +179,11 @@ export type ConfirmedContacts = {
 }
 
 /**
- * The flag alone is not proof: a shared or crafted link could carry it. Each
- * notice shows only when the server state it describes is true now, so a
- * guest is never told a number or email is confirmed when it is not.
+ * Belt and braces on top of the server-set notice: each notice shows only
+ * when the server state it describes is true now, so a guest is never told a
+ * number or email is confirmed when it is not.
  */
-function noticeMatchesState(
+export function contactNoticeBacked(
   notice: ContactNotice,
   confirmed: ConfirmedContacts
 ): boolean {
@@ -189,28 +198,21 @@ function noticeMatchesState(
   }
 }
 
-export function contactNoticeFromParam(
-  value: string | string[] | null | undefined,
-  confirmed: ConfirmedContacts
-): ContactNotice | null {
-  const single = Array.isArray(value) ? value[0] : value
-  const notice = CONTACT_NOTICES.find((candidate) => candidate === single)
-  return notice && noticeMatchesState(notice, confirmed) ? notice : null
-}
-
 /** The id of the profile's previous-stamps section, its link anchor. */
 export const PREVIOUS_STAMPS_SECTION_ID = "previous-stamps"
 
 /** The profile's previous-stamps task, where its outcomes come back to. */
 export const PREVIOUS_STAMPS_RETURN_TO = `/home/profile#${PREVIOUS_STAMPS_SECTION_ID}`
 
-/** `returnTo` with the notice flag set, keeping its own query and hash. */
-export function contactNoticeHref(
-  returnTo: string,
-  notice: ContactNotice
-): string {
-  const base = walletLinkReturnTo(returnTo)
-  const url = new URL(base, "https://nabaperks.local")
-  url.searchParams.set(CONTACT_NOTICE_PARAM, notice)
-  return `${url.pathname}${url.search}${url.hash}`
+/**
+ * Where an action returns the guest with a notice: the validated `returnTo`
+ * (query and hash kept) and its path, which the notice is bound to so it
+ * shows only on the screen the guest was sent back to.
+ */
+export function contactNoticeReturn(returnTo: string): {
+  readonly href: string
+  readonly pathname: string
+} {
+  const href = walletLinkReturnTo(returnTo)
+  return { href, pathname: new URL(href, "https://nabaperks.local").pathname }
 }

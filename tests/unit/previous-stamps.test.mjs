@@ -4,8 +4,9 @@ import { test } from "node:test"
 import {
   CONTACT_NOTICE_COPY,
   PREVIOUS_STAMPS_COPY,
-  contactNoticeFromParam,
-  contactNoticeHref,
+  contactNoticeBacked,
+  contactNoticeReturn,
+  isContactNotice,
   previousStampsMethod,
   walletLinkFailureCopy,
   walletLinkReturnTo,
@@ -107,46 +108,34 @@ test("Given a returnTo When it is validated Then only a same-origin path survive
   assert.equal(walletLinkReturnTo("/home/login?next=/x"), "/home/profile")
 })
 
-test("Given a notice When it is added to returnTo and read back Then the query and hash are kept and unknown values show nothing", () => {
-  assert.equal(
-    contactNoticeHref("/reward/r-1?prepare=1", "phone-added"),
-    "/reward/r-1?prepare=1&contact=phone-added"
-  )
-  assert.equal(
-    contactNoticeHref("/home/profile#previous-stamps", "stamps-together"),
-    "/home/profile?contact=stamps-together#previous-stamps"
-  )
-  const both = { phone: true, email: true }
-  assert.equal(
-    contactNoticeFromParam("stamps-together", both),
-    "stamps-together"
-  )
-  assert.equal(
-    contactNoticeFromParam(["nothing-found-email"], both),
-    "nothing-found-email"
-  )
-  assert.equal(contactNoticeFromParam("other", both), null)
-  assert.equal(contactNoticeFromParam(undefined, both), null)
+test("Given a returnTo When a notice is sent back Then the redirect keeps its query and hash, carries no flag, and names the path it is bound to", () => {
+  assert.deepEqual(contactNoticeReturn("/reward/r-1?prepare=1"), {
+    href: "/reward/r-1?prepare=1",
+    pathname: "/reward/r-1",
+  })
+  assert.deepEqual(contactNoticeReturn("/home/profile#previous-stamps"), {
+    href: "/home/profile#previous-stamps",
+    pathname: "/home/profile",
+  })
+  assert.deepEqual(contactNoticeReturn("https://evil.example/x"), {
+    href: "/home/profile",
+    pathname: "/home/profile",
+  })
+  assert.equal(isContactNotice("stamps-together"), true)
+  assert.equal(isContactNotice("other"), false)
+  assert.equal(isContactNotice(undefined), false)
 })
 
-test("Given a notice flag the server state does not back When it is read Then nothing is shown", () => {
+test("Given a notice the server state does not back When it is checked Then it is not shown", () => {
   const none = { phone: false, email: false }
   const phoneOnly = { phone: true, email: false }
   const emailOnly = { phone: false, email: true }
-  for (const flag of [
-    "phone-added",
-    "stamps-together",
-    "nothing-found-phone",
-    "nothing-found-email",
-  ]) {
-    assert.equal(contactNoticeFromParam(flag, none), null, flag)
+  for (const notice of Object.keys(CONTACT_NOTICE_COPY)) {
+    assert.equal(contactNoticeBacked(notice, none), false, notice)
   }
-  assert.equal(contactNoticeFromParam("phone-added", emailOnly), null)
-  assert.equal(contactNoticeFromParam("nothing-found-phone", emailOnly), null)
-  assert.equal(contactNoticeFromParam("nothing-found-email", phoneOnly), null)
-  assert.equal(contactNoticeFromParam("phone-added", phoneOnly), "phone-added")
-  assert.equal(
-    contactNoticeFromParam("stamps-together", emailOnly),
-    "stamps-together"
-  )
+  assert.equal(contactNoticeBacked("phone-added", emailOnly), false)
+  assert.equal(contactNoticeBacked("nothing-found-phone", emailOnly), false)
+  assert.equal(contactNoticeBacked("nothing-found-email", phoneOnly), false)
+  assert.equal(contactNoticeBacked("phone-added", phoneOnly), true)
+  assert.equal(contactNoticeBacked("stamps-together", emailOnly), true)
 })

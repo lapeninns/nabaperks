@@ -96,6 +96,16 @@ export const JOIN_EMAIL_FALLBACK_HEADLINE = "Get your code by email" as const
 export const JOIN_EMAIL_WIFI_HINT =
   "Useful when there's no mobile signal. Works on the venue's Wi-Fi." as const
 
+/**
+ * Mode `full` only, under the email field: confirming a code for an address
+ * no card uses starts a card with it (email-actions.ts). Said before the code
+ * is sent, so sending it is the guest's informed choice to start one, as the
+ * published terms describe. Conditional wording: it says nothing about
+ * whether this address already has a card.
+ */
+export const JOIN_EMAIL_NEW_CARD_DISCLOSURE =
+  "If no Nabaperks card uses this email yet, confirming the code starts one with it." as const
+
 /** When the email provider failed to take a join code (plan section 7). */
 export const JOIN_EMAIL_DELAYED =
   "Email is slow right now. Try again shortly, or go back to the text code." as const

@@ -187,23 +187,31 @@ test("Given the reward gate's phone step When the number is confirmed Then the r
     gate,
     /action=\{rewardPhoneAction\}\s+returnTo=\{`\/reward\/\$\{rewardId\}`\}/
   )
-  // The reward route reads `?contact=` and renders the shared notice.
-  assert.match(page, /contact\?: string \| string\[\]/)
+  // The reward route reads the one-time server-set notice, bound to this
+  // customer and this reward's path, never a `?contact=` URL flag, and spends
+  // it once shown.
+  assert.doesNotMatch(page, /contact\?: string/)
+  assert.doesNotMatch(page, /query\.contact/)
   assert.match(
     page,
-    /<ProfileContactNotice\s+value=\{query\.contact\}\s+confirmed=\{confirmedContacts\(/
+    /readContactNoticeFlash\(\{\s+customerId: \(await getCurrentCustomer\(\)\)\?\.id \?\? null,\s+pathname: `\/reward\/\$\{rewardId\}`,/
   )
-  // The flag alone is not proof: the notice shows only when the gate the
-  // server read backs it (a confirmed phone, a locked email).
+  assert.match(
+    page,
+    /<ProfileContactNotice\s+notice=\{contactNotice\}\s+confirmed=\{confirmedContacts\([\s\S]{0,120}\)\}\s+consume\s+\/>/
+  )
+  // Belt and braces: the notice shows only when the gate the server read
+  // backs it (a confirmed phone, a locked email).
   assert.match(
     page,
     /phone: gate\.needsPhoneVerification !== true,\s+email: gate\.emailLocked,/
   )
   assert.match(card, /notice\?: ReactNode/)
   assert.match(card, /\{notice\}\s+<ExperiencePanel/)
-  // The DB-free harness keeps a lane for the notice.
+  // The DB-free harness keeps a lane for the notice, from a literal fixture
+  // rather than the real param path.
   assert.match(
     harness,
-    /<ProfileContactNotice\s+value=\{params\.contact\}[\s\S]{0,200}confirmed=\{\{\s+phone: profileGate\.needsPhoneVerification !== true,/
+    /<ProfileContactNotice\s+notice=\{isContactNotice\(params\.notice\) \? params\.notice : null\}[\s\S]{0,200}confirmed=\{\{\s+phone: profileGate\.needsPhoneVerification !== true,/
   )
 })

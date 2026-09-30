@@ -10,10 +10,12 @@ import {
  * cookie can never be read as another. `email-sign-in` is the signed-out email
  * code challenge; `email-handoff` is the short-lived proof that an email was
  * verified when no wallet holds it yet; `email-fallback` records that a
- * signed-out phone attempt has opened the email fallback.
+ * signed-out phone attempt has opened the email fallback; `contact-notice` is
+ * the one-time outcome of a contact confirmation for the screen it returns to.
  */
 export type PendingCookieContext =
   | "access-recovery"
+  | "contact-notice"
   | "email"
   | "email-fallback"
   | "email-handoff"

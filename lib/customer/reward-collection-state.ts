@@ -103,7 +103,7 @@ export function rewardCollectionBlockedCopy(reason: string | null): string {
     case "age_verification_required":
     case PHOTO_ID_REQUIRED_REASON:
       return "Staff will check photo ID when you collect this reward."
-    case "Customer must be 18 or over to redeem":
+    case UNDER_AGE_REASON:
       return "This reward can only be collected by customers aged 18 or over."
     case "expired":
       return "This reward has expired."
@@ -134,7 +134,9 @@ export function isCollectionSetupBlock(reason: string | null): boolean {
  *
  * - `ready`: collect it now. The in-person photo-ID reason counts here because
  *   the predicate reports it only once every other requirement is met, and the
- *   code is shown with the ID note beside it.
+ *   code is shown with the ID note beside it. Callers resolve that reason with
+ *   {@link resolveAgeCheckReason} first, so an under-age customer's reward is
+ *   `unavailable`, never ready.
  * - `needs_setup`: unlocked, but a detail (name, date of birth, email or
  *   mobile number) must be added on the reward page first. Never shown with a
  *   code or as ready.
@@ -176,6 +178,26 @@ export function photoIdSetupApplies(
   statedDateOfBirthIsAdult: boolean
 ): boolean {
   return reason === PHOTO_ID_REQUIRED_REASON && statedDateOfBirthIsAdult
+}
+
+/** The predicate's reason when the customer is under age for the reward. */
+export const UNDER_AGE_REASON = "Customer must be 18 or over to redeem"
+
+/**
+ * Resolves the predicate's ambiguous photo-ID reason with the customer's
+ * stated date of birth, the same fact the reward page and the QR route check.
+ * An under-age (or missing) date of birth becomes the under-age policy block,
+ * so list and card surfaces never show that reward as ready to collect. Every
+ * surface that classifies rewards must pass its reasons through this first.
+ */
+export function resolveAgeCheckReason(
+  reason: string | null,
+  statedDateOfBirthIsAdult: boolean
+): string | null {
+  if (reason !== PHOTO_ID_REQUIRED_REASON) return reason
+  return photoIdSetupApplies(reason, statedDateOfBirthIsAdult)
+    ? reason
+    : UNDER_AGE_REASON
 }
 
 export function collectionWindowCopy(

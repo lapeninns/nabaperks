@@ -27,6 +27,7 @@ import {
 import { isEmailAddress } from "@/lib/customer/profile-fields"
 import { phoneCodeStepTiming } from "@/lib/customer/phone-code-email-fallback"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
+import type { PendingPhoneChannel } from "@/lib/customer/session-cookie-core"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
 
@@ -252,10 +253,16 @@ export async function switchCustomerLoginMethodAction(
 /**
  * The phone step: the code step, with the server's wait, while a wallet phone
  * code is pending, else the number form. The same answer whatever address a
- * refused email request named.
+ * refused email request named. The channel comes from the signed pending
+ * cookie, never the form, so a code sent on WhatsApp keeps "Text me instead"
+ * and its resend stays on the channel that actually carried it.
  */
 function phoneStep(
-  phoneCode: { readonly phone: string; readonly issuedAt: number } | null
+  phoneCode: {
+    readonly phone: string
+    readonly issuedAt: number
+    readonly channel?: PendingPhoneChannel
+  } | null
 ): LoginState {
   if (!phoneCode) return { fields: { method: "phone" } }
   return {
@@ -263,6 +270,7 @@ function phoneStep(
       method: "phone",
       contact: phoneCode.phone,
       otpSent: true,
+      ...(phoneCode.channel ? { channel: phoneCode.channel } : {}),
       ...phoneCodeStepTiming(phoneCode.issuedAt, Date.now()),
     },
   }

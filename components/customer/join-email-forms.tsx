@@ -18,6 +18,12 @@ export type CustomerEmailFormProps = {
   referralCode?: string
   /** "Back to the text code" (or the number form), under the button. */
   alternate?: ReactNode
+  /**
+   * Mode `full`: that confirming the code starts a card for an address no
+   * card uses. Shown before the code is sent, so sending is an informed
+   * choice (the published terms: "after you choose to start one").
+   */
+  creationDisclosure?: string
 }
 
 /**
@@ -32,6 +38,7 @@ export function CustomerEmailForm({
   qrId,
   referralCode,
   alternate,
+  creationDisclosure,
 }: CustomerEmailFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerEmailIdentityAction,
@@ -63,9 +70,12 @@ export function CustomerEmailForm({
             defaultValue={state.fields?.email}
             className={customerInputClass}
             aria-invalid={Boolean(state.errors?.email)}
-            aria-describedby={
-              state.errors?.email ? "email-error" : "email-hint"
-            }
+            aria-describedby={[
+              state.errors?.email ? "email-error" : "email-hint",
+              creationDisclosure ? "email-new-card" : null,
+            ]
+              .filter(Boolean)
+              .join(" ")}
             onFocus={(event) =>
               event.currentTarget.scrollIntoView({ block: "center" })
             }
@@ -86,6 +96,14 @@ export function CustomerEmailForm({
               We&apos;ll email you a code to type on the next screen.
             </p>
           )}
+          {creationDisclosure ? (
+            <p
+              id="email-new-card"
+              className="text-xs leading-5 text-muted-foreground"
+            >
+              {creationDisclosure}
+            </p>
+          ) : null}
         </div>
         {state.errors?.form ? (
           <StatusBanner tone="error" title={state.errors.form} />

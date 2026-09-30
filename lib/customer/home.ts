@@ -24,6 +24,7 @@ import type {
   HomeSummary,
 } from "@/lib/customer/home-types"
 import { firstOf, getCurrentCustomer } from "@/lib/customer/identity"
+import { isAdultDateOfBirth } from "@/lib/customer/profile-fields"
 import {
   buildReferralJoinUrl,
   isShareableReferralCode,
@@ -234,7 +235,8 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
     }
   )
   const rewardsByMembership = buildRewardCountsByMembership(
-    rewardsWithCollectionState
+    rewardsWithCollectionState,
+    { statedDateOfBirthIsAdult: isAdultDateOfBirth(customer.dateOfBirth) }
   )
   const policyNoticesByMembership = new Map(
     await Promise.all(

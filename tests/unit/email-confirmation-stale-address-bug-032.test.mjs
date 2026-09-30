@@ -187,6 +187,9 @@ function loadActions() {
       // never reach; the stub makes an unexpected call visible.
       "@/lib/customer/wallet-link":
         'export async function linkWalletAfterContactVerification() { throw new Error("unexpected wallet link") } export function walletLinkFailureMessage() { return "" }',
+      // Only a verified previous-stamps confirmation records a notice.
+      "@/lib/customer/contact-notice-flash":
+        'export async function setContactNoticeFlash() { throw new Error("unexpected contact notice") }',
       "@/lib/customer/identity":
         'import { state } from "fixture-state"; export async function getCurrentCustomer() { return state.customer }',
       "@/lib/customer/profile": `import { state } from "fixture-state";

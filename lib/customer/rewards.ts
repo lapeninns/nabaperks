@@ -6,6 +6,7 @@ import {
   narrowRewardSource,
   type RewardSource,
 } from "@/lib/customer/issued-reward-display"
+import { isAdultDateOfBirth } from "@/lib/customer/profile-fields"
 import { getRewardCollectionState } from "@/lib/customer/reward"
 import type { RewardCollectionState } from "@/lib/customer/reward-collection-state"
 import { groupRewardsForList } from "@/lib/customer/reward-list-groups"
@@ -105,7 +106,9 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
     }
   })
   const { redeemable, needsSetup, upcoming, redeemed, expired } =
-    groupRewardsForList(items)
+    groupRewardsForList(items, {
+      statedDateOfBirthIsAdult: isAdultDateOfBirth(customer.dateOfBirth),
+    })
 
   redeemed.sort((a, b) =>
     (b.redeemedAt ?? b.createdAt).localeCompare(a.redeemedAt ?? a.createdAt)

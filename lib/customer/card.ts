@@ -12,6 +12,8 @@ import {
   pickIssuedUnlockedReward,
   pickStampBlockingUnlockedReward,
 } from "@/lib/customer/primary-reward"
+import { isAdultDateOfBirth } from "@/lib/customer/profile-fields"
+import { resolveAgeCheckReason } from "@/lib/customer/reward-collection-state"
 import { isMissingRpcError } from "@/lib/supabase/missing-rpc"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -107,8 +109,20 @@ export async function getCustomerCardState(
     merchant.requires_billing
   )
 
-  const stampCycleReward = pickStampBlockingUnlockedReward(unlockedRewards)
-  const issuedReward = pickIssuedUnlockedReward(unlockedRewards)
+  // The photo-ID reason is ambiguous until the stated date of birth resolves
+  // it, so an under-age customer's reward never reads as ready on the card.
+  const statedDateOfBirthIsAdult = isAdultDateOfBirth(
+    currentCustomer.dateOfBirth
+  )
+  const rewards = unlockedRewards.map((reward) => ({
+    ...reward,
+    collection_reason: resolveAgeCheckReason(
+      reward.collection_reason,
+      statedDateOfBirthIsAdult
+    ),
+  }))
+  const stampCycleReward = pickStampBlockingUnlockedReward(rewards)
+  const issuedReward = pickIssuedUnlockedReward(rewards)
 
   return {
     status: "ready",

@@ -14,7 +14,7 @@ async function loadActions() {
       saved: [], savedSurfaces: [], sends: [], events: [], revalidated: [],
       sendFailure: null, check: { status: "approved", email: "guest@example.test" },
       mark: { status: "verified" }, alreadyVerified: false,
-      link: { status: "conflict" }, links: [],
+      link: { status: "conflict" }, links: [], notices: [],
       profileUpdates: [],
       profileUpdate: { emailVerificationRequired: false, email: null, emailLocked: false },
     };`,
@@ -59,6 +59,12 @@ async function loadActions() {
         state.sends.push(email)
       }
       export async function checkCustomerEmailVerification() { return state.check }`,
+    "@/lib/customer/contact-notice-flash": `import { state } from "fixture-state";
+      import { contactNoticeReturn } from "@/lib/customer/previous-stamps";
+      export async function setContactNoticeFlash(notice, returnTo) {
+        state.notices.push(notice);
+        return contactNoticeReturn(returnTo).href
+      }`,
     "@/lib/customer/contact-events":
       'import { state } from "fixture-state"; export function recordCustomerContactEvent(event) { state.events.push(event) }',
   }
@@ -409,25 +415,25 @@ test("Given the previous-stamps task When the code brings a card together Then i
       { step: "code", email: "old@example.test" },
       form({ intent: "verify", otp: "123456" })
     ),
-    (error) =>
-      error.url === "/home/profile?contact=stamps-together#previous-stamps"
+    (error) => error.url === "/home/profile#previous-stamps"
   )
+  assert.deepEqual(state.notices, ["stamps-together"])
   assert.deepEqual(state.links, [
     { method: "email", contact: "guest@example.test" },
   ])
 })
 
 test("Given the previous-stamps task When the code confirms an email no card held Then it says nothing was brought over", async () => {
-  const { previousStampsEmailAction } = await loadActions()
+  const { state, previousStampsEmailAction } = await loadActions()
 
   await assert.rejects(
     previousStampsEmailAction(
       { step: "code", email: "old@example.test" },
       form({ intent: "verify", otp: "123456" })
     ),
-    (error) =>
-      error.url === "/home/profile?contact=nothing-found-email#previous-stamps"
+    (error) => error.url === "/home/profile#previous-stamps"
   )
+  assert.deepEqual(state.notices, ["nothing-found-email"])
 })
 
 test("Given the previous-stamps task When linking is refused Then the task stays and offers recovery without a redirect", async () => {

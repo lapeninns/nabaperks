@@ -30,15 +30,18 @@ test("rewards are grouped by what the guest can do with them", () => {
 })
 
 test("a setup-blocked reward is never listed as ready to collect", () => {
-  const groups = groupRewardsForList([
-    { id: "a", collectionState: "ready", collectionReason: null },
-    {
-      id: "b",
-      collectionState: "blocked",
-      collectionReason: "Complete your profile before redeeming",
-    },
-    { id: "c", collectionState: "waiting", collectionReason: null },
-  ])
+  const groups = groupRewardsForList(
+    [
+      { id: "a", collectionState: "ready", collectionReason: null },
+      {
+        id: "b",
+        collectionState: "blocked",
+        collectionReason: "Complete your profile before redeeming",
+      },
+      { id: "c", collectionState: "waiting", collectionReason: null },
+    ],
+    { statedDateOfBirthIsAdult: true }
+  )
 
   assert.deepEqual(
     groups.redeemable.map((item) => item.id),
@@ -54,4 +57,27 @@ test("a setup-blocked reward is never listed as ready to collect", () => {
   )
   assert.deepEqual(groups.redeemed, [])
   assert.deepEqual(groups.expired, [])
+})
+
+test("an age-checked reward is ready only for a stated adult date of birth", () => {
+  const items = [
+    { id: "age", collectionState: "blocked", collectionReason: PHOTO_ID },
+  ]
+
+  // Adult awaiting the in-person ID check: ready, with the ID note.
+  const adult = groupRewardsForList(items, { statedDateOfBirthIsAdult: true })
+  assert.deepEqual(
+    adult.redeemable.map((item) => item.collectionReason),
+    [PHOTO_ID]
+  )
+
+  // Under-age (or no) stated date of birth: never ready, listed with the age
+  // policy the reward page and QR route enforce.
+  const minor = groupRewardsForList(items, { statedDateOfBirthIsAdult: false })
+  assert.deepEqual(minor.redeemable, [])
+  assert.deepEqual(minor.needsSetup, [])
+  assert.deepEqual(
+    minor.upcoming.map((item) => [item.id, item.collectionReason]),
+    [["age", "Customer must be 18 or over to redeem"]]
+  )
 })
