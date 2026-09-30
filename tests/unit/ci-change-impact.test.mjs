@@ -774,9 +774,11 @@ test("every required job rejects missing, skipped, cancelled or failed proof", (
       }
       const bad = structuredClone(good)
       delete bad[name]
+      // Removing the comparison job of a plan that requires it fails with its
+      // own message now that the job itself may be absent when not required.
       assert.throws(
         () => summarizeImpactEvidence(bad, identity),
-        /missing CI jobs/
+        /missing CI jobs|required but its job is missing/
       )
     }
   }
