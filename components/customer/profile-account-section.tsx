@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 
 import { SectionHeader } from "@/components/brand"
+import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 
 /**
@@ -18,11 +19,17 @@ import { Button } from "@/components/ui/button"
  * `signInWith` names the ways this wallet can sign back in, worked out on the
  * server from the contacts it holds and the email sign-in mode. `addPhone` is
  * the "add a phone number" form, passed only for a wallet with no phone.
+ *
+ * `emailSignInPaused` is set on the server for a wallet with no verified phone
+ * while email sign-in is off: it has no way back in once logged out, so the
+ * section warns before both log-out controls and points to adding a phone
+ * instead of naming a sign-in route that is closed (QA BUG-022).
  */
 export function CustomerProfileAccountSection({
   memberSinceLabel,
   venueLabel,
   signInWith = "your phone number",
+  emailSignInPaused = false,
   addPhone,
   signOutAction,
   signOutAllAction,
@@ -30,6 +37,7 @@ export function CustomerProfileAccountSection({
   memberSinceLabel: string
   venueLabel: string
   signInWith?: string
+  emailSignInPaused?: boolean
   addPhone?: ReactNode
   signOutAction: React.ComponentProps<"form">["action"]
   signOutAllAction: React.ComponentProps<"form">["action"]
@@ -44,8 +52,20 @@ export function CustomerProfileAccountSection({
 
       <p className="text-sm leading-6 text-muted-foreground">
         You stay signed in on this device until you log out. Your cards, stamps
-        and rewards stay on your account. Sign back in with {signInWith}.
+        and rewards stay on your account.
+        {emailSignInPaused ? null : ` Sign back in with ${signInWith}.`}
       </p>
+
+      {emailSignInPaused ? (
+        <StatusBanner
+          tone="warning"
+          title="Add a phone number before you log out"
+        >
+          Email sign-in is paused, so you could not sign back in to this account
+          after logging out. Add a phone number in Your contact details above,
+          then you can sign in with it.
+        </StatusBanner>
+      ) : null}
 
       {addPhone}
 

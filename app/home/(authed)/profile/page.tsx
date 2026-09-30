@@ -40,6 +40,7 @@ export default async function HomeProfilePage() {
   // An email-only wallet: no phone, so no phone messages or phone marketing
   // until one is added from the contact details section.
   const hasPhone = profile.phoneVerified
+  const emailSignInOn = emailSignInEnabled()
   const venueLabel = `${profile.membershipCount} ${
     profile.membershipCount === 1 ? "venue" : "venues"
   }`
@@ -93,8 +94,9 @@ export default async function HomeProfilePage() {
         signInWith={customerSignInMethodsLabel({
           hasPhone,
           hasVerifiedEmail: profile.emailVerified,
-          emailSignInEnabled: emailSignInEnabled(),
+          emailSignInEnabled: emailSignInOn,
         })}
+        emailSignInPaused={!hasPhone && !emailSignInOn}
         signOutAction={signOutCustomerAction}
         signOutAllAction={signOutAllCustomerDevicesAction}
       />
