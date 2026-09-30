@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 /**
  * customer * — live-DB customer lifecycle JOURNEY tier.
@@ -74,6 +75,7 @@ test(
         returning id`
       assert.ok(customer?.id, "created a fresh verified customer")
       await ensureVerifiedCustomerEmail(tx, customer.id)
+      await ensureVerifiedCustomerPhone(tx, customer.id)
       await tx`
         update public.customers
         set date_of_birth_verified_at = now(),
@@ -166,7 +168,7 @@ test(
       )
 
       // Exactly one reward, earned (not hand-inserted), scoped to cycle 1, and
-      // NOT same-day redeemable (redeemable_from = next UK business day).
+      // NOT same-day redeemable (redeemable_from = next venue trading day).
       const rewards = await tx`
         select id, status, cycle_number, redeemable_from, reward_name
         from public.reward_events where membership_id = ${membershipId}`
@@ -174,11 +176,11 @@ test(
       const reward = rewards[0]
       assert.equal(reward.status, "unlocked", "STEP 3: reward is unlocked")
       assert.equal(reward.cycle_number, 1, "STEP 3: reward belongs to cycle 1")
-      const ukToday = (
-        await tx`select (now() at time zone 'Europe/London')::date as d`
+      const tradingToday = (
+        await tx`select public.venue_trading_date(${v.merchant_id}::uuid, now()) as d`
       )[0].d
       assert.ok(
-        reward.redeemable_from > ukToday,
+        reward.redeemable_from > tradingToday,
         "STEP 3: reward opens on a later trading day, not same-day"
       )
 
@@ -202,7 +204,7 @@ test(
       // ---- STEP 4: the next business day arrives → REDEEM via scan token.
       await tx`
         update public.reward_events
-        set redeemable_from = ${ukToday}, available_from = now() - interval '1 minute'
+        set redeemable_from = ${tradingToday}, available_from = now() - interval '1 minute'
         where id = ${reward.id}`
       const [minted] = await tx`
         select * from public.create_reward_scan_token(

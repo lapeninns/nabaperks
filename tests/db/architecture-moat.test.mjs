@@ -7,6 +7,7 @@ import { after, test } from "node:test"
 import postgres from "postgres"
 
 import { assertLocalSupabaseDbUrl } from "./helpers/db-target.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 const DEFAULT_LOCAL_DB_URL =
   "postgres://postgres:postgres@127.0.0.1:54322/postgres"
@@ -59,7 +60,7 @@ test("Given two QR stamp attempts When they race for one membership Then only on
             from public.stamp_events
             where membership_id = ${fixture.membershipId}
               and event_type = 'earned'
-              and earned_business_date = public.uk_business_date(now())
+              and earned_business_date = public.venue_trading_date(${fixture.merchantId}::uuid, now())
           ) as stamp_count,
           (
             select current_stamp_count
@@ -933,6 +934,8 @@ async function createFixture(sql, options) {
       now()
     )
   `
+
+  await ensureVerifiedCustomerPhone(sql, fixture.customerId)
 
   await sql`
     insert into public.customer_memberships (

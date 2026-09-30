@@ -125,7 +125,10 @@ export async function insertIssuedRewardEvent(
     )`
 }
 
-export async function createRewardPoolFixture(tx) {
+export async function createRewardPoolFixture(
+  tx,
+  { verifiedPhone = true } = {}
+) {
   const runId = randomUUID().slice(0, 8)
   const fixture = {
     adminUserId: randomUUID(),
@@ -226,6 +229,9 @@ export async function createRewardPoolFixture(tx) {
       email,
       full_name,
       date_of_birth,
+      phone_hmac,
+      phone_last4,
+      phone_verified_at,
       email_verified_at
     )
     values (
@@ -234,6 +240,9 @@ export async function createRewardPoolFixture(tx) {
       ${`reward-pool-customer-${runId}@example.test`},
       'Reward Pool Customer',
       date '1990-01-01',
+      ${verifiedPhone ? fixture.customerId.replaceAll("-", "").repeat(2) : null},
+      ${verifiedPhone ? "0123" : null},
+      ${verifiedPhone ? new Date() : null},
       now()
     )`
 

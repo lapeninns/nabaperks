@@ -74,13 +74,19 @@ export async function createRewardCollectionFixture(
         email,
         full_name,
         date_of_birth,
-        email_verified_at
+        email_verified_at,
+        phone_hmac,
+        phone_last4,
+        phone_verified_at
       )
       values (
         ${fixture.customerId}::uuid,
         ${`reward-scan-${runId}@example.test`},
         'Reward Scan Browser',
         date '1990-01-01',
+        now(),
+        encode(extensions.digest(${fixture.customerId}::text, 'sha256'), 'hex'),
+        '0123',
         now()
       )`
 

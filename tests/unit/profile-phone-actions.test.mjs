@@ -14,11 +14,19 @@ const REAL = [
 ]
 
 const STUBS = {
+  "@/lib/customer/wallet-link": `import { state } from "fixture-state";
+    export async function linkWalletAfterContactVerification(method,contact) {
+      state.calls.push(["link",method,contact]); return state.link ?? {status:"conflict"};
+    }
+    export function walletLinkFailureMessage() {
+      return "This phone number is already used by another Nabaperks wallet. Sign in with that number, or ask the venue for help.";
+    }`,
   "fixture-state": `export const state = {
     calls: [],
     events: [],
     revalidated: [],
     customer: { id: "customer-1", phoneLast4: null },
+    phoneVerified: false,
     admitted: true,
     sent: { status: "sent", channel: "sms" },
     pending: null,
@@ -27,6 +35,8 @@ const STUBS = {
     attach: { status: "attached", customer: { id: "customer-1", phoneLast4: "0123" } },
   };`,
   "server-only": "",
+  "@/lib/customer/phone-verification-state": `import { state } from "fixture-state";
+    export async function customerHasVerifiedPhone() { return state.phoneVerified }`,
   "next/cache": `import { state } from "fixture-state";
     export function revalidatePath(path) { state.revalidated.push(path) }`,
   "next/headers": "export async function headers() { return new Headers() }",
@@ -108,6 +118,38 @@ function form(fields) {
 
 const START = { step: "phone" }
 
+test("Given a staged unverified phone When a new code is requested Then verification can restart", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.customer = { id: "customer-1", phoneLast4: "0123" }
+  state.phoneVerified = false
+  const result = await profilePhoneAction(START, form({ phone: "07700900123" }))
+  assert.equal(result.step, "code")
+  assert.ok(state.calls.some(([name]) => name === "send"))
+})
+
+for (const status of ["attached", "contact_conflict"]) {
+  test(`Given reward collection phone verification When attachment returns ${status} Then its audit context is reward_gate`, async () => {
+    const { rewardPhoneAction, state } = await loadActions()
+    state.pending = {
+      purpose: "attach",
+      phone: "+447700900123",
+      country: "GB",
+      customerId: "customer-1",
+    }
+    state.attach = { status, customer: { id: "customer-1" } }
+    await rewardPhoneAction(
+      { step: "code" },
+      form({ intent: "verify", otp: "123456", surface: "profile" })
+    )
+    assert.equal(
+      state.calls.find(([name]) => name === "attach")[1].surface,
+      "reward_gate"
+    )
+    if (status === "contact_conflict")
+      assert.equal(state.events[0].metadata.surface, "reward_gate")
+  })
+}
+
 afterEach(() => {
   delete process.env.CUSTOMER_OTP_PRIMARY_CHANNEL
 })
@@ -166,6 +208,7 @@ test("Given the phone step When the number is invalid, the provider is down, or 
   assert.match(down.errors.form, /couldn't send a code/)
 
   state.customer = { id: "customer-1", phoneLast4: "4567" }
+  state.phoneVerified = true
   const already = await profilePhoneAction(
     START,
     form({ phone: "07700900123" })
@@ -215,7 +258,7 @@ test("Given a code for this wallet When it is confirmed Then the phone is attach
     ],
     ["clearPending"],
   ])
-  assert.deepEqual(state.revalidated, ["/home/profile"])
+  assert.deepEqual(state.revalidated, ["/home/profile", "/reward"])
   assert.deepEqual(state.events, [])
 })
 
@@ -275,6 +318,31 @@ test("Given another wallet holds the phone When the code is confirmed Then nothi
   ])
   assert.deepEqual(state.revalidated, [])
   assert.equal(state.pending, null)
+})
+
+test("Given a complementary phone wallet When its code is verified Then linking replaces the conflict and refreshes all cards", async () => {
+  const { profilePhoneAction, state } = await loadActions()
+  state.pending = {
+    purpose: "attach",
+    phone: "+447700900123",
+    country: "GB",
+    customerId: "customer-1",
+  }
+  state.attach = { status: "contact_conflict" }
+  state.link = { status: "linked", customerId: "customer-2" }
+  const result = await profilePhoneAction(
+    { step: "code" },
+    form({ intent: "verify", otp: "123456" })
+  )
+  assert.equal(result.step, "attached")
+  assert.ok(
+    state.calls.some(
+      (call) =>
+        call[0] === "link" && call[1] === "phone" && call[2] === "+447700900123"
+    )
+  )
+  assert.deepEqual(state.revalidated, ["/home", "/reward"])
+  assert.deepEqual(state.events, [])
 })
 
 test("Given a wrong, malformed or over-limit code When it is checked Then nothing is attached", async () => {

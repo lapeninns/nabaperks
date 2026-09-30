@@ -12,6 +12,80 @@ import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 const EMAIL_ONLY = "/dev/home-harness/profile?wallet=email-only"
 
 test.describe("@customer-flow @a11y email-only wallet profile", () => {
+  test("email wallets offer linking even before joining a venue", async ({
+    page,
+  }) => {
+    for (const wallet of ["email-only", "email-only-empty"]) {
+      await gotoHydratedPage(page, `/dev/home-harness/home?wallet=${wallet}`)
+      const prompt = page.getByTestId("wallet-link-prompt")
+      await expect(
+        prompt.getByRole("heading", { name: "Used your phone number before?" })
+      ).toBeVisible()
+      await expect(
+        prompt.getByRole("link", { name: "Link my phone number" })
+      ).toHaveAttribute("href", "/home/profile#add-phone")
+      await expectNoAxeViolations(page, `link prompt ${wallet}`)
+    }
+    await gotoHydratedPage(page, "/dev/home-harness/home")
+    await expect(page.getByTestId("wallet-link-prompt")).toHaveCount(0)
+  })
+
+  test("explains linking before verification and confirms preserved loyalty afterwards", async ({
+    page,
+  }) => {
+    await gotoHydratedPage(page, EMAIL_ONLY)
+    const section = page.locator("[data-add-phone]")
+    await expect(section).toContainText(
+      "keeping your stamps and rewards together"
+    )
+    await section
+      .getByLabel("Phone number", { exact: true })
+      .fill("07700900997")
+    await section.getByRole("button", { name: "Send my code" }).click()
+    await section.getByLabel("Phone code").fill("424242")
+    await section.getByRole("button", { name: "Add phone number" }).click()
+    await expect(
+      section.getByRole("heading", { name: "Wallets linked" })
+    ).toBeVisible()
+    await expect(section.getByRole("status")).toContainText(
+      "Your stamps and rewards are together"
+    )
+    await expect(
+      section.getByRole("link", { name: "View my stamps and rewards" })
+    ).toHaveAttribute("href", "/home")
+    await expectNoAxeViolations(page, "linked wallet confirmation")
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.screenshot({
+      path: ".omo/evidence/wallet-link-ux-success.png",
+      fullPage: true,
+    })
+  })
+
+  test("provides recovery actions when linking needs a fresh sign-in or review", async ({
+    page,
+  }) => {
+    for (const [phone, label] of [
+      ["07700900996", "Sign in again"],
+      ["07700900995", "View my stamps and rewards"],
+    ]) {
+      await gotoHydratedPage(page, EMAIL_ONLY)
+      const section = page.locator("[data-add-phone]")
+      await section.getByLabel("Phone number", { exact: true }).fill(phone)
+      await section.getByRole("button", { name: "Send my code" }).click()
+      await section.getByLabel("Phone code").fill("424242")
+      await section.getByRole("button", { name: "Add phone number" }).click()
+      await expect(
+        section.getByRole(phone.endsWith("996") ? "button" : "link", {
+          name: label,
+        })
+      ).toBeVisible()
+      await expectNoAxeViolations(page, `link recovery ${phone.slice(-3)}`)
+      if (phone.endsWith("996")) {
+        await section.getByRole("button", { name: "Sign in again" }).click()
+        await expect(page).toHaveURL(/\/home\/login\?next=%2Fhome%2Fprofile/)
+      }
+    }
+  })
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
   })
@@ -25,7 +99,7 @@ test.describe("@customer-flow @a11y email-only wallet profile", () => {
       account.getByText("Sign back in with your email.", { exact: false })
     ).toBeVisible()
     await expect(
-      account.getByRole("heading", { name: "Add a phone number" })
+      page.getByRole("heading", { name: "Add a phone number" })
     ).toBeVisible()
     await expect(
       page.getByRole("region", { name: "Phone messages" })

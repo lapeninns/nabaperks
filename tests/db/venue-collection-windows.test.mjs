@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { after, test } from "node:test"
 
 import postgres from "postgres"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 import {
   closeDb,
@@ -56,6 +57,7 @@ async function fixture(tx) {
     order by display_order, created_at, id
     limit 2`
   assert.equal(items.length, 2)
+  await ensureVerifiedCustomerPhone(tx, picked.customer_id)
   return { ...picked, original: items[0], upgrade: items[1] }
 }
 

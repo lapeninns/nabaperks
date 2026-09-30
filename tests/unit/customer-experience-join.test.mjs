@@ -330,7 +330,7 @@ test("a verified email with no wallet shows the choice, and only mode full may c
   assert.equal(full.maskedEmail, "j***@example.com")
   assert.equal(
     getCustomerExperienceViewModel(full).headline,
-    "Have you collected stamps with Nabaperks before?"
+    "Continue with your email"
   )
 
   const existing = join({

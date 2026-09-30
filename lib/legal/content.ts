@@ -12,7 +12,7 @@ export type LegalSection = {
   body: string
 }
 
-export const CUSTOMER_LEGAL_VERSION = "2026-09-28"
+export const CUSTOMER_LEGAL_VERSION = "2026-09-28.1"
 
 export const NO_ADDITIONAL_EXCLUSIONS = "No additional exclusions configured."
 
@@ -50,7 +50,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "redemption",
     title: "Reward redemption",
-    body: "Cycle rewards are collectable from the next venue trading day, including weekends when the venue trades. One standard reward can be collected per venue trading day. A configured collection window may offer a displayed bonus or upgrade; eligibility and the collection deadline are shown on the reward. Cycle rewards use the expiry configured when issued; use the displayed expiry for each reward. Provide your full name and date of birth and be at least 18. A verified email address is required before reward collection. Photo ID is required only for rewards marked as age checked. Show the reward QR for the venue team to scan.",
+    body: "Cycle rewards are collectable from the next venue trading day, including weekends when the venue trades. One standard reward can be collected per venue trading day. A configured collection window may offer a displayed bonus or upgrade; eligibility and the collection deadline are shown on the reward. Cycle rewards use the expiry configured when issued; use the displayed expiry for each reward. Provide your full name and date of birth and be at least 18. A verified email address and verified mobile phone number are required before reward collection. If you join by email, you can add and verify your phone number later in Profile and keep earning stamps meanwhile. Photo ID is required only for rewards marked as age checked. Show the reward QR for the venue team to scan.",
   },
   {
     id: "additional-rewards",
@@ -80,7 +80,7 @@ export const PLATFORM_TERMS_META = {
   description:
     "The terms for keeping venue loyalty cards, collecting stamps, and redeeming rewards through Nabaperks.",
   cardTitle: "Customer terms",
-  docNumber: "CT-2026-09-28",
+  docNumber: "CT-2026-09-28.1",
 }
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
@@ -402,7 +402,7 @@ export function buildVenueTermsSections({
     {
       id: "redemption",
       title: "Redemption",
-      body: `Cycle rewards are collectable from the next venue trading day, including weekends when the venue trades. One standard reward can be collected per venue trading day. A configured collection window may offer a displayed bonus or upgrade; eligibility and the collection deadline are shown on the reward. Cycle rewards use the expiry configured when issued; use the displayed expiry for each reward. Provide your full name and date of birth and be at least 18. A verified email address is required before reward collection. Photo ID is required only for rewards marked as age checked. Show the reward QR for the venue team to scan. ${rewardExpiresAfterDays === null ? "No expiry is configured for new cycle rewards." : rewardExpiresAfterDays === undefined ? "Check the issued reward for its expiry." : `New cycle rewards expire after ${rewardExpiresAfterDays} days.`}`,
+      body: `Cycle rewards are collectable from the next venue trading day, including weekends when the venue trades. One standard reward can be collected per venue trading day. A configured collection window may offer a displayed bonus or upgrade; eligibility and the collection deadline are shown on the reward. Cycle rewards use the expiry configured when issued; use the displayed expiry for each reward. Provide your full name and date of birth and be at least 18. A verified email address and verified mobile phone number are required before reward collection. If you join by email, you can add and verify your phone number later in Profile and keep earning stamps meanwhile. Photo ID is required only for rewards marked as age checked. Show the reward QR for the venue team to scan. ${rewardExpiresAfterDays === null ? "No expiry is configured for new cycle rewards." : rewardExpiresAfterDays === undefined ? "Check the issued reward for its expiry." : `New cycle rewards expire after ${rewardExpiresAfterDays} days.`}`,
     },
     {
       id: "reward-pool",

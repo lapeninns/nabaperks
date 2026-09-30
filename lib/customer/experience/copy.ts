@@ -173,9 +173,9 @@ export function getCustomerExperienceViewModel(
       return exp.canCreate
         ? {
             eyebrow: "Email confirmed",
-            headline: "Have you collected stamps with Nabaperks before?",
+            headline: "Continue with your email",
             supportLine:
-              "Your stamps stay on the wallet you first joined with. You can add this email to it once you're signed in.",
+              "You can add and verify your phone number later in Profile, before collecting a reward. Already have stamps saved to your phone? Open that wallet below to keep using them.",
           }
         : {
             eyebrow: "Email confirmed",

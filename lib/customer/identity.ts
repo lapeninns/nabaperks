@@ -15,6 +15,7 @@ import {
   maskedPhoneFromLast4,
 } from "@/lib/customer/phone-pii"
 import type { NormalizedPhone } from "@/lib/customer/phone"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
 import { resolveCustomerSession } from "@/lib/customer/session"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -247,10 +248,11 @@ export type AttachVerifiedPhoneResult =
 
 /**
  * Adds a phone the signed-in customer has just proven to their wallet, which
- * must not have one yet (an email-only wallet). A phone another wallet holds
+ * must not have a verified phone yet. A phone another wallet holds
  * is a conflict and nothing changes. The first write is guarded by
- * `phone_hmac is null`, so a concurrent attach cannot overwrite a phone, and
- * the unique `phone_hmac` index turns a race with another wallet into a
+ * `phone_verified_at is null`, allowing interrupted staging to recover while
+ * preventing a concurrent attach from overwriting a verified phone. The
+ * unique `phone_hmac` index turns a race with another wallet into a
  * conflict too.
  *
  * The phone is never acknowledged without its `audit_logs` row. PostgREST
@@ -273,10 +275,11 @@ export async function attachVerifiedPhoneToCustomer({
   surface: ContactEventSurface
 }): Promise<AttachVerifiedPhoneResult> {
   const holder = await findCustomerByVerifiedPhone(phone)
-  if (holder) {
-    return holder.id === customerId
-      ? { status: "already_has_phone" }
-      : { status: "contact_conflict" }
+  if (holder && holder.id !== customerId) {
+    return { status: "contact_conflict" }
+  }
+  if (await customerHasVerifiedPhone(customerId)) {
+    return { status: "already_has_phone" }
   }
 
   const pii = customerPhonePii(phone.e164)
@@ -290,7 +293,7 @@ export async function attachVerifiedPhoneToCustomer({
       phone_country: phone.country,
     })
     .eq("id", customerId)
-    .is("phone_hmac", null)
+    .is("phone_verified_at", null)
     .select("id")
     .maybeSingle()
 
@@ -298,7 +301,7 @@ export async function attachVerifiedPhoneToCustomer({
     if (error.code === UNIQUE_VIOLATION) return { status: "contact_conflict" }
     throw new Error(`Unable to add customer phone: ${error.message}`)
   }
-  // No row matched: the wallet gained a phone since the check above.
+  // No row matched: the wallet verified a phone since the check above.
   if (!staged) return { status: "already_has_phone" }
 
   const staging = { supabase, customerId, phoneHmac: pii.phoneHmac }

@@ -1,6 +1,8 @@
 import "server-only"
 
 import { after } from "next/server"
+import { cache } from "react"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentCustomer } from "@/lib/customer/identity"
@@ -45,6 +47,7 @@ export type CustomerProfile = {
   emailLocked: boolean
   needsEmailVerification: boolean
   phone: string | null
+  phoneVerified: boolean
   memberSince: string
   membershipCount: number
   consents: CustomerConsent[]
@@ -55,8 +58,13 @@ export async function getCustomerProfileCompletion(): Promise<CustomerProfileCom
   const customer = await getCurrentCustomer()
   if (!customer) return null
 
-  return profileCompletionFrom(customer)
+  return profileCompletionFrom({
+    ...customer,
+    phoneVerified: await customerPhoneVerified(customer.id),
+  })
 }
+
+const customerPhoneVerified = cache(customerHasVerifiedPhone)
 
 export type UpdateCustomerProfileInput = {
   fullName: string
@@ -455,7 +463,8 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
     ([channel, optedIn]) => ({ channel, optedIn })
   )
 
-  const completion = profileCompletionFrom(customer)
+  const phoneVerified = await customerPhoneVerified(customer.id)
+  const completion = profileCompletionFrom({ ...customer, phoneVerified })
   const phone: unknown = Array.isArray(phoneResult.data)
     ? phoneResult.data[0]
     : phoneResult.data
@@ -486,6 +495,7 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
     emailLocked: completion.emailLocked,
     needsEmailVerification: completion.needsEmailVerification,
     phone: customer.phone,
+    phoneVerified,
     memberSince: customer.createdAt,
     membershipCount: membershipResult.count ?? 0,
     consents,

@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 /**
  * customer card stamp (edges) — live-DB tier.
@@ -57,7 +58,7 @@ async function seed(tx) {
       const daysAgo = rows.length - index + 7
       await tx`
         update public.stamp_events
-        set earned_business_date = (now() at time zone 'Europe/London')::date - ${daysAgo}::int
+        set earned_business_date = public.venue_trading_date(stamp_events.merchant_id, now()) - ${daysAgo}::int
         where id = ${row.id}`
     }
   }
@@ -135,6 +136,8 @@ test(
       await s.ageStamps()
       await s.stamp()
       assert.equal(await s.count(), 0, "reward issuance opens cycle 2 empty")
+
+      await ensureVerifiedCustomerPhone(tx, s.customer.id)
 
       await tx`
         update public.reward_events

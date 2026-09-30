@@ -146,7 +146,7 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const fx = await createRewardPoolFixture(tx)
+      const fx = await createRewardPoolFixture(tx, { verifiedPhone: false })
       await enableInvites(tx, fx.merchantId)
       // fx.customerId already has a membership (current_stamp_count 3) at fx.merchant.
       // Give them a verified phone so the claim reaches the membership check.

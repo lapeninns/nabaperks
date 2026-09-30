@@ -465,7 +465,7 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const fx = await createRewardPoolFixture(tx)
+      const fx = await createRewardPoolFixture(tx, { verifiedPhone: false })
       // fx.customerId is already a member of fx.merchantId. Give them a verified
       // phone so the claim reaches the membership check rather than the identity
       // guard.

@@ -6,8 +6,11 @@ import { HomeEmailPrompt } from "@/components/customer/home-email-prompt"
 import { HomeRedeemBanner } from "@/components/customer/home-redeem-banner"
 import { HomeSummaryStrip } from "@/components/customer/home-summary-strip"
 import { HomeCardTile } from "@/components/customer/home-card-tile"
+import { HomeWalletLinkPrompt } from "@/components/customer/home-wallet-link-prompt"
+import { HomeEmptyState } from "@/components/customer/home-empty-state"
 import { buildHomeSummary } from "@/lib/customer/home-dashboard"
 import type { HomeCard } from "@/lib/customer/home-types"
+import { harnessLinkedEmailAction } from "./actions"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -54,6 +57,7 @@ export default async function HomeHarnessHomePage({
     long?: string
     email?: string
     mode?: string
+    wallet?: string
   }>
 }) {
   if (process.env.NODE_ENV === "production") {
@@ -61,6 +65,15 @@ export default async function HomeHarnessHomePage({
   }
 
   const params = searchParams ? await searchParams : {}
+  if (params.wallet === "email-only-empty") {
+    return (
+      <div className="grid gap-6">
+        <PageTitle eyebrow="My Nabaperks" title="Your cards" />
+        <HomeWalletLinkPrompt />
+        <HomeEmptyState />
+      </div>
+    )
+  }
   const hasDob = params.dob === "set"
   const emailState =
     params.email === "missing" || params.email === "pending"
@@ -72,6 +85,9 @@ export default async function HomeHarnessHomePage({
     <div className="grid gap-6">
       {/* Mirrors the real wallet: title only, no description. */}
       <PageTitle eyebrow="My Nabaperks" title="Your cards" />
+      {params.wallet?.startsWith("email-only") ? (
+        <HomeWalletLinkPrompt />
+      ) : null}
 
       {/* The strip is always on so both summary labels — a card that can still
           take a stamp, and a card with a reward ready — stay screenshot-provable.
@@ -102,6 +118,9 @@ export default async function HomeHarnessHomePage({
         />
       ) : null}
       <HomeEmailPrompt
+        action={
+          params.wallet === "link-email" ? harnessLinkedEmailAction : undefined
+        }
         reason={
           emailState === "verified"
             ? null

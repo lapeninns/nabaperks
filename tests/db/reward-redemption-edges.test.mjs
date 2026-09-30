@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
+import { ensureVerifiedCustomerPhone } from "./helpers/verified-customer-phone.mjs"
 
 /**
  * customer redeem (edges) — live-DB tier.
@@ -46,6 +47,7 @@ async function readyReward(tx, m) {
            set full_name = 'Redeem Tester', date_of_birth = '1990-01-01'
            where id = ${m.customer_id}`
   await ensureVerifiedCustomerEmail(tx, m.customer_id)
+  await ensureVerifiedCustomerPhone(tx, m.customer_id)
   await tx`update public.customers
     set date_of_birth_verified_at = now(),
         date_of_birth_verification_source = 'trusted_database'

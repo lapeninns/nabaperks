@@ -6,6 +6,11 @@ import { headers } from "next/headers"
 import { recordCustomerContactEvent } from "@/lib/customer/contact-events"
 import { normalizeOtpInput } from "@/lib/customer/experience/otp-field"
 import {
+  linkWalletAfterContactVerification,
+  walletLinkFailureMessage,
+} from "@/lib/customer/wallet-link"
+import { customerHasVerifiedPhone } from "@/lib/customer/phone-verification-state"
+import {
   attachVerifiedPhoneToCustomer,
   getCurrentCustomer,
 } from "@/lib/customer/identity"
@@ -36,11 +41,12 @@ import {
 } from "@/lib/security/rate-limit"
 
 /**
- * Adding a phone to an email-only wallet from the profile (email sign-in
- * PR 4). Only a signed-in customer whose wallet has no phone gets here. The
+ * Adding or recovering an unverified phone from Profile or reward collection.
+ * Only a signed-in customer without a verified phone gets here. The
  * code goes out under the phone OTP admission with its own `attach` scope,
  * and the pending code is bound to this wallet, so it cannot be spent on
- * another. A phone another wallet holds is refused and nothing changes (D4).
+ * another. A proven phone belonging to a complementary wallet can link its
+ * history after a recent sign-in; conflicting verified identities are refused.
  *
  * Deliberately not gated on CUSTOMER_EMAIL_AUTH_MODE, unlike the email
  * sign-in actions. Adding a phone uses the phone sign-in that exists in every
@@ -58,8 +64,6 @@ const ALREADY_HAS_PHONE = "Your wallet already has a phone number."
 const ATTACHED = "Your phone number is added. You can sign in with it too."
 const ADD_FAILED =
   "We couldn't add this phone number just now. Try again shortly."
-const CONTACT_CONFLICT =
-  "This phone number is already used by another Nabaperks wallet. Sign in with that number, or ask the venue for help."
 
 export type ProfilePhoneState = {
   readonly step: "phone" | "code" | "attached"
@@ -73,6 +77,8 @@ export type ProfilePhoneState = {
     readonly form?: string
   }
   readonly message?: string
+  readonly walletLinked?: boolean
+  readonly recovery?: "reauthenticate" | "requires_review"
 }
 
 /**
@@ -85,8 +91,23 @@ export async function profilePhoneAction(
   state: ProfilePhoneState,
   formData: FormData
 ): Promise<ProfilePhoneState> {
+  return phoneAction(state, formData, "profile")
+}
+
+export async function rewardPhoneAction(
+  state: ProfilePhoneState,
+  formData: FormData
+): Promise<ProfilePhoneState> {
+  return phoneAction(state, formData, "reward_gate")
+}
+
+async function phoneAction(
+  state: ProfilePhoneState,
+  formData: FormData,
+  surface: "profile" | "reward_gate"
+): Promise<ProfilePhoneState> {
   const intent = value(formData, "intent")
-  if (intent === "verify") return verifyAttachPhone(formData)
+  if (intent === "verify") return verifyAttachPhone(formData, surface)
   if (intent === "edit") {
     await clearPendingPhoneVerification()
     return { step: "phone", phone: value(formData, "phone") || state.phone }
@@ -99,7 +120,7 @@ async function requestAttachPhone(
 ): Promise<ProfilePhoneState> {
   const customer = await getCurrentCustomer()
   if (!customer) return { step: "phone", errors: { form: SIGN_IN_FIRST } }
-  if (customer.phoneLast4) {
+  if (await customerHasVerifiedPhone(customer.id)) {
     return { step: "attached", message: ALREADY_HAS_PHONE }
   }
 
@@ -167,7 +188,8 @@ async function pendingAttachFor(
 }
 
 async function verifyAttachPhone(
-  formData: FormData
+  formData: FormData,
+  surface: "profile" | "reward_gate"
 ): Promise<ProfilePhoneState> {
   const customer = await getCurrentCustomer()
   if (!customer) return { step: "phone", errors: { form: SIGN_IN_FIRST } }
@@ -203,7 +225,7 @@ async function verifyAttachPhone(
       country: pending.country,
       last4: pending.phone.slice(-4),
     },
-    surface: "profile",
+    surface,
   })
   await clearPendingPhoneVerification()
 
@@ -213,15 +235,42 @@ async function verifyAttachPhone(
     return { step: "phone", phone: pending.phone, errors: { form: ADD_FAILED } }
   }
   if (result.status === "contact_conflict") {
+    let link: Awaited<ReturnType<typeof linkWalletAfterContactVerification>>
+    try {
+      link = await linkWalletAfterContactVerification("phone", pending.phone)
+    } catch {
+      return {
+        step: "phone",
+        phone: pending.phone,
+        errors: { form: ADD_FAILED },
+      }
+    }
+    if (link.status === "linked") {
+      revalidatePath("/home", "layout")
+      revalidatePath("/reward", "layout")
+      return {
+        step: "attached",
+        walletLinked: true,
+        message:
+          "Your wallets are linked. You can sign in with your phone or email. Your stamps and rewards are together.",
+      }
+    }
     recordCustomerContactEvent({
       eventName: "customer_contact_conflict",
       customerId: customer.id,
-      metadata: { method: "phone", surface: "profile", reason: "phone_in_use" },
+      metadata: { method: "phone", surface, reason: "phone_in_use" },
     })
-    return { step: "phone", errors: { form: CONTACT_CONFLICT } }
+    return {
+      step: "phone",
+      errors: { form: walletLinkFailureMessage(link.status) },
+      ...(link.status === "reauthenticate" || link.status === "requires_review"
+        ? { recovery: link.status }
+        : {}),
+    }
   }
 
   revalidatePath(PROFILE_PATH)
+  revalidatePath("/reward", "layout")
   return {
     step: "attached",
     message: result.status === "attached" ? ATTACHED : ALREADY_HAS_PHONE,
