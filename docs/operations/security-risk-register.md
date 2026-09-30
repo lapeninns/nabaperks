@@ -42,7 +42,9 @@ are unaffected.
 - Existing-customer phone login and QR join still share one pre-session
   continuity boundary, so the control is restored in one place.
 - Session registration still records the verified device and rejects later
-  touches from another device, so a copied cookie still cannot move.
+  touches from another device, so a copied session cookie alone cannot move to
+  another browser. The device identity is itself a signed bearer cookie, so a
+  copied cookie jar (device and session cookies together) can; see SEC-RISK-003.
 - Sessions minted this way are recorded with the `verified_phone` continuity
   source, which is excluded from device trust, so restoring the control does
   not inherit trust that phone possession alone created.
@@ -209,13 +211,27 @@ A lost, stolen, or shared phone stays signed in to the wallet until someone
 logs it out. Whoever holds it can see the customer's cards, balances, and
 masked contact details, and can start stamp or reward journeys.
 
+The same applies to a copied cookie jar. Anyone who can read the browser's
+cookies (a shared computer profile, malware, or an unencrypted backup) and
+copies both the device and session cookies can open the wallet from another
+browser. Device binding stops a copied session cookie on its own, not a copy
+of both. Because sessions no longer expire, such a copy stays usable until
+the customer logs out on that browser or uses "Log out on all devices". Both
+cookies are `HttpOnly`, so page scripts cannot read them; the exposure needs
+access to the device or its data. The wallet holds no stored value, so the risk remains accepted at the
+same level, and it feeds the review triggers below.
+
 ### Existing safeguards
 
 - Every request re-checks the session row: revocation, "Log out on all
   devices", and erasure take effect on the next request, whatever the cookie
   says.
-- Sessions stay bound to their device, so a copied cookie still cannot move to
-  another browser.
+- Sessions stay bound to their device cookie, so a copied session cookie alone
+  cannot move to another browser: it is rejected without the matching device
+  cookie. This is not hardware binding. The device cookie is itself a signed
+  bearer token, so a copied cookie jar (device and session cookies together)
+  opens the wallet in another browser until the session is logged out (QA
+  BUG-040, 30 September 2026). See the residual risk above.
 - Stamps still require the location check or the staff venue code, and reward
   collection happens in person with a verified email.
 - The cookie is only ever renewed with a matching signed expiry; it is never
