@@ -34,19 +34,17 @@ jobs:
           CONFIRMATION: ${{ inputs.confirmation }}
           RESTORE_PROJECT_REF: ${{ inputs.restore_project_ref }}
           BACKUP_ID: ${{ inputs.backup_id }}
-          CONFIGURED_PRODUCTION_REF: ${{ vars.SUPABASE_PROJECT_REF }}
         # Dispatch inputs are data: they reach the shell only through env, never
         # through expression interpolation into the script text.
         run: |
           test "$GITHUB_REF" = "refs/heads/main"
           test "$CONFIRMATION" = "VERIFY_NON_PRODUCTION_RESTORE"
           [[ "$RESTORE_PROJECT_REF" =~ ^[a-z0-9]{20}$ ]]
+          # SUPABASE_PROJECT_REF is a Production-environment variable, which
+          # this job cannot read, so the literal is the effective denylist here
+          # and in scripts/check-restored-backup.mjs. Update both if the
+          # production project ever moves.
           test "$RESTORE_PROJECT_REF" != "skonlhwstejberyzobep"
-          # Also refuse the configured production ref, so a future project move
-          # cannot turn the literal above into a stale denylist.
-          if [[ -n "$CONFIGURED_PRODUCTION_REF" ]]; then
-            test "$RESTORE_PROJECT_REF" != "$CONFIGURED_PRODUCTION_REF"
-          fi
           [[ "$BACKUP_ID" =~ ^[0-9]+$ ]]
 
   verify:
