@@ -109,7 +109,11 @@ test(
           where id = ${acceptanceId}::uuid`
       )
 
-      // The same holds for the service_role database role itself.
+      // Minimal hosted Postgres lacks Supabase's default table grants. Grant
+      // access only in this rolled-back fixture so both environments exercise
+      // the immutability trigger itself under the service_role database role.
+      await tx`grant select, update, delete
+        on public.customer_loyalty_terms_acceptances to service_role`
       await refused(tx, async (sp) => {
         await sp`set local role service_role`
         await sp`
