@@ -15,7 +15,9 @@ import { requiredCustomerSessionSecret } from "@/lib/security/customer-session-s
 
 type EmailVerificationStartResult = { status: "sent" }
 type EmailVerificationCheckResult =
-  { status: "approved"; email: string } | { status: "rejected" }
+  | { status: "approved"; email: string }
+  | { status: "rejected" }
+  | { status: "expired" }
 
 /**
  * Email verification for the reward-collection profile gate. Email is optional,
@@ -62,7 +64,9 @@ export async function checkCustomerEmailVerification(
   code: string
 ): Promise<EmailVerificationCheckResult> {
   const pending = await getPendingEmailVerification()
-  if (!pending) return { status: "rejected" }
+  // No pending code for this browser: it lapsed (10 minutes) or was used or
+  // withdrawn. The code on screen can never match, so say so (QA BUG-066).
+  if (!pending) return { status: "expired" }
   const customerSession = await getCustomerSession()
   if (!customerSession || pending.customerId !== customerSession.customerId) {
     await clearPendingEmailVerification()

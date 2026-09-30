@@ -24,13 +24,15 @@ const RELEASE_OPS = [
 async function loadProfile() {
   const modules = {
     "fixture-state": `export const state = {
-      customer: { id: "customer-a", email: null, emailVerifiedAt: null },
+      // The address the code was sent to is still the stored one (QA BUG-032).
+      customer: { id: "customer-a", email: "guest@example.test", emailVerifiedAt: null },
       heldByOther: false,
       // Per-query answers for the holder check, in order; then heldByOther.
       holderResults: [],
       updateError: null,
       laterUpdateErrors: [],
       releasedRows: [],
+      confirmedRows: [{ id: "customer-a" }],
       queries: [],
       updates: [],
       audits: [],
@@ -75,7 +77,10 @@ async function loadProfile() {
                 ? state.updateError
                 : (state.laterUpdateErrors.shift() ?? null)
               const returning = ops.some(([op]) => op === "select")
-              result = { data: returning ? state.releasedRows : null, error }
+              const rows = ops[0][1].email_verified_at
+                ? state.confirmedRows
+                : state.releasedRows
+              result = { data: returning ? rows : null, error }
             } else {
               state.queries.push(ops)
               const held = state.holderResults.length > 0

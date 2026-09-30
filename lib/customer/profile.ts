@@ -154,7 +154,10 @@ export async function updateCustomerProfile(
 }
 
 export type MarkCustomerEmailVerifiedResult =
-  { status: "verified" } | { status: "conflict" }
+  | { status: "verified" }
+  | { status: "conflict" }
+  /** The profile no longer holds this address unverified: the code is stale. */
+  | { status: "expired" }
 
 const UNIQUE_VIOLATION = "23505"
 
@@ -174,6 +177,11 @@ type ServiceRoleClient = ReturnType<typeof createSupabaseServiceRoleClient>
  * On a conflict an unverified copy of the address is also released from this
  * profile (see {@link releaseConflictingEmail}). A confirmation is recorded
  * in `audit_logs` before this returns.
+ *
+ * A code confirms only the address the profile still holds, unverified: one
+ * wallet on two devices may have saved a newer address (or cleared it) since
+ * this code was sent. That is checked before any write and again by the
+ * guarded write itself; either way the answer is `expired` (QA BUG-032).
  */
 export async function markCustomerEmailVerified(
   email: string,
@@ -192,6 +200,7 @@ export async function markCustomerEmailVerified(
   if (locked && verifiedEmail !== currentEmail) {
     throw new CustomerContactLockedError("Verified email is locked.")
   }
+  if (verifiedEmail !== currentEmail) return { status: "expired" }
 
   const conflict = async (): Promise<MarkCustomerEmailVerifiedResult> => {
     // A locked email is verified here already; only an unverified copy goes.
@@ -211,20 +220,30 @@ export async function markCustomerEmailVerified(
     return conflict()
   }
 
-  const update = locked
-    ? { email_hmac: emailHmac }
-    : {
+  if (locked) {
+    const { error } = await supabase
+      .from("customers")
+      .update({ email_hmac: emailHmac })
+      .eq("id", customer.id)
+    if (error?.code === UNIQUE_VIOLATION) return conflict()
+    if (error) throw new Error(`Unable to confirm email: ${error.message}`)
+  } else {
+    // Only while the stored address (as stored) is still this one, unverified.
+    const { data, error } = await supabase
+      .from("customers")
+      .update({
         email: verifiedEmail,
         email_hmac: emailHmac,
         email_verified_at: new Date().toISOString(),
-      }
-  const { error } = await supabase
-    .from("customers")
-    .update(update)
-    .eq("id", customer.id)
-
-  if (error?.code === UNIQUE_VIOLATION) return conflict()
-  if (error) throw new Error(`Unable to confirm email: ${error.message}`)
+      })
+      .eq("id", customer.id)
+      .eq("email", customer.email ?? "")
+      .is("email_verified_at", null)
+      .select("id")
+    if (error?.code === UNIQUE_VIOLATION) return conflict()
+    if (error) throw new Error(`Unable to confirm email: ${error.message}`)
+    if ((data ?? []).length === 0) return { status: "expired" }
+  }
 
   await recordCustomerEmailAudit(supabase, {
     customerId: customer.id,
