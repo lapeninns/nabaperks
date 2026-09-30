@@ -54,7 +54,9 @@ export function CustomerProfileGateForm({
     <ProfileDetailsStep
       rewardId={rewardId}
       gate={gate}
-      emailNotConfirmed={freshVerifyState.errors?.form}
+      // Only a refused (conflict) address is answered here: it is the one
+      // refusal that removes the address from the gate (QA BUG-005).
+      emailNotConfirmed={gate.email ? undefined : freshVerifyState.errors?.form}
     />
   )
 }
