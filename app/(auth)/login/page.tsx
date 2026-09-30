@@ -9,7 +9,11 @@ import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { getCurrentUser } from "@/lib/auth/session"
+import {
+  pointsIntoConsole,
+  signedInMerchantLoginDestination,
+} from "@/lib/auth/merchant-login-destination"
+import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
 import { merchantEmailOtpAliasLength } from "@/lib/auth/merchant-email-otp-alias"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
@@ -61,6 +65,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const error = firstSearchParam(params.error)
 
   if (user) {
+    const destination = await signedInDestination(next)
+    if (destination !== next) redirect(destination)
     redirect(safeMerchantNextPath(next))
   }
 
@@ -128,6 +134,27 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </section>
     </MarketingLayout>
   )
+}
+
+/**
+ * A console page sends a signed-in user without a venue here; returning them
+ * to it would loop, so they go to onboarding instead (QA BUG-060). The venue
+ * is read only for console destinations. If it cannot be read, today's
+ * destination stands: that page then fails visibly rather than looping.
+ */
+async function signedInDestination(next: string): Promise<string> {
+  if (!pointsIntoConsole(next)) return next
+
+  let ownsVenue: boolean
+  try {
+    ownsVenue = Boolean(await getCurrentMerchant())
+  } catch (error) {
+    console.error("Merchant login venue check failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    })
+    ownsVenue = true
+  }
+  return signedInMerchantLoginDestination(next, ownsVenue)
 }
 
 function firstSearchParam(
