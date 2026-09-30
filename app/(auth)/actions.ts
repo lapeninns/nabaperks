@@ -26,6 +26,7 @@ import {
   enforceInitialSignupRecipientBudget,
   enforceMerchantOtpResend,
   MerchantOtpResendRateLimitError,
+  readMerchantOtpResendCooldown,
   recordInitialSignupOtpCooldown,
 } from "@/lib/auth/merchant-otp-resend"
 import { merchantSignupVerifyHref } from "@/lib/navigation/merchant-auth-hrefs"
@@ -255,11 +256,13 @@ async function confirmMerchantEmailAccess(
     errors.otp = `Enter the ${merchantEmailOtpAliasDigitLabel()} code from your email.`
   }
   if (Object.keys(errors).length) {
-    return { outcome: "invalid", context, errors }
+    return withMerchantResendWait({ outcome: "invalid", context, errors })
   }
 
   const rateLimit = await enforceAuthRateLimit("merchant-verify", context.email)
-  if (rateLimit) return merchantOtpRateLimitState(context, rateLimit)
+  if (rateLimit) {
+    return withMerchantResendWait(merchantOtpRateLimitState(context, rateLimit))
+  }
 
   const supabase = await createSupabaseServerClient()
   const verification = await verifyMerchantEmailOtpAlias({
@@ -271,10 +274,45 @@ async function confirmMerchantEmailAccess(
   })
 
   if (verification.status === "error") {
-    return merchantOtpVerificationErrorState(context, verification)
+    return withMerchantResendWait(
+      merchantOtpVerificationErrorState(context, verification)
+    )
   }
 
   redirect(context.next)
+}
+
+/**
+ * The sign-in form shows its resend countdown from the latest answer's
+ * `retryAt`. A refused code check must not drop a cooldown that is still
+ * running, or "Send another code" turns into a request the server is certain
+ * to refuse. The cooldown is read back from the server-owned limiter.
+ */
+async function withMerchantResendWait(
+  state: MerchantOtpActionState
+): Promise<MerchantOtpActionState> {
+  if (!validateEmail(state.context.email)) return state
+
+  let resendRetryAt: string | undefined
+  try {
+    resendRetryAt = await readMerchantOtpResendCooldown({
+      email: state.context.email,
+      purpose: state.context.flow,
+      requestIdentity: await merchantRequestIdentity(),
+    })
+  } catch (error) {
+    console.error("Merchant OTP resend cooldown readback failed", {
+      error: safeServerErrorMessage(error),
+      purpose: state.context.flow,
+    })
+    return state
+  }
+
+  const retryAt = [state.retryAt, resendRetryAt]
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1)
+  return retryAt ? { ...state, retryAt } : state
 }
 
 async function sendMerchantOtp({
@@ -305,12 +343,18 @@ async function sendMerchantOtp({
     retryAt = limit.retryAt
   } catch (error) {
     if (error instanceof MerchantOtpResendRateLimitError) {
+      // A code was requested for this email recently (another tab or
+      // device). Open the code step so that code can be entered and the
+      // countdown the copy points to is shown.
       return {
         outcome: "throttled",
-        context,
+        context: verifyContext,
         retryAt: error.retryAt,
         errors: {
-          form: "Another code can be sent after the wait shown below.",
+          form:
+            context.step === "request"
+              ? "A code was requested for this email recently. Enter it below if it has arrived, or send another after the wait shown below."
+              : "Another code can be sent after the wait shown below.",
         },
       }
     }
