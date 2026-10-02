@@ -19,7 +19,7 @@ import { OFFER, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
  */
 export function HubHandoff() {
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 grid-cols-1 gap-5">
       <ul className="grid gap-0">
         {GUIDES.map((guide) => (
           <li key={guide.slug}>
@@ -43,8 +43,11 @@ export function HubHandoff() {
         ))}
       </ul>
 
-      <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5 shadow-sm sm:p-6">
-        <MonoTag tone="accent" className="justify-self-start">
+      <div className="grid min-w-0 grid-cols-1 gap-4 rounded-lg border-2 border-ink bg-card p-5 shadow-sm sm:p-6">
+        <MonoTag
+          tone="accent"
+          className="h-auto min-w-0 justify-self-start whitespace-normal [&>span]:overflow-visible [&>span]:whitespace-normal"
+        >
           If you&rsquo;d rather not run any of this yourself
         </MonoTag>
         <p className="text-xl leading-snug font-extrabold text-foreground">

@@ -1,7 +1,8 @@
 "use client"
 
-import { useId } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 
+import { selectColumnCaptions } from "@/lib/merchant/column-chart-labels"
 import { describeColumn } from "@/lib/merchant/numbers-overview-model"
 import { cn } from "@/lib/utils"
 
@@ -53,6 +54,41 @@ export function ColumnChart({
   className,
 }: ColumnChartProps) {
   const captionId = useId()
+  const captionsRef = useRef<HTMLDivElement>(null)
+  const [visibleCaptions, setVisibleCaptions] = useState<readonly number[]>([])
+  useEffect(() => {
+    const container = captionsRef.current
+    if (!container) return
+    let active = true
+    const measure = () => {
+      if (!active) return
+      const labelWidths = Array.from(container.children, (element) => {
+        const range = document.createRange()
+        range.selectNodeContents(element)
+        return range.getBoundingClientRect().width
+      })
+      const next = selectColumnCaptions({
+        width: container.getBoundingClientRect().width,
+        columnGap:
+          Number.parseFloat(getComputedStyle(container).columnGap) || 0,
+        labelWidths,
+      })
+      setVisibleCaptions((previous) =>
+        previous.length === next.length &&
+        previous.every((index, position) => index === next[position])
+          ? previous
+          : next
+      )
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(container)
+    measure()
+    void document.fonts.ready.then(measure)
+    return () => {
+      active = false
+      observer.disconnect()
+    }
+  }, [labels])
   const recorded = values.slice(placeholderCount)
   const max = Math.max(0, ...recorded)
   const quiet = recorded.every((value) => value === 0)
@@ -135,17 +171,19 @@ export function ColumnChart({
       </div>
 
       <div
+        ref={captionsRef}
+        data-column-captions
         aria-hidden="true"
         className={cn("grid auto-cols-fr grid-flow-col", columnWidthClass)}
       >
         {labels.map((label, index) => (
           <span
             key={`${label}-${index}`}
-            // Captions may overflow their ~20px cell: neighbours are hidden
-            // (see columnLabelVisibility), so the text has room to spill.
             className={cn(
               "mono-id overflow-visible text-center whitespace-nowrap text-ink-soft",
-              columnLabelVisibility(index, labels.length)
+              index === 0 && "text-left",
+              index === labels.length - 1 && "text-right",
+              !visibleCaptions.includes(index) && "invisible"
             )}
           >
             {label}
@@ -178,19 +216,4 @@ export function ColumnChart({
       </table>
     </figure>
   )
-}
-
-/**
- * Day captions (handoff §8): for a 7-day range every second column below
- * 430px and every column from there; for 14, every third column always and
- * every second from 360px. Hidden captions keep their cell so the columns
- * above never shift.
- */
-function columnLabelVisibility(index: number, total: number): string {
-  if (total <= 7) {
-    return index % 2 === 0 ? "" : "invisible min-[430px]:visible"
-  }
-  if (index % 3 === 0) return ""
-  if (index % 2 === 0) return "invisible min-[360px]:visible"
-  return "invisible"
 }

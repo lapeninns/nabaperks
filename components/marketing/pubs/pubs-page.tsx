@@ -62,8 +62,8 @@ function sectionPayload(
  * rebuild the page re-rendered eight of those bands and shared `/`'s exact H1;
  * `tests/contracts/marketing-offer-source.test.mjs` now holds that line.
  *
- * The spine is the only client component on the page — everything else renders
- * on the server so the whole guide is in the initial HTML for a crawler.
+ * Navigation and comparison scrolling enhance server-rendered guide content,
+ * so the complete prose and semantic comparison remain in the initial HTML.
  */
 export function PubsPage({
   persona,
@@ -92,7 +92,7 @@ export function PubsPage({
         className="lg:grid lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:items-start lg:gap-12 xl:gap-16"
       >
         <GuideSpine />
-        <div className="grid gap-12 pt-6 lg:gap-16 lg:pt-0">
+        <div className="grid min-w-0 grid-cols-1 gap-12 pt-6 lg:gap-16 lg:pt-0">
           {PUB_GUIDE_SECTIONS.map((section, index) => (
             <GuideSection key={section.id} section={section} index={index}>
               {sectionPayload(section.id, persona)}

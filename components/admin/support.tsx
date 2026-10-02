@@ -26,7 +26,7 @@ const STATUS_PILL_ICON: Record<
  * primitives, which the unlayered ink layer already themes.
  */
 export const adminSelectClasses =
-  "focus-ring min-h-11 rounded-lg border-2 border-ink bg-card px-3 text-base outline-none transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring md:text-sm"
+  "focus-ring min-h-11 min-w-0 w-full rounded-lg border-2 border-ink bg-card px-3 text-base outline-none transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring md:text-sm"
 
 export function AdminPanel({
   children,
@@ -39,7 +39,13 @@ export function AdminPanel({
   id?: string
 }) {
   return (
-    <section id={id} className={cn("surface-card grid gap-4 p-5", className)}>
+    <section
+      id={id}
+      className={cn(
+        "surface-card grid min-w-0 grid-cols-1 gap-4 p-5",
+        className
+      )}
+    >
       {children}
     </section>
   )
@@ -57,7 +63,12 @@ export function AdminField({
   className?: string
 }) {
   return (
-    <label className={cn("grid gap-1.5 text-sm font-bold", className)}>
+    <label
+      className={cn(
+        "grid min-w-0 grid-cols-1 gap-1.5 text-sm font-bold",
+        className
+      )}
+    >
       <Eyebrow>{label}</Eyebrow>
       {children}
       {helper ? (
@@ -101,7 +112,10 @@ export function SourceLabel({
   return (
     <MonoTag
       tone="plain"
-      className={cn("border-ink bg-secondary text-muted-foreground", className)}
+      className={cn(
+        "h-auto max-w-full border-ink bg-secondary whitespace-normal text-muted-foreground [&>span]:overflow-visible [&>span]:[overflow-wrap:anywhere] [&>span]:whitespace-normal",
+        className
+      )}
     >
       {children}
     </MonoTag>

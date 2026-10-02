@@ -17,6 +17,8 @@ import {
 } from "@/lib/marketing/facts"
 import { cn } from "@/lib/utils"
 
+import { ComparisonTableFrame } from "./comparison-table-frame"
+
 const CAPTION =
   "The four shapes of pub loyalty scheme compared across what they ask, what they cost and where they break"
 
@@ -47,10 +49,10 @@ const ASPECTS = [
  */
 export function OptionsMatrix() {
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 grid-cols-1 gap-4">
       {/* `Table` supplies its own focusable overflow container — don't nest a
           second scroll region around it. */}
-      <div className="hidden rounded-lg border-2 border-ink bg-card lg:block">
+      <ComparisonTableFrame>
         <Table className="min-w-[56rem]">
           <TableCaption className="sr-only">{CAPTION}</TableCaption>
           <TableHeader>
@@ -94,7 +96,7 @@ export function OptionsMatrix() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </ComparisonTableFrame>
 
       <ul aria-label={CAPTION} className="grid gap-3 sm:grid-cols-2 lg:hidden">
         {PUB_LOYALTY_OPTIONS.map((option) => (
