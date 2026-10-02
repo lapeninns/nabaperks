@@ -1,5 +1,5 @@
 import { ReceiptCard } from "@/components/brand"
-import { ScanCardHeader } from "@/components/merchant/merchant-reward-scanner"
+import { ScanCardHeader } from "@/components/merchant/scan-card-header"
 import { Skeleton } from "@/components/ui/skeleton"
 
 // Scan-scoped route fallback. The generic `/app/*` loading.tsx renders a

@@ -19,15 +19,18 @@ export function TakeoverAnchor({ className }: { className?: string }) {
     <aside
       data-takeover-enquiry
       className={cn(
-        "grid gap-10 overflow-hidden rounded-(--radius-sheet) border-2 border-ink bg-ink p-8 text-paper shadow-md sm:p-12 md:grid-cols-2 md:items-center md:gap-12 lg:p-16",
+        "grid grid-cols-1 gap-10 overflow-hidden rounded-(--radius-sheet) border-2 border-ink bg-ink p-5 text-paper shadow-md sm:p-12 md:grid-cols-2 md:items-center md:gap-12 lg:p-16",
         className
       )}
     >
-      <div className="grid gap-5">
-        <MonoTag tone="sun" className="justify-self-start">
+      <div className="grid min-w-0 grid-cols-1 gap-5">
+        <MonoTag
+          tone="sun"
+          className="h-auto min-w-0 justify-self-start whitespace-normal [&>span]:overflow-visible [&>span]:whitespace-normal"
+        >
           Bespoke engagement · enquiry only
         </MonoTag>
-        <p className="numeric-tabular text-5xl leading-none font-extrabold tracking-tighter text-primary sm:text-6xl lg:text-7xl">
+        <p className="numeric-tabular text-5xl leading-none font-extrabold tracking-tighter text-paper sm:text-6xl lg:text-7xl">
           {TAKEOVER.price}
         </p>
         <p className="text-2xl leading-tight font-extrabold text-paper sm:text-3xl lg:text-4xl">
@@ -37,8 +40,13 @@ export function TakeoverAnchor({ className }: { className?: string }) {
           {TAKEOVER.qualifier} Not a Growth Plan tier — no self-serve checkout.
         </p>
       </div>
-      <div className="md:justify-self-end">
-        <Button asChild variant="secondary" size="xl" className="w-fit">
+      <div className="min-w-0 md:justify-self-end">
+        <Button
+          asChild
+          variant="secondary"
+          size="xl"
+          className="h-auto min-h-14 max-w-full py-3 whitespace-normal"
+        >
           <Link href={ROUTES.demo}>{TAKEOVER.action}</Link>
         </Button>
       </div>

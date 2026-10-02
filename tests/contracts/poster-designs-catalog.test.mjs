@@ -142,9 +142,20 @@ test("browser and PDF adapters use explicit exhaustive renderer registries", () 
 
   assert.match(browserRegistry, /satisfies Record<QrPosterTemplateId/)
   assert.match(pdfRegistry, /satisfies Record<PosterDesignId/)
-  assert.match(browserHost, /PosterDesignSheet/)
+  const browserSheet = readProjectFile(
+    "components",
+    "merchant",
+    "qr-poster",
+    "poster-sheet.tsx"
+  )
+  assert.match(browserHost, /import \{ PosterSheet \} from "\.\/poster-sheet"/)
+  assert.match(
+    browserSheet,
+    /import \{ PosterDesignSheet \} from "\.\/poster-renderer-registry"/
+  )
   assert.match(pdfHost, /drawPosterPdf/)
   assert.doesNotMatch(browserHost, /template ===/)
+  assert.doesNotMatch(browserSheet, /template ===/)
   assert.doesNotMatch(pdfHost, /content\.id ===/)
 })
 

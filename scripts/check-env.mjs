@@ -79,6 +79,18 @@ Object.assign(values, process.env)
 
 const missing = []
 const invalid = []
+const smsOtpExpiry = values.SUPABASE_SMS_OTP_EXPIRY_SECONDS?.trim()
+if (
+  smsOtpExpiry &&
+  (!/^\d+$/.test(smsOtpExpiry) ||
+    !Number.isSafeInteger(Number(smsOtpExpiry)) ||
+    Number(smsOtpExpiry) < 1 ||
+    Number(smsOtpExpiry) > 86400)
+) {
+  invalid.push(
+    "SUPABASE_SMS_OTP_EXPIRY_SECONDS must be an integer from 1 to 86400"
+  )
+}
 const customerOtpBypassMode = values.CUSTOMER_OTP_BYPASS_MODE?.trim()
 const customerOtpBypassModeAnyFourDigits = "any-4-digits"
 const customerOtpTwilioBypassed =

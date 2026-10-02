@@ -1,3 +1,4 @@
+import assert from "node:assert/strict"
 import { createHash, createHmac, randomUUID } from "node:crypto"
 
 import { issueCustomerDeviceToken } from "../../../lib/security/customer-device-token"
@@ -65,7 +66,23 @@ export async function createCustomerReadbackFixture(
   const { seed, runId } = createCustomerReadbackSeed(setup)
 
   try {
-    await insertCustomerReadbackRows(sql, seed, setup, runId)
+    await insertCustomerReadbackRows(sql, seed, setup, runId, true)
+    const states = await sql<readonly { reward_name: string; state: string }[]>`
+      select reward.reward_name, collection.state
+      from public.reward_events reward
+      cross join lateral public.get_reward_collection_state(reward.id) collection
+      where reward.customer_id in (${seed.customerId}::uuid, ${seed.waitingCustomerId}::uuid)`
+    for (const [name, expected] of [
+      [seed.readyRewardName, "ready"],
+      [seed.upcomingRewardName, "waiting"],
+      [seed.waitingRewardName, "waiting"],
+    ]) {
+      assert.equal(
+        states.find((row) => row.reward_name === name)?.state,
+        expected,
+        `Authoritative collection fixture state for ${name}`
+      )
+    }
 
     return {
       ...seed,

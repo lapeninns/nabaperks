@@ -93,9 +93,7 @@ test.describe("@customer-flow customer home dashboard", () => {
       await expect(page.getByText(fixture.businessName).first()).toBeVisible()
       await expect(page.getByText("Reward ready").first()).toBeVisible()
       await expect(page.getByText("Open reward").first()).toBeVisible()
-      await expect(
-        page.getByText("Reward ready to collect. Show it at the counter.")
-      ).toBeVisible()
+      await expect(page.getByText("Show this at the counter.")).toBeVisible()
       await expect(page.getByText("Latest visits")).toBeVisible()
       await expect(
         page.getByText(`Reward redeemed at ${fixture.businessName}`)

@@ -510,6 +510,15 @@ copy never overflows a row: the pill caps at its container width and
 `MonoTag` truncates its content with an ellipsis — print the venue name as
 text and keep the pill for the status word when both must fit.
 
+Marketing qualification badges in the bespoke takeover and pub handoff cards
+use auto height and wrapped text, so the full qualification stays legible at
+narrow widths. They retain the shared badge tokens; ordinary status tags keep
+the truncation treatment above.
+
+Numbers chart date captions use the measured chart and caption widths to show
+the first and last dates plus intermediate captions that fit without overlap.
+The accessible table and selected-day readout retain every date and value.
+
 Merchant activity categories map to the same spot-ink story everywhere:
 customer joins are cobalt, stamps are vermillion, rewards are leaf, QR events
 are sun, and account events stay quiet secondary/plain.

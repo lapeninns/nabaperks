@@ -58,9 +58,10 @@ export async function insertCustomerReadbackRows(
   sql: Sql,
   seed: CustomerReadbackSeed,
   setup: SeedCustomerSetupRow,
-  runId: string
+  runId: string,
+  waitingPhoneVerified = false
 ): Promise<void> {
-  await insertCustomers(sql, seed, runId)
+  await insertCustomers(sql, seed, runId, waitingPhoneVerified)
   await insertMembership(sql, seed, setup)
   await insertCustomerReadbackRewards(sql, seed, setup)
   await insertCustomerReadbackActivity(sql, seed, setup)
@@ -137,7 +138,8 @@ export async function cleanupCustomerReadbackRows(
 async function insertCustomers(
   sql: Sql,
   seed: CustomerReadbackSeed,
-  runId: string
+  runId: string,
+  waitingPhoneVerified: boolean
 ): Promise<void> {
   await sql`
     insert into public.customers (
@@ -177,9 +179,9 @@ async function insertCustomers(
         'Waiting Readback Browser',
         date '1990-01-01',
         now(),
-        null,
-        null,
-        null
+        ${waitingPhoneVerified ? createHash("sha256").update(`waiting-readback-phone-${runId}`).digest("hex") : null},
+        ${waitingPhoneVerified ? "0456" : null},
+        ${waitingPhoneVerified ? new Date() : null}
       )`
 }
 

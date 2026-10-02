@@ -1,3 +1,4 @@
+import { installLocalEmailSession } from "./helpers/admin-auth-session"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
@@ -16,7 +17,8 @@ import { dismissPwaInstall } from "./helpers/harness"
  */
 
 const DEFAULT_SEED_MERCHANT_EMAIL = "mia@old-crown-girton.test"
-const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
+const sessionCleanups = new WeakMap<Page, () => Promise<void>>()
+
 const SEED_MERCHANT_SLUG = "old-crown-girton"
 const LOCAL_DB_HOSTS = new Set(["127.0.0.1", "localhost"])
 
@@ -38,10 +40,11 @@ async function signIn(
   await page.setExtraHTTPHeaders({
     "x-vercel-forwarded-for": localLoopbackIp(rateLimitNonce),
   })
+  sessionCleanups.set(
+    page,
+    await installLocalEmailSession(page.context(), email)
+  )
   await page.goto(`/login?next=${encodeURIComponent(next)}`)
-  await page.locator("#email").fill(email)
-  await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
-  await page.getByRole("button", { name: "Log in" }).click()
 }
 
 let seedMerchantEmail: Promise<string> | undefined
@@ -158,4 +161,10 @@ test.describe("merchant shell variant survives client-side navigation", () => {
     await expect(fullShellControl(page)).toBeVisible()
     await expect(setupAccountLink(page)).toHaveCount(0)
   })
+})
+
+test.afterEach(async ({ page }) => {
+  const cleanup = sessionCleanups.get(page)
+  sessionCleanups.delete(page)
+  if (cleanup) await cleanup()
 })

@@ -22,7 +22,10 @@ export function GuideSection({
   children?: ReactNode
 }) {
   return (
-    <section id={section.id} className="grid scroll-mt-28 gap-4">
+    <section
+      id={section.id}
+      className="grid min-w-0 scroll-mt-28 grid-cols-1 gap-4"
+    >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="mono-meta text-primary">
           Nº{String(index + 1).padStart(2, "0")}

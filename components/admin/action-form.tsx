@@ -33,16 +33,31 @@ export function AdminActionForm({
   readonly className?: string
 }) {
   const formRef = useRef<HTMLFormElement>(null)
+  const allowResetRef = useRef(false)
   const [state, formAction] = useActionState(action, idleAdminActionState)
 
   useEffect(() => {
     if (state.status === "success") {
+      allowResetRef.current = true
       formRef.current?.reset()
+      allowResetRef.current = false
     }
   }, [state])
 
   return (
-    <form ref={formRef} action={formAction} className={cn("grid gap-2", className)}>
+    <form
+      ref={formRef}
+      action={formAction}
+      onReset={(event) => {
+        // React also resets resolved actions whose structured result is an error.
+        // Only the explicit successful-action reset above may clear the fields.
+        if (!allowResetRef.current) event.preventDefault()
+      }}
+      className={cn(
+        "grid min-w-0 grid-cols-1 gap-2 [&_button]:h-auto [&_button]:min-h-11 [&_button]:py-2 [&_button]:whitespace-normal",
+        className
+      )}
+    >
       {children}
       {state.status === "success" ? (
         <p

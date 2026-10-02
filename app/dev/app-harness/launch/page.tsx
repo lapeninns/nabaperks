@@ -21,10 +21,10 @@ import { VenueClosuresForm } from "@/components/merchant/launch/venue-closures-f
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import { DEFAULT_REWARD_EXPIRY_DAYS } from "@/lib/merchant/reward-expiry-fields"
 import {
-  LoyaltyCardForm,
   RewardPoolForm,
   type RewardPoolItemValues,
-} from "@/components/merchant/loyalty-card-form"
+} from "@/components/merchant/reward-pool-form"
+import { LoyaltyCardForm } from "@/components/merchant/loyalty-card-form"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import type { DistributionChannel } from "@/components/merchant/launch/qr-redesign-concept"
 import { QrRedesignConcept } from "@/components/merchant/launch/qr-redesign-concept-harness"

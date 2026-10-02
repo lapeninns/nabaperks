@@ -84,7 +84,7 @@ function LaunchTicket() {
       <hr className="w-rule" />
       <ol className="grid gap-2.5">
         {DFY_LAUNCH.steps.map((step, index) => (
-          <li key={step.title} className="flex items-center gap-3">
+          <li key={step.title} className="flex min-w-0 items-center gap-3">
             <span className="mono-id w-6 shrink-0 text-muted-foreground">
               {String(index + 1).padStart(2, "0")}
             </span>
@@ -93,7 +93,7 @@ function LaunchTicket() {
               tone={index === lastIndex ? "primary" : "secondary"}
               icon={LAUNCH_STEP_GLYPHS[index]}
             />
-            <span className="mono-meta min-w-0 flex-1 truncate text-foreground">
+            <span className="mono-meta min-w-0 flex-1 wrap-break-word text-foreground">
               {STEP_TICKET_LINES[index] ?? step.title}
             </span>
           </li>

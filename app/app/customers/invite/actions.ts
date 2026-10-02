@@ -16,6 +16,7 @@ import {
   validateInviteRecipients,
   type LoyaltyInviteConfirmErrors,
 } from "@/lib/merchant/loyalty-invite-fields"
+import { getActiveLoyaltyInviteCampaign } from "@/lib/merchant/loyalty-invites"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type LoyaltyInviteState = {
@@ -148,11 +149,32 @@ export async function sendLoyaltyInviteAction(
   const legalBasis = value(formData, "legalBasis")
   const attested = formData.get("attestation") === "on"
 
+  const campaign = await getActiveLoyaltyInviteCampaign(gate.merchant.id)
+  if (!campaign || campaign.id !== campaignId || campaign.status !== "draft") {
+    return {
+      step: "input",
+      errors: {
+        form: "This draft is no longer available. Check the list again.",
+      },
+    }
+  }
+  const retryState: LoyaltyInviteState = {
+    step: "preview",
+    fields: { recipients: value(formData, "recipients"), legalBasis },
+    preview: {
+      campaignId: campaign.id,
+      eligible: campaign.eligibleCount,
+      invalid: campaign.invalidCount,
+      duplicate: campaign.duplicateCount,
+      notEligible: campaign.notEligibleCount,
+      sample: campaign.sample,
+    },
+  }
+
   const confirmation = validateInviteConfirm(legalBasis, attested)
   if (!confirmation.ok) {
     return {
-      step: "preview",
-      fields: { legalBasis },
+      ...retryState,
       errors: confirmation.errors,
     }
   }
@@ -167,7 +189,7 @@ export async function sendLoyaltyInviteAction(
   })
   if (error) {
     return {
-      step: "preview",
+      ...retryState,
       errors: { form: "The campaign could not be sent. Try again." },
     }
   }

@@ -6,7 +6,7 @@ import Link from "next/link"
 import { ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
-import { ScanCardHeader } from "./merchant-reward-scanner"
+import { ScanCardHeader } from "./scan-card-header"
 
 const MerchantRewardScanner = dynamic(
   () =>

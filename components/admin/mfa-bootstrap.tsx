@@ -5,8 +5,6 @@ import { useState, useTransition } from "react"
 import { Eyebrow } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { registerAdminWebAuthnFactor } from "@/lib/admin/webauthn-mfa"
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser"
 
 type Stage = "email" | "code" | "ready" | "complete"
 
@@ -20,6 +18,8 @@ export function AdminMfaBootstrap() {
   const sendCode = () =>
     startTransition(async () => {
       setError(null)
+      const { getSupabaseBrowserClient } =
+        await import("@/lib/supabase/browser")
       const { error: sendError } =
         await getSupabaseBrowserClient().auth.signInWithOtp({
           email: email.trim(),
@@ -35,6 +35,8 @@ export function AdminMfaBootstrap() {
   const verifyCode = () =>
     startTransition(async () => {
       setError(null)
+      const { getSupabaseBrowserClient } =
+        await import("@/lib/supabase/browser")
       const { error: verifyError } =
         await getSupabaseBrowserClient().auth.verifyOtp({
           email: email.trim(),
@@ -59,6 +61,11 @@ export function AdminMfaBootstrap() {
   const register = () =>
     startTransition(async () => {
       setError(null)
+      const [{ registerAdminWebAuthnFactor }, { getSupabaseBrowserClient }] =
+        await Promise.all([
+          import("@/lib/admin/webauthn-mfa"),
+          import("@/lib/supabase/browser"),
+        ])
       const result = await registerAdminWebAuthnFactor(
         getSupabaseBrowserClient()
       )

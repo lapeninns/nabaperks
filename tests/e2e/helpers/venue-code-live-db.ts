@@ -122,7 +122,7 @@ export async function createVenueCodeFixture(
         ${fixture.merchantId}::uuid, ${fixture.customerId}::uuid,
         ${fixture.membershipId}::uuid, ${setup.loyalty_card_id}::uuid,
         ${fixture.locationId}::uuid, 'earned', 1,
-        (now() at time zone 'Europe/London')::date - 1, 1,
+        public.venue_trading_date(${fixture.merchantId}::uuid, now()) - 1, 1,
         '{"source":"self_service_qr","geo_verification":"exempt","visit_number":1}'::jsonb,
         now() - interval '1 day'
       )`

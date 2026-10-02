@@ -57,13 +57,14 @@ test.describe("pending phone privacy", () => {
       ).not.toContain(phone.e164)
 
       if (!pending) return
-      const replacement = pending.value.endsWith("A") ? "B" : "A"
-      await context.addCookies([
-        {
-          ...pending,
-          value: `${pending.value.slice(0, -1)}${replacement}`,
-        },
-      ])
+      const parts = pending.value.split(".")
+      const ciphertext = parts[2]
+      if (!ciphertext)
+        throw new Error("Encrypted pending phone body is missing")
+      // Mutate a significant ciphertext byte; changing the final base64url
+      // character can affect unused padding bits while decoding identically.
+      parts[2] = `${ciphertext.startsWith("A") ? "B" : "A"}${ciphertext.slice(1)}`
+      await context.addCookies([{ ...pending, value: parts.join(".") }])
       await page.reload()
       await expect(
         page.getByRole("heading", { name: "Get your first stamp" })

@@ -50,14 +50,31 @@ test.describe("session revocation", () => {
         set last_seen_at = '2000-01-01'
         where customer_id = ${customerId}::uuid`
 
+      const candidates = await sql`
+        select id from public.customers
+        where created_at < '2000-01-02' and updated_at < '2000-01-02'
+          and coalesce(email, '') not like 'erased+%@privacy.invalid'`
+      expect(candidates.map((row) => row.id)).toEqual([customerId])
       await sql`select set_config('request.jwt.claim.role', 'service_role', false)`
       await sql`
         select public.admin_purge_abandoned_customer_identities('2000-01-02')`
 
+      const [erased] = await sql`
+        select email like 'erased+%@privacy.invalid' as email_erased,
+          phone_hmac is null as phone_erased,
+          (select count(*)::integer from public.customer_sessions
+            where customer_id = ${customerId}::uuid and revoked_at is null)
+            as active_sessions
+        from public.customers where id = ${customerId}::uuid`
+      expect(erased).toEqual({
+        email_erased: true,
+        phone_erased: true,
+        active_sessions: 0,
+      })
       await page.goto("/home", { waitUntil: "commit" })
       await expect(page).toHaveURL(/\/home\/login/)
       await expect(
-        page.getByRole("heading", { name: "Welcome back" })
+        page.getByRole("heading", { name: "Open my cards" })
       ).toBeVisible()
     } finally {
       if (customerId) {

@@ -78,7 +78,7 @@ for (const viewport of [
       browserName,
     }) => {
       test.skip(
-        browserName !== "chromium",
+        browserName !== "chromium" && process.platform === "darwin",
         "WebKit and Firefox on macOS do not Tab to links and buttons by default"
       )
       const sql = connectLocalDb()

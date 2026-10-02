@@ -7,6 +7,7 @@ import {
 
 import { Icon, IconRoundel, MonoTag } from "@/components/brand"
 import { PosterThumbnail } from "@/components/merchant/qr-poster/poster-thumbnail"
+import { PosterSheet } from "@/components/merchant/qr-poster/poster-sheet"
 import { Button } from "@/components/ui/button"
 import {
   QR_POSTER_PRODUCTION_TEMPLATES,
@@ -123,13 +124,14 @@ export function PosterProof({
   return (
     <aside className="grid content-start gap-3 rounded-lg border-2 border-ink bg-paper-deep p-3 shadow-[5px_5px_0_var(--w-shadow-color)] sm:p-4">
       <div className="mx-auto w-full max-w-60 rounded-md border-2 border-ink bg-paper p-1.5 lg:max-w-72">
-        <PosterThumbnail
-          previewLabel={`${templateName} poster preview`}
-          template={template}
-          qrDataUrl={qrDataUrl}
-          merchantName={venueName}
-          stampsRequired={stampsRequired}
-        />
+        <PosterThumbnail previewLabel={`${templateName} poster preview`}>
+          <PosterSheet
+            template={template}
+            qrDataUrl={qrDataUrl}
+            merchantName={venueName}
+            stampsRequired={stampsRequired}
+          />
+        </PosterThumbnail>
       </div>
       <div className="grid gap-1">
         <p className="font-extrabold">{templateName} poster</p>

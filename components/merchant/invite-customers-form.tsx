@@ -17,7 +17,7 @@ import { ProgressTrack } from "@/components/loyalty"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { InvitationPreview } from "@/components/merchant/invite/invitation-preview"
 import { WhatHappensNext } from "@/components/merchant/invite/what-happens-next"
-import { TextareaField } from "@/components/merchant/loyalty-card-form"
+import { TextareaField } from "@/components/merchant/merchant-form-fields"
 import { LOYALTY_INVITE_MAX_RECIPIENTS } from "@/lib/loyalty-invites/constants"
 import type { LoyaltyInviteCampaignSummary } from "@/lib/merchant/loyalty-invites"
 import { cn } from "@/lib/utils"
@@ -129,6 +129,7 @@ export function InviteCustomersForm({
           {preview ? (
             <PreviewConfirm
               preview={preview}
+              legalBasis={state.fields?.legalBasis}
               legalError={state.errors?.legalBasis}
               attestationError={state.errors?.attestation}
             />
@@ -215,10 +216,12 @@ function RecipientsField({
 
 function PreviewConfirm({
   preview,
+  legalBasis,
   legalError,
   attestationError,
 }: {
   preview: NonNullable<LoyaltyInviteState["preview"]>
+  legalBasis?: string
   legalError?: string
   attestationError?: string
 }) {
@@ -256,6 +259,7 @@ function PreviewConfirm({
       ) : (
         <ConfirmAndSend
           preview={preview}
+          legalBasis={legalBasis}
           legalError={legalError}
           attestationError={attestationError}
         />
@@ -311,10 +315,12 @@ function PreviewStats({
 
 function ConfirmAndSend({
   preview,
+  legalBasis,
   legalError,
   attestationError,
 }: {
   preview: NonNullable<LoyaltyInviteState["preview"]>
+  legalBasis?: string
   legalError?: string
   attestationError?: string
 }) {
@@ -338,6 +344,7 @@ function ConfirmAndSend({
               type="radio"
               name="legalBasis"
               value={basis.value}
+              defaultChecked={legalBasis === basis.value}
               required
               className="mt-0.5 size-4 shrink-0 accent-[var(--w-ink)]"
             />
@@ -359,6 +366,10 @@ function ConfirmAndSend({
           <input
             type="checkbox"
             name="attestation"
+            aria-invalid={Boolean(attestationError)}
+            aria-describedby={
+              attestationError ? "invite-attestation-error" : undefined
+            }
             className="mt-0.5 size-4 shrink-0 accent-[var(--w-leaf)]"
           />
           <span className="text-sm leading-6 text-foreground">
@@ -367,7 +378,9 @@ function ConfirmAndSend({
           </span>
         </label>
         {attestationError ? (
-          <FormMessage>{attestationError}</FormMessage>
+          <FormMessage id="invite-attestation-error">
+            {attestationError}
+          </FormMessage>
         ) : null}
       </div>
 

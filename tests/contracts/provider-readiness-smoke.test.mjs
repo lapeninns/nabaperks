@@ -324,6 +324,7 @@ test("production env validation executes with analytics off and fails closed for
   )
   baseValues.CRON_SECRET = "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x"
   baseValues.PRODUCTION_MONITOR_SECRET = "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e"
+  baseValues.SUPABASE_SMS_OTP_EXPIRY_SECONDS = "60"
 
   try {
     mkdirSync(join(projectDir, "config"), { recursive: true })

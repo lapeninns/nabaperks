@@ -49,11 +49,23 @@ test(
       })
       const stamp = connections[0].begin(async (tx) => {
         await tx`set local statement_timeout='5s'`
+        await tx`select set_config('request.jwt.claim.role','service_role',true)`
+        await tx`select id from public.customers where id=${f.customerId}::uuid for no key update`
+        await tx`select pg_advisory_xact_lock(hashtextextended('billing-state:' || ${f.merchantId}::text, 0))`
         await tx`select id from public.customer_memberships where id=${f.membershipId}::uuid for update`
         stampReady()
-        await tx`select pg_sleep(0.1)`
-        await tx`insert into public.stamp_events(merchant_id,customer_id,membership_id,loyalty_card_id,location_id,event_type,stamps_delta,earned_business_date,cycle_number) values(${f.merchantId}::uuid,${f.customerId}::uuid,${f.membershipId}::uuid,${f.cardId}::uuid,${f.locationId}::uuid,'earned',1,current_date-5,1)`
-        await tx`update public.customer_memberships set current_stamp_count=current_stamp_count+1,total_stamps_earned=total_stamps_earned+1 where id=${f.membershipId}::uuid`
+        const deadline = Date.now() + 3000
+        while (true) {
+          const [{ waiting }] =
+            await sql`select exists(select 1 from pg_stat_activity where state='active' and wait_event_type='Lock' and query like '%link_verified_customer_wallets%') waiting`
+          if (waiting) break
+          assert.ok(
+            Date.now() < deadline,
+            "link transaction must overlap the stamp"
+          )
+          await new Promise((resolve) => setTimeout(resolve, 10))
+        }
+        await tx`select * from public.issue_self_service_stamp(${f.membershipId}::uuid,${f.customerId}::uuid,52.205::numeric,0.119::numeric,5::numeric,'granted'::text,100::integer)`
       })
       await ready
       const linking = connections[1].begin(async (tx) => {

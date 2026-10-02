@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { NavigationLink as Link } from "@/components/ui/navigation-link"
 import { Alert02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"

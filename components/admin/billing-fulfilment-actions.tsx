@@ -21,7 +21,7 @@ export function BillingFulfilmentActions({
 }) {
   return (
     <AdminRecordActions label="Fulfilment controls" group="billing-fulfilment">
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 gap-4 xl:min-w-64">
         {fulfilmentStatus === "not_started" ||
         fulfilmentStatus === "awaiting_dispatch" ? (
           <AdminActionForm action={markLaunchDispatchedAction}>
@@ -30,7 +30,11 @@ export function BillingFulfilmentActions({
               label="Dispatch time"
               helper="UTC. Leave blank to record the current time."
             >
-              <Input type="datetime-local" name="dispatchedAt" />
+              <Input
+                type="datetime-local"
+                name="dispatchedAt"
+                className="px-2 text-xs md:text-sm"
+              />
             </AdminField>
             <SubmitButton pendingLabel="Recording…" variant="secondary">
               Mark posters dispatched
@@ -45,7 +49,11 @@ export function BillingFulfilmentActions({
               label="Delivery time"
               helper="UTC. Leave blank to confirm delivery now and start the pilot."
             >
-              <Input type="datetime-local" name="deliveredAt" />
+              <Input
+                type="datetime-local"
+                name="deliveredAt"
+                className="px-2 text-xs md:text-sm"
+              />
             </AdminField>
             <SubmitButton pendingLabel="Confirming…">
               Confirm poster delivery
@@ -60,7 +68,12 @@ export function BillingFulfilmentActions({
               label="Free extension ends"
               helper={`UTC. Must be later than ${formatDate(basePilotEndsAt)}.`}
             >
-              <Input type="datetime-local" name="extensionEnd" required />
+              <Input
+                type="datetime-local"
+                name="extensionEnd"
+                required
+                className="px-2 text-xs md:text-sm"
+              />
             </AdminField>
             <SubmitButton pendingLabel="Extending…" variant="secondary">
               Extend platform pilot

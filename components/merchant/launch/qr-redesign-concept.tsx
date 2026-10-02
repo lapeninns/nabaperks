@@ -9,6 +9,7 @@ import {
 import { Eyebrow, Icon } from "@/components/brand"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { SwipePosterPicker } from "@/components/merchant/launch/qr-redesign-swipe-picker"
+import { PosterSheet } from "@/components/merchant/qr-poster/poster-sheet"
 import {
   ChannelButton,
   PosterProof,
@@ -181,9 +182,15 @@ export function QrWorkspace({
             {posterPickerVariant === "swipe" ? (
               <SwipePosterPicker
                 initialTemplate={template}
-                qrDataUrl={qrImageSrc}
-                venueName={venueName}
-                stampsRequired={stampsRequired}
+                previewSheets={QR_POSTER_PRODUCTION_TEMPLATES.map((item) => (
+                  <PosterSheet
+                    key={item.id}
+                    template={item.id}
+                    qrDataUrl={qrImageSrc}
+                    merchantName={venueName}
+                    stampsRequired={stampsRequired}
+                  />
+                ))}
                 posterHrefs={posterHrefs}
               />
             ) : (

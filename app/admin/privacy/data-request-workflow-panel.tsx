@@ -158,7 +158,7 @@ function DataRequestForm({ row }: { readonly row: PrivacySupportRow }) {
     <AdminActionForm action={logDataRequestAction}>
       <input type="hidden" name="customerId" value={row.customer_id} />
       <input type="hidden" name="merchantId" value={row.merchant_id} />
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
         <AdminField label="Request type">
           <select name="requestType" required className={adminSelectClasses}>
             <option value="access">Access</option>

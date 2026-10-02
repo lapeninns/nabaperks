@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-import { dismissPwaInstall } from "./helpers/harness"
+import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 import { connectLocalDb } from "./helpers/admin-live-db"
 import {
   cleanupRecoverableCustomer,
@@ -43,7 +43,7 @@ export function describeCustomerAccessRecovery() {
     })
 
     test("no pending recovery redirects to wallet login", async ({ page }) => {
-      const response = await page.goto("/home/recover")
+      const response = await gotoHydratedPage(page, "/home/recover")
       test.skip(
         !response,
         "customer-flow dev server is not serving /home/recover"
@@ -67,7 +67,7 @@ export function describeCustomerAccessRecovery() {
       test.skip(Boolean(cookieReason), cookieReason)
 
       await installPendingAccessRecovery(context, { canUseEmail: true })
-      const response = await page.goto("/home/recover")
+      const response = await gotoHydratedPage(page, "/home/recover")
       test.skip(
         !response,
         "customer-flow dev server is not serving /home/recover"
@@ -113,7 +113,7 @@ export function describeCustomerAccessRecovery() {
           email: seeded.email,
         })
 
-        const response = await page.goto("/home/recover")
+        const response = await gotoHydratedPage(page, "/home/recover")
         test.skip(
           !response,
           "customer-flow dev server is not serving /home/recover"
@@ -182,7 +182,7 @@ export function describeCustomerAccessRecovery() {
           recoveryCode: REAL_RECOVERY_CODE,
         })
 
-        const response = await page.goto("/home/recover")
+        const response = await gotoHydratedPage(page, "/home/recover")
         test.skip(
           !response,
           "customer-flow dev server is not serving /home/recover"
@@ -247,7 +247,7 @@ export function describeCustomerAccessRecovery() {
       test.skip(Boolean(cookieReason), cookieReason)
 
       await installPendingAccessRecovery(context, { canUseEmail: false })
-      const response = await page.goto("/home/recover")
+      const response = await gotoHydratedPage(page, "/home/recover")
       test.skip(
         !response,
         "customer-flow dev server is not serving /home/recover"
@@ -291,7 +291,7 @@ export function describeCustomerAccessRecovery() {
           email: seeded.email,
         })
 
-        const response = await page.goto("/home/recover")
+        const response = await gotoHydratedPage(page, "/home/recover")
         test.skip(
           !response,
           "customer-flow dev server is not serving /home/recover"

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 import { dismissPwaInstall } from "./harness"
-import { installSeededAdminAal2Session } from "./admin-mfa-session"
+import { installSeededAdminSession } from "./admin-auth-session"
 
 const ACTIVATION_STAGE_LABELS = [
   "Account created",
@@ -32,7 +32,7 @@ export function defineMerchantActivationLedgerTests() {
 
     let cleanup: (() => Promise<void>) | undefined
     try {
-      cleanup = await installSeededAdminAal2Session(context)
+      cleanup = await installSeededAdminSession(context)
       await page.goto("/admin", { waitUntil: "domcontentloaded" })
 
       expect(new URL(page.url()).pathname).toBe("/admin")
@@ -43,7 +43,9 @@ export function defineMerchantActivationLedgerTests() {
         page.getByText(/accounts created in the last 30 days/i)
       ).toBeVisible()
       await expect(
-        page.getByText(/authoritative merchant, setup, billing, and stamp ledgers/i)
+        page.getByText(
+          /authoritative merchant, setup, billing, and stamp ledgers/i
+        )
       ).toBeVisible()
 
       const funnel = page.getByRole("list", {
