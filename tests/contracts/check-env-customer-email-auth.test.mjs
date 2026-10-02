@@ -83,6 +83,18 @@ function runEnvCheck(overrides, args = []) {
   }
 }
 
+test("Given a legacy SMS OTP lifetime When environment validation runs Then valid windows pass and invalid windows refuse", () => {
+  for (const seconds of [undefined, "", "60", "3600", "86400"]) {
+    const result = runEnvCheck({ SUPABASE_SMS_OTP_EXPIRY_SECONDS: seconds })
+    assert.equal(result.status, 0, result.stderr)
+  }
+  for (const seconds of ["0", "-1", "1.5", "1e3", "NaN", "86401"]) {
+    const result = runEnvCheck({ SUPABASE_SMS_OTP_EXPIRY_SECONDS: seconds })
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /SUPABASE_SMS_OTP_EXPIRY_SECONDS/)
+  }
+})
+
 test("Given an unrecognised email sign-in mode When the deploy gate runs Then it fails naming the setting", () => {
   for (const mode of ["FULL", "on", "full,existing"]) {
     const result = runEnvCheck({

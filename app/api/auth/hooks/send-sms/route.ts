@@ -6,11 +6,11 @@ import {
   openSignedHookEnvelope,
 } from "@/app/api/auth/hooks/signed-hook-envelope"
 import {
-  claimAuthHookDelivery,
   completeAuthHookDelivery,
   failAuthHookDelivery,
   markAuthHookDeliveryAttempted,
 } from "@/lib/auth/auth-hook-delivery"
+import { claimSmsAuthHookDelivery } from "@/lib/auth/auth-hook-sms-delivery"
 import { isDefinitiveProviderRejection } from "@/lib/notifications/provider-delivery-error"
 import { readSmsOtpConfig, sendSmsOtp } from "@/lib/notifications/twilio"
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
   let claim
   try {
-    claim = await claimAuthHookDelivery("sms", envelope.webhookId)
+    claim = await claimSmsAuthHookDelivery(secret, to, code)
   } catch {
     return hookRetryError("SMS delivery could not be claimed.")
   }
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       beforeProviderAttempt: async () => {
         await markAuthHookDeliveryAttempted(
           "sms",
-          envelope.webhookId,
+          claim.deliveryId,
           claim.leaseId
         )
         providerAttempted = true
@@ -88,14 +88,12 @@ export async function POST(request: NextRequest) {
     const settle = definitelyUnsent
       ? failAuthHookDelivery
       : completeAuthHookDelivery
-    await settle("sms", envelope.webhookId, claim.leaseId).catch(
-      () => undefined
-    )
+    await settle("sms", claim.deliveryId, claim.leaseId).catch(() => undefined)
     return hookRetryError("SMS could not be sent.")
   }
 
   try {
-    await completeAuthHookDelivery("sms", envelope.webhookId, claim.leaseId)
+    await completeAuthHookDelivery("sms", claim.deliveryId, claim.leaseId)
   } catch {
     return hookError(500, "SMS delivery could not be recorded.")
   }

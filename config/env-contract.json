@@ -271,6 +271,13 @@
     "optional": true
   },
   {
+    "name": "SUPABASE_SMS_OTP_EXPIRY_SECONDS",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Legacy Send SMS challenge dedupe window in seconds (1–86400), default 60. Must match Supabase Auth SMS OTP expiry when that optional hook is enabled. Customer OTP does not use this setting.",
+    "optional": true
+  },
+  {
     "name": "SUPABASE_SEND_SMS_HOOK_SECRET",
     "visibility": "server",
     "kind": "string",

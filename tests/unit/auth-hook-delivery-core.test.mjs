@@ -3,6 +3,8 @@ import test from "node:test"
 
 import {
   authHookEmailIdempotencyKey,
+  authHookSmsChallengeDigest,
+  smsHookChallengeWindowSeconds,
   parseAuthHookClaim,
 } from "@/lib/auth/auth-hook-delivery-core"
 
@@ -29,6 +31,40 @@ test("claim parsing accepts only complete fenced states", () => {
     { status: "claimed", lease_id: "not-a-lease" },
   ]) {
     assert.equal(parseAuthHookClaim(value), null)
+  }
+})
+
+test("SMS challenge identity survives envelope retries without storing phone or code", () => {
+  const key = authHookSmsChallengeDigest(
+    "fixture-secret",
+    "+447700900111",
+    "424242"
+  )
+  assert.equal(
+    key,
+    authHookSmsChallengeDigest("fixture-secret", "447700900111", "424242")
+  )
+  assert.match(key, /^[0-9a-f]{64}$/)
+  assert.notEqual(
+    key,
+    authHookSmsChallengeDigest("fixture-secret", "+447700900112", "424242")
+  )
+  assert.notEqual(
+    key,
+    authHookSmsChallengeDigest("fixture-secret", "+447700900111", "424243")
+  )
+  assert.notEqual(
+    key,
+    authHookSmsChallengeDigest("other-secret", "+447700900111", "424242")
+  )
+})
+
+test("SMS challenge lifetime defaults to GoTrue SMS expiry and rejects invalid configuration", () => {
+  assert.equal(smsHookChallengeWindowSeconds(undefined), 60)
+  assert.equal(smsHookChallengeWindowSeconds(""), 60)
+  assert.equal(smsHookChallengeWindowSeconds("3600"), 3600)
+  for (const invalid of ["0", "-1", "1.5", "1e3", "NaN", "86401"]) {
+    assert.throws(() => smsHookChallengeWindowSeconds(invalid), /expiry/)
   }
 })
 

@@ -69,6 +69,36 @@ export function authHookEmailIdempotencyKey(deliveryKey: string) {
     .digest("hex")}`
 }
 
+export function authHookSmsChallengeDigest(
+  secret: string,
+  phone: string,
+  code: string
+) {
+  return createHmac("sha256", secret)
+    .update(
+      JSON.stringify([
+        "send-sms-delivery:v1",
+        phone.trim().replace(/^\+/, ""),
+        code.trim(),
+      ])
+    )
+    .digest("hex")
+}
+
+export function smsHookChallengeWindowSeconds(value: string | undefined) {
+  const input = value?.trim() || "60"
+  const seconds = Number(input)
+  if (
+    !/^\d+$/.test(input) ||
+    !Number.isSafeInteger(seconds) ||
+    seconds < 1 ||
+    seconds > 86400
+  ) {
+    throw new Error("Invalid Supabase SMS OTP expiry.")
+  }
+  return seconds
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
