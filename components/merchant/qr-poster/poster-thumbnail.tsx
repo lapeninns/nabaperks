@@ -1,16 +1,14 @@
 "use client"
 
-import { useLayoutEffect, useRef, useState } from "react"
-
-import {
-  PosterSheet,
-  type PosterSheetProps,
-} from "@/components/merchant/qr-poster/a4-poster"
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
 
 export function PosterThumbnail({
   previewLabel,
-  ...props
-}: PosterSheetProps & { readonly previewLabel: string }) {
+  children,
+}: {
+  readonly previewLabel: string
+  readonly children: ReactNode
+}) {
   const frameRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.24)
@@ -49,7 +47,7 @@ export function PosterThumbnail({
           transform: `translateX(-50%) scale(${scale})`,
         }}
       >
-        <PosterSheet {...props} />
+        {children}
       </div>
     </div>
   )

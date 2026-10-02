@@ -53,6 +53,12 @@ test("poster route uses protected QR context and the unified render hosts", () =
     "qr-poster",
     "poster-renderer-registry.tsx"
   )
+  const browserSheet = readProjectFile(
+    "components",
+    "merchant",
+    "qr-poster",
+    "poster-sheet.tsx"
+  )
   const pdfHost = readProjectFile(
     "lib",
     "notifications",
@@ -81,13 +87,24 @@ test("poster route uses protected QR context and the unified render hosts", () =
   assert.match(printAssetRoute, /getOwnedQrImageContext/)
   assert.match(printAssetRoute, /renderPosterQrCodePng/)
   assert.match(browserHost, /data-sheet="a4"/)
-  assert.match(browserHost, /PosterDesignSheet/)
+  assert.match(browserHost, /import \{ PosterSheet \} from "\.\/poster-sheet"/)
+  assert.match(
+    browserSheet,
+    /import \{ PosterDesignSheet \} from "\.\/poster-renderer-registry"/
+  )
+  assert.match(browserSheet, /<PosterDesignSheet \{\.\.\.props\}/)
   assert.match(browserRegistry, /POSTER_BROWSER_RENDERERS/)
   assert.match(pdfHost, /resolvePosterContent/)
   assert.match(pdfHost, /drawPosterPdf/)
   assert.match(pdfRegistry, /POSTER_PDF_RENDERERS/)
   assert.doesNotMatch(
-    [posterPage, printAssetRoute, browserHost, browserRegistry].join("\n"),
+    [
+      posterPage,
+      printAssetRoute,
+      browserHost,
+      browserSheet,
+      browserRegistry,
+    ].join("\n"),
     /pdf-lib|sharp|qr_assets|asset-store/
   )
 })

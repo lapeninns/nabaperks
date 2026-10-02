@@ -107,7 +107,8 @@ test.describe("@admin-live-db merchant customer readback", () => {
       // once due, reads as unavailable to staff rather than ready.
       await sql`
         update public.reward_events
-        set redeemable_from = public.uk_business_date(now())
+        set redeemable_from = public.uk_business_date(now()),
+            available_from = now() - interval '1 hour'
         where membership_id = ${fixture.waitingMembershipId}::uuid`
       await page.goto(`/app/customers?highlight=${fixture.waitingMembershipId}`)
       const phonelessMember = page

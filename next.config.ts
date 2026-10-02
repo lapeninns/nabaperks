@@ -1,5 +1,6 @@
 import type { NextConfig } from "next"
 import withBundleAnalyzer from "@next/bundle-analyzer"
+import { appEntryManifestPlugin } from "./scripts/webpack-app-entry-manifest"
 
 import {
   COMMON_SECURITY_HEADERS,
@@ -10,6 +11,12 @@ const playwrightDistDir = process.env.PLAYWRIGHT_NEXT_DIST_DIR?.trim()
 const isPlaywrightHarness = process.env.PLAYWRIGHT_HARNESS === "1"
 
 const nextConfig: NextConfig = {
+  webpack(config, { dev, isServer, buildId, webpack }) {
+    if (!dev && !isServer) {
+      config.plugins.push(appEntryManifestPlugin(buildId, webpack))
+    }
+    return config
+  },
   ...(playwrightDistDir ? { distDir: playwrightDistDir } : {}),
   ...(isPlaywrightHarness
     ? {
@@ -52,7 +59,18 @@ const nextConfig: NextConfig = {
           reactDebugChannel: false,
         }
       : {}),
-    optimizePackageImports: ["@hugeicons/react", "radix-ui", "motion"],
+    optimizePackageImports: [
+      "@hugeicons/react",
+      "radix-ui",
+      "motion",
+      "@/components/brand",
+      "@/components/layout",
+      "@/components/motion",
+      "@/components/forms",
+      "@/components/loyalty",
+      "@/components/marketing",
+      "@/components/marketing/landing",
+    ],
   },
   // Allow the loopback IP origin in dev so agent browser proofs driven against
   // http://127.0.0.1 can load `/_next` dev chunks (e.g. the dynamic Leaflet

@@ -6,10 +6,6 @@ import {
   type BrowserCustomerSession,
 } from "./customer-readback-live-db"
 
-type OwnerRow = {
-  readonly owner_user_id: string
-}
-
 /**
  * A venue whose availability gate is closed from the moment it is seeded. The
  * public QR lookup is served from the data cache (60s, merchant-tagged), so a
@@ -29,6 +25,7 @@ type UnavailableVenueRows = {
 }
 
 type PublicQrRouterRows = {
+  readonly ownerUserId: string
   readonly merchantId: string
   readonly merchantSlug: string
   readonly locationId: string
@@ -51,13 +48,11 @@ export type PublicQrRouterFixture = PublicQrRouterRows & {
 export async function createPublicQrRouterFixture(
   sql: Sql
 ): Promise<PublicQrRouterFixture | undefined> {
-  const ownerUserId = await seedDetachedOwnerUserId(sql)
-  if (!ownerUserId) return undefined
-
   const fixtureRows = createPublicQrRouterRows()
 
   try {
-    await insertPublicQrRouterRows(sql, fixtureRows, ownerUserId)
+    await sql`insert into auth.users (id, email) values (${fixtureRows.ownerUserId}::uuid, ${`${fixtureRows.merchantSlug}-owner@example.test`})`
+    await insertPublicQrRouterRows(sql, fixtureRows, fixtureRows.ownerUserId)
 
     return {
       ...fixtureRows,
@@ -115,6 +110,7 @@ export async function cleanupPublicQrRouterFixture(
   await sql`
     delete from public.merchants
     where id = ${fixture.merchantId}::uuid`
+  await sql`delete from auth.users where id = ${fixture.ownerUserId}::uuid`
 }
 
 export function publicQrPath(qrId: string): string {
@@ -154,21 +150,6 @@ async function cleanupUnavailableVenues(
   }
 }
 
-async function seedDetachedOwnerUserId(sql: Sql): Promise<string | undefined> {
-  const ownerRows = await sql<readonly OwnerRow[]>`
-    select users.id::text as owner_user_id
-    from auth.users
-    where not exists (
-      select 1
-      from public.merchants
-      where merchants.owner_user_id = users.id
-    )
-    order by users.email
-    limit 1`
-
-  return ownerRows.at(0)?.owner_user_id
-}
-
 function createPublicQrRouterRows(): PublicQrRouterRows {
   const runId = randomUUID().replaceAll("-", "").slice(0, 12)
   const activeQrId = `e2e-public-${runId}`
@@ -187,6 +168,7 @@ function createPublicQrRouterRows(): PublicQrRouterRows {
   )
 
   return {
+    ownerUserId: randomUUID(),
     merchantId: randomUUID(),
     merchantSlug: `e2e-public-qr-${runId}`,
     locationId: randomUUID(),

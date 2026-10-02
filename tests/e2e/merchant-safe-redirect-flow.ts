@@ -7,9 +7,9 @@ import {
   seedMerchantOwnerEmail,
 } from "./helpers/admin-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
+import { installLocalEmailSession } from "./helpers/admin-auth-session"
 
 const SEED_MERCHANT_SLUG = "old-crown-girton"
-const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
 export function describeMerchantSafeRedirects(): void {
   test.describe("@admin-live-db merchant safe redirects", () => {
@@ -28,6 +28,7 @@ export function describeMerchantSafeRedirects(): void {
       test.skip(!sql, "local Supabase DB is not configured")
       if (!sql) return
 
+      let cleanupSession: (() => Promise<void>) | undefined
       const unsafeNext = "/\t/evil.example"
 
       try {
@@ -48,9 +49,13 @@ export function describeMerchantSafeRedirects(): void {
           page.getByRole("heading", { name: "Back to the counter" })
         ).toBeVisible()
 
-        await page.locator("#email").fill(merchantEmail)
-        await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
-        await page.getByRole("button", { name: "Log in" }).click()
+        await expect(page.getByLabel("Venue email")).toBeVisible()
+        await expect(page.locator('input[type="password"]')).toHaveCount(0)
+        cleanupSession = await installLocalEmailSession(
+          page.context(),
+          merchantEmail
+        )
+        await page.goto(`/login?next=${encodeURIComponent(unsafeNext)}`)
 
         await expect(page).toHaveURL((url) => url.pathname !== "/login")
 
@@ -59,6 +64,7 @@ export function describeMerchantSafeRedirects(): void {
         expect(redirectedUrl.hostname).not.toBe("evil.example")
         expect(redirectedUrl.pathname).toBe("/app")
       } finally {
+        if (cleanupSession) await cleanupSession()
         await sql.end({ timeout: 5 })
       }
     })

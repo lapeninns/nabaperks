@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { createHash } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { createClient } from "@supabase/supabase-js"
 
 import { deterministicFunnelEventId } from "../../lib/analytics/funnel-token"
@@ -64,7 +64,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
 
   test("the real local route is idempotent and drops a tampered identity", async ({
     page,
-  }) => {
+  }, testInfo) => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
     const parsedSupabaseUrl = URL.canParse(supabaseUrl)
@@ -86,12 +86,20 @@ test.describe("desktop privacy-safe merchant funnel", () => {
     let lostResponseEventId = ""
     let rejectedEventId = ""
     let rejectedFreshEventId = ""
-    const localBucketKeys = [
-      "unknown",
-      "127.0.0.1",
-      "::1",
-      "::ffff:127.0.0.1",
-    ].map(analyticsRateLimitBucketKey)
+    const fixtureIp = `2001:db8:${randomUUID()
+      .replaceAll("-", "")
+      .slice(0, 24)
+      .match(/.{4}/g)!
+      .join(":")}`
+    await page.setExtraHTTPHeaders({ "x-vercel-forwarded-for": fixtureIp })
+    const localBucketKeys = [analyticsRateLimitBucketKey(fixtureIp)]
+    const { count: preexistingBuckets, error: preexistingError } =
+      await supabase
+        .from("rate_limit_buckets")
+        .select("bucket_key", { count: "exact", head: true })
+        .in("bucket_key", localBucketKeys)
+    if (preexistingError) throw preexistingError
+    expect(preexistingBuckets).toBe(0)
 
     try {
       let lostToken = ""
@@ -233,6 +241,8 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       if (signupClickCountAfterError) throw signupClickCountAfterError
       expect(signupClickCountAfter).toBe(signupClickCountBefore)
     } finally {
+      // Stop this fixture's asynchronous tracker before removing its own rows.
+      await page.close()
       const ids = [
         eventId,
         lostResponseEventId,
@@ -259,6 +269,17 @@ test.describe("desktop privacy-safe merchant funnel", () => {
         .select("bucket_key", { count: "exact", head: true })
         .in("bucket_key", localBucketKeys)
       expect(bucketCount).toBe(0)
+      await testInfo.attach("analytics-owned-fixture-cleanup", {
+        body: JSON.stringify({
+          mode: "REAL_NEXT_REAL_DB_RESERVED_TRUSTED_PROXY_FIXTURE_IP",
+          fixtureIp,
+          preexistingBuckets,
+          cleanupBucketCount: bucketCount,
+          browserClosedBeforeCleanup: true,
+          sharedUnknownBucketsPurged: false,
+        }),
+        contentType: "application/json",
+      })
     }
   })
 })

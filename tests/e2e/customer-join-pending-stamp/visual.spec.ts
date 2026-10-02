@@ -53,7 +53,10 @@ test.describe("first-stamp recovery", () => {
       await expect(page).toHaveURL(/\/card\/[^?]+/)
       await expect(page.getByText("Your card is saved.")).toBeVisible()
       await expect(
-        page.getByText("This venue is not taking stamps just now.")
+        page.getByRole("alert").filter({
+          hasText:
+            "Your first stamp didn't go through, and this venue isn't adding stamps just now. Ask a team member for help.",
+        })
       ).toBeVisible()
 
       await page.reload()
@@ -77,14 +80,24 @@ test.describe("first-stamp recovery", () => {
       await page.reload()
       await page.getByRole("button", { name: "Try again", exact: true }).click()
       await expect(page).toHaveURL(new RegExp(`/card/${joined.membership_id}`))
-      await expect(page.getByText("Your card is full.")).toBeVisible()
+      await expect(page.getByText("Your reward is unlocked.")).toBeVisible()
+      await expect(
+        page.getByRole("link", { name: "See my reward", exact: true })
+      ).toBeVisible()
       await expect(
         page.getByRole("button", { name: "Try again", exact: true })
       ).toHaveCount(0)
 
       const resolved = await readJoinedMembership(sql, fixture, phone)
       expect(resolved?.stamp_count).toBe(1)
-      expect(resolved?.current_stamp_count).toBe(1)
+      expect(resolved?.total_stamps_earned).toBe(1)
+      // Completing the one-stamp cycle opens the next empty cycle.
+      expect(resolved?.current_stamp_count).toBe(0)
+      const [reward] = await sql`
+        select count(*)::integer as count from public.reward_events
+        where membership_id = ${joined.membership_id}::uuid
+          and source = 'stamp_cycle'`
+      expect(reward?.count).toBe(1)
 
       const [replayed] = await sql`
         select * from public.retry_customer_join_first_stamp(

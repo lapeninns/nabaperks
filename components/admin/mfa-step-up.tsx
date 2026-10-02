@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation"
 
 import { Eyebrow } from "@/components/brand"
 import { Button } from "@/components/ui/button"
-import { stepUpAdminWebAuthn } from "@/lib/admin/webauthn-mfa"
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser"
 
 export function AdminMfaStepUp({ operatorEmail }: { operatorEmail: string }) {
   const router = useRouter()
@@ -16,6 +14,11 @@ export function AdminMfaStepUp({ operatorEmail }: { operatorEmail: string }) {
   const verify = () =>
     startTransition(async () => {
       setError(null)
+      const [{ stepUpAdminWebAuthn }, { getSupabaseBrowserClient }] =
+        await Promise.all([
+          import("@/lib/admin/webauthn-mfa"),
+          import("@/lib/supabase/browser"),
+        ])
       const result = await stepUpAdminWebAuthn(getSupabaseBrowserClient())
       if (!result.ok) {
         setError(result.error)

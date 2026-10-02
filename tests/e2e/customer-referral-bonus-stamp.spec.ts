@@ -93,8 +93,8 @@ test.describe("@customer-flow referral bonus share live DB", () => {
       const [membership] = await sql<
         readonly { id: string; referral_code: string; business_slug: string }[]
       >`
-        insert into public.customer_memberships (merchant_id, customer_id)
-        values (${merchant.id}::uuid, ${customer.id}::uuid)
+        insert into public.customer_memberships (merchant_id, customer_id, current_stamp_count, total_stamps_earned)
+        values (${merchant.id}::uuid, ${customer.id}::uuid, 1, 1)
         returning
           id::text as id,
           referral_code,
@@ -105,7 +105,8 @@ test.describe("@customer-flow referral bonus share live DB", () => {
 
       await page.goto(`/card/${membership.id}`)
 
-      // The card surfaces the "Bring a Regular" share panel, whose link carries
+      // A card with its first stamp surfaces the share panel; zero-stamp welcome
+      // cards deliberately omit it. The link carries
       // the opaque referral_code — never the membership UUID or customer id.
       const share = page.getByTestId("referral-share-panel")
       await expect(share).toBeVisible()

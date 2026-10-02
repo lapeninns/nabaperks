@@ -39,11 +39,8 @@ import {
   insertFraudFlag,
   pickSeedMembership,
 } from "./helpers/admin-live-db"
-import { installSeededAdminAal2Session } from "./helpers/admin-mfa-session"
-import {
-  dismissPwaInstall,
-  waitForHydratedPage,
-} from "./helpers/harness"
+import { installSeededAdminSession } from "./helpers/admin-auth-session"
+import { dismissPwaInstall, waitForHydratedPage } from "./helpers/harness"
 
 const LIVE_ADMIN_CONTENT_TIMEOUT_MS = 30_000
 
@@ -161,6 +158,13 @@ async function recordPrivacyActionsThroughUi(
     `input[name="customerId"][value="${fixture.membership.customer_id}"]`
   )
 
+  await expect(optOutForm.getByRole("status")).toHaveText(
+    "Opt-out recorded. Logged to the audit trail."
+  )
+  await expect(
+    optOutForm.getByRole("button", { name: "Record opt-out" })
+  ).toBeEnabled()
+
   const dataRequestForm = page
     .locator(
       `form:has(input[name="customerId"][value="${fixture.membership.customer_id}"]):has(select[name="requestType"])`
@@ -207,7 +211,7 @@ export function describeAdminAuthenticatedActions(): void {
         await insertFraudFlag(sql, fixture)
 
         try {
-          const cleanupAdminMfa = await installSeededAdminAal2Session(
+          const cleanupAdminSession = await installSeededAdminSession(
             page.context()
           )
 
@@ -237,7 +241,7 @@ export function describeAdminAuthenticatedActions(): void {
 
             await recordPrivacyActionsThroughUi(page, fixture, sql)
           } finally {
-            await cleanupAdminMfa()
+            await cleanupAdminSession()
           }
         } finally {
           await cleanupAdminRows(sql, fixture)

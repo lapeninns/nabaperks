@@ -6,7 +6,7 @@ import {
   connectLocalDb,
   type Sql,
 } from "./helpers/admin-live-db"
-import { installSeededAdminAal2Session } from "./helpers/admin-mfa-session"
+import { installSeededAdminSession } from "./helpers/admin-auth-session"
 import { dismissPwaInstall } from "./helpers/harness"
 
 type BillingSeedRow = {
@@ -124,7 +124,7 @@ export function describeAdminBillingRedaction(): void {
           const visibleText = (text: string) =>
             page.getByText(text).filter({ visible: true }).first()
 
-          const cleanupAdminMfa = await installSeededAdminAal2Session(
+          const cleanupAdminSession = await installSeededAdminSession(
             page.context()
           )
 
@@ -133,7 +133,9 @@ export function describeAdminBillingRedaction(): void {
             await expect(
               visibleText(fixture.previous.merchant_name)
             ).toBeVisible()
-            await expect(visibleText(fixture.maskedSubscriptionRef)).toBeVisible()
+            await expect(
+              visibleText(fixture.maskedSubscriptionRef)
+            ).toBeVisible()
             await expect(visibleText(fixture.maskedCustomerRef)).toBeVisible()
             await expect(visibleText("Past due")).toBeVisible()
 
@@ -141,7 +143,7 @@ export function describeAdminBillingRedaction(): void {
             expect(html).not.toContain(fixture.stripeSubscriptionId)
             expect(html).not.toContain(fixture.stripeCustomerId)
           } finally {
-            await cleanupAdminMfa()
+            await cleanupAdminSession()
           }
         } finally {
           await restoreBillingRedactionFixture(sql, fixture)

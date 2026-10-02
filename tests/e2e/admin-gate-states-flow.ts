@@ -9,10 +9,10 @@ import {
   type InternalAdminAccount,
 } from "./helpers/admin-gate-db"
 import { dismissPwaInstall } from "./helpers/harness"
+import { installLocalEmailSession } from "./helpers/admin-auth-session"
 
 type AdminCredentials = {
   readonly email: string
-  readonly password: string
 }
 
 type AdminGateAccount = AdminCredentials &
@@ -25,34 +25,30 @@ type AdminResponseError = {
   readonly url: string
 }
 
-const PASSWORD = "NabaperksDemo1!"
+const sessionCleanups = new WeakMap<Page, () => Promise<void>>()
+
 const INTERNAL_ADMIN_REASON = "Internal admin access is required."
-const ADMIN_REDIRECT_TIMEOUT_MS = 30_000
 
 const ACTIVE_ADMIN = {
   email: "admin@nabaperks.test",
-  password: PASSWORD,
 } satisfies AdminCredentials
 
 const MERCHANT_ACCOUNT = {
   label: "alternate seed merchant",
   userId: "00000000-0000-0000-0000-000000000102",
   email: "jordan@bubble-yard.test",
-  password: PASSWORD,
 } satisfies AdminGateAccount
 
 const INACTIVE_ADMIN_MOBILE = {
   label: "mobile inactive admin",
   userId: "00000000-0000-0000-0000-000000000201",
   email: "staff-a@nabaperks.test",
-  password: PASSWORD,
 } satisfies AdminGateAccount
 
 const INACTIVE_ADMIN_DESKTOP = {
   label: "desktop inactive admin",
   userId: "00000000-0000-0000-0000-000000000202",
   email: "staff-b@nabaperks.test",
-  password: PASSWORD,
 } satisfies AdminGateAccount
 
 function inactiveAdminAccount(testInfo: TestInfo): AdminGateAccount {
@@ -68,20 +64,13 @@ async function signInToAdmin(
   await page.setExtraHTTPHeaders({
     "x-vercel-forwarded-for": localLoopbackIp(randomUUID()),
   })
-  await page.goto("/login?next=/admin")
-  await expect(
-    page.getByRole("heading", { name: "Back to the counter" })
-  ).toBeVisible()
-
-  await page.locator("#email").fill(credentials.email)
-  await page.locator("#password").fill(credentials.password)
-  await Promise.all([
-    page.waitForURL((url) => url.pathname === "/admin", {
-      waitUntil: "domcontentloaded",
-      timeout: ADMIN_REDIRECT_TIMEOUT_MS,
-    }),
-    page.getByRole("button", { name: "Log in" }).click(),
-  ])
+  const cleanup = await installLocalEmailSession(
+    page.context(),
+    credentials.email
+  )
+  sessionCleanups.set(page, cleanup)
+  await page.goto("/admin")
+  await expect(page).toHaveURL(/\/admin$/)
 }
 
 function localLoopbackIp(nonce: string): string {
@@ -128,6 +117,12 @@ export function describeAdminGateStates(): void {
 
     test.beforeEach(async ({ page }) => {
       await dismissPwaInstall(page)
+    })
+
+    test.afterEach(async ({ page }) => {
+      const cleanup = sessionCleanups.get(page)
+      sessionCleanups.delete(page)
+      if (cleanup) await cleanup()
     })
 
     test("denies a merchant account without rendering the admin shell", async ({
@@ -195,14 +190,18 @@ export function describeAdminGateStates(): void {
       }
     })
 
-    test("allows a seeded admin into the admin shell with email and password", async ({
+    test("allows a seeded admin into the admin shell with a verified email session", async ({
       page,
     }) => {
       const adminResponseErrors = collectAdminResponseErrors(page)
       await signInToAdmin(page, ACTIVE_ADMIN)
-      await expect(
-        page.getByRole("navigation", { name: "Admin navigation" })
-      ).toBeVisible()
+      const navigation = page.getByRole("navigation", {
+        name: "Admin navigation",
+      })
+      if (!(await navigation.isVisible())) {
+        await page.getByRole("button", { name: "Toggle Sidebar" }).click()
+      }
+      await expect(navigation).toBeVisible()
       await expect(page.getByText("Operator:")).toBeVisible()
       expect(new URL(page.url()).pathname).toBe("/admin")
       expect(adminResponseErrors).toEqual([])

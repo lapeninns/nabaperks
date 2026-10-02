@@ -8,7 +8,7 @@ import {
   databaseIsReady,
   pickSeedMembership,
 } from "./helpers/admin-live-db"
-import { installSeededAdminAal2Session } from "./helpers/admin-mfa-session"
+import { installSeededAdminSession } from "./helpers/admin-auth-session"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
@@ -45,7 +45,7 @@ test.describe("@admin-live-db admin subject-access export", () => {
       test.skip(!membership, "seed customer membership is not available")
       if (!membership) return
 
-      const cleanupAdminMfa = await installSeededAdminAal2Session(
+      const cleanupAdminSession = await installSeededAdminSession(
         page.context()
       )
       try {
@@ -91,7 +91,7 @@ test.describe("@admin-live-db admin subject-access export", () => {
           /^data:application\/json/
         )
       } finally {
-        await cleanupAdminMfa()
+        await cleanupAdminSession()
       }
     } finally {
       await sql`

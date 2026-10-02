@@ -78,7 +78,7 @@ export function registerCustomerVenueCodeLiveDbTests() {
         await root.getByRole("button", { name: "Share my location" }).click()
         await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
         await expect(root.locator("[data-stamp-status-band]")).toContainText(
-          "ask a team member for today's code"
+          "ask a team member for today's venue code"
         )
         const form = root.locator("[data-venue-code-form]")
         await expect(form).toBeVisible()

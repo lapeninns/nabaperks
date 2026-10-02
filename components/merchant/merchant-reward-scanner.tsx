@@ -1,38 +1,14 @@
 "use client"
 
-import {
-  Html5Qrcode,
-  Html5QrcodeScannerState,
-  Html5QrcodeSupportedFormats,
-} from "html5-qrcode"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { Eyebrow, ReceiptCard } from "@/components/brand"
+import { ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { normalizeScannedRewardDestination } from "@/lib/merchant/reward-scanner"
-
-// Single source for the scan-card header. The live scanner, the dynamic-import
-// fallback, and the route-level loading skeleton all render this so the
-// eyebrow/title/lede/size stay in lockstep with one copy edit, and the title
-// matches the PageTitle size used by the reward-scan deep-link page
-// (text-3xl sm:text-4xl) rather than the old bespoke text-2xl heading.
-export function ScanCardHeader() {
-  return (
-    <div className="grid gap-1.5">
-      <Eyebrow>Customer codes</Eyebrow>
-      <h1 className="text-3xl leading-tight font-extrabold tracking-[-0.01em] sm:text-4xl">
-        Scan customer code
-      </h1>
-      <p className="text-sm leading-6 text-muted-foreground">
-        Point your camera at the code on the customer&apos;s phone. It can be a
-        reward to collect or a discount pass to honour, and we will open the
-        right screen for it.
-      </p>
-    </div>
-  )
-}
+import { createQrCameraScanner } from "@/lib/qr/qr-camera-scanner"
+import { ScanCardHeader } from "./scan-card-header"
 
 type CameraErrorReason = "denied" | "not-found" | "busy" | "unavailable"
 
@@ -44,30 +20,6 @@ type ScannerStatus =
   | { readonly kind: "camera-error"; readonly reason: CameraErrorReason }
 
 const SCANNER_ELEMENT_ID = "nabaperks-merchant-reward-scanner"
-const SCAN_CONFIG = {
-  fps: 10,
-  // Viewport-relative shaded box: scale to 80% of the smaller camera edge so it
-  // never crowds the ~272px inner width of the p-6 ReceiptCard on a 320px phone,
-  // while still capping at 250px on larger screens. >=180px keeps the box usable
-  // on the smallest target. UI/config only — no scan semantics change.
-  qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-    const edge = Math.max(
-      180,
-      Math.min(
-        250,
-        Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8)
-      )
-    )
-    return { width: edge, height: edge }
-  },
-  aspectRatio: 1,
-  disableFlip: false,
-}
-
-// html5-qrcode rejects `start()` with a DOMException (or, on some browsers, its
-// string message) describing why the camera could not open. Map the well-known
-// getUserMedia error names to a specific reason so the announced status and the
-// remediation copy can name the actual failure instead of "Camera unavailable".
 function cameraErrorReason(error: unknown): CameraErrorReason {
   const name =
     error instanceof Error ? error.name : typeof error === "string" ? error : ""
@@ -104,45 +56,6 @@ const CAMERA_ERROR_DETAIL: Record<CameraErrorReason, string> = {
     "Allow camera access in your browser and use HTTPS or localhost, then try again.",
 }
 
-function canStopScanner(state: Html5QrcodeScannerState): boolean {
-  return (
-    state === Html5QrcodeScannerState.SCANNING ||
-    state === Html5QrcodeScannerState.PAUSED
-  )
-}
-
-function handleScannerError(error: unknown): void {
-  if (error instanceof Error || typeof error === "string") {
-    return
-  }
-
-  throw error
-}
-
-// Synchronously release the camera hardware by stopping every track on the
-// injected <video>'s MediaStream. `scanner.stop()` is async and may not finish
-// before navigation tears the component down, so this is the immediate fallback
-// that turns the camera light off the moment cleanup runs.
-function stopVideoTracks(): void {
-  const mountTarget = document.getElementById(SCANNER_ELEMENT_ID)
-  const video = mountTarget?.querySelector("video")
-  const stream = video?.srcObject
-
-  if (stream instanceof MediaStream) {
-    for (const track of stream.getTracks()) {
-      track.stop()
-    }
-  }
-}
-
-async function stopAndClearScanner(scanner: Html5Qrcode): Promise<void> {
-  if (canStopScanner(scanner.getState())) {
-    await scanner.stop()
-  }
-
-  scanner.clear()
-}
-
 export function MerchantRewardScanner() {
   const router = useRouter()
   const hasDecodedRef = useRef(false)
@@ -153,85 +66,41 @@ export function MerchantRewardScanner() {
     let disposed = false
     hasDecodedRef.current = false
     const mountTarget = document.getElementById(SCANNER_ELEMENT_ID)
-    if (mountTarget) {
-      mountTarget.replaceChildren()
-    }
-
-    const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID, {
-      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-      useBarCodeDetectorIfSupported: true,
-      verbose: false,
-    })
-
-    async function navigateAfterScan(result: { readonly href: string }) {
-      try {
-        await stopAndClearScanner(scanner)
-      } catch (error) {
-        handleScannerError(error)
+    if (!mountTarget) return
+    mountTarget.replaceChildren()
+    const reportCameraError = (error: unknown) => {
+      if (!disposed) {
+        setStatus({ kind: "camera-error", reason: cameraErrorReason(error) })
       }
-
-      router.push(result.href)
     }
+    const scanner = createQrCameraScanner(
+      mountTarget,
+      (decodedText) => {
+        if (hasDecodedRef.current || disposed) return
+        const result = normalizeScannedRewardDestination(
+          decodedText,
+          window.location.origin
+        )
+        if (result.kind === "invalid") {
+          setStatus((previous) =>
+            previous.kind === "invalid" ? previous : { kind: "invalid" }
+          )
+          return
+        }
+        hasDecodedRef.current = true
+        setStatus({ kind: "decoded" })
+        scanner.stop()
+        router.push(result.href)
+      },
+      reportCameraError
+    )
 
     async function startScanner() {
       try {
-        await scanner.start(
-          { facingMode: "environment" },
-          SCAN_CONFIG,
-          (decodedText) => {
-            if (hasDecodedRef.current || disposed) {
-              return
-            }
-
-            const result = normalizeScannedRewardDestination(
-              decodedText,
-              window.location.origin
-            )
-
-            if (result.kind === "invalid") {
-              if (!disposed) {
-                // Latch the invalid state so a fresh object isn't created on
-                // every decode tick (~10fps) while the camera keeps reading the
-                // same non-reward QR.
-                setStatus((prev) =>
-                  prev.kind === "invalid" ? prev : { kind: "invalid" }
-                )
-              }
-
-              return
-            }
-
-            hasDecodedRef.current = true
-
-            if (!disposed) {
-              setStatus({ kind: "decoded" })
-            }
-
-            void navigateAfterScan(result)
-          },
-          undefined
-        )
-
-        if (disposed) {
-          await stopAndClearScanner(scanner)
-          return
-        }
-
-        setStatus({ kind: "scanning" })
+        await scanner.start()
+        if (!disposed) setStatus({ kind: "scanning" })
       } catch (error) {
-        if (disposed) {
-          return
-        }
-
-        if (error instanceof Error || typeof error === "string") {
-          setStatus({
-            kind: "camera-error",
-            reason: cameraErrorReason(error),
-          })
-          return
-        }
-
-        throw error
+        reportCameraError(error)
       }
     }
 
@@ -239,11 +108,7 @@ export function MerchantRewardScanner() {
 
     return () => {
       disposed = true
-      // Release the camera hardware synchronously first — `stopAndClearScanner`
-      // is async and may not settle before navigation unmounts us, leaving the
-      // MediaStream (and the camera light) alive.
-      stopVideoTracks()
-      void stopAndClearScanner(scanner).catch(handleScannerError)
+      scanner.stop()
     }
   }, [router, retryCount])
 

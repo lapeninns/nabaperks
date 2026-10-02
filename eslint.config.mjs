@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     // Git-excluded local artifacts: a parallel Linux build output and QA
     // evidence captures. Clean CI checkouts never contain them.
     ".next-e2e-linux/**",
+    ".next-*/**",
+    "artifacts/qa/**",
     "QA_CERTIFICATION_EVIDENCE/**",
     "out/**",
     "build/**",

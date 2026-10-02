@@ -1,12 +1,13 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import type { InputHTMLAttributes } from "react"
+import { useState, type InputHTMLAttributes } from "react"
 
 import { Eyebrow } from "@/components/brand"
 import { FormField } from "@/components/forms"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 export type VenueCoordinates = {
   latitude: number
@@ -52,6 +53,7 @@ export function AdvancedGpsChecks({
   onTriggerStampChange: (value: string) => void
   onPinChange: (coordinates: VenueCoordinates) => void
 }) {
+  const [mapVisible, setMapVisible] = useState(false)
   return (
     <Disclosure
       label="Advanced GPS checks"
@@ -104,12 +106,22 @@ export function AdvancedGpsChecks({
       </p>
       {requireGeofence && pin ? (
         <div className="grid gap-2">
-          <VenuePinMap
-            latitude={pin.latitude}
-            longitude={pin.longitude}
-            radiusMeters={mapRadiusMeters}
-            onPinChange={onPinChange}
-          />
+          {mapVisible ? (
+            <VenuePinMap
+              latitude={pin.latitude}
+              longitude={pin.longitude}
+              radiusMeters={mapRadiusMeters}
+              onPinChange={onPinChange}
+            />
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMapVisible(true)}
+            >
+              Show venue map
+            </Button>
+          )}
           <p className="text-xs leading-5 text-muted-foreground">
             Drag the pin to your real entrance — the soft GPS check measures
             from this exact spot, not the postcode centre.

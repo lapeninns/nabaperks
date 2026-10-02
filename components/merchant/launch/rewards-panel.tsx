@@ -9,7 +9,7 @@ import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-r
 import {
   RewardPoolForm,
   type RewardPoolItemValues,
-} from "@/components/merchant/loyalty-card-form"
+} from "@/components/merchant/reward-pool-form"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"

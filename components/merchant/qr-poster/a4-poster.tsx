@@ -11,7 +11,7 @@ import {
   PosterDesktopSidecar,
   PosterPreviewChrome,
 } from "./poster-preview-chrome"
-import { PosterDesignSheet } from "./poster-renderer-registry"
+import { PosterSheet } from "./poster-sheet"
 
 type A4PosterProps = {
   readonly template: QrPosterTemplateId
@@ -123,23 +123,4 @@ export function A4Poster({
   )
 }
 
-export type PosterSheetProps = Pick<
-  A4PosterProps,
-  "template" | "qrDataUrl" | "merchantName" | "stampsRequired"
->
-
-export function PosterSheet({
-  template,
-  qrDataUrl,
-  merchantName,
-  stampsRequired,
-}: PosterSheetProps) {
-  return (
-    <PosterDesignSheet
-      template={template}
-      qrDataUrl={qrDataUrl}
-      merchantName={merchantName}
-      stampsRequired={stampsRequired}
-    />
-  )
-}
+export { PosterSheet, type PosterSheetProps } from "./poster-sheet"

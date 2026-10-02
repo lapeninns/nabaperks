@@ -9,7 +9,10 @@ import {
 import { dismissPwaInstall } from "./helpers/harness"
 
 const SEED_MERCHANT_SLUG = "old-crown-girton"
-const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
+import {
+  installLocalEmailSession,
+  type AdminSessionCleanup,
+} from "./helpers/admin-auth-session"
 
 const MERCHANT_ACCOUNT_COMPAT_ROUTES = [
   {
@@ -70,7 +73,7 @@ async function signInThroughNext(
   page: Page,
   next: string,
   merchantEmail: string
-): Promise<void> {
+): Promise<AdminSessionCleanup> {
   await page.setExtraHTTPHeaders({
     "x-vercel-forwarded-for": localLoopbackIp(randomUUID()),
   })
@@ -79,9 +82,11 @@ async function signInThroughNext(
     page.getByRole("heading", { name: "Back to the counter" })
   ).toBeVisible()
 
-  await page.locator("#email").fill(merchantEmail)
-  await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
-  await page.getByRole("button", { name: "Log in" }).click()
+  await expect(page.getByLabel("Venue email")).toBeVisible()
+  await expect(page.locator('input[type="password"]')).toHaveCount(0)
+  const cleanup = await installLocalEmailSession(page.context(), merchantEmail)
+  await page.goto(`/login?next=${encodeURIComponent(next)}`)
+  return cleanup
 }
 
 function localLoopbackIp(nonce: string): string {
@@ -172,6 +177,7 @@ test.describe("merchant account compatibility route gates", () => {
       if (!sql) return
 
       const [firstRoute, ...remainingRoutes] = AUTHENTICATED_COMPAT_ROUTES
+      let cleanupSession: AdminSessionCleanup | undefined
 
       try {
         const merchantEmail = await seedMerchantOwnerEmail(
@@ -181,7 +187,11 @@ test.describe("merchant account compatibility route gates", () => {
         test.skip(!merchantEmail, "seed merchant owner email is not available")
         if (!merchantEmail) return
 
-        await signInThroughNext(page, firstRoute.path, merchantEmail)
+        cleanupSession = await signInThroughNext(
+          page,
+          firstRoute.path,
+          merchantEmail
+        )
         await expectAuthenticatedCompatRoute(page, firstRoute)
 
         for (const compatRoute of remainingRoutes) {
@@ -189,6 +199,7 @@ test.describe("merchant account compatibility route gates", () => {
           await expectAuthenticatedCompatRoute(page, compatRoute)
         }
       } finally {
+        if (cleanupSession) await cleanupSession()
         await sql.end({ timeout: 5 })
       }
     })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
 import {
   ArrowLeft01Icon,
@@ -20,15 +20,11 @@ import { cn } from "@/lib/utils"
 
 export function SwipePosterPicker({
   initialTemplate,
-  qrDataUrl,
-  venueName,
-  stampsRequired,
+  previewSheets,
   posterHrefs,
 }: {
   readonly initialTemplate: QrPosterTemplateId
-  readonly qrDataUrl: string
-  readonly venueName: string
-  readonly stampsRequired: number
+  readonly previewSheets: readonly ReactNode[]
   readonly posterHrefs: Readonly<Record<QrPosterTemplateId, string>>
 }) {
   const initialIndex = Math.max(
@@ -47,8 +43,16 @@ export function SwipePosterPicker({
     const slide = slideRefs.current[index]
     if (!track || !slide) return
 
+    const trackBounds = track.getBoundingClientRect()
+    const slideBounds = slide.getBoundingClientRect()
     track.scrollTo({
-      left: slide.offsetLeft - (track.clientWidth - slide.clientWidth) / 2,
+      left:
+        track.scrollLeft +
+        slideBounds.left +
+        slideBounds.width / 2 -
+        trackBounds.left -
+        track.clientLeft -
+        track.clientWidth / 2,
       behavior,
     })
   }
@@ -128,7 +132,7 @@ export function SwipePosterPicker({
             }}
             aria-current={activeIndex === index ? "true" : undefined}
             className={cn(
-              "grid w-[82%] min-w-0 shrink-0 snap-center gap-3 rounded-lg border-2 border-ink bg-card p-3 transition-[transform,opacity,box-shadow] duration-300 motion-reduce:transition-none sm:w-[64%] lg:w-[28rem]",
+              "grid w-full min-w-0 shrink-0 snap-center gap-3 rounded-lg border-2 border-ink bg-card p-3 transition-[transform,opacity,box-shadow] duration-300 motion-reduce:transition-none lg:w-[28rem]",
               activeIndex === index
                 ? "opacity-100 shadow-md"
                 : "scale-[0.96] opacity-55 shadow-none"
@@ -146,13 +150,9 @@ export function SwipePosterPicker({
               </span>
             </div>
             <div className="mx-auto w-full max-w-56 rounded-md border-2 border-ink bg-paper p-1.5">
-              <PosterThumbnail
-                previewLabel={`${item.name} poster preview`}
-                template={item.id}
-                qrDataUrl={qrDataUrl}
-                merchantName={venueName}
-                stampsRequired={stampsRequired}
-              />
+              <PosterThumbnail previewLabel={`${item.name} poster preview`}>
+                {previewSheets[index]}
+              </PosterThumbnail>
             </div>
             <Button asChild variant="reward" className="w-full">
               <Link

@@ -1,3 +1,4 @@
+import { installLocalEmailSession } from "./helpers/admin-auth-session"
 import { randomUUID } from "node:crypto"
 import { expect, test } from "@playwright/test"
 import type { Page } from "@playwright/test"
@@ -10,7 +11,8 @@ import {
 } from "./helpers/admin-live-db"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
-const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
+const sessionCleanups = new WeakMap<Page, () => Promise<void>>()
+
 const SEED_MERCHANT_SLUG = "old-crown-girton"
 
 type SeedQrImageFixture = {
@@ -38,9 +40,11 @@ async function signInAsSeededMerchant(
     page.getByRole("heading", { name: "Back to the counter" })
   ).toBeVisible()
 
-  await page.locator("#email").fill(merchantEmail)
-  await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
-  await page.getByRole("button", { name: "Log in" }).click()
+  sessionCleanups.set(
+    page,
+    await installLocalEmailSession(page.context(), merchantEmail)
+  )
+  await page.goto("/app/qr")
 
   await expect(page).toHaveURL((url) => url.pathname.startsWith("/app"))
 }
@@ -305,4 +309,10 @@ test.describe("Merchant QR image route", () => {
       }
     })
   })
+})
+
+test.afterEach(async ({ page }) => {
+  const cleanup = sessionCleanups.get(page)
+  sessionCleanups.delete(page)
+  if (cleanup) await cleanup()
 })

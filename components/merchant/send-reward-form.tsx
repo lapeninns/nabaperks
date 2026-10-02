@@ -9,7 +9,10 @@ import {
 import { Eyebrow } from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
-import { Field, TextareaField } from "@/components/merchant/loyalty-card-form"
+import {
+  Field,
+  TextareaField,
+} from "@/components/merchant/merchant-form-fields"
 import {
   DEFAULT_SEND_REWARD_EXPIRY_DAYS,
   SEND_REWARD_EXPIRY_OPTIONS,

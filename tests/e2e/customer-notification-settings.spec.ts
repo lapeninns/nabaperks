@@ -57,7 +57,9 @@ test.describe("customer notification settings", () => {
       // the settings expanded.
       await control.click()
       await expect(
-        page.getByText("Next stamp windows and reward expiry notices.")
+        page.getByText(
+          "When your next stamp is due and before a reward expires."
+        )
       ).toBeVisible()
     } finally {
       await cleanupCustomerReadbackFixture(sql, fixture)

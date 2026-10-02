@@ -17,7 +17,7 @@ import {
   Field,
   TextareaField,
   ToggleRow,
-} from "@/components/merchant/loyalty-card-form"
+} from "@/components/merchant/merchant-form-fields"
 import type { BirthdayRewardTemplate } from "@/lib/merchant/birthday-reward-template"
 
 const initialState: BirthdayRewardActionState = {}

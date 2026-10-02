@@ -10,8 +10,6 @@ import {
 } from "@/app/admin/security/actions"
 import { SubmitButton } from "@/components/forms"
 import { Button } from "@/components/ui/button"
-import { registerAdminWebAuthnFactor } from "@/lib/admin/webauthn-mfa"
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser"
 
 const IDLE: AdminMfaFormState = { ok: false, error: null }
 
@@ -68,6 +66,11 @@ function EnrollPanel() {
         return
       }
 
+      const [{ registerAdminWebAuthnFactor }, { getSupabaseBrowserClient }] =
+        await Promise.all([
+          import("@/lib/admin/webauthn-mfa"),
+          import("@/lib/supabase/browser"),
+        ])
       const result = await registerAdminWebAuthnFactor(
         getSupabaseBrowserClient()
       )

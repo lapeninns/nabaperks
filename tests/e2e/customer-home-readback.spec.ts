@@ -59,7 +59,7 @@ test.describe("@customer-flow customer home readback", () => {
       await expect(page.getByText(fixture.expiredRewardName)).toBeVisible()
       await expect(page.getByText("Browser readback ready terms")).toBeVisible()
       await expect(
-        page.getByRole("link", { name: "Open reward QR" })
+        page.getByRole("link", { name: "Open reward", exact: true })
       ).toBeVisible()
       await expect(page.locator("body")).not.toContainText(
         fixture.rawPrivateEmail
