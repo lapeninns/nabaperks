@@ -1,0 +1,15 @@
+{
+  "policy": "docs/operations/dependency-vulnerability-policy.md",
+  "exceptions": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "cve": "CVE-2026-93687",
+      "module": "braces",
+      "scope": "development",
+      "owner": "lapeninns",
+      "approved": "2026-10-03",
+      "reviewBy": "2026-10-31",
+      "reason": "No patched braces exists: every version through 3.0.3, the latest release, is affected. braces is reachable only through development tooling (eslint-config-next, shadcn and the vercel CLI) and not from any production dependency, which the audit re-checks with pnpm why --prod on every run. In CI and the release build it expands glob patterns written in this repository's own tool configuration, not patterns supplied by guests, merchants or other untrusted input, so the stack-exhaustion denial of service needs a malicious committed pattern and would at worst crash a build or lint process."
+    }
+  ]
+}

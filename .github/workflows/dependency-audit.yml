@@ -72,6 +72,10 @@ jobs:
                   "",
                   ...verdict.advisories.map((a) => `- ${a.severity}: \`${a.module}\` ${a.title} (${a.url})`),
                 ];
+            // An excepted advisory keeps the issue open until it is fixed or
+            // its review date passes and the audit fails again.
+            const excepted = (verdict.excepted ?? []).map((a) => `- ${a.severity}: \`${a.module}\` ${a.title} (${a.url}); excepted until ${a.reviewBy}, owner @${a.owner}`);
+            if (excepted.length) lines.push("", "Reviewed exceptions (config/dependency-audit-exceptions.json):", ...excepted);
             const body = [
               `State: **${verdict.state}** in ${runUrl}.`,
               "",
