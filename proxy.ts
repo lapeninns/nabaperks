@@ -40,6 +40,7 @@ import {
   verifyCustomerDeviceToken,
 } from "@/lib/security/customer-device-token"
 import { refreshSupabaseSession } from "@/lib/supabase/update-session"
+import { isQrPosterTemplateId } from "@/lib/qr/poster-templates"
 
 // Next.js 16 Proxy (formerly middleware). Refreshes Supabase auth cookies on
 // stateful application requests, then attaches observability and security
@@ -56,6 +57,22 @@ export async function proxy(request: NextRequest) {
     )
   const requestId = resolveRequestId(request.headers)
   const requestPath = `${request.nextUrl.pathname}${request.nextUrl.search}`
+  // The poster page's notFound receipt sits below the app loading boundary.
+  // Set its status before that boundary streams, while the normal route still
+  // performs authentication, tenant checks and branded recovery rendering.
+  const posterTemplate = /^\/app\/qr\/poster\/([^/]+)$/.exec(
+    request.nextUrl.pathname
+  )?.[1]
+  let posterStatus = 200
+  if (posterTemplate) {
+    try {
+      posterStatus = isQrPosterTemplateId(decodeURIComponent(posterTemplate))
+        ? 200
+        : 404
+    } catch (error) {
+      if (!(error instanceof URIError)) throw error
+    }
+  }
   const nonce = btoa(crypto.randomUUID())
   const csp = dynamicContentSecurityPolicy(nonce)
   const joinJourney = operationalProbe ? null : resolveJoinJourney(request)
@@ -74,6 +91,7 @@ export async function proxy(request: NextRequest) {
       customerDevice?.isNew ? undefined : customerDevice?.id
     )
     const nextResponse = NextResponse.next({
+      status: posterStatus,
       request: { headers: requestHeaders },
     })
     nextResponse.headers.set(REQUEST_ID_HEADER, requestId)
