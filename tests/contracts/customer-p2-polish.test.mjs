@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
+import { scan } from "../support/public-qr-page.mjs"
 
 /**
  * Phase D customer production-polish structural contract
@@ -38,25 +39,45 @@ test("CUS-P2-01: the receipt footer never invents a card number", () => {
   )
 })
 
-test("CUS-P2-02: the /q error states carry one headline and one description", () => {
-  const page = readProjectFile("app", "q", "[qrId]", "page.tsx")
+test("CUS-P2-02: the /q error states carry one headline and one description", async () => {
+  for (const scenario of [
+    {
+      context: null,
+      description: "Ask a member of staff for the current loyalty QR.",
+    },
+    {
+      context: {
+        available: false,
+        qrPaused: true,
+        merchant: { id: "merchant-1" },
+      },
+      description: "This venue has paused its loyalty QR.",
+    },
+    {
+      context: null,
+      rateLimited: true,
+      description:
+        "Wait a moment, then scan the QR again. Your stamps are safe.",
+    },
+  ]) {
+    const answer = await scan({
+      resolve: async () => scenario.context,
+      membership: async () => null,
+      rateLimited: scenario.rateLimited,
+    })
 
-  // The shell no longer stacks a second level-1 headline above the receipt.
-  assert.doesNotMatch(page, /title="Card unavailable"/)
-  assert.doesNotMatch(page, /title="One moment"/)
-  // The near-duplicate shell description is gone; the receipt keeps one.
-  // Guest journey Q2: one headline and one description, in guest words.
-  assert.doesNotMatch(page, /Ask the venue team for the current loyalty QR\./)
-  assert.match(page, /QR_NOT_WORKING_TITLE = "This QR isn't working"/)
-  assert.match(
-    page,
-    /QR_NOT_WORKING_DESCRIPTION =\s*"Ask a member of staff for the current loyalty QR\."/
-  )
-  assert.match(page, /title=\{QR_NOT_WORKING_TITLE\}/)
-  assert.match(page, /description=\{QR_NOT_WORKING_DESCRIPTION\}/)
-  // Error receipts are honest: no mono footer pretending technical facts.
-  const unavailable = page.slice(page.indexOf("function UnavailableQr"))
-  assert.match(unavailable, /hideFooter/)
+    assert.equal((answer.html.match(/<h1\b|role="heading"/g) ?? []).length, 1)
+    assert.match(answer.html, /<h1\b|aria-level="1"/)
+    assert.equal(
+      (answer.html.match(/data-slot="empty-description"/g) ?? []).length,
+      1
+    )
+    assert.equal(answer.text.split(scenario.description).length - 1, 1)
+    assert.doesNotMatch(
+      answer.text,
+      /Card unavailable|One moment|NP-0001|ONE STAMP PER BUSINESS DAY/
+    )
+  }
 })
 
 test("CUS-P2-03/05: customer entry surfaces set their own tab title", () => {

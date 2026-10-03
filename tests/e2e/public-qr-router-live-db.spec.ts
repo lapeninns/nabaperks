@@ -57,7 +57,7 @@ test.describe("@customer-flow public QR router live DB", () => {
       await installCustomerSession(context, fixture)
       await expectExistingMemberRedirect(page, fixture)
 
-      await expectUnavailableQr(page, fixture.inactiveQrId)
+      await expectUnavailableQr(page, fixture.inactiveQrId, true)
 
       // Paused-merchant and lapsed-billing venues are seeded closed rather than
       // flipped mid-test: the public QR lookup is served from a 60s data cache
@@ -161,13 +161,17 @@ async function expectExistingMemberRedirect(
   })
 }
 
-async function expectUnavailableQr(page: Page, qrId: string): Promise<void> {
+async function expectUnavailableQr(
+  page: Page,
+  qrId: string,
+  paused = false
+): Promise<void> {
   const response = await page.goto(publicQrPath(qrId))
 
   expect(response?.status()).toBe(200)
   await expect(
     page.getByRole("heading", {
-      name: "This QR isn't working",
+      name: paused ? "Customer scans are paused" : "This QR isn't working",
     })
   ).toBeVisible()
   await expect(
@@ -252,7 +256,7 @@ async function reactivatedQrRound(
       publicQrRateLimitIdentities(fixture, sessionDeviceId(fixture))
     )
 
-    await expectUnavailableQr(page, fixture.inactiveQrId)
+    await expectUnavailableQr(page, fixture.inactiveQrId, true)
 
     // One active join QR per venue location: retire the old one first.
     await sql`

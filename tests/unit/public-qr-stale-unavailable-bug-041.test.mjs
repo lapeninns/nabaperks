@@ -192,6 +192,26 @@ test("Given a still switched-off QR When it is scanned Then it stays unavailable
   assert.equal((await scan(join)).available, false)
 })
 
+test("Given a switched-off QR When it is resolved Then its pause is preserved in the landing read model", async () => {
+  const join = await loadResolver()
+  join.state.qrActive = false
+
+  const context = await scan(join)
+
+  assert.equal(context.available, false)
+  assert.equal(context.qrPaused, true)
+})
+
+test("Given a suspended venue with an active QR When it is resolved Then it is unavailable without reporting a QR pause", async () => {
+  const join = await loadResolver()
+  join.state.merchantStatus = "suspended"
+
+  const context = await scan(join)
+
+  assert.equal(context.available, false)
+  assert.equal(context.qrPaused, false)
+})
+
 test("the join rows carry a join-availability tag that writers expire with no stale window", async () => {
   const join = await loadResolver()
   await scan(join)

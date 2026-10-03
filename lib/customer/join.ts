@@ -27,6 +27,7 @@ export type CustomerJoinContext = {
   available: boolean
   qrId?: string
   qrCodeId?: string
+  readonly qrPaused?: boolean
   merchant: {
     id: string
     business_name: string
@@ -130,6 +131,7 @@ export async function resolveQrForJoin(
 
   return {
     available,
+    qrPaused: qrCode.destination_type === "join" && !qrCode.is_active,
     qrId: qrCode.qr_id,
     qrCodeId: qrCode.id,
     merchant,

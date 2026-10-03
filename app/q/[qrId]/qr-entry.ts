@@ -6,7 +6,8 @@
  *  - `load_failed`: the QR could not be resolved because a dependency failed.
  *    Nothing is known to be wrong with the QR, so the page asks for a retry
  *    instead of claiming the card is unavailable.
- *  - `unavailable`: the QR is unknown, inactive, or its card is not live.
+ *  - `paused`: the venue has paused this join QR; existing cards remain open.
+ *  - `unavailable`: the QR is unknown or its card is not live.
  *  - `member`: the signed-in customer already holds this card.
  *  - `join`: everyone else, including a member whose membership lookup
  *    failed. The join page reads the membership again and sends a member on
@@ -21,6 +22,7 @@ export type QrEntryStage = "resolve" | "membership_lookup"
 
 type ResolvedQr = {
   readonly available: boolean
+  readonly qrPaused?: boolean
   readonly merchant: { readonly id: string }
 }
 
@@ -28,6 +30,7 @@ export type QrEntryOutcome<Q extends ResolvedQr, M> =
   | { readonly kind: "rate_limited" }
   | { readonly kind: "load_failed" }
   | { readonly kind: "unavailable" }
+  | { readonly kind: "paused" }
   | { readonly kind: "member"; readonly qrContext: Q; readonly membership: M }
   | { readonly kind: "join"; readonly qrContext: Q }
 
@@ -54,7 +57,9 @@ export async function decideQrEntry<Q extends ResolvedQr, M>({
     return { kind: "load_failed" }
   }
 
-  if (!qrContext || !qrContext.available) return { kind: "unavailable" }
+  if (!qrContext) return { kind: "unavailable" }
+  if (qrContext.qrPaused) return { kind: "paused" }
+  if (!qrContext.available) return { kind: "unavailable" }
 
   let membership: M | null
   try {
