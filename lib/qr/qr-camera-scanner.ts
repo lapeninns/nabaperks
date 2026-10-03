@@ -80,6 +80,8 @@ export function createQrCameraScanner(
       stream = openedStream
       video.srcObject = stream
       target.append(video)
+      // WebKit can suspend a muted stream before the new viewfinder is laid out.
+      video.getBoundingClientRect()
       await video.play()
       if (!stopped) timer = setTimeout(scan, 100)
     } catch (error) {

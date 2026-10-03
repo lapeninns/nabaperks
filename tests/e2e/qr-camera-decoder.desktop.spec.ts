@@ -12,6 +12,7 @@ type CameraFixture = {
 declare global {
   interface Window {
     qrCameraFixture: CameraFixture
+    resumeAnimationFrames: () => void
   }
 }
 
@@ -69,9 +70,9 @@ async function installCamera(page: Page, mode: "normal" | "retry" | "pending") {
                 return
               if (currentImage)
                 context.drawImage(currentImage, 90, 90, 420, 420)
-              requestAnimationFrame(emitFrame)
+              setTimeout(emitFrame, 50)
             }
-            requestAnimationFrame(emitFrame)
+            setTimeout(emitFrame, 0)
             return stream
           },
         },
@@ -101,41 +102,71 @@ for (const scenario of [
     destination: "/q/completion-camera-fixture",
   },
 ]) {
-  test(`${scenario.name} decodes a real video frame, rejects foreign QR, then stops before routing`, async ({
-    page,
-  }) => {
-    await dismissPwaInstall(page)
-    await installCamera(page, "normal")
-    await page.goto(scenario.route)
-    await expect(
-      page.getByText(scenario.invalid, { exact: true })
-    ).toBeVisible()
-    expect(
-      await page.evaluate(() => window.qrCameraFixture.constraints[0])
-    ).toEqual({
-      audio: false,
-      video: { facingMode: { ideal: "environment" }, aspectRatio: 1 },
-    })
-    const destination = page.waitForRequest(
-      (request) => new URL(request.url()).pathname === scenario.destination
-    )
-    const image = await QRCode.toDataURL(scenario.qr, { width: 420, margin: 4 })
-    await page.evaluate(async (image) => {
-      await window.qrCameraFixture.paint(image)
-    }, image)
-    await destination
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            window.qrCameraFixture.streams.length > 0 &&
-            window.qrCameraFixture.streams.every((stream) =>
-              stream.getTracks().every((track) => track.readyState === "ended")
+  for (const suspendAnimationFrames of [false, true]) {
+    test(`${scenario.name} decodes a real video frame, rejects foreign QR, then stops before routing${suspendAnimationFrames ? " with animation frames suspended" : ""}`, async ({
+      page,
+    }) => {
+      await dismissPwaInstall(page)
+      if (suspendAnimationFrames)
+        await page.addInitScript(() => {
+          const requestAnimationFrame = window.requestAnimationFrame
+          window.requestAnimationFrame = () => 0
+          window.resumeAnimationFrames = () => {
+            window.requestAnimationFrame = requestAnimationFrame
+          }
+        })
+      await installCamera(page, "normal")
+      await page.goto(scenario.route)
+      await expect
+        .poll(() =>
+          page
+            .locator("video")
+            .evaluate(
+              (video) =>
+                video instanceof HTMLVideoElement &&
+                video.readyState >= 2 &&
+                video.videoWidth === 600 &&
+                video.videoHeight === 600
             )
         )
+        .toBe(true)
+      await expect(
+        page.getByText(scenario.invalid, { exact: true })
+      ).toBeVisible()
+      if (suspendAnimationFrames)
+        await page.evaluate(() => window.resumeAnimationFrames())
+      expect(
+        await page.evaluate(() => window.qrCameraFixture.constraints[0])
+      ).toEqual({
+        audio: false,
+        video: { facingMode: { ideal: "environment" }, aspectRatio: 1 },
+      })
+      const destination = page.waitForRequest(
+        (request) => new URL(request.url()).pathname === scenario.destination
       )
-      .toBe(true)
-  })
+      const image = await QRCode.toDataURL(scenario.qr, {
+        width: 420,
+        margin: 4,
+      })
+      await page.evaluate(async (image) => {
+        await window.qrCameraFixture.paint(image)
+      }, image)
+      await destination
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              window.qrCameraFixture.streams.length > 0 &&
+              window.qrCameraFixture.streams.every((stream) =>
+                stream
+                  .getTracks()
+                  .every((track) => track.readyState === "ended")
+              )
+          )
+        )
+        .toBe(true)
+    })
+  }
 
   test(`${scenario.name} retries permission denial and releases camera synchronously on exit`, async ({
     page,
