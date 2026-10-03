@@ -90,7 +90,10 @@ function parsePushPayload(event) {
   } catch {
     return {
       title: DEFAULT_NOTIFICATION_TITLE,
-      body: event.data.text() || "Your Nabaperks account has an update.",
+      body: cleanNotificationText(
+        event.data.text(),
+        "Your Nabaperks account has an update."
+      ),
       url: DEFAULT_NOTIFICATION_URL,
     }
   }

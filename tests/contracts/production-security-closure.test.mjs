@@ -52,8 +52,9 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   // Each of these is a floor, not a preference: the version below it carries a
   // live advisory. brace-expansion now needs 5.0.12 (GHSA-q2hr-2g5m-vwhr),
   // fast-uri now needs 3.1.8 (GHSA-hrr3-gc8f-f4qj plus the earlier URI
-  // canonicalisation advisories), hono -> 4.13.5 (the 2026-09 SSG, body
-  // nesting and fragment-query advisories), nanoid -> 3.3.18, browserslist -> 4.28.8 and qs ->
+  // canonicalisation advisories), hono -> 4.13.7 (including the JSX boundary
+  // escaping advisory), basic-ftp -> 6.2.1 (Unix listing parser CPU exhaustion),
+  // nanoid -> 3.3.18, browserslist -> 4.28.8 and qs ->
   // 6.16.0. Puppeteer's browser helper moves to 3.2.1 because that release
   // removes the unpatched extract-zip path traversal dependency. Vercel's
   // undici now needs 6.28.1 or 7.29.1, and ip-address needs 10.5.1.
@@ -71,7 +72,8 @@ test("build tooling transitive dependencies are pinned past active advisories", 
   assert.equal(workspaceOverride('"@vercel/node>undici"'), "6.28.1")
   assert.equal(workspaceOverride('"@vercel/sandbox>undici"'), "^7.29.1")
   assert.equal(workspaceOverride("shadcn>undici"), "7.29.1")
-  assert.equal(workspaceOverride("hono@4.12.25"), "4.13.5")
+  assert.equal(workspaceOverride("hono"), "4.13.7")
+  assert.equal(workspaceOverride('"get-uri@8.0.1>basic-ftp"'), "6.2.1")
   assert.match(
     read("pnpm-workspace.yaml"),
     /^patchedDependencies:\n  minimatch@3\.1\.5: patches\/minimatch@3\.1\.5\.patch$/m

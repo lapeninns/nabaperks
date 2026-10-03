@@ -1,5 +1,7 @@
 import "server-only"
 
+import { after } from "next/server"
+
 import { scheduleMerchantBillingCheckoutReturned } from "@/lib/analytics/merchant-billing-events"
 import { autoProvisionJoinQrFromSetup } from "@/lib/merchant/ensure-join-qr"
 import { isLaunchBillingReady } from "@/lib/merchant/launch-readiness-core"
@@ -38,7 +40,7 @@ export async function completeBillingCheckoutReturn(
     isLaunchBillingReady({ requiresBilling: true, status: outcome.status })
   ) {
     await autoProvisionJoinQrFromSetup()
-    revalidateMerchantLaunchSurfaces(merchantId)
+    after(() => revalidateMerchantLaunchSurfaces(merchantId))
   }
 
   return outcome
@@ -63,7 +65,7 @@ export async function completeBillingPortalReturn(
     isLaunchBillingReady({ requiresBilling: true, status: outcome.status })
   ) {
     await autoProvisionJoinQrFromSetup()
-    revalidateMerchantLaunchSurfaces(merchantId)
+    after(() => revalidateMerchantLaunchSurfaces(merchantId))
   }
 
   return outcome

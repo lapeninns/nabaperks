@@ -16,6 +16,7 @@ import { UnavailableRecoveryActions } from "@/components/customer/unavailable-re
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
+import { assertNever } from "@/lib/customer/experience/types"
 import { loadStampExperienceContext } from "@/lib/customer/experience/load-stamp"
 import {
   getExistingMembershipForCurrentUser,
@@ -94,16 +95,26 @@ export default async function PublicQrPage({
     },
   })
 
-  if (entry.kind === "rate_limited") return <RateLimitedQr />
-  if (entry.kind === "load_failed") {
-    return (
-      <CustomerLoadFailed
-        retryHref={`/q/${encodeURIComponent(qrId)}`}
-        screenLabel="QR could not load"
-      />
-    )
+  switch (entry.kind) {
+    case "rate_limited":
+      return <RateLimitedQr />
+    case "load_failed":
+      return (
+        <CustomerLoadFailed
+          retryHref={`/q/${encodeURIComponent(qrId)}`}
+          screenLabel="QR could not load"
+        />
+      )
+    case "unavailable":
+      return <UnavailableQr />
+    case "paused":
+      return <UnavailableQr paused />
+    case "member":
+    case "join":
+      break
+    default:
+      return assertNever(entry)
   }
-  if (entry.kind === "unavailable") return <UnavailableQr />
 
   const { qrContext } = entry
   const membership = entry.kind === "member" ? entry.membership : null
@@ -162,18 +173,22 @@ const QR_NOT_WORKING_DESCRIPTION =
  * near-duplicate copy above it (CUS-P2-02), and hide the mono footer so no
  * placeholder card number reads as fact (CUS-P2-01).
  */
-function UnavailableQr() {
+function UnavailableQr({ paused = false }: { readonly paused?: boolean }) {
   return (
     <CustomerFlowShell
       eyebrow="Venue QR"
       className="content-center"
-      screenLabel="Unavailable QR"
+      screenLabel={paused ? "Paused QR" : "Unavailable QR"}
     >
       <CustomerReceipt venueName="Nabaperks" eyebrow="Venue QR" hideFooter>
         <EmptyState
           icon={AlertDiamondIcon}
-          title={QR_NOT_WORKING_TITLE}
-          description={QR_NOT_WORKING_DESCRIPTION}
+          title={paused ? "Customer scans are paused" : QR_NOT_WORKING_TITLE}
+          description={
+            paused
+              ? "This venue has paused its loyalty QR. You can still open your cards, but you can't collect a stamp from this QR while it is paused."
+              : QR_NOT_WORKING_DESCRIPTION
+          }
           headingLevel={1}
           className="w-full"
           // Q2: the guest's cards lead; scanning again is the quiet second.
