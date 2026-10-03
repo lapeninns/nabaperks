@@ -255,7 +255,7 @@ async function startCustomerAccessRecovery({
   })
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0")
-  await setPendingAccessRecovery({
+  const pendingRecovery = {
     sessionId: randomUUID(),
     customerId: customer.id,
     phoneHmac,
@@ -268,14 +268,12 @@ async function startCustomerAccessRecovery({
       code,
     }),
     next,
-  })
-
-  try {
-    await sendEmailOtp({ to: verifiedEmail, code })
-  } catch (error) {
-    await clearPendingAccessRecovery()
-    throw error
   }
+  await sendEmailOtp({ to: verifiedEmail, code })
+
+  // Keep the previous proof and its expiry if dispatch fails, so recovery can
+  // render the resend error and the customer can still use their current code.
+  await setPendingAccessRecovery(pendingRecovery)
 }
 
 async function boundRecoveryAttempt() {
