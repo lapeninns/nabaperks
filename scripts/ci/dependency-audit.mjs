@@ -93,7 +93,7 @@ const tally = (advisories) =>
     ])
   )
 
-// An exception applies only while its review date has not passed and while
+// An exception applies only from its approval date until its review date and while
 // the module is still unreachable from production dependencies. pnpm's counts
 // still include excepted advisories, so they are subtracted only when the
 // advisory list accounts for every counted finding; otherwise the verdict
@@ -108,6 +108,7 @@ export function applyExceptions(
       (e) =>
         e.advisory === advisory.id &&
         e.module === advisory.module &&
+        e.approved <= today &&
         today <= e.reviewBy &&
         !isProductionReachable(advisory.module)
     )

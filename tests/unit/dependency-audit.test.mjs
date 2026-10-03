@@ -148,6 +148,14 @@ test("an exception lapses after review, on production reach or unmatched counts"
     today: "2026-11-01",
   })
   assert.equal(expired.state, "findings")
+  // A future approval date, for example a typo, must not apply early.
+  const future = applyExceptions(findings([braces]), {
+    ...options,
+    exceptions: [
+      { ...exception, approved: "2099-01-01", reviewBy: "2099-03-01" },
+    ],
+  })
+  assert.equal(future.state, "findings")
   const reachable = applyExceptions(findings([braces]), {
     ...options,
     isProductionReachable: () => true,
