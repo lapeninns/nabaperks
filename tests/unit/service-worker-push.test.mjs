@@ -23,6 +23,105 @@ function loadWorker() {
   return runtime
 }
 
+async function dispatchPush(raw) {
+  const worker = loadWorker()
+  const notifications = []
+  worker.registration = {
+    async showNotification(title, options) {
+      notifications.push({ title, ...options })
+    },
+  }
+  const waits = []
+  worker.listeners.push({
+    data:
+      raw === null ? null : { json: () => JSON.parse(raw), text: () => raw },
+    waitUntil(promise) {
+      waits.push(promise)
+    },
+  })
+  await Promise.all(waits)
+  assert.equal(notifications.length, 1)
+  return { worker, notification: notifications[0] }
+}
+
+test("malformed push JSON trims and caps the displayed fallback body at 180 characters", async () => {
+  const raw = `  ${"Malformed push text ".repeat(30)}  `
+  const { notification } = await dispatchPush(raw)
+
+  assert.equal(notification.body, raw.trim().slice(0, 180))
+  assert.equal(notification.body.length, 180)
+  assert.equal(notification.title, "Nabaperks")
+  assert.equal(notification.data.url, "/home")
+})
+
+for (const raw of ["", " \n\t ", null]) {
+  test(`empty or missing push data uses the default body: ${JSON.stringify(raw)}`, async () => {
+    const { notification } = await dispatchPush(raw)
+
+    assert.equal(notification.body, "Your Nabaperks account has an update.")
+    assert.equal(notification.data.url, "/home")
+  })
+}
+
+test("a valid push retains its notification content and safe destination", async () => {
+  const { notification } = await dispatchPush(
+    JSON.stringify({
+      title: "  Account update  ",
+      body: "  Your account details are ready.  ",
+      url: "/card/fixture?view=latest#details",
+      notificationEventId: "fixture-event",
+      eventType: "account_update",
+    })
+  )
+
+  assert.equal(notification.title, "Account update")
+  assert.equal(notification.body, "Your account details are ready.")
+  assert.equal(notification.data.url, "/card/fixture?view=latest#details")
+  assert.equal(notification.data.notificationEventId, "fixture-event")
+  assert.equal(notification.data.eventType, "account_update")
+})
+
+test("a valid oversized body keeps the existing 180-character limit", async () => {
+  const body = `  ${"Valid push text ".repeat(30)}  `
+  const { notification } = await dispatchPush(JSON.stringify({ body }))
+
+  assert.equal(notification.body, body.trim().slice(0, 180))
+  assert.equal(notification.body.length, 180)
+})
+
+test("a foreign push destination displays and opens the safe default path", async () => {
+  const { worker, notification } = await dispatchPush(
+    JSON.stringify({
+      body: "Account update",
+      url: "https://evil.example/phish",
+    })
+  )
+  assert.equal(notification.data.url, "/home")
+
+  const opened = []
+  worker.clients = {
+    matchAll: async () => [],
+    openWindow: async (url) => opened.push(url),
+  }
+  let closed = false
+  const waits = []
+  worker.listeners.notificationclick({
+    notification: {
+      data: notification.data,
+      close() {
+        closed = true
+      },
+    },
+    waitUntil(promise) {
+      waits.push(promise)
+    },
+  })
+  await Promise.all(waits)
+
+  assert.equal(closed, true)
+  assert.deepEqual(opened, ["/home"])
+})
+
 test("the push worker does not intercept navigations or cache an app shell", () => {
   const worker = loadWorker()
   assert.equal(worker.listeners.fetch, undefined)
